@@ -17,7 +17,7 @@ Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/sup
 |---|---|---|
 | ① | DXF codec, corpus integrity, first render | **done** |
 | ② | Ghidra overlay loader, dual AST export, `acad-re` | **done** |
-| ③ | Oracle harness — in-tree 8086, differential tests | next |
+| ③ | Oracle harness — in-tree 8086, differential tests | in progress: QEMU-backed generated empty-drawing DXF differential test |
 | ④ | DWG codec — `AC1.40`, then `AC1.2` | `AC1.2` read: all 16 corpus drawings parse and render |
 | ⑤ | Command loop | |
 
@@ -34,16 +34,21 @@ shipped Rust is hand-written. The measurements behind that are in
 emulator (spec §4.4). Its write direction, `AC1.2`, and oracle verification wait
 for ③.
 
-`SUBDIV` is the corpus's only drawing with a DXF sibling, so it is the only
-independent check there is. Seven `AC1.2` record types decode through it and are
-**verified**, byte for byte, against `SUBDIV.DXF`: `LINE`, `CIRCLE`, `ARC`, `TEXT`,
-`BLOCK`, `ENDBLK`, `INSERT`. Four more — `POINT`, `TRACE`, `SOLID`, and the
-`REPEAT`/`ENDREP` pair — have no DXF sibling anywhere in the corpus, so they are
-**inferred** from record size and whole-file consistency alone: the file's
-record-by-record walk lands exactly on the header's own `entity_end` with a
-record count matching `entity_count`, cross-checked against two independent
-corpus files apiece where one was available (see `crates/acad-dwg/src/entity.rs`'s
-module doc for the full evidence behind each). A signed type code marking an
+`acad-oracle` now has a QEMU-backed development probe. It boots disposable
+copies of the original floppies, creates an empty `AC1.40` drawing, and asks
+AutoCAD to export five `AC1.2` sample drawings as DXF. The tests compare the
+empty export byte for byte and the sample exports against the DWG reader's
+geometry, including `POINT`, `TRACE`, `SOLID`, and entities inside `REPEAT`.
+Entity-creation commands are not running yet. QEMU must be installed for this
+probe; the spec's in-tree, CI-independent oracle remains future work. See
+[the oracle note](docs/oracle-qemu.md).
+
+`SUBDIV` is the corpus's only drawing with a DXF sibling on disk. Seven
+`AC1.2` record types were initially verified against it: `LINE`, `CIRCLE`,
+`ARC`, `TEXT`, `BLOCK`, `ENDBLK`, `INSERT`. AutoCAD's freshly generated DXF
+exports now independently check `POINT`, `TRACE`, `SOLID`, and the entities
+carried by `REPEAT`/`ENDREP`. The repeat construct's full semantics remain
+unmodelled. A signed type code marking an
 erased entity (`ADDER`'s own finding) is confirmed the same way: reading the code
 as `i16` makes `ADDER`'s walk land exactly, where reading it unsigned does not.
 
@@ -76,14 +81,10 @@ translate/scale/rotate transform with the one enclosing it, with a depth cap
 (ours, not a recovered 1983 constant — the corpus never nests past depth 2)
 against a self-referencing `INSERT`.
 
-**This plan adds no oracle.** `SELEXOL` and `BLIVET` still have no DXF sibling,
-so their render — 21,439 and 31,729 lit pixels respectively, on the smoke
-test's 800×800 canvas, well clear of `SUBDIV`'s 15,660 and `ORGATE`'s
-smallest-of-the-corpus 2,466 — is evidence that the record layouts and this
-nesting fix generalise across the corpus, not a second, independent
-verification the way a DXF comparison would be. The verified-versus-inferred
-split above is unchanged by any of this: `POINT`, `TRACE`, `SOLID` and
-`REPEAT`/`ENDREP` remain inferred, not verified, exactly as before.
+The render smoke test lights 21,439 pixels for `SELEXOL` and 31,729 for
+`BLIVET` on an 800×800 canvas. Their newly exported DXFs independently
+check the decoded entity geometry. They do not verify every pixel or the
+renderer's transform composition.
 
 `acad-app` opens either format, dispatching on the file's own magic bytes rather
 than its extension, so a `.BAK` file — four corpus drawings have one — is
@@ -107,14 +108,15 @@ without it.
 | Crate | |
 |---|---|
 | `acad-model` | Entity model. The one crate everything depends on, and the one written for the future rather than for 1983. |
-| `acad-dxf` | The 1983 `KEYWORD,count` DXF codec — not the modern group-code format. |
+| `acad-dxf` | The 1983 `KEYWORD,n` DXF codec (entity suffixes denote layers) — not the modern group-code format. |
 | `acad-dwg` | The 1983 binary DWG codec. `AC1.2` read support so far; `AC1.40` and the write direction come after milestone ③. Depends only on `acad-model` — a shipped codec must not depend on another codec. |
 | `acad-render` | Viewport fit and entity flattening (numerically testable), then rasterisation. |
 | `acad-app` | Window, via `winit` + `softbuffer`. Opens either `.DXF` or `.DWG`, chosen by the file's magic bytes. |
 | `acad-corpus` | Generates `corpus/manifest.toml`, the integrity record. |
 | `acad-re` | **Dev only.** `ACAD.OVL` container codec, typed Ghidra AST, call graph, command recovery, gate metrics. Nothing shipped depends on it. |
+| `acad-oracle` | **Dev only.** QEMU probe for original AutoCAD exports. Requires QEMU and the extracted floppies. |
 
-Still to come, per spec §5: `acad-cmd`, `acad-oracle`.
+Still to come, per spec §5: `acad-cmd` and the in-tree 8086 oracle core.
 
 ## The corpus
 

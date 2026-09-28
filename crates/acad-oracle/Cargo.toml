@@ -1,0 +1,14 @@
+[package]
+name = "acad-oracle"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+# Dev-only: this crate must not be a dependency of the shipped application.
+[dependencies]
+serde_json = "1"
+
+[dev-dependencies]
+acad-dxf = { path = "../acad-dxf" }
+acad-dwg = { path = "../acad-dwg" }
+acad-model = { path = "../acad-model" }

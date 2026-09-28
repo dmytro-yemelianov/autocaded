@@ -59,6 +59,16 @@ name = "acad-model"
 version = "0.1.0"
 
 [[package]]
+name = "acad-oracle"
+version = "0.1.0"
+dependencies = [
+ "acad-dwg",
+ "acad-dxf",
+ "acad-model",
+ "serde_json",
+]
+
+[[package]]
 name = "acad-re"
 version = "0.1.0"
 dependencies = [

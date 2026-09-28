@@ -27,19 +27,18 @@
 //! **`POINT`, `TRACE`, `SOLID` (Task 8, Part B).** Straightforward
 //! fixed-field records like `LINE`/`CIRCLE`: `POINT` is a header plus one
 //! point (20 bytes); `TRACE` and `SOLID` are a header plus four points, 8
-//! doubles, 68 bytes. **None of the three has a DXF oracle** — `SUBDIV.DXF`,
-//! the corpus's only DXF, contains none of them — so unlike every other type
-//! in this file, their layout is inferred from record size and internal
+//! doubles, 68 bytes. They were initially inferred from record size and internal
 //! consistency (the whole-file walk landing exactly on `entity_end` with a
 //! record count matching the header's, across the files that use them: 68
 //! bytes for `TRACE` on `SELEXOL` — 167/167 records, exact byte landing —
 //! and independently on `BLIVET`; `SOLID` the same shape on `FLOW`,
 //! 177/177). `POINT`'s two doubles were read directly off `SELEXOL` bytes:
 //! a clean `(5.0, 5.0)` immediately followed by a plausible `LINE`, with no
-//! plausible alternative field count.
+//! plausible alternative field count. DXFs freshly exported by the original
+//! under QEMU now independently verify all three layouts (`acad-oracle`).
 //!
 //! **`REPEAT`/`ENDREP` (Task 8, Part B) — the one non-leaf construct.**
-//! Also inferred, not verified (no DXF oracle), but cross-checked against
+//! Initially inferred without a DXF oracle, but cross-checked against
 //! *two* independent corpus files (`FLOOR`, whose only failing code was
 //! `REPEAT`, and `BLIVET`, which turned out to use it too once `TRACE` was
 //! in place) — both land exactly on `entity_end` with a record count
@@ -78,7 +77,8 @@
 //! dispatch guidance: the construct's own open/close bookkeeping is walked
 //! over, not represented, while the genuine entities it contains (both the
 //! ones between `REPEAT`/`ENDREP` and the one fused into `REPEAT` itself)
-//! are read like any other record.
+//! are read like any other record. Fresh original DXF exports verify the
+//! enclosed entities and their order, while full repeat semantics remain open.
 //!
 //! `ARC`, `TEXT` and `INSERT` each carry an angle field stored in radians;
 //! they are converted to degrees here because `acad_model` documents them in
@@ -130,8 +130,7 @@ const ENTITY_START: usize = 0x1D8;
 /// entry.
 const TYPE_LINE: u16 = 1;
 
-/// `ACAD.EXE`'s entity name table, entry 2: `POINT`. No DXF oracle — see the
-/// module doc.
+/// `ACAD.EXE`'s entity name table, entry 2: `POINT`.
 const TYPE_POINT: u16 = 2;
 
 /// `ACAD.EXE`'s entity name table, entry 3: `CIRCLE`.
@@ -150,12 +149,10 @@ const TYPE_TEXT: u16 = 7;
 /// `ACAD.EXE`'s entity name table, entry 8: `ARC`.
 const TYPE_ARC: u16 = 8;
 
-/// `ACAD.EXE`'s entity name table, entry 9: `TRACE`. No DXF oracle — see the
-/// module doc.
+/// `ACAD.EXE`'s entity name table, entry 9: `TRACE`.
 const TYPE_TRACE: u16 = 9;
 
-/// `ACAD.EXE`'s entity name table, entry 11: `SOLID`. No DXF oracle — see the
-/// module doc.
+/// `ACAD.EXE`'s entity name table, entry 11: `SOLID`.
 const TYPE_SOLID: u16 = 11;
 
 /// `ACAD.EXE`'s entity name table, entry 12: `BLOCK`.
@@ -272,8 +269,8 @@ fn read_entity_fields(
             // offset 0x1f5): header, then origin.x, origin.y as two
             // consecutive doubles — a clean (5.0, 5.0) immediately followed
             // by a plausible LINE, and the whole file's walk lands exactly
-            // on entity_end with this size. No DXF oracle — see the module
-            // doc.
+            // on entity_end with this size. The original's DXF export later
+            // verified it; see the module doc.
             let x = checked_f64(bytes, at, index)?;
             let y = checked_f64(bytes, at + 8, index)?;
             Ok((
@@ -370,8 +367,8 @@ fn read_entity_fields(
         TYPE_TRACE | TYPE_SOLID => {
             // Header, then four points as 8 consecutive doubles (68 bytes
             // total with the header). Inferred from record size and
-            // internal consistency alone — no DXF oracle, see the module
-            // doc — but cross-checked two ways: TRACE's shape makes
+            // internal consistency, then checked against original DXF
+            // exports. TRACE's shape makes
             // SELEXOL's and BLIVET's whole-file walks land exactly on
             // entity_end with the header's own record count, and SOLID's
             // identical shape does the same for FLOW. The four points are
@@ -1444,7 +1441,7 @@ mod tests {
     fn reads_a_point_record() {
         // TYPE_POINT is 2. Values are SELEXOL's own first POINT (file offset
         // 0x1f5): a clean (5.0, 5.0) immediately followed by a plausible
-        // LINE — see the module doc; no DXF oracle exists for this type.
+        // LINE — see the module doc and the later original DXF export.
         let bytes = records(&[raw_point(5.0, 5.0)]);
         let meta = HeaderMeta {
             entity_count: 1,

@@ -63,14 +63,8 @@ fn entity(out: &mut String, e: &Entity) {
                 name
             );
         }
-        // POINT, TRACE and SOLID have no DXF oracle anywhere in this corpus
-        // — `SUBDIV.DXF`, the only parallel-corpus file, contains none of
-        // them (spec's corpus census) — so this shape is not verified
-        // against any real 1983 output, unlike every other arm here. It
-        // exists so this match stays exhaustive now that `acad_dwg::parse`
-        // can produce these variants (Task 8); the keyword names themselves
-        // are confirmed string constants in `ACAD.EXE` (spec §4.2's entity
-        // table).
+        // Original AutoCAD exports from SELEXOL, BLIVET and FLOW now verify
+        // these layouts (acad-oracle's sample_exports test).
         Entity::Point { origin } => {
             let _ = write!(out, "POINT,1\r\n{}\r\n", pt(origin));
         }

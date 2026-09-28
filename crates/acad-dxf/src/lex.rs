@@ -1,6 +1,7 @@
 use crate::error::DxfError;
 
-/// One instance of one record. A header of `LINE,3` yields three `Record`s.
+/// One instance of one record. For entity headers, the number after the
+/// comma is the layer, so `LINE,20` yields one `Record`.
 /// `line` is the 1-based index of the record's header line.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
@@ -11,18 +12,37 @@ pub struct Record {
 
 const DOS_EOF: u8 = 0x1a;
 
-/// Rows consumed by one instance of a record. `None` means the keyword is not
-/// implemented in this milestone — POINT, TRACE, SOLID and SHAPE appear in
-/// ACAD.OVL but in no readable sample, so their layouts are unverified.
+/// Rows consumed by one instance of a record. `POINT`, `TRACE`, `SOLID`,
+/// `REPEAT` and `ENDREP` are evidenced by DXFs exported by the original
+/// from the AC1.2 corpus; `SHAPE` remains unsupported.
 pub fn rows_per_instance(keyword: &str) -> Option<usize> {
     Some(match keyword {
-        "ENDBLK" => 0,
+        "ENDBLK" | "REPEAT" => 0,
         "LAYERC" => 8,
-        "TEXT" | "INSERT" | "BLOCK" => 2,
+        "TEXT" | "INSERT" | "BLOCK" | "TRACE" | "SOLID" => 2,
         "EXTENTS" | "LIMITS" | "BASE" | "DWGVIEW" | "MODERES" | "MODEGRID" | "MODEORTHO"
-        | "MODEFILL" | "TXTSIZE" | "TRACEWID" | "LAYER" | "LINE" | "CIRCLE" | "ARC" => 1,
+        | "MODEFILL" | "TXTSIZE" | "TRACEWID" | "LAYER" | "LINE" | "CIRCLE" | "ARC" | "POINT"
+        | "ENDREP" => 1,
         _ => return None,
     })
+}
+
+fn is_entity(keyword: &str) -> bool {
+    matches!(
+        keyword,
+        "LINE"
+            | "CIRCLE"
+            | "ARC"
+            | "POINT"
+            | "TRACE"
+            | "SOLID"
+            | "TEXT"
+            | "INSERT"
+            | "BLOCK"
+            | "ENDBLK"
+            | "REPEAT"
+            | "ENDREP"
+    )
 }
 
 /// Offset of the first byte that cannot occur in a 1983 text file, ignoring
@@ -71,7 +91,7 @@ pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
             line: i + 1,
         })?;
         let mut cursor = i + 1;
-        for _ in 0..count {
+        for _ in 0..if is_entity(&kw) { 1 } else { count } {
             if cursor + per > lines.len() {
                 return Err(DxfError::Truncated {
                     keyword: kw.clone(),
@@ -121,11 +141,12 @@ mod tests {
     }
 
     #[test]
-    fn instance_count_above_one_yields_that_many_records() {
-        let src = b"LINE,3\r\n0,0,1,1\r\n1,1,2,2\r\n2,2,3,3\r\n\x1a";
+    fn entity_suffix_is_layer_not_instance_count() {
+        let src = b"LINE,20\r\n0,0,1,1\r\nPOINT,3\r\n2,2\r\n\x1a";
         let recs = lex(src).unwrap();
-        assert_eq!(recs.len(), 3);
-        assert_eq!(recs[2].rows, vec!["2,2,3,3"]);
+        assert_eq!(recs.len(), 2);
+        assert_eq!(recs[0].rows, vec!["0,0,1,1"]);
+        assert_eq!(recs[1].rows, vec!["2,2"]);
     }
 
     #[test]
@@ -157,11 +178,11 @@ mod tests {
 
     #[test]
     fn unimplemented_entity_is_rejected_not_guessed() {
-        let src = b"SOLID,1\r\n0,0,1,1\r\n\x1a";
+        let src = b"SHAPE,1\r\n0,0,1,1\r\n\x1a";
         assert_eq!(
             lex(src),
             Err(DxfError::UnknownKeyword {
-                keyword: "SOLID".into(),
+                keyword: "SHAPE".into(),
                 line: 1
             })
         );

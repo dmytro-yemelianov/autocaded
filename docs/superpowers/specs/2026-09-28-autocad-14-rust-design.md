@@ -75,8 +75,9 @@ entity record count (171 for `SUBDIV` = 159 entities + 6 `BLOCK` + 6 `ENDBLK`); 
 doubles from `+0x2A` — `EXTENTS` min/max as 3D points, `LIMITS` min/max as 2D pairs at
 `+0x5A`, `DWGVIEW` centre and height at `+0x7A`, `MODERES`/`MODEGRID` as `u16`+`f64` pairs at
 `+0x9A`, `TXTSIZE` at `+0xB4`, `TRACEWID` at `+0xBC`. Entity records begin at a fixed `+0x1D8`,
-constant across all 16 `AC1.2` drawings, and run in **the same order as the DXF**, ending at
-the `+0x24` offset. Each record is a `u16` type code, a `u16` whose meaning is not yet known,
+constant across all 16 `AC1.2` drawings, and end at the `+0x24` offset. Entity
+order within each block agrees with AutoCAD's exported DXF, but block
+definitions can have a different order. Each record is a `u16` type code, a `u16` whose meaning is not yet known,
 then the type's fields as IEEE doubles — so `LINE` is 36 bytes and `ARC` 44.
 
 **Block definitions are globally scoped.** In the `AC1.2` corpus, a `BLOCK`
@@ -92,9 +93,14 @@ such nesting deliberately or these files acquired it through later editing.
 The 1983 DXF parser rejects a nested `BLOCK`, and the DXF writer emits each
 block from the flat `items` list in closure order. Writing either drawing as
 DXF would therefore emit flat definitions and lose the original nesting;
-DWG→DXF is not byte-preserving for these files. Full conversion of their
-other, inferred record types has no independent DXF oracle yet. This is a
-limit to account for in milestone ④'s write direction.
+DWG→DXF is not byte-preserving for these files. A later QEMU probe asked
+the original to export `SELEXOL`, `BLIVET`, `FLOW`, `FLOOR`, and `ADDER` to
+DXF. Comparing those fresh exports with the DWG reader now verifies the
+geometry and per-block entity order for `POINT`, `TRACE`, `SOLID`, and
+entities inside `REPEAT`; the repeat markers' full semantics and entity
+layers are not represented in the model. The original DXFs also establish
+that an entity header suffix (for example, `LINE,20`) is a layer number,
+not a record count. These are limits for milestone ④'s write direction.
 
 **The type code is a 1-based index into the entity type table recovered from `ACAD.EXE`**
 (`DS:0x38EE`: `LINE POINT CIRCLE SHAPE REPEAT ENDREP TEXT ARC TRACE LOAD SOLID BLOCK ENDBLK

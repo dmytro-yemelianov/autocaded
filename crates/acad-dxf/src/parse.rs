@@ -177,6 +177,14 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 }
                 continue;
             }
+            // REPEAT's embedded entity has its own DXF record, unlike the
+            // fused binary DWG record. Preserve that entity and discard the
+            // container markers, as acad-dwg's flat model does.
+            "REPEAT" => continue,
+            "ENDREP" => {
+                let _ = nums::<4>(rec, 0)?;
+                continue;
+            }
             "LINE" => {
                 let v = nums::<4>(rec, 0)?;
                 Entity::Line {
@@ -189,6 +197,25 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 Entity::Circle {
                     center: Point { x: v[0], y: v[1] },
                     radius: v[2],
+                }
+            }
+            "POINT" => {
+                let v = nums::<2>(rec, 0)?;
+                Entity::Point {
+                    origin: Point { x: v[0], y: v[1] },
+                }
+            }
+            "TRACE" | "SOLID" => {
+                let a = nums::<4>(rec, 0)?;
+                let b = nums::<4>(rec, 1)?;
+                let p1 = Point { x: a[0], y: a[1] };
+                let p2 = Point { x: a[2], y: a[3] };
+                let p3 = Point { x: b[0], y: b[1] };
+                let p4 = Point { x: b[2], y: b[3] };
+                if rec.keyword == "TRACE" {
+                    Entity::Trace { p1, p2, p3, p4 }
+                } else {
+                    Entity::Solid { p1, p2, p3, p4 }
                 }
             }
             "ARC" => {
