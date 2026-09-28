@@ -96,8 +96,11 @@ The samples disk is a used 1983 working floppy and is **partly corrupt**:
 
 - `SHUTTLE.DXF` — valid for 1,536 bytes, then another file's binary data is spliced in at
   an exact 512-byte sector boundary. Broken FAT cluster chain. **Unusable.**
-- `SUBDIV.DXF` — clean and complete, proper `0x1A` terminator. 390 lines, 177 records:
-  `LINE`×133, `ARC`×8, `TEXT`×8, `INSERT`×5, `BLOCK`×3, `ENDBLK`×6, `CIRCLE`×2.
+- `SUBDIV.DXF` — clean and complete, proper `0x1A` terminator. 389 content lines, 183 records:
+  `LINE`×133, `ARC`×8, `TEXT`×8, `INSERT`×8, `CIRCLE`×2, `BLOCK`/`ENDBLK`×6 pairs.
+  Block definitions and loose entities are **interleaved** — 47 lines precede the first
+  block and further blocks appear between inserts — so document order is content, and a
+  writer that buckets by kind cannot round-trip.
 
 `SUBDIV.DWG` + `SUBDIV.DXF` is therefore the parallel corpus — the same drawing in binary
 and text form — and is the primary lever for reversing DWG without an emulator in the loop.
