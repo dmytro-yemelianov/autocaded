@@ -1,0 +1,16 @@
+[package]
+name = "acad-app"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "acad"
+path = "src/main.rs"
+
+[dependencies]
+acad-dxf.workspace = true
+acad-model.workspace = true
+acad-render.workspace = true
+winit = "0.30"
+softbuffer = "0.4"
