@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/acad-model", "crates/acad-corpus"]
+members = ["crates/acad-model", "crates/acad-corpus", "crates/acad-dxf"]
 resolver = "2"
 
 [workspace.package]
@@ -8,3 +8,4 @@ rust-version = "1.88"
 
 [workspace.dependencies]
 acad-model = { path = "crates/acad-model" }
+acad-dxf = { path = "crates/acad-dxf" }

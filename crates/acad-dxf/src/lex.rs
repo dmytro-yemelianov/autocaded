@@ -1,0 +1,124 @@
+use crate::error::DxfError;
+
+/// One instance of one record. A header of `LINE,3` yields three `Record`s.
+/// `line` is the 1-based index of the record's header line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Record { pub keyword: String, pub rows: Vec<String>, pub line: usize }
+
+const DOS_EOF: u8 = 0x1a;
+
+/// Rows consumed by one instance of a record. `None` means the keyword is not
+/// implemented in this milestone — POINT, TRACE, SOLID and SHAPE appear in
+/// ACAD.OVL but in no readable sample, so their layouts are unverified.
+pub fn rows_per_instance(keyword: &str) -> Option<usize> {
+    Some(match keyword {
+        "ENDBLK" => 0,
+        "LAYERC" => 8,
+        "TEXT" | "INSERT" | "BLOCK" => 2,
+        "EXTENTS" | "LIMITS" | "BASE" | "DWGVIEW" | "MODERES" | "MODEGRID"
+        | "MODEORTHO" | "MODEFILL" | "TXTSIZE" | "TRACEWID" | "LAYER"
+        | "LINE" | "CIRCLE" | "ARC" => 1,
+        _ => return None,
+    })
+}
+
+pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
+    let end = bytes.iter().position(|&b| b == DOS_EOF).unwrap_or(bytes.len());
+    let body = &bytes[..end];
+    if let Some(off) = body.iter().position(
+        |&b| !(0x20..0x7f).contains(&b) && b != b'\r' && b != b'\n') {
+        return Err(DxfError::Corrupt { offset: off });
+    }
+    // Latin-1: every byte here is already ASCII, so a direct map is exact.
+    let text: String = body.iter().map(|&b| b as char).collect();
+    let lines: Vec<&str> = text.split("\r\n").filter(|l| !l.is_empty()).collect();
+
+    let mut out = Vec::new();
+    let mut i = 0usize;
+    while i < lines.len() {
+        let (kw, count) = lines[i].rsplit_once(',')
+            .and_then(|(k, n)| n.parse::<usize>().ok().map(|n| (k.to_string(), n)))
+            .ok_or(DxfError::BadHeader { line: i + 1 })?;
+        let per = rows_per_instance(&kw)
+            .ok_or_else(|| DxfError::UnknownKeyword { keyword: kw.clone(), line: i + 1 })?;
+        let mut cursor = i + 1;
+        for _ in 0..count {
+            if cursor + per > lines.len() {
+                return Err(DxfError::Truncated { keyword: kw.clone(), line: i + 1 });
+            }
+            out.push(Record { keyword: kw.clone(), line: i + 1,
+                rows: lines[cursor..cursor + per].iter().map(|s| s.to_string()).collect() });
+            cursor += per;
+        }
+        i = cursor;
+    }
+    Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lexes_a_single_line_record() {
+        let src = b"LINE,1\r\n8.800000,5.700000,19.000000,1.899999\r\n\x1a";
+        let recs = lex(src).unwrap();
+        assert_eq!(recs.len(), 1);
+        assert_eq!(recs[0].keyword, "LINE");
+        assert_eq!(recs[0].rows, vec!["8.800000,5.700000,19.000000,1.899999"]);
+    }
+
+    #[test]
+    fn layerc_takes_eight_rows_for_one_instance() {
+        let mut src = b"LAYERC,1\r\n".to_vec();
+        for _ in 0..8 { src.extend_from_slice(b"0,15,255,255,255,255,255,255,255,255,255,255,255,255,255,255\r\n"); }
+        src.push(0x1a);
+        let recs = lex(&src).unwrap();
+        assert_eq!(recs.len(), 1);
+        assert_eq!(recs[0].rows.len(), 8);
+    }
+
+    #[test]
+    fn instance_count_above_one_yields_that_many_records() {
+        let src = b"LINE,3\r\n0,0,1,1\r\n1,1,2,2\r\n2,2,3,3\r\n\x1a";
+        let recs = lex(src).unwrap();
+        assert_eq!(recs.len(), 3);
+        assert_eq!(recs[2].rows, vec!["2,2,3,3"]);
+    }
+
+    #[test]
+    fn text_record_takes_two_rows() {
+        let src = b"TEXT,1\r\n9.624130,12.295160,0.346010,0.000000\r\nA\r\n\x1a";
+        let recs = lex(src).unwrap();
+        assert_eq!(recs[0].rows, vec!["9.624130,12.295160,0.346010,0.000000", "A"]);
+    }
+
+    #[test]
+    fn endblk_takes_no_rows() {
+        let src = b"ENDBLK,1\r\nLINE,1\r\n0,0,1,1\r\n\x1a";
+        let recs = lex(src).unwrap();
+        assert_eq!(recs.len(), 2);
+        assert!(recs[0].rows.is_empty());
+        assert_eq!(recs[1].keyword, "LINE");
+    }
+
+    #[test]
+    fn spliced_binary_is_an_error_naming_the_offset() {
+        // "LINE,1"+CRLF = 8, "8.8,5.7,19.0,1.9" = 16, +CRLF = 26 bytes of text.
+        let mut src = b"LINE,1\r\n8.8,5.7,19.0,1.9\r\n".to_vec();
+        src.extend_from_slice(&[0x00, 0x88, 0x06, 0x73]);
+        assert_eq!(lex(&src), Err(DxfError::Corrupt { offset: 26 }));
+    }
+
+    #[test]
+    fn unimplemented_entity_is_rejected_not_guessed() {
+        let src = b"SOLID,1\r\n0,0,1,1\r\n\x1a";
+        assert_eq!(lex(src), Err(DxfError::UnknownKeyword { keyword: "SOLID".into(), line: 1 }));
+    }
+
+    #[test]
+    fn record_running_past_end_of_file_is_truncated() {
+        let src = b"TEXT,1\r\n9.6,12.2,0.3,0.0\r\n\x1a";
+        assert_eq!(lex(src), Err(DxfError::Truncated { keyword: "TEXT".into(), line: 1 }));
+    }
+}
