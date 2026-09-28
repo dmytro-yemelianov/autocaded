@@ -49,12 +49,15 @@ All of the following are verified against the artifacts, not assumed.
 |---|---|
 | Packing | None. Entropy 5.86 (`ACAD.EXE`) / 6.69 (`ACAD.OVL`) bits/byte; plaintext strings present. |
 | Toolchain | C, 1982–83. `printf`-family format strings (`%-16s`, `%c%s:`); `Copyright (C) 1982,1983 %s`. |
-| `ACAD.EXE` | MZ, 512 B header, **0 relocation entries**, `CS:IP = 0xFFF0:0x0100` (resolves to image start), `SS:SP = 0x0E15:0x51A0`. Near-empty string table — this is the kernel/loader. |
-| `ACAD.OVL` | **Flat image, not a container** (established by the 2026-09-28 spike). `AC1.40\0` magic at offset 0 — the file's own version stamp, the same one DWG files carry. Layout: code `0x0000-0x6000`, string pool `0x6000-0x8000` (94% printable), code `0x8000-0x2a000`, strings plus a low-entropy table to the end. The `!root` `!config` `!plot` `!menu` `!end` `!quit` tokens are NUL-terminated C literals inside the string pool, sitting between `"Enter NAME of drawing"` and `"Error in COMMAND"` — arguments to something, not directory entries. `!IDD` was a `strings` false positive over `inc sp; inc sp`. No overlay directory exists. |
+| `ACAD.EXE` | MZ, 512 B header, **0 relocation entries**, `CS:IP = 0xFFF0:0x0100` (resolves to image start), `SS:SP = 0x0E15:0x51A0`. Image is 78,340 B; the trailing 508 B of the 78,848 B file are cluster slack. Segment model recovered statically (2026-09-28 spike ②): **`DS = SS = 0x0E15`**, code `0x0000-0xE150` (57,680 B), data `0xE150-0x13204` (20,656 B). Not a bare kernel — it holds the overlay loader *and* a substantial string table at `DS:0x3553-0x5000` (62% non-zero): entity type names, `EREGEN` errors, shape/font parser errors, DWG paging errors, the `A U T O C A D - 8 6` / `1.40` / `03/10/84` banner. |
+| `ACAD.OVL` | **A container with a directory.** `AC1.40` magic at offset 0, the same stamp DWG files carry. `ACAD.EXE` `fread`s the first **211 bytes** into `DS:0x509F` and `strcmp`s the magic. That header is the directory: `u16` at `+11` = code-window size (`0xFD00`, 64,768 B), then **11 entries of 18 bytes** at `+13` (`0xD3 - 13 = 198 = 11 x 18`). Each entry is two regions of `{u16 dest; u16 len; u32 file_offset}` — region 1 into the code window, region 2 into the data window — plus a `u16` entry point at `+0x10`. The 22 regions cover **99.3%** of the file; all 15 gaps are pads to the next `0x80`/`0x100` boundary. The `!root` `!config` `!plot` `!menu` `!end` `!quit` tokens are not the directory — they are C literals in the payload, and `!root` also appears in `ACAD.EXE`'s data; they are plausibly the overlays' names, which is a hypothesis, not established. `!IDD` was a `strings` false positive over `inc sp; inc sp`. *(Corrects the first 2026-09-28 spike, which read the file as a flat image with no directory.)* |
 | Drivers | Separate files per device class: display `DS*.DRV`, digitizer `DG*.DRV`, plotter `PL*.DRV`. A pre-existing device abstraction, each driver 0.5–5 KB. |
 
 Zero relocations across a 78 KB image means the program performs its own segment
-arithmetic. This is precisely the case 16-bit Ghidra handles worst, and is a named risk (§10).
+arithmetic — the case 16-bit Ghidra handles worst. The spike resolved it statically rather than
+empirically: histogramming which 16-bit immediates in the image are used as string pointers
+identifies `DS = 0x0E15` at 27/32 hits against 20 for the runner-up, and `DS = SS` follows from the
+MZ header. No emulator trace was needed (§10).
 
 ### 4.2 File formats
 
@@ -130,14 +133,22 @@ must not appear in the dependency graph of a shipped binary.
 
 ## 6. Static RE track
 
-1. **Establish how `ACAD.OVL` is mapped.** There is no directory to parse (§4.1), so the
-   overlay mechanism has to come from `ACAD.EXE`'s loader code — the 78 KB kernel with zero
-   relocations that does its own segment arithmetic. Two outcomes: if the OVL is loaded as
-   one flat image at a fixed segment, Ghidra needs only a single memory block and a base
-   address, which is far cheaper than the container loader this step previously assumed;
-   if the EXE pages regions in and out, the block layout follows whatever table it reads.
-   Either way the language is `x86:LE:16:Real Mode`. Resolve this before pricing the rest
-   of the milestone.
+1. **Map `ACAD.OVL` — settled.** The EXE pages regions in and out, so the block layout
+   follows the table it reads (§4.1). Language is `x86:LE:16:Real Mode`. The loader script
+   therefore builds:
+   - two flat blocks for `ACAD.EXE` — code at segment base, data at `+0x0E15` paragraphs;
+   - **22 Ghidra overlay blocks**, one per region of the 11 directory entries, because the
+     entries share window addresses and cannot coexist in one flat space. Code regions map
+     into the 64,768 B window above the image; data regions map into the EXE's own data
+     segment at `DS:0x0002-0x3552`, which the EXE reserves (13,651 bytes, verified all-zero
+     in the image, with the string pool starting immediately after at `DS:0x3553`).
+
+   The load protocol, for the record: `sprintf("%c:%s.OVL", drive, "ACAD")` → `fopen "rb"` →
+   `fread` 211 B → magic check → close; reserve `(hdr.u16@11 + 15) >> 4` paragraphs or die with
+   `"Not enough core for overlays"`; then a chain loop from entry 0 in which each overlay's
+   return value selects the next and `0` quits, paging via FCB random block reads and failing
+   to `"Overlay load error"`. The FCB mechanics come from the decompiler, not from bytes, and
+   are to be re-confirmed when the loader is written.
 2. **Headless and reproducible.** `analyzeHeadless` driven by PyGhidra scripts committed
    to the repo. The pipeline runs from the raw `.img` files; no project state lives outside
    version control.
@@ -198,8 +209,9 @@ fixture: corrupt files are excluded explicitly and by name, never silently.
 
 | Risk | Impact | Response |
 |---|---|---|
-| Mapping `ACAD.OVL` correctly | Blocks all of §6 | The spike removed the container hypothesis; the residual risk is `ACAD.EXE`'s self-managed segment arithmetic, addressed below |
-| Zero relocations, self-managed segments | Poor Ghidra output | Bochs traces to recover the segment map empirically |
+| ~~Mapping `ACAD.OVL` correctly~~ | ~~Blocks all of §6~~ | **Retired.** The directory is decoded and tiles 99.3% of the file; the layout is static data, not behaviour (§4.1) |
+| ~~Zero relocations, self-managed segments~~ | ~~Poor Ghidra output~~ | **Retired.** `DS = SS = 0x0E15` recovered statically; no Bochs trace needed. Bochs remains available for §6 cross-checks |
+| Overlay blocks obscure cross-overlay calls | Weakens the §8 gate's "cross-overlay calls resolve to named targets" criterion | Entry points are known (`+0x10` per entry); resolve call targets against the directory rather than against Ghidra's flat address space |
 | Decompiler quality on 16-bit C | Decides the §8 gate | Gate exists precisely to measure this |
 | Further corpus corruption | Weakens ground truth | ① validates everything up front; oracle can regenerate drawings |
 | 1983 floating-point semantics | Subtle geometry mismatches | DWG holds IEEE doubles; confirm no software-FP divergence during ④ |
