@@ -1,0 +1,448 @@
+{
+ "functions": [
+  {
+   "address": "0ff0:0100",
+   "name": "entry",
+   "block": "EXE_CODE",
+   "markers": [],
+   "ops": [
+    {
+     "seq": "1000:0000",
+     "op": "COPY",
+     "out": {
+      "space": "register",
+      "offset": 16,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "const",
+       "offset": 20896,
+       "size": 2,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:b76e",
+     "op": "PTRADD",
+     "out": {
+      "space": "register",
+      "offset": 12,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "ram",
+       "offset": 139082,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "ram",
+       "offset": 139084,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 1,
+       "size": 2,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:b773",
+     "op": "INT_RIGHT",
+     "out": {
+      "space": "register",
+      "offset": 12,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "unique",
+       "offset": 268435606,
+       "size": 2,
+       "unique": true
+      },
+      {
+       "space": "const",
+       "offset": 4,
+       "size": 1,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:b773",
+     "op": "CAST",
+     "out": {
+      "space": "unique",
+      "offset": 268435606,
+      "size": 2,
+      "unique": true
+     },
+     "in": [
+      {
+       "space": "register",
+       "offset": 12,
+       "size": 2,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:b775",
+     "op": "INT_ADD",
+     "out": {
+      "space": "register",
+      "offset": 12,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "register",
+       "offset": 12,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 640,
+       "size": 2,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:b77d",
+     "op": "INT_ADD",
+     "out": {
+      "space": "register",
+      "offset": 0,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "register",
+       "offset": 12,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 12821,
+       "size": 2,
+       "unique": false
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "address": "1000:0003",
+   "name": "FUN_1000_0003",
+   "block": "EXE_CODE",
+   "markers": [],
+   "ops": [
+    {
+     "seq": "1000:0003",
+     "op": "CALL",
+     "out": null,
+     "in": [
+      {
+       "space": "ram",
+       "offset": 110609,
+       "size": 8,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:0003",
+     "op": "INDIRECT",
+     "out": {
+      "space": "ram",
+      "offset": 139132,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "ram",
+       "offset": 139132,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 4,
+       "size": 4,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:0003",
+     "op": "INDIRECT",
+     "out": {
+      "space": "ram",
+      "offset": 139179,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "ram",
+       "offset": 139179,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 4,
+       "size": 4,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:0003",
+     "op": "INDIRECT",
+     "out": {
+      "space": "ram",
+      "offset": 143094,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "ram",
+       "offset": 143094,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 4,
+       "size": 4,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:0003",
+     "op": "INDIRECT",
+     "out": {
+      "space": "ram",
+      "offset": 143807,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "ram",
+       "offset": 143807,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 4,
+       "size": 4,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:0003",
+     "op": "INDIRECT",
+     "out": {
+      "space": "ram",
+      "offset": 143809,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "ram",
+       "offset": 143809,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 4,
+       "size": 4,
+       "unique": false
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "address": "1000:0568",
+   "name": "FUN_1000_0568",
+   "block": "EXE_CODE",
+   "markers": [
+    "halt_baddata"
+   ],
+   "ops": [
+    {
+     "seq": "1000:0568",
+     "op": "CALL",
+     "out": null,
+     "in": [
+      {
+       "space": "ram",
+       "offset": 110609,
+       "size": 8,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:0568",
+     "op": "INDIRECT",
+     "out": {
+      "space": "register",
+      "offset": 9,
+      "size": 1,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "const",
+       "offset": 0,
+       "size": 1,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 4,
+       "size": 4,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:0568",
+     "op": "INDIRECT",
+     "out": {
+      "space": "register",
+      "offset": 12,
+      "size": 2,
+      "unique": false
+     },
+     "in": [
+      {
+       "space": "register",
+       "offset": 12,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 4,
+       "size": 4,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:056b",
+     "op": "INT_ADD",
+     "out": {
+      "space": "unique",
+      "offset": 268435469,
+      "size": 2,
+      "unique": true
+     },
+     "in": [
+      {
+       "space": "register",
+       "offset": 20,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "register",
+       "offset": 28,
+       "size": 2,
+       "unique": false
+      }
+     ]
+    },
+    {
+     "seq": "1000:056b",
+     "op": "SEGMENTOP",
+     "out": {
+      "space": "unique",
+      "offset": 35840,
+      "size": 4,
+      "unique": true
+     },
+     "in": [
+      {
+       "space": "const",
+       "offset": 4384226720,
+       "size": 8,
+       "unique": false
+      },
+      {
+       "space": "const",
+       "offset": 7701,
+       "size": 2,
+       "unique": false
+      },
+      {
+       "space": "unique",
+       "offset": 15104,
+       "size": 2,
+       "unique": true
+      }
+     ]
+    },
+    {
+     "seq": "1000:056b",
+     "op": "LOAD",
+     "out": {
+      "space": "unique",
+      "offset": 94208,
+      "size": 1,
+      "unique": true
+     },
+     "in": [
+      {
+       "space": "const",
+       "offset": 497,
+       "size": 4,
+       "unique": false
+      },
+      {
+       "space": "unique",
+       "offset": 35840,
+       "size": 4,
+       "unique": true
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "failures": [
+  {
+   "address": "1000:0000",
+   "name": "FUN_1000_0000",
+   "block": "EXE_CODE",
+   "reason": "synthesised: no function failed in the run this sample came from"
+  }
+ ]
+}

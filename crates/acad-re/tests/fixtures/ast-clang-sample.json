@@ -1,0 +1,128 @@
+{
+ "functions": [
+  {
+   "address": "0ff0:0100",
+   "name": "entry",
+   "block": "EXE_CODE",
+   "markers": [],
+   "nodes": [
+    {
+     "depth": 0,
+     "class": "ghidra.app.decompiler.ClangFunction",
+     "text": "/* WARNING: Stack frame is not setup normally: Input value of stackpointer is not used *//* WARNING: This function may have set the stack pointer *//* WARNING: Globals starting with '_' overlap smaller symbols at the same address */void __cdecl16near entry(void){undefined1 *puVar1;undefined1 *puVar2;bool bVar3;code *pcVar4;byte bVar5;byte bVar6;byte bVar7;uint uVar8;undefined1 *puVar9;int iVar10;uint uVar11;undefined1 *puVar12;undefined1 *puVar13;undefined1 *puVar14;undefined2 unaff_BP;uint *puVar15;undefined1 *puVar16;int iVar17;undefined1 *puVar18;byte in_AF;puVar12 = (undefined1 *)0x51a0;uVar11 = ((uint)(DAT_1e15_3dfa + DAT_1e15_3dfc) >> 4) + 0x280;uVar8 = ((uint)(DAT_1e15_3dfa + DAT_1e15_3dfc) >> 4) + 0x3215;if (uVar8 < DAT_1e15_0002) {uVar8 = -(uVar8 - DAT_1e15_0002) >> 2;if (0x380 < uVar8) {uVar8 = 0x380;}uVar11 = uVar11 + uVar8;}if (0xfff < uVar11) {uVar11 = 0xfff;}_DAT_2000_31bf = uVar11 + 0x1e15;if (DAT_1e15_0002 < _DAT_2000_31bf || DAT_1e15_0002 - _DAT_2000_31bf == 0) {pcVar4 = (code *)swi(0x21);(*pcVar4)();pcVar4 = (code *)swi(0x20);(*pcVar4)();_DAT_2000_31ad = (undefined1 *)((uint)_DAT_2000_31ad & 0xff00);*(undefined2 *)(puVar12 + -2) = 0xb803;FUN_1000_036f();puVar9 = puVar12 + -2;puVar15 = (uint *)(puVar12 + -2);*(undefined2 *)(puVar12 + -2) = unaff_BP;iVar10 = *(int *)(puVar12 + 2);}else {puVar16 = (undefined1 *)&DAT_1e15_0080;uVar8 = (byte)(DAT_1e15_0080 + 3) & 0xfffe;puVar9 = (undefined1 *)(uVar11 * 0x10 - uVar8);puVar18 = puVar9;_DAT_2000_31c1 = DAT_1e15_0002 - _DAT_2000_31bf;for (; uVar8 != 0; uVar8 = uVar8 - 1) {puVar2 = puVar18;puVar18 = puVar18 + 1;puVar1 = puVar16;puVar16 = puVar16 + 1;*puVar2 = *puVar1;}_DAT_2000_31ad = DAT_1e15_3dfa + DAT_1e15_3dfc + (int)_DAT_2000_31ad;puVar16 = DAT_1e15_3dfa;for (iVar10 = DAT_1e15_3dfc; iVar10 != 0; iVar10 = iVar10 + -1) {puVar1 = puVar16;puVar16 = puVar16 + 1;*puVar1 = 0;}_DAT_2000_31c9 = (int)ROUND((longdouble)1);*(undefined2 *)(puVar9 + -2) = 0xb7ee;iVar10 = FUN_1000_c26d();puVar15 = (uint *)0x0;}if ((DAT_2000_31c3 != '\\0') && ((DAT_2000_31c3 < '\\0' || (iVar10 != 0)))) {puVar13 = puVar9 + -2;*(int *)(puVar9 + -2) = iVar10;while( true ) {uVar8 = puVar15[1];iVar10 = 4;do {bVar5 = (byte)uVar8;uVar8 = uVar8 >> 4;bVar5 = bVar5 & 0xf;bVar6 = bVar5 + 0x90;in_AF = 9 < (bVar6 & 0xf) | in_AF;bVar3 = 0x99 < bVar6 || 0x6f < bVar5;bVar6 = bVar6 + in_AF * '\\x06' + bVar3 * '`';bVar5 = bVar6 + 0x40;bVar7 = bVar5 + bVar3;in_AF = 9 < (bVar7 & 0xf) | in_AF;iVar17 = iVar10 + -1;*(char *)(iVar10 + 0x5072) =bVar7 + in_AF * '\\x06' + (0x99 < bVar7 || (0xbf < bVar6 || CARRY1(bVar5,bVar3))) * '`';iVar10 = iVar17;} while (iVar17 != 0);pcVar4 = (code *)swi(0x21);(*pcVar4)();if ((uint *)*puVar15 <= puVar15) break;puVar15 = (uint *)*puVar15;}puVar9 = puVar13 + 2;}pcVar4 = (code *)swi(0x20);(*pcVar4)();puVar14 = puVar9 + -2;*(undefined2 *)(puVar9 + -2) = 0xb84b;FUN_1000_b00c();_DAT_2000_3aad = 0;if (_DAT_2000_3ab1 == 0) {*(undefined2 *)(puVar14 + -2) = 1;*(undefined2 *)(puVar14 + -4) = 1;*(undefined1 **)(puVar14 + -6) = (undefined1 *)&DAT_2000_3aad;*(int *)(puVar14 + -8) = _DAT_2000_3aaf + -0x8000;*(undefined2 *)(puVar14 + -10) = 0xb89c;iVar10 = FUN_1000_d6ca();if (iVar10 != *(int *)(puVar14 + -2)) {_DAT_2000_3aad = 0xffff;}}else {*(int *)(puVar14 + -2) = _DAT_2000_3aaf;_DAT_2000_3aaf = _DAT_2000_3aaf + 1;_DAT_2000_3aad = (uint)**(byte **)(puVar14 + -2);if (_DAT_2000_3aad == 0) {_DAT_2000_3aad = 0xffff;}}return;}"
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangSyntaxToken",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangBreak",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangCommentToken",
+     "text": "/* "
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangSyntaxToken",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangCommentToken",
+     "text": "WARNING:"
+    }
+   ]
+  },
+  {
+   "address": "1000:0003",
+   "name": "FUN_1000_0003",
+   "block": "EXE_CODE",
+   "markers": [],
+   "nodes": [
+    {
+     "depth": 0,
+     "class": "ghidra.app.decompiler.ClangFunction",
+     "text": "/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */void __cdecl16near FUN_1000_0003(void){int *piVar1;uint uVar2;uint uVar3;int iVar4;undefined2 uVar5;int unaff_BP;FUN_1000_b011();FUN_1000_da8c();FUN_1000_019d();FUN_1000_93aa();uVar2 = _DAT_2000_31c1;uVar3 = _DAT_2000_31fa + 0xfU >> 4;*(uint *)(unaff_BP + -0x1a) = uVar3;if (uVar2 < uVar3) {FUN_1000_6c48((char *)s_Not_enough_core_for_overlays_1e15_3553);}FUN_1000_03bd(_DAT_2000_31bf + *(int *)(unaff_BP + -0x1a),_DAT_2000_31c1 - *(int *)(unaff_BP + -0x1a));if (1 < *(int *)(unaff_BP + 4)) {FUN_1000_dd0b(0x3e02,*(undefined2 *)(*(int *)(unaff_BP + 6) + 2),10);FUN_1000_6ccf(0x3e02);}if (2 < *(int *)(unaff_BP + 4)) {FUN_1000_dd0b(unaff_BP + -0x14,*(undefined2 *)(*(int *)(unaff_BP + 6) + 4),0xb);iVar4 = FUN_1000_cf0a(unaff_BP + -0x14,0x2e);if (iVar4 == 0) {FUN_1000_db2c(unaff_BP + -0x14,0x3570);}DAT_1e15_3e2c = FUN_1000_caeb(unaff_BP + -0x14,0x3575);if (DAT_1e15_3e2c == 0) {FUN_1000_6c48((char *)s_Can't_open_script_file_%s_1e15_3577,unaff_BP + -0x14);}}DAT_2000_31c3 = 1;if (DAT_1e15_3e5b != 0) {FUN_1000_8f66();FUN_1000_d671(0x3eb3);while (DAT_1e15_3e5b != 0) {DAT_1e15_3e5b = DAT_1e15_3e5b + -1;FUN_1000_c4d4(0x3592);}DAT_1e15_3e5b = -1;}FUN_1000_9aec();FUN_1000_69ad();*(undefined2 *)(unaff_BP + -0x18) = 0x50ac;do {uVar5 = FUN_1000_02fa(*(undefined2 *)(unaff_BP + -0x18));*(undefined2 *)(unaff_BP + -0x18) = uVar5;FUN_1000_0330();*(undefined2 *)(unaff_BP + -0x16) = 0xffff;while (iVar4 = DAT_1e15_4da6, piVar1 = (int *)(unaff_BP + -0x16), *piVar1 = *piVar1 + 1,*(int *)(unaff_BP + -0x16) < iVar4) {((undefined2 *)&DAT_1e15_4d9a)[*(int *)(unaff_BP + -0x16)] = 0;}} while (*(int *)(unaff_BP + -0x18) != 0);return;}"
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangSyntaxToken",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangBreak",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangCommentToken",
+     "text": "/* "
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangSyntaxToken",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangCommentToken",
+     "text": "WARNING:"
+    }
+   ]
+  },
+  {
+   "address": "1000:0568",
+   "name": "FUN_1000_0568",
+   "block": "EXE_CODE",
+   "markers": [
+    "halt_baddata"
+   ],
+   "nodes": [
+    {
+     "depth": 0,
+     "class": "ghidra.app.decompiler.ClangFunction",
+     "text": "/* WARNING: Control flow encountered bad instruction data */void FUN_1000_0568(void){byte *pbVar1;byte bVar2;byte extraout_DH;int in_BX;int unaff_BP;int unaff_SI;int unaff_DI;FUN_1000_b011();pbVar1 = (byte *)(in_BX + unaff_SI + -0x75);bVar2 = *pbVar1;*pbVar1 = bVar2 << 6 |(byte)(CONCAT11(CARRY1(extraout_DH,*(byte *)(unaff_BP + unaff_DI)),bVar2) >> 3);*(byte *)(unaff_BP + 0x3b) = *(byte *)(unaff_BP + 0x3b) | (byte)in_BX;/* WARNING: Bad instruction - Truncating control flow here */halt_baddata();}"
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangSyntaxToken",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangBreak",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangCommentToken",
+     "text": "/* "
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangSyntaxToken",
+     "text": ""
+    },
+    {
+     "depth": 1,
+     "class": "ghidra.app.decompiler.ClangCommentToken",
+     "text": "WARNING:"
+    }
+   ]
+  }
+ ],
+ "failures": [
+  {
+   "address": "1000:0000",
+   "name": "FUN_1000_0000",
+   "block": "EXE_CODE",
+   "reason": "synthesised: no function failed in the run this sample came from"
+  }
+ ]
+}
