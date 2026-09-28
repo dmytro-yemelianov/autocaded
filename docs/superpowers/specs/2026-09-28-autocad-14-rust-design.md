@@ -74,8 +74,22 @@ for `SUBDIV`, whose file is `0x1A00` — the rest is cluster slack); `u16` at `+
 entity record count (171 for `SUBDIV` = 159 entities + 6 `BLOCK` + 6 `ENDBLK`); then IEEE
 doubles from `+0x2A` — `EXTENTS` min/max as 3D points, `LIMITS` min/max as 2D pairs at
 `+0x5A`, `DWGVIEW` centre and height at `+0x7A`, `MODERES`/`MODEGRID` as `u16`+`f64` pairs at
-`+0x9A`, `TXTSIZE` at `+0xB4`, `TRACEWID` at `+0xBC`. Entity data appears to run in the
-**opposite order to the DXF**: the DXF's first `LINE` is the last record in the DWG.
+`+0x9A`, `TXTSIZE` at `+0xB4`, `TRACEWID` at `+0xBC`. Entity records begin at a fixed `+0x1D8`,
+constant across all 16 `AC1.2` drawings, and run in **the same order as the DXF**, ending at
+the `+0x24` offset. Each record is a `u16` type code, a `u16` whose meaning is not yet known,
+then the type's fields as IEEE doubles — so `LINE` is 36 bytes and `ARC` 44.
+
+**The type code is a 1-based index into the entity type table recovered from `ACAD.EXE`**
+(`DS:0x38EE`: `LINE POINT CIRCLE SHAPE REPEAT ENDREP TEXT ARC TRACE LOAD SOLID BLOCK ENDBLK
+INSERT`). Checked against first records: `SUBDIV` = 8 = `ARC`, and its DXF's first entity is
+an `ARC`; `ADDER` = 12 = `BLOCK`; `FLOOR` and `BOX` = 1 = `LINE`; `BLIVET` = 9 = `TRACE`.
+Milestone ②'s string-table recovery therefore decodes milestone ④'s binary format.
+
+*(Corrects a 2026-09-28 reading that had the order reversed. That reading searched the DWG
+for `1.012459,6.822910,1.261682,6.822910`, quoted as a `LINE` example in §4.2 above — a value
+that does not appear in `SUBDIV.DXF` at all. Two of its numbers matched unrelated entities
+near the end of the file, which looked like a reversal. The DXF's first entity is an `ARC`,
+and its coordinates sit at `0x1DC`, immediately after the header.)*
 
 The entity-record count was first established as a `u32`, which reads correctly for
 `SUBDIV` only by coincidence: `SUBDIV`'s `EXTENTS` xmin is `-1.75`, an exactly representable
@@ -94,8 +108,10 @@ KEYWORD,<record-count>
 <comma-separated values>...
 ```
 
-e.g. `LINE,1` followed by `1.012459,6.822910,1.261682,6.822910`. Undocumented but
-self-describing. Files terminate with DOS EOF (`0x1A`).
+e.g. `LINE,1` followed by `8.800000,5.700000,19.000000,1.899999`. Undocumented but
+self-describing. Files terminate with DOS EOF (`0x1A`). *(The example previously given here,
+`1.012459,6.822910,1.261682,6.822910`, appears in no corpus file and caused a wrong reading
+of the DWG entity order; the replacement is `SUBDIV.DXF`'s first `LINE`, verified present.)*
 
 **Entity and block records (11)** — `LINE`, `POINT`, `CIRCLE`, `ARC`, `TRACE`, `SOLID`, `TEXT`,
 `SHAPE`, `INSERT`, plus the `BLOCK`/`ENDBLK` definition delimiters. Confirmed as string
