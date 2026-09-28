@@ -36,11 +36,8 @@ pixel-exact CGA/Hercules reproduction.
 
 ## 3. Method posture
 
-Reverse engineering for interoperability is well-established practice; mechanically
-transpiling decompiled output produces a derivative work. The project therefore assumes
-clean-room discipline by default — specifications and notes derived from the binaries,
-implementation written from the notes — and revisits this once at the §8 decision gate,
-where the choice becomes evidence-based rather than speculative.
+Clean-room discipline — notes and specifications derived from the binaries, implementation
+written from them — is the working default, re-settled on evidence at the §8 decision gate.
 
 ## 4. Established facts
 
