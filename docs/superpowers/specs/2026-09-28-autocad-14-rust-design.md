@@ -329,8 +329,12 @@ u16 definition number; DXF is one x,y,scale,degrees,number row. Original
 `LOAD B:ES` plus `SHAPE RES`/`SHAPE CAP` commands verify the layouts and
 definition IDs 129/130 from ES.SHP. Both records retain document order in
 the model, including block bodies. Their AC1.2 layouts lack independent
-evidence because no AC1.2 corpus file uses them. `.SHP` glyph rendering and
-DWG writing remain open.
+evidence because no AC1.2 corpus file uses them. `.SHP` rendering now supports
+the instructions used by all seven supplied libraries, with font changes,
+subshapes, spacing, and placement through nested block transforms. A generated
+CGA-memory test compares Roman AA and an ES resistor against native strokes.
+See `docs/shp-rendering.md` for evidence and limits. Entity layer fidelity,
+repeat semantics, colors/fills, and DWG writing remain open.
 
 **⑤ Command loop.** Screen menu, command line, entity creation and editing commands,
 each backed by a differential test.

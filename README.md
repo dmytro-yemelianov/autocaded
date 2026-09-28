@@ -44,8 +44,10 @@ It also creates circles, a line, a three-point arc, and rotated text, checking
 geometry against the command inputs and the decoded DWG against the exported
 DXF. Nondefault header settings pin BASE, fill mode, and the layer table.
 Generated `LOAD B:ES` and `SHAPE` commands verify library names, definition
-numbers, placement, scale, and rotation. These records are preserved in
-document order; `.SHP` interpretation for text and shape rendering is still open.
+numbers, placement, scale, and rotation. The renderer now interprets all seven
+supplied `.SHP` libraries, including ordered font changes and shape subroutines.
+A CGA-memory comparison checks native text and shape strokes against the original
+display. See [font rendering](docs/shp-rendering.md) for coverage and limits.
 A QEMU 11.0.1 branch bug requires
 disabling TCG block chaining (`-d nochain`). QEMU must be installed for this
 probe; the spec's in-tree, CI-independent oracle remains future work. See
@@ -99,7 +101,8 @@ than its extension, so a `.BAK` file — four corpus drawings have one — is
 identified as the DWG it is rather than guessed from its name. The four
 `AC1.40` drawings (`HOUSE`, `COLORS`, `OFFICE`, `SHUTTLE`) and the three
 matching backups now parse and render. `DISC.BAK` also opens, preserving its
-`ROMAN-S` and `ITALIC` font loads; its geometry renders, but text glyphs do not yet.
+`ROMAN-S` and `ITALIC` font loads; the shuttle labels and italic STAR WARS title
+now render. Layer colors and solid fills remain open.
 
 ## Build
 
@@ -109,6 +112,13 @@ Rust 1.88.0, pinned by `rust-toolchain.toml`.
     cargo run -p acad-app        # renders SUBDIV.DXF in a window
     cargo run -p acad-app -- corpus/Samples/SUBDIV.DWG   # or the DWG sibling
     cargo run -p acad-app -- corpus/Samples/HOUSE.DWG    # AC1.40
+    cargo run -p acad-app -- corpus/Samples/DISC.BAK     # fonts included
+    cargo run -p acad-render --example render-png -- corpus/Samples/DISC.BAK /tmp/disc.png
+
+The app and PNG renderer accept additional font directories after the drawing
+(after the output path for PNG). Explicit directories take precedence; the
+extracted corpus uses `System/TXT.SHP` as AutoCAD 1.4's startup font and finds
+other libraries beside the drawing. Missing libraries/glyphs are reported.
 
 Tests that need the corpus skip when it is absent, so a fresh checkout is green
 without it.
@@ -120,7 +130,7 @@ without it.
 | `acad-model` | Entity model. The one crate everything depends on, and the one written for the future rather than for 1983. |
 | `acad-dxf` | The 1983 `KEYWORD,n` DXF codec (entity suffixes denote layers) — not the modern group-code format. |
 | `acad-dwg` | The 1983 binary DWG reader for `AC1.2` and `AC1.40`, including LOAD/SHAPE records. Writing remains unsupported. Depends only on `acad-model`. |
-| `acad-render` | Viewport fit and entity flattening (numerically testable), then rasterisation. |
+| `acad-render` | Viewport fit, entity/block transforms, SHP font/shape interpretation, then rasterisation. |
 | `acad-app` | Window, via `winit` + `softbuffer`. Opens either `.DXF` or `.DWG`, chosen by the file's magic bytes. |
 | `acad-corpus` | Generates `corpus/manifest.toml`, the integrity record. |
 | `acad-re` | **Dev only.** `ACAD.OVL` container codec, typed Ghidra AST, call graph, command recovery, gate metrics. Nothing shipped depends on it. |

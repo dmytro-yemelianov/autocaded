@@ -89,7 +89,7 @@ pub fn generate_dwg(
     name: &str,
     editor_lines: &[&str],
 ) -> Result<Vec<u8>, String> {
-    run(system_disk, None, name, editor_lines, false).map(|(dwg, _)| dwg)
+    run(system_disk, None, name, editor_lines, false, None).map(|(dwg, _)| dwg)
 }
 
 /// Also ask the original to export the generated drawing as 1983 DXF.
@@ -98,7 +98,7 @@ pub fn generate_pair(
     name: &str,
     editor_lines: &[&str],
 ) -> Result<(Vec<u8>, Vec<u8>), String> {
-    let (dwg, dxf) = run(system_disk, None, name, editor_lines, true)?;
+    let (dwg, dxf) = run(system_disk, None, name, editor_lines, true, None)?;
     Ok((dwg, dxf.expect("export requested")))
 }
 
@@ -110,8 +110,44 @@ pub fn generate_pair_with_samples(
     name: &str,
     editor_lines: &[&str],
 ) -> Result<(Vec<u8>, Vec<u8>), String> {
-    let (dwg, dxf) = run(system_disk, Some(samples_disk), name, editor_lines, true)?;
+    let (dwg, dxf) = run(
+        system_disk,
+        Some(samples_disk),
+        name,
+        editor_lines,
+        true,
+        None,
+    )?;
     Ok((dwg, dxf.expect("export requested")))
+}
+
+/// Original drawing files plus its 16 KiB CGA memory immediately before END.
+pub struct VisualProbe {
+    pub dwg: Vec<u8>,
+    pub dxf: Vec<u8>,
+    pub cga: Vec<u8>,
+}
+
+pub fn generate_visual_pair(
+    system_disk: &Path,
+    samples_disk: Option<&Path>,
+    name: &str,
+    editor_lines: &[&str],
+) -> Result<VisualProbe, String> {
+    let mut cga = Vec::new();
+    let (dwg, dxf) = run(
+        system_disk,
+        samples_disk,
+        name,
+        editor_lines,
+        true,
+        Some(&mut cga),
+    )?;
+    Ok(VisualProbe {
+        dwg,
+        dxf: dxf.expect("export requested"),
+        cga,
+    })
 }
 
 fn run(
@@ -120,6 +156,7 @@ fn run(
     name: &str,
     editor_lines: &[&str],
     export_dxf: bool,
+    capture: Option<&mut Vec<u8>>,
 ) -> Result<(Vec<u8>, Option<Vec<u8>>), String> {
     if name.is_empty()
         || name.len() > 8
@@ -141,6 +178,9 @@ fn run(
     thread::sleep(Duration::from_millis(500));
     for line in editor_lines {
         vm.type_line(line)?;
+    }
+    if let Some(capture) = capture {
+        *capture = vm.capture_editor()?;
     }
     vm.type_line("END")?;
     vm.wait_for_text("Current drawing:", EDIT_TIMEOUT)?;
@@ -365,6 +405,37 @@ impl Vm {
             text.push('\n');
         }
         Ok(text)
+    }
+
+    fn capture_editor(&mut self) -> Result<Vec<u8>, String> {
+        let start = Instant::now();
+        let mut previous = Vec::new();
+        let mut stable = 0;
+        while start.elapsed() < EDIT_TIMEOUT {
+            thread::sleep(Duration::from_millis(200));
+            // BIOS keyboard head/tail must agree: loading a floppy library
+            // can leave several already-typed commands waiting in the queue.
+            let keyboard = self.dir.join("keyboard.bin");
+            self.command(json!({"execute": "pmemsave", "arguments": {"val": 0x41a, "size": 4, "filename": keyboard}}))?;
+            let queue = fs::read(keyboard).map_err(|e| e.to_string())?;
+            if queue.len() != 4 || queue[..2] != queue[2..] {
+                stable = 0;
+                continue;
+            }
+            let dump = self.dir.join("cga.bin");
+            self.command(json!({"execute": "pmemsave", "arguments": {"val": 0xb8000, "size": 16384, "filename": dump}}))?;
+            let frame = fs::read(dump).map_err(|e| e.to_string())?;
+            if frame == previous {
+                stable += 1;
+            } else {
+                stable = 0;
+            }
+            if stable >= 3 {
+                return Ok(frame);
+            }
+            previous = frame;
+        }
+        Err("timed out waiting for editor keyboard drain and stable CGA frame".into())
     }
 
     fn wait_for_text(&mut self, needle: &str, timeout: Duration) -> Result<(), String> {

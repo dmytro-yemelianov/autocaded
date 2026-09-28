@@ -1,4 +1,4 @@
-use acad_render::{flatten, rasterize, Viewport};
+use acad_render::{flatten_with_libraries, rasterize, Libraries, Viewport};
 use std::{num::NonZeroU32, rc::Rc};
 use winit::{
     application::ApplicationHandler,
@@ -13,6 +13,8 @@ type WindowState = (Rc<Window>, softbuffer::Surface<Rc<Window>, Rc<Window>>);
 
 struct App {
     drawing: acad_model::Drawing,
+    libraries: Libraries,
+    reported: std::collections::BTreeSet<String>,
     state: Option<WindowState>,
 }
 
@@ -40,7 +42,13 @@ impl ApplicationHandler for App {
                 };
                 surface.resize(w, h).unwrap();
                 let vp = Viewport::fit(&self.drawing.header.limits, size.width, size.height);
-                let pm = rasterize(&flatten(&self.drawing, &vp), size.width, size.height);
+                let rendered = flatten_with_libraries(&self.drawing, &vp, &self.libraries);
+                for diagnostic in rendered.diagnostics {
+                    if self.reported.insert(diagnostic.clone()) {
+                        eprintln!("render: {diagnostic}");
+                    }
+                }
+                let pm = rasterize(&rendered.primitives, size.width, size.height);
                 let mut buffer = surface.buffer_mut().unwrap();
                 for (dst, src) in buffer.iter_mut().zip(pm.pixels()) {
                     *dst = ((src.red() as u32) << 16)
@@ -76,27 +84,29 @@ fn parse(path: &str, bytes: &[u8]) -> acad_model::Drawing {
 }
 
 fn main() {
-    let path = std::env::args()
-        .nth(1)
+    let mut args = std::env::args().skip(1);
+    let path = args
+        .next()
         .unwrap_or_else(|| "corpus/Samples/SUBDIV.DXF".to_string());
     let bytes = std::fs::read(&path).unwrap_or_else(|e| fail(&path, e));
     let drawing = parse(&path, &bytes);
-    let undrawn = drawing
-        .entities()
-        .filter(|e| matches!(e, acad_model::Entity::Text { .. }))
-        .count();
+    let directories = args.map(std::path::PathBuf::from).collect::<Vec<_>>();
+    let (libraries, diagnostics) =
+        Libraries::for_drawing(std::path::Path::new(&path), &directories);
+    for diagnostic in diagnostics {
+        eprintln!("library: {diagnostic}");
+    }
     println!(
         "{}: {} entities, {} blocks",
         path,
         drawing.entities().count(),
         drawing.blocks().count()
     );
-    if undrawn > 0 {
-        println!("  note: {undrawn} TEXT entities are not drawn (.SHP fonts, milestone 5)");
-    }
     let el = EventLoop::new().unwrap();
     el.run_app(&mut App {
         drawing,
+        libraries,
+        reported: Default::default(),
         state: None,
     })
     .unwrap();

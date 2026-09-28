@@ -65,6 +65,7 @@ dependencies = [
  "acad-dwg",
  "acad-dxf",
  "acad-model",
+ "acad-render",
  "serde_json",
 ]
 
@@ -80,6 +81,7 @@ dependencies = [
 name = "acad-render"
 version = "0.1.0"
 dependencies = [
+ "acad-dwg",
  "acad-dxf",
  "acad-model",
  "tiny-skia",

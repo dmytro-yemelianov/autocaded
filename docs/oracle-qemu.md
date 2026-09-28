@@ -88,12 +88,14 @@ workaround until a QEMU version containing the fix is required and tested.
 
 ## Remaining limits
 
-LOAD and SHAPE records now survive both codecs. The renderer still omits
-text and shape glyphs: interpreting external `.SHP` definitions remains open,
-as does DWG writing. The harness
+LOAD and SHAPE records survive both codecs, and the renderer now interprets
+the supplied SHP libraries. `tests/font_render.rs` captures the original CGA
+memory and compares text/shape strokes; see [font rendering](shp-rendering.md).
+DWG writing remains open. The harness
 requires an external QEMU installation; it is not the spec's in-tree
 8086 core. Editor input uses paced keystrokes; synchronization with visible
-prompts currently covers the text-mode menus only.
+prompts covers the text-mode menus. Visual probes additionally wait for the
+BIOS keyboard queue to drain and CGA memory to stabilize before capturing.
 
 AutoCAD draws its editor into CGA memory at `B800:0000` while QEMU displays
 that memory as VGA text. The screen appears corrupted in a QEMU screenshot,

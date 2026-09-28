@@ -51,9 +51,7 @@ pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
             sweep_deg(*start_deg, *end_deg),
             vp,
         ))],
-        // TEXT needs the .SHP font files, which milestone 1 does not decode.
-        // Font/shape library interpretation is not implemented yet. Keep
-        // LOAD and SHAPE in the model so a future renderer can resolve them.
+        // These need library state; handled by `flatten_with_libraries`.
         Entity::Text { .. } | Entity::Load { .. } | Entity::Shape { .. } => Vec::new(),
         Entity::Insert { .. } => Vec::new(), // expanded by `flatten`, which has the blocks
         Entity::Point { origin } => {
@@ -126,69 +124,100 @@ pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
 /// observed depth of 2, not recovered from the binary. Whoever resolves the
 /// open question above should start at `DS:0x3740`.
 ///
-/// When the cap is reached, `expand_insert` returns an empty `Vec` for that
-/// branch: the offending sub-tree's geometry is silently dropped rather than
-/// reported, because `flatten` returns `Vec<Prim>` and has no error channel
-/// to carry a diagnosis back through. That silence is deliberate, not an
-/// oversight — the alternative is a `Result`-based `flatten` for a case
-/// nothing in the corpus exercises.
+/// The resource-aware renderer reports a diagnostic when this cap is reached.
 const MAX_INSERT_DEPTH: u32 = 16;
 
-#[allow(clippy::too_many_arguments)]
-fn expand_insert(
-    d: &Drawing,
-    origin: Point,
-    x_scale: f64,
-    y_scale: f64,
-    rotation_deg: f64,
-    name: &str,
-    vp: &Viewport,
-    depth_remaining: u32,
-) -> Vec<Prim> {
-    if depth_remaining == 0 {
-        return Vec::new();
-    }
-    let Some(b) = d.block(name) else {
-        return Vec::new();
-    };
-    let (sin, cos) = rotation_deg.to_radians().sin_cos();
-    let mut out = Vec::new();
-    for inner in &b.entities {
-        let prims = match inner {
-            Entity::Insert {
-                origin: o2,
-                x_scale: xs2,
-                y_scale: ys2,
-                rotation_deg: r2,
-                name: n2,
-            } => expand_insert(d, *o2, *xs2, *ys2, *r2, n2, vp, depth_remaining - 1),
-            other => flatten_entity(other, vp),
-        };
-        for prim in prims {
-            let Prim::Polyline(pts) = prim;
-            // Re-place in world space, then re-project.
-            out.push(Prim::Polyline(
-                pts.into_iter()
-                    .map(|sp| {
-                        let w = vp.to_world(sp);
-                        let (dx, dy) = (w.x - b.base.x, w.y - b.base.y);
-                        let (sx, sy) = (dx * x_scale, dy * y_scale);
-                        vp.to_screen(Point {
-                            x: origin.x + sx * cos - sy * sin,
-                            y: origin.y + sx * sin + sy * cos,
-                        })
-                    })
-                    .collect(),
-            ));
-        }
-    }
-    out
+/// Geometry plus actionable diagnostics; bad library data never silently
+/// masquerades as a successfully rendered text or shape entity.
+#[derive(Debug, Default)]
+pub struct RenderOutput {
+    pub primitives: Vec<Prim>,
+    pub diagnostics: Vec<String>,
 }
 
-pub fn flatten(d: &Drawing, vp: &Viewport) -> Vec<Prim> {
-    let mut out = Vec::new();
-    for e in d.entities() {
-        match e {
+#[derive(Clone)]
+struct LibraryState {
+    font: String,
+    shapes: Vec<String>,
+}
+
+struct Walker<'a> {
+    drawing: &'a Drawing,
+    viewport: &'a Viewport,
+    libraries: &'a crate::Libraries,
+    diagnostics: Vec<String>,
+}
+
+impl Walker<'_> {
+    fn report(&mut self, message: String) {
+        if !self.diagnostics.contains(&message) {
+            self.diagnostics.push(message);
+        }
+    }
+    fn entity(&mut self, entity: &Entity, state: &mut LibraryState, depth: u32) -> Vec<Prim> {
+        match entity {
+            Entity::Load { name } => {
+                match self.libraries.get(name) {
+                    Some(library) if library.cap_height.is_some() => state.font = name.clone(),
+                    Some(_) => state.shapes.push(name.clone()),
+                    None => {
+                        self.report(format!("LOAD: missing SHP library {name}"));
+                        // Do not render following text with a stale font.
+                        state.font = name.clone();
+                    }
+                }
+                Vec::new()
+            }
+            Entity::Text {
+                origin,
+                height,
+                rotation_deg,
+                value,
+            } => {
+                let name = &state.font;
+                let Some(library) = self.libraries.get(name) else {
+                    self.report(format!("TEXT: missing SHP font {name}"));
+                    return Vec::new();
+                };
+                match library.text(value) {
+                    Ok(glyph) => self.place(
+                        glyph,
+                        *origin,
+                        *height / library.cap_height.unwrap(),
+                        *rotation_deg,
+                    ),
+                    Err(e) => {
+                        self.report(format!("TEXT {value:?}, font {name}: {e}"));
+                        Vec::new()
+                    }
+                }
+            }
+            Entity::Shape {
+                origin,
+                height,
+                rotation_deg,
+                number,
+            } => {
+                let library = state.shapes.iter().rev().find_map(|name| {
+                    self.libraries
+                        .get(name)
+                        .filter(|l| l.contains(*number))
+                        .map(|l| (name, l))
+                });
+                let Some((name, library)) = library else {
+                    self.report(format!(
+                        "SHAPE {number}: no loaded library defines this shape"
+                    ));
+                    return Vec::new();
+                };
+                match library.shape(*number) {
+                    Ok(glyph) => self.place(glyph, *origin, *height, *rotation_deg),
+                    Err(e) => {
+                        self.report(format!("SHAPE {number}, library {name}: {e}"));
+                        Vec::new()
+                    }
+                }
+            }
             Entity::Insert {
                 origin,
                 x_scale,
@@ -196,21 +225,96 @@ pub fn flatten(d: &Drawing, vp: &Viewport) -> Vec<Prim> {
                 rotation_deg,
                 name,
             } => {
-                out.extend(expand_insert(
-                    d,
-                    *origin,
-                    *x_scale,
-                    *y_scale,
-                    *rotation_deg,
-                    name,
-                    vp,
-                    MAX_INSERT_DEPTH,
-                ));
+                if depth == 0 {
+                    self.report(format!("INSERT {name}: block recursion limit reached"));
+                    return Vec::new();
+                }
+                let Some(block) = self.drawing.block(name) else {
+                    self.report(format!("INSERT: missing block {name}"));
+                    return Vec::new();
+                };
+                let (sin, cos) = rotation_deg.to_radians().sin_cos();
+                let mut out = Vec::new();
+                for inner in &block.entities {
+                    for Prim::Polyline(points) in self.entity(inner, state, depth - 1) {
+                        out.push(Prim::Polyline(
+                            points
+                                .into_iter()
+                                .map(|p| {
+                                    let p = self.viewport.to_world(p);
+                                    let x = (p.x - block.base.x) * x_scale;
+                                    let y = (p.y - block.base.y) * y_scale;
+                                    self.viewport.to_screen(Point {
+                                        x: origin.x + x * cos - y * sin,
+                                        y: origin.y + x * sin + y * cos,
+                                    })
+                                })
+                                .collect(),
+                        ));
+                    }
+                }
+                out
             }
-            other => out.extend(flatten_entity(other, vp)),
+            other => flatten_entity(other, self.viewport),
         }
     }
-    out
+    fn place(
+        &self,
+        glyph: crate::shp::Glyph,
+        origin: Point,
+        scale: f64,
+        rotation: f64,
+    ) -> Vec<Prim> {
+        let (sin, cos) = rotation.to_radians().sin_cos();
+        glyph
+            .strokes
+            .into_iter()
+            .map(|points| {
+                Prim::Polyline(
+                    points
+                        .into_iter()
+                        .map(|p| {
+                            self.viewport.to_screen(Point {
+                                x: origin.x + scale * (p.x * cos - p.y * sin),
+                                y: origin.y + scale * (p.x * sin + p.y * cos),
+                            })
+                        })
+                        .collect(),
+                )
+            })
+            .collect()
+    }
+}
+
+pub fn flatten_with_libraries(
+    d: &Drawing,
+    vp: &Viewport,
+    libraries: &crate::Libraries,
+) -> RenderOutput {
+    let mut walker = Walker {
+        drawing: d,
+        viewport: vp,
+        libraries,
+        diagnostics: Vec::new(),
+    };
+    let mut state = LibraryState {
+        font: "TXT".into(),
+        shapes: Vec::new(),
+    };
+    let mut primitives = Vec::new();
+    for e in d.entities() {
+        primitives.extend(walker.entity(e, &mut state, MAX_INSERT_DEPTH));
+    }
+    RenderOutput {
+        primitives,
+        diagnostics: walker.diagnostics,
+    }
+}
+
+/// Geometry-only compatibility entry point. Use `flatten_with_libraries` to
+/// render text/shapes and receive diagnostics about missing resources.
+pub fn flatten(d: &Drawing, vp: &Viewport) -> Vec<Prim> {
+    flatten_with_libraries(d, vp, &crate::Libraries::default()).primitives
 }
 
 #[cfg(test)]
@@ -310,8 +414,8 @@ mod tests {
 
     #[test]
     fn text_and_bare_insert_produce_nothing_yet() {
-        // .SHP font decoding is milestone 5; a bare INSERT is expanded by
-        // `flatten`, which owns the block table, not by `flatten_entity`.
+        // This low-level helper has neither libraries nor a block table.
+        // The resource-aware drawing walker handles TEXT and INSERT.
         assert!(flatten_entity(
             &Entity::Text {
                 origin: Point { x: 0.0, y: 0.0 },
@@ -466,8 +570,7 @@ mod tests {
         //
         // The expected point below is derived from the INSERT transform
         // definition itself (translate by -base, scale, rotate, translate
-        // by origin — the same formula `expand_insert` documents itself as
-        // implementing), not by running this code and recording its output.
+        // by origin), rather than by recording this renderer's output.
         //
         // INNER's own LINE start point, in INNER's local frame:
         //   p = (4.0, 3.0)
