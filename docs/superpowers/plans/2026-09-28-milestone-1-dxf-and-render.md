@@ -66,7 +66,7 @@ Format is `KEYWORD,<instance-count>` followed by `instance-count × rows_per_ins
 - Consumes: nothing.
 - Produces: `Point{x:f64,y:f64}`, `Extents{xmin,xmax,ymin,ymax:f64}` with `fn width(&self)->f64`, `fn height(&self)->f64`, `fn is_degenerate(&self)->bool`; `Entity` enum; `Block{name:String,base:Point,entities:Vec<Entity>}`; `enum Item{Entity(Entity),Block(Block)}`; `Header`; `Drawing{header:Header,items:Vec<Item>}` with `entities()`, `blocks()` and `block(name)` accessors.
 
-- [ ] **Step 1: Create the workspace**
+- [x] **Step 1: Create the workspace**
 
 ```toml
 # Cargo.toml
@@ -93,7 +93,7 @@ edition.workspace = true
 rust-version.workspace = true
 ```
 
-- [ ] **Step 2: Write the failing test for `Extents`**
+- [x] **Step 2: Write the failing test for `Extents`**
 
 ```rust
 // crates/acad-model/src/geom.rs
@@ -117,12 +117,12 @@ mod tests {
 }
 ```
 
-- [ ] **Step 3: Run it and confirm it fails**
+- [x] **Step 3: Run it and confirm it fails**
 
 Run: `cargo test -p acad-model`
 Expected: FAIL — `cannot find type Extents in this scope`.
 
-- [ ] **Step 4: Implement the geometry types**
+- [x] **Step 4: Implement the geometry types**
 
 ```rust
 // crates/acad-model/src/geom.rs
@@ -139,12 +139,12 @@ impl Extents {
 }
 ```
 
-- [ ] **Step 5: Run it and confirm it passes**
+- [x] **Step 5: Run it and confirm it passes**
 
 Run: `cargo test -p acad-model`
 Expected: PASS, 2 tests.
 
-- [ ] **Step 6: Add the entity, header and drawing types**
+- [x] **Step 6: Add the entity, header and drawing types**
 
 ```rust
 // crates/acad-model/src/entity.rs
@@ -231,7 +231,7 @@ pub use geom::{Extents, Point};
 pub use header::{DwgView, Header, Mode};
 ```
 
-- [ ] **Step 7: Verify and commit**
+- [x] **Step 7: Verify and commit**
 
 Run: `cargo test -p acad-model` → PASS.
 
@@ -255,7 +255,7 @@ git commit -m "feat(model): entity model, header and geometry types"
 - Consumes: nothing.
 - Produces: `fn classify(name: &str, bytes: &[u8]) -> Verdict` where `enum Verdict { Ok, CorruptAt(usize), Binary }`.
 
-- [ ] **Step 1: Write the extraction script**
+- [x] **Step 1: Write the extraction script**
 
 ```bash
 #!/usr/bin/env bash
@@ -275,7 +275,7 @@ echo "corpus extracted to $out"
 
 Make it executable: `chmod +x tools/extract-corpus.sh`
 
-- [ ] **Step 2: Write the failing corruption-detection test**
+- [x] **Step 2: Write the failing corruption-detection test**
 
 The detector's contract: a `.DXF` is `Ok` only if every byte up to the `0x1A` terminator is printable ASCII, CR or LF. `SHUTTLE.DXF` fails at 1536; `SUBDIV.DXF` passes.
 
@@ -312,12 +312,12 @@ mod tests {
 }
 ```
 
-- [ ] **Step 3: Run it and confirm it fails**
+- [x] **Step 3: Run it and confirm it fails**
 
 Run: `cargo test -p acad-corpus`
 Expected: FAIL — `cannot find function classify`.
 
-- [ ] **Step 4: Implement the classifier**
+- [x] **Step 4: Implement the classifier**
 
 ```rust
 // crates/acad-corpus/src/check.rs
@@ -339,12 +339,12 @@ pub fn classify(name: &str, bytes: &[u8]) -> Verdict {
 }
 ```
 
-- [ ] **Step 5: Run it and confirm it passes**
+- [x] **Step 5: Run it and confirm it passes**
 
 Run: `cargo test -p acad-corpus`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 6: Write the manifest generator**
+- [x] **Step 6: Write the manifest generator**
 
 ```rust
 // crates/acad-corpus/src/main.rs
@@ -396,7 +396,7 @@ rust-version.workspace = true
 sha2 = "0.10"
 ```
 
-- [ ] **Step 7: Generate the manifest and confirm the known corruption is caught**
+- [x] **Step 7: Generate the manifest and confirm the known corruption is caught**
 
 ```bash
 ./tools/extract-corpus.sh
@@ -406,7 +406,7 @@ grep -A5 'SHUTTLE.DXF' corpus/manifest.toml
 
 Expected: `SHUTTLE.DXF` carries `verdict = "corrupt_at_1536"`, and `SUBDIV.DXF` carries `verdict = "ok"`. If either differs, stop — the corpus on disk is not the one this plan was written against.
 
-- [ ] **Step 8: Update `.gitignore` and commit**
+- [x] **Step 8: Update `.gitignore` and commit**
 
 ```
 # .gitignore — add
@@ -431,7 +431,7 @@ git commit -m "feat(corpus): extraction script and SHA-256 integrity manifest"
 - Consumes: nothing from earlier tasks.
 - Produces: `struct Record { pub keyword: String, pub rows: Vec<String>, pub line: usize }` (`line` is 1-based) — **one `Record` per instance**, so a header of `LINE,3` yields three `Record`s; `fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError>`; `enum DxfError { Corrupt{offset:usize}, UnknownKeyword{keyword:String, line:usize}, Truncated{keyword:String, line:usize}, BadHeader{line:usize} }` deriving `Debug, PartialEq` and implementing `std::fmt::Display` and `std::error::Error`; `fn rows_per_instance(keyword:&str) -> Option<usize>`.
 
-- [ ] **Step 1: Write the failing lexer tests**
+- [x] **Step 1: Write the failing lexer tests**
 
 These cover Review Focus items 1 and 3.
 
@@ -505,12 +505,12 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Run them and confirm they fail**
+- [x] **Step 2: Run them and confirm they fail**
 
 Run: `cargo test -p acad-dxf`
 Expected: FAIL — `cannot find function lex`.
 
-- [ ] **Step 3: Implement the error type**
+- [x] **Step 3: Implement the error type**
 
 ```rust
 // crates/acad-dxf/src/error.rs
@@ -548,7 +548,7 @@ impl fmt::Display for DxfError {
 impl std::error::Error for DxfError {}
 ```
 
-- [ ] **Step 4: Implement the lexer**
+- [x] **Step 4: Implement the lexer**
 
 ```rust
 // crates/acad-dxf/src/lex.rs
@@ -625,7 +625,7 @@ pub use error::DxfError;
 pub use lex::{lex, rows_per_instance, Record};
 ```
 
-- [ ] **Step 5: Run and commit**
+- [x] **Step 5: Run and commit**
 
 Run: `cargo test -p acad-dxf` → PASS, 8 tests.
 
@@ -647,7 +647,7 @@ git commit -m "feat(dxf): 1983 record lexer with corruption and truncation error
 - Consumes: `lex::{lex, Record}`, `DxfError`, and all of `acad-model`.
 - Produces: `fn parse(bytes: &[u8]) -> Result<Drawing, DxfError>`.
 
-- [ ] **Step 1: Write the failing parser tests**
+- [x] **Step 1: Write the failing parser tests**
 
 Review Focus item 4 is the `undefined_block_is_a_named_error` test.
 
@@ -737,12 +737,12 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Run them and confirm they fail**
+- [x] **Step 2: Run them and confirm they fail**
 
 Run: `cargo test -p acad-dxf`
 Expected: FAIL — `cannot find function parse`.
 
-- [ ] **Step 3: Implement the parser**
+- [x] **Step 3: Implement the parser**
 
 ```rust
 // crates/acad-dxf/src/parse.rs
@@ -847,11 +847,11 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
 }
 ```
 
-- [ ] **Step 4: Run and confirm the unit tests pass**
+- [x] **Step 4: Run and confirm the unit tests pass**
 
 Run: `cargo test -p acad-dxf` → PASS.
 
-- [ ] **Step 5: Add the real-corpus integration test**
+- [x] **Step 5: Add the real-corpus integration test**
 
 ```rust
 // crates/acad-dxf/tests/subdiv.rs
@@ -886,7 +886,7 @@ fn shuttle_dxf_is_rejected_as_corrupt_at_1536() {
 }
 ```
 
-- [ ] **Step 6: Run, then commit**
+- [x] **Step 6: Run, then commit**
 
 Run: `cargo test -p acad-dxf` → PASS.
 
@@ -910,7 +910,7 @@ git commit -m "feat(dxf): parse records into the entity model"
 - Consumes: `acad_model::Drawing`.
 - Produces: `fn write(drawing: &Drawing) -> Vec<u8>` — emits CRLF line endings, `%.6}` fixed-point formatting, and a trailing `0x1A`.
 
-- [ ] **Step 1: Write the failing round-trip test**
+- [x] **Step 1: Write the failing round-trip test**
 
 ```rust
 // crates/acad-dxf/tests/roundtrip.rs
@@ -943,12 +943,12 @@ fn parse_of_our_own_output_is_stable() {
 }
 ```
 
-- [ ] **Step 2: Run it and confirm it fails**
+- [x] **Step 2: Run it and confirm it fails**
 
 Run: `cargo test -p acad-dxf --test roundtrip`
 Expected: FAIL — `cannot find function write`.
 
-- [ ] **Step 3: Implement the writer**
+- [x] **Step 3: Implement the writer**
 
 ```rust
 // crates/acad-dxf/src/write.rs
@@ -1014,7 +1014,7 @@ pub fn write(d: &Drawing) -> Vec<u8> {
 }
 ```
 
-- [ ] **Step 4: Run the round-trip and reconcile**
+- [x] **Step 4: Run the round-trip and reconcile**
 
 Run: `cargo test -p acad-dxf --test roundtrip`
 
@@ -1026,7 +1026,7 @@ cargo test -p acad-dxf --test roundtrip -- --nocapture 2>&1 | head -40
 
 Two things make this pass, and the writer above already does both. Header records are emitted in the order `SUBDIV.DXF` uses, which is the order of the spec's layout table. Blocks and entities are emitted by walking `d.items` in sequence, because the original interleaves them — 47 loose lines precede the first block, and two more blocks appear between inserts. If you find yourself sorting or bucketing anything in this function, that is the bug.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/acad-dxf
@@ -1045,7 +1045,7 @@ git commit -m "feat(dxf): writer with byte-identical SUBDIV round-trip"
 - Consumes: `acad_model::{Drawing, Entity, Extents, Point}`.
 - Produces: `struct Viewport { pub width: u32, pub height: u32, scale: f64, offset: Point }` with `fn fit(extents: &Extents, width: u32, height: u32) -> Viewport` and `fn to_screen(&self, p: Point) -> Point`; `enum Prim { Polyline(Vec<Point>) }`; `fn flatten(drawing: &Drawing, vp: &Viewport) -> Vec<Prim>`.
 
-- [ ] **Step 1: Write the failing viewport tests**
+- [x] **Step 1: Write the failing viewport tests**
 
 Review Focus item 5 is `degenerate_extents_do_not_divide_by_zero`.
 
@@ -1087,12 +1087,12 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
 Run: `cargo test -p acad-render`
 Expected: FAIL — `cannot find type Viewport`.
 
-- [ ] **Step 3: Implement the viewport**
+- [x] **Step 3: Implement the viewport**
 
 ```rust
 // crates/acad-render/src/viewport.rs
@@ -1122,11 +1122,11 @@ impl Viewport {
 }
 ```
 
-- [ ] **Step 4: Run and confirm the viewport tests pass**
+- [x] **Step 4: Run and confirm the viewport tests pass**
 
 Run: `cargo test -p acad-render` → PASS, 3 tests.
 
-- [ ] **Step 5: Write the failing flatten tests**
+- [x] **Step 5: Write the failing flatten tests**
 
 Review Focus item 2 is `arc_sweeps_counter_clockwise_through_zero`.
 
@@ -1172,7 +1172,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 6: Implement flatten**
+- [x] **Step 6: Implement flatten**
 
 ```rust
 // crates/acad-render/src/flatten.rs
@@ -1278,7 +1278,7 @@ pub use raster::rasterize;
 pub use viewport::Viewport;
 ```
 
-- [ ] **Step 7: Run and commit**
+- [x] **Step 7: Run and commit**
 
 Run: `cargo test -p acad-render` → PASS, 7 tests.
 
@@ -1299,7 +1299,7 @@ git commit -m "feat(render): viewport transform and entity flattening"
 - Consumes: `Prim`, `Viewport`, `acad_model::Drawing`.
 - Produces: `fn rasterize(prims: &[Prim], width: u32, height: u32) -> tiny_skia::Pixmap`.
 
-- [ ] **Step 1: Write the failing rasterization test**
+- [x] **Step 1: Write the failing rasterization test**
 
 ```rust
 // crates/acad-render/tests/raster.rs
@@ -1324,12 +1324,12 @@ fn an_empty_drawing_rasterizes_to_a_blank_pixmap() {
 }
 ```
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
 Run: `cargo test -p acad-render --test raster`
 Expected: FAIL — `cannot find function rasterize`.
 
-- [ ] **Step 3: Implement the rasterizer**
+- [x] **Step 3: Implement the rasterizer**
 
 ```rust
 // crates/acad-render/src/raster.rs
@@ -1356,11 +1356,11 @@ pub fn rasterize(prims: &[Prim], width: u32, height: u32) -> Pixmap {
 }
 ```
 
-- [ ] **Step 4: Run and confirm it passes**
+- [x] **Step 4: Run and confirm it passes**
 
 Run: `cargo test -p acad-render --test raster` → PASS.
 
-- [ ] **Step 5: Add an end-to-end smoke test over the real corpus**
+- [x] **Step 5: Add an end-to-end smoke test over the real corpus**
 
 ```rust
 // crates/acad-render/tests/raster.rs — append
@@ -1378,7 +1378,7 @@ fn subdiv_renders_a_non_blank_image() {
 
 Add `acad-dxf.workspace = true` under a new `[dev-dependencies]` section in `crates/acad-render/Cargo.toml`.
 
-- [ ] **Step 6: Run and commit**
+- [x] **Step 6: Run and commit**
 
 Run: `cargo test -p acad-render` → PASS.
 
@@ -1399,7 +1399,7 @@ git commit -m "feat(render): tiny-skia rasterizer with corpus smoke test"
 - Consumes: `acad_dxf::parse`, `acad_render::{flatten, rasterize, Viewport}`.
 - Produces: the `acad` binary — `cargo run -p acad-app -- <file.dxf>`.
 
-- [ ] **Step 1: Declare the crate**
+- [x] **Step 1: Declare the crate**
 
 ```toml
 # crates/acad-app/Cargo.toml
@@ -1421,7 +1421,7 @@ winit = "0.30"
 softbuffer = "0.4"
 ```
 
-- [ ] **Step 2: Write the viewer**
+- [x] **Step 2: Write the viewer**
 
 ```rust
 // crates/acad-app/src/main.rs
@@ -1475,7 +1475,7 @@ fn main() {
 }
 ```
 
-- [ ] **Step 3: Run it**
+- [x] **Step 3: Run it**
 
 ```bash
 cargo run -p acad-app -- corpus/Samples/SUBDIV.DXF
@@ -1483,12 +1483,12 @@ cargo run -p acad-app -- corpus/Samples/SUBDIV.DXF
 
 Expected: a window showing the subdivision plan — property boundary lines, arcs on the cul-de-sac, and the five inserted `HOUSEA` blocks. Text will not appear; `.SHP` font decoding is milestone ⑤.
 
-- [ ] **Step 4: Confirm the whole workspace is green**
+- [x] **Step 4: Confirm the whole workspace is green**
 
 Run: `cargo test --workspace`
 Expected: PASS across all crates.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/acad-app Cargo.toml

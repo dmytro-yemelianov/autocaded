@@ -189,11 +189,34 @@ record is recoverable as a coherent struct. Otherwise `acad-re` remains an under
 tool and all shipped Rust is hand-written. `acad-re` itself is unchanged either way — only
 the consumer of its output differs. This gate also re-settles the §3 posture on evidence.
 
+**Gate outcome (2026-09-28): not passed, 1 of 3.** Measured in `docs/re-pipeline.md`.
+98.0% of functions decompile cleanly, so the first criterion is met. There are no
+cross-overlay calls at all — the overlays share one window, so a direct call between them
+could not work at runtime — and no overlay call resolves into `EXE_CODE`, so the second is
+not demonstrated. No `STORE` in any analysed function has a constant pointer operand, because
+every store address is built by `SEGMENTOP`, so the DWG entity record is not recoverable as a
+struct and the third fails. **Transpilation is therefore not adopted**: `acad-re` remains an
+understanding tool, all shipped Rust is hand-written, and the §3 clean-room posture stands.
+
+The gate is settled and is not reopened to chase transpilation. It decided the *consumer* of
+`acad-re`'s output, not `acad-re`'s usefulness — so the unresolved kernel function-pointer
+table is pursued only when a specific question in ④ or ⑤ needs it, on demand rather than
+speculatively.
+
 **③ Oracle harness.** 8086 core, scripted input, output capture, first generated
 differential test.
 
 **④ DWG codec.** `AC1.40` then `AC1.2`, verified against `SUBDIV` in both directions and
 against oracle-generated drawings.
+
+**Sequencing amendment (2026-09-28).** ④'s *read* direction runs before ③. §4.4 names
+`SUBDIV.DWG` + `SUBDIV.DXF` as the primary lever for reversing DWG "without an emulator in
+the loop", and §9's reason for putting the oracle first — that it supplies the expected side
+so tests do not invent expectations — is already satisfied for this half by the parallel
+corpus: `SUBDIV.DWG` must decode to the `Drawing` that `SUBDIV.DXF` decodes to. Scope of the
+early half: decode `AC1.40` into `acad-model`, verified against that equality and against
+every `.DWG` in the corpus loading and rendering. The write direction, `AC1.2`, and
+verification against oracle-generated drawings stay after ③.
 
 **⑤ Command loop.** Screen menu, command line, entity creation and editing commands,
 each backed by a differential test.

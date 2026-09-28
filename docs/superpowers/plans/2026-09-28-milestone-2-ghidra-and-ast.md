@@ -71,7 +71,7 @@
   - `acad_re::ReError`
   - binary `ovl-map` writing `ovl-map.json`
 
-- [ ] **Step 1: Create the crate and register it in the workspace**
+- [x] **Step 1: Create the crate and register it in the workspace**
 
 `crates/acad-re/Cargo.toml`:
 
@@ -96,7 +96,7 @@ members = ["crates/acad-model", "crates/acad-corpus", "crates/acad-dxf", "crates
 resolver = "2"
 ```
 
-- [ ] **Step 2: Write the failing tests for the container codec**
+- [x] **Step 2: Write the failing tests for the container codec**
 
 `crates/acad-re/src/ovl.rs`, tests module only for now:
 
@@ -193,12 +193,12 @@ mod tests {
 }
 ```
 
-- [ ] **Step 3: Run the tests and confirm they fail**
+- [x] **Step 3: Run the tests and confirm they fail**
 
 Run: `cargo test -p acad-re`
 Expected: FAIL — `cannot find function `parse``, `cannot find type `Region``.
 
-- [ ] **Step 4: Implement the error type**
+- [x] **Step 4: Implement the error type**
 
 `crates/acad-re/src/error.rs`:
 
@@ -240,7 +240,7 @@ impl fmt::Display for ReError {
 impl std::error::Error for ReError {}
 ```
 
-- [ ] **Step 5: Implement the container codec**
+- [x] **Step 5: Implement the container codec**
 
 `crates/acad-re/src/ovl.rs`, above the tests module:
 
@@ -353,12 +353,12 @@ pub mod ovl;
 pub use error::ReError;
 ```
 
-- [ ] **Step 6: Run the tests and confirm they pass**
+- [x] **Step 6: Run the tests and confirm they pass**
 
 Run: `cargo test -p acad-re`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 7: Write the failing corpus test against the real `ACAD.OVL`**
+- [x] **Step 7: Write the failing corpus test against the real `ACAD.OVL`**
 
 `crates/acad-re/tests/ovl_corpus.rs`. This is where the spike's findings become regression tests — each assertion is one thing that would be false if the layout were decoded wrongly.
 
@@ -474,7 +474,7 @@ fn the_regions_cover_almost_the_whole_file_with_only_alignment_gaps() {
 }
 ```
 
-- [ ] **Step 8: Run the corpus test**
+- [x] **Step 8: Run the corpus test**
 
 Run: `cargo test -p acad-re --test ovl_corpus -- --nocapture`
 Expected: PASS with the real corpus present; five `skipping: corpus/System/ACAD.OVL absent` lines and PASS without it. Verify the skip path too:
@@ -483,7 +483,7 @@ Expected: PASS with the real corpus present; five `skipping: corpus/System/ACAD.
 mv corpus/System/ACAD.OVL /tmp/ && cargo test -p acad-re --test ovl_corpus -- --nocapture; mv /tmp/ACAD.OVL corpus/System/
 ```
 
-- [ ] **Step 9: Write the `ovl-map` binary**
+- [x] **Step 9: Write the `ovl-map` binary**
 
 `crates/acad-re/src/bin/ovl-map.rs`. This is the single source of truth the Python consumes — the Ghidra scripts never parse the header themselves.
 
@@ -600,7 +600,7 @@ fn main() -> ExitCode {
 }
 ```
 
-- [ ] **Step 10: Run it against the real overlay**
+- [x] **Step 10: Run it against the real overlay**
 
 ```bash
 mkdir -p build
@@ -615,7 +615,7 @@ python3 -c "import json;m=json.load(open('build/ovl-map.json'));print(len(m['blo
 
 Expected: `24 64768 11`.
 
-- [ ] **Step 11: Gitignore build output and commit**
+- [x] **Step 11: Gitignore build output and commit**
 
 Append to `.gitignore`:
 
@@ -644,7 +644,7 @@ git commit -m "feat(re): ACAD.OVL container codec and ovl-map emitter"
 - Consumes: nothing.
 - Produces: `tools/ghidra-env.sh`, which when **sourced** exports `GHIDRA_INSTALL_DIR`, `JAVA_HOME`, and `PYGHIDRA_PYTHON` (the venv interpreter with `pyghidra` importable), and when **run** prints a diagnosis and exits non-zero if anything is missing.
 
-- [ ] **Step 1: Write the script**
+- [x] **Step 1: Write the script**
 
 `tools/ghidra-env.sh`. PyGhidra ships as a wheel inside the Ghidra install; installing from there rather than PyPI pins the bindings to this exact Ghidra. Python 3.13 is required because the bundled JPype has no `cp39` arm64 wheel.
 
@@ -711,7 +711,7 @@ export PYGHIDRA_PYTHON="$venv/bin/python"
 }
 ```
 
-- [ ] **Step 2: Make it executable and run the diagnosis**
+- [x] **Step 2: Make it executable and run the diagnosis**
 
 ```bash
 chmod +x tools/ghidra-env.sh
@@ -727,7 +727,7 @@ PYGHIDRA_PYTHON    = .../build/pyghidra-venv/bin/python
 pyghidra 3.1.0
 ```
 
-- [ ] **Step 3: Confirm the missing-tool path is actionable**
+- [x] **Step 3: Confirm the missing-tool path is actionable**
 
 This is Review Focus item 3 — verify the message rather than assuming it.
 
@@ -743,7 +743,7 @@ env -i PATH=/usr/bin:/bin HOME="$HOME" bash -c 'cd /Users/dmytro/github/autorust
 
 Expected: a single line naming what is missing and how to install it, and a non-zero exit — not a stack trace.
 
-- [ ] **Step 4: Document the pipeline**
+- [x] **Step 4: Document the pipeline**
 
 `docs/re-pipeline.md`:
 
@@ -785,7 +785,7 @@ PyGhidra scripts only place bytes where that file says. One implementation, one
 set of tests, and the layout stays covered by `cargo test`.
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tools/ghidra-env.sh docs/re-pipeline.md
@@ -804,7 +804,7 @@ git commit -m "feat(re): Ghidra and PyGhidra environment bootstrap"
 - Consumes: `build/ovl-map.json` from Task 1; `PYGHIDRA_PYTHON` etc. from Task 2.
 - Produces: `tools/ghidra/ghidra_common.py` exposing `open_or_create(project_dir, project_name, exe_path)` and `seg_addr(program, seg, off)`; `load_acad.py` runnable as `$PYGHIDRA_PYTHON tools/ghidra/load_acad.py build/ovl-map.json build/ghidra`.
 
-- [ ] **Step 1: Write the shared helpers**
+- [x] **Step 1: Write the shared helpers**
 
 `tools/ghidra/ghidra_common.py`:
 
@@ -831,7 +831,7 @@ def block_by_name(program, name):
     return None
 ```
 
-- [ ] **Step 2: Write the failing loader check**
+- [x] **Step 2: Write the failing loader check**
 
 Write `tools/ghidra/load_acad.py` so that it ends in a self-check, and run it before the block-building code exists. The self-check is the test: it asserts that a string whose address is known from the spec reads back correctly, which is only true if the segment layout is right.
 
@@ -911,7 +911,7 @@ if __name__ == "__main__":
     print("loaded ACAD.EXE")
 ```
 
-- [ ] **Step 3: Run it and confirm the check is real**
+- [x] **Step 3: Run it and confirm the check is real**
 
 ```bash
 source tools/ghidra-env.sh
@@ -922,7 +922,7 @@ Expected: `segment layout verified: ...` then `loaded ACAD.EXE`.
 
 Then confirm the check would catch a wrong layout — change `DATA_SEG` in `ovl-map.rs` to `IMAGE_SEG + 0x0e14`, regenerate, rerun, and expect an `AssertionError` naming the bytes found. Restore `0x0e15` afterwards and regenerate.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tools/ghidra/ghidra_common.py tools/ghidra/load_acad.py
@@ -942,7 +942,7 @@ git commit -m "feat(re): Ghidra loader for ACAD.EXE with recovered segment layou
 - Consumes: `Directory` from Task 1, `load()` from Task 3.
 - Produces: `acad_re::ovl::parse` additionally rejecting intra-entry window overlap; `load_acad.py` creating one Ghidra overlay block per region.
 
-- [ ] **Step 1: Write the failing window-overrun tests**
+- [x] **Step 1: Write the failing window-overrun tests**
 
 Region 1 of every entry pages into the code window and region 2 into the EXE's own
 data segment, so code and data can never collide — entry 0's dests overlap numerically
@@ -972,12 +972,12 @@ tests module:
     }
 ```
 
-- [ ] **Step 2: Run them and confirm they fail**
+- [x] **Step 2: Run them and confirm they fail**
 
 Run: `cargo test -p acad-re overrunning`
 Expected: FAIL — `no variant named `RegionPastWindow` found for enum `error::ReError``.
 
-- [ ] **Step 3: Implement the window check**
+- [x] **Step 3: Implement the window check**
 
 Replace the `RegionsOverlap` variant in `error.rs` with `RegionPastWindow { entry, dest, end, window }`
 and its `Display` arm. In `parse`, hoist `let window = u16_at(bytes, 11);` above the entry
@@ -999,13 +999,13 @@ loop and add, before `entries.push(entry)`:
         }
 ```
 
-- [ ] **Step 4: Run and confirm green**
+- [x] **Step 4: Run and confirm green**
 
 Run: `cargo test -p acad-re`
 Expected: PASS, 9 unit tests plus the 5 corpus tests. The real overlay must still
 parse — entry 2 ends exactly at the window edge, so a `>=` here would reject it.
 
-- [ ] **Step 5: Add overlay block creation to the loader**
+- [x] **Step 5: Add overlay block creation to the loader**
 
 In `tools/ghidra/load_acad.py`, add before `check(...)`:
 
@@ -1052,7 +1052,7 @@ Wire it into `load()`, after the segment registers are set:
         assert made == 22, "expected 22 overlay regions, made %d" % made
 ```
 
-- [ ] **Step 6: Run the loader and verify the overlay bytes**
+- [x] **Step 6: Run the loader and verify the overlay bytes**
 
 ```bash
 rm -rf build/ghidra
@@ -1073,7 +1073,7 @@ Add a second self-check to `load_acad.py`'s `check()` proving the overlay bytes 
 
 Rerun and expect the new line.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cargo fmt --all && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace
@@ -1093,7 +1093,7 @@ git commit -m "feat(re): 22 Ghidra overlay blocks, and reject overlapping region
 - Consumes: the loaded program from Task 4.
 - Produces: `build/ast-pcode.json` and `build/ast-clang.json`, each an object `{"functions": [...], "failures": [...]}` keyed by function address string `"seg:off"`; `tools/re-pipeline.sh` running the whole chain.
 
-- [ ] **Step 1: Write the exporter**
+- [x] **Step 1: Write the exporter**
 
 `tools/ghidra/export_ast.py`. Per spec §6.3 both forms are exported, keyed by function address. Failures are recorded, never dropped — that is Review Focus item 5 and the §8 gate depends on it.
 
@@ -1220,7 +1220,7 @@ if __name__ == "__main__":
     export(prog, out_dir)
 ```
 
-- [ ] **Step 2: Seed the overlay entry points, then analyse**
+- [x] **Step 2: Seed the overlay entry points, then analyse**
 
 Analysis must run after the overlay blocks exist, or Ghidra never sees the overlay
 code — `export_ast.main()` calls `load_acad.prepare()` and then `api.analyzeAll()`
@@ -1259,7 +1259,7 @@ def seed_entry_points(program, m):
 
 Called from `prepare()` after the blocks are made, asserting `seeded == 11`.
 
-- [ ] **Step 3: Write the pipeline driver**
+- [x] **Step 3: Write the pipeline driver**
 
 `tools/re-pipeline.sh`:
 
@@ -1288,7 +1288,7 @@ cargo run --quiet -p acad-re --bin re-report -- \
 
 `re-report` does not exist until Task 8; until then the last command fails and that is expected.
 
-- [ ] **Step 4: Run the export**
+- [x] **Step 4: Run the export**
 
 ```bash
 chmod +x tools/re-pipeline.sh
@@ -1308,7 +1308,7 @@ print(collections.Counter(f['block'] for f in d['functions']).most_common())"
 
 Expected: blocks named `OVL00_CODE` … `OVL10_CODE` appear alongside `EXE_CODE`. If only `EXE_CODE` appears, analysis ran before the overlay blocks were created — check the ordering in Step 2.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tools/ghidra/export_ast.py tools/re-pipeline.sh
@@ -1334,7 +1334,7 @@ git commit -m "feat(re): dual AST export and end-to-end pipeline driver"
   - `Function { address: String, name: String, block: Option<String>, markers: Vec<String>, .. }`
   - `PcodeExport::decompiled_cleanly(&self) -> impl Iterator<Item = &Function>` — functions with no markers
 
-- [ ] **Step 1: Create the committed fixtures**
+- [x] **Step 1: Create the committed fixtures**
 
 The full exports are tens of megabytes and gitignored, so the deserializer needs small committed inputs or it is untested on a fresh checkout. Cut them from the real export — never hand-write them, or they will drift from what Ghidra actually emits.
 
@@ -1357,7 +1357,7 @@ PY
 
 Read both files afterwards. They are the contract between the Python and the Rust, so they must be inspected, not assumed.
 
-- [ ] **Step 2: Write the failing deserialization tests**
+- [x] **Step 2: Write the failing deserialization tests**
 
 `crates/acad-re/tests/ast.rs`:
 
@@ -1408,12 +1408,12 @@ fn an_unknown_field_does_not_break_deserialization() {
 }
 ```
 
-- [ ] **Step 3: Run and confirm failure**
+- [x] **Step 3: Run and confirm failure**
 
 Run: `cargo test -p acad-re --test ast`
 Expected: FAIL — `unresolved import `acad_re::ast``.
 
-- [ ] **Step 4: Implement the model**
+- [x] **Step 4: Implement the model**
 
 `crates/acad-re/src/ast.rs`:
 
@@ -1515,12 +1515,12 @@ Add to `crates/acad-re/src/lib.rs`:
 pub mod ast;
 ```
 
-- [ ] **Step 5: Run and confirm green**
+- [x] **Step 5: Run and confirm green**
 
 Run: `cargo test -p acad-re`
 Expected: PASS, all unit tests plus 5 AST tests plus the corpus tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cargo fmt --all && cargo clippy --workspace --all-targets -- -D warnings
@@ -1544,7 +1544,7 @@ git commit -m "feat(re): typed Rust model for the dual Ghidra AST export"
   - `acad_re::analysis::CallGraph` with `from_pcode(&PcodeExport) -> CallGraph`, `callers_of(&str) -> Vec<&str>`, `callees_of(&str) -> Vec<&str>`, `cross_overlay_edges(&self) -> Vec<(&str, &str)>`
   - `acad_re::analysis::commands(ovl_bytes: &[u8], dir: &Directory) -> BTreeMap<usize, Vec<String>>` — overlay index to the command names whose text lives in that entry's regions
 
-- [ ] **Step 1: Write the failing call-graph tests**
+- [x] **Step 1: Write the failing call-graph tests**
 
 Append to `crates/acad-re/tests/ast.rs`:
 
@@ -1595,12 +1595,12 @@ The `offset` values are the linear addresses Ghidra reports in varnodes, so they
 same thing from the address string; if these two disagree the graph silently has no edges, which is
 why the first test asserts a specific callee rather than a non-empty list.
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
 Run: `cargo test -p acad-re --test ast`
 Expected: FAIL — `unresolved import `acad_re::analysis``.
 
-- [ ] **Step 3: Implement the call graph**
+- [x] **Step 3: Implement the call graph**
 
 `crates/acad-re/src/analysis.rs`:
 
@@ -1696,12 +1696,12 @@ fn call_targets(f: &Function<PcodeBody>) -> Vec<i64> {
 }
 ```
 
-- [ ] **Step 4: Run the call-graph tests**
+- [x] **Step 4: Run the call-graph tests**
 
 Run: `cargo test -p acad-re --test ast`
 Expected: PASS, 8 tests.
 
-- [ ] **Step 5: Write the failing command-recovery test**
+- [x] **Step 5: Write the failing command-recovery test**
 
 Spec §4.3 gives the screen menu verbatim, so the recovered command set has a falsifiable lower bound: it must contain all 30 of them. `crates/acad-re/tests/commands.rs`:
 
@@ -1756,12 +1756,12 @@ fn every_command_is_attributed_to_an_overlay_that_exists() {
 }
 ```
 
-- [ ] **Step 6: Run and confirm failure**
+- [x] **Step 6: Run and confirm failure**
 
 Run: `cargo test -p acad-re --test commands`
 Expected: FAIL — `cannot find function `commands` in module `analysis``.
 
-- [ ] **Step 7: Implement command recovery**
+- [x] **Step 7: Implement command recovery**
 
 Append to `crates/acad-re/src/analysis.rs`.
 
@@ -1835,7 +1835,7 @@ pub fn commands(ovl_bytes: &[u8], dir: &Directory) -> BTreeMap<usize, Vec<String
 
 Add `pub mod analysis;` to `crates/acad-re/src/lib.rs`.
 
-- [ ] **Step 8: Run, then tighten if the menu is not covered**
+- [x] **Step 8: Run, then tighten if the menu is not covered**
 
 Run: `cargo test -p acad-re --test commands -- --nocapture`
 
@@ -1843,7 +1843,7 @@ If `the_recovered_command_set_covers_the_screen_menu` fails, the filter is wrong
 
 If `the_full_set_is_a_superset_of_the_menu` passes with an implausibly large number, the filter is too loose and is admitting ordinary uppercase words from message text; tighten it and record the final count in the commit message — that count is the "full command set recovered" deliverable.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cargo fmt --all && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace
@@ -1873,7 +1873,7 @@ program and do not belong in the denominator. They are counted and printed separ
 rather than dropped, because excluding them *raises* the headline ratio (98.0% against
 91.7%) and a reader is entitled to see that.
 
-- [ ] **Step 1: Write the failing gate tests**
+- [x] **Step 1: Write the failing gate tests**
 
 Append to `crates/acad-re/tests/ast.rs`:
 
@@ -1906,12 +1906,12 @@ fn an_empty_export_does_not_divide_by_zero() {
 }
 ```
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
 Run: `cargo test -p acad-re --test ast`
 Expected: FAIL — `cannot find type `Gate``.
 
-- [ ] **Step 3: Implement the gate measurement**
+- [x] **Step 3: Implement the gate measurement**
 
 Append to `crates/acad-re/src/analysis.rs`:
 
@@ -1971,12 +1971,12 @@ impl Gate {
 }
 ```
 
-- [ ] **Step 4: Run and confirm green**
+- [x] **Step 4: Run and confirm green**
 
 Run: `cargo test -p acad-re --test ast`
 Expected: PASS, 10 tests.
 
-- [ ] **Step 5: Write the report binary**
+- [x] **Step 5: Write the report binary**
 
 `crates/acad-re/src/bin/re-report.rs`:
 
@@ -2041,7 +2041,7 @@ fn main() -> ExitCode {
 }
 ```
 
-- [ ] **Step 6: Run the whole pipeline end to end**
+- [x] **Step 6: Run the whole pipeline end to end**
 
 ```bash
 rm -rf build/ghidra build/ast-*.json build/re-report.json
@@ -2050,7 +2050,7 @@ rm -rf build/ghidra build/ast-*.json build/re-report.json
 
 Expected: `ovl-map.json` written, 22 overlay blocks created, both self-checks pass, analysis completes, both AST files written, then the gate summary. Record the printed numbers — they are the milestone's headline result.
 
-- [ ] **Step 7: Verify reproducibility from the raw images**
+- [x] **Step 7: Verify reproducibility from the raw images**
 
 Spec §8 says the milestone is done when *the pipeline reproduces from raw images on a clean machine*. Prove it:
 
@@ -2062,11 +2062,11 @@ rm -rf corpus build
 
 Expected: identical gate numbers. If they differ, something outside version control is leaking in — find it before claiming the milestone.
 
-- [ ] **Step 8: Record the result**
+- [x] **Step 8: Record the result**
 
 Append to `docs/re-pipeline.md` a "Results" section with the date, the Ghidra version, and the gate numbers as printed. Then state plainly whether the §8 gate is met on each of its three criteria, with the third (DWG entity record recoverable as a coherent struct) answered from the AST by inspection and written out as a short paragraph with the function addresses that support it.
 
-- [ ] **Step 9: Confirm the whole workspace is green**
+- [x] **Step 9: Confirm the whole workspace is green**
 
 ```bash
 cargo fmt --all --check
@@ -2082,7 +2082,7 @@ mv corpus /tmp/corpus-hold && cargo test --workspace; mv /tmp/corpus-hold corpus
 
 Expected: still green, with skip messages.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add crates/acad-re docs/re-pipeline.md
@@ -2117,7 +2117,7 @@ by a regression test so it cannot silently rot.
   - `acad_re::analysis::record_layout(&[StoreSite]) -> Vec<(i64, u32)>` — offset/size pairs,
     deduplicated and sorted, i.e. the struct as the writer lays it out
 
-- [ ] **Step 1: Write the failing data-flow tests**
+- [x] **Step 1: Write the failing data-flow tests**
 
 Append to `crates/acad-re/tests/ast.rs`:
 
@@ -2183,12 +2183,12 @@ fn record_layout_sorts_and_deduplicates_offsets() {
 }
 ```
 
-- [ ] **Step 2: Run and confirm failure**
+- [x] **Step 2: Run and confirm failure**
 
 Run: `cargo test -p acad-re --test ast`
 Expected: FAIL — `cannot find function `trace_stores` in module `analysis``.
 
-- [ ] **Step 3: Implement the data-flow analysis**
+- [x] **Step 3: Implement the data-flow analysis**
 
 Append to `crates/acad-re/src/analysis.rs`. In Ghidra's P-Code a `STORE` takes three inputs:
 the address space id (a constant), the pointer, and the value. A constant pointer is a struct
@@ -2237,12 +2237,12 @@ pub fn record_layout(sites: &[StoreSite]) -> Vec<(i64, u32)> {
 }
 ```
 
-- [ ] **Step 4: Run and confirm green**
+- [x] **Step 4: Run and confirm green**
 
 Run: `cargo test -p acad-re --test ast`
 Expected: PASS, 14 tests.
 
-- [ ] **Step 5: Discover the DWG record writer and the geometry functions**
+- [x] **Step 5: Discover the DWG record writer and the geometry functions**
 
 This step produces findings, not code. Run the pipeline first (`./tools/re-pipeline.sh`), then
 work from `build/ast-pcode.json` and `build/ast-clang.json`.
@@ -2278,7 +2278,7 @@ block, and `record_layout(&trace_stores(..))`. Record in `docs/re-pipeline.md`:
 The coherence judgement is the §8 gate's third criterion. State it as a yes or a no, with the
 offset table as the evidence, not as an impression.
 
-- [ ] **Step 6: Pin the findings with a regression test**
+- [x] **Step 6: Pin the findings with a regression test**
 
 `crates/acad-re/tests/dataflow.rs`. Replace the three `const` addresses with the ones found in
 Step 5 — the test is worthless until they are real, and it is the thing that stops a later
@@ -2332,7 +2332,7 @@ fn the_dwg_entity_record_is_a_coherent_struct() {
 }
 ```
 
-- [ ] **Step 7: Run both the pinned test and the whole suite**
+- [x] **Step 7: Run both the pinned test and the whole suite**
 
 ```bash
 cargo test -p acad-re --test dataflow -- --nocapture
@@ -2347,7 +2347,7 @@ failing layout in `docs/re-pipeline.md`, mark the test `#[ignore]` with a commen
 that section, and say so plainly in the commit message. Do not weaken the assertions to make
 it pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cargo fmt --all && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace
