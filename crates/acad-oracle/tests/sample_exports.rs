@@ -1,5 +1,48 @@
 #[cfg(unix)]
 #[test]
+fn original_exports_disc_backup_with_font_loads_in_order() {
+    use acad_model::Entity;
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)");
+    let system = root.join("System.img");
+    let samples = root.join("Samples.img");
+    if !system.exists() || !samples.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted floppy images or qemu-system-i386 absent");
+        return;
+    }
+    let exports = acad_oracle::export_sample_backups(&system, &samples, &["DISC"]).unwrap();
+    let dxf = acad_dxf::parse(&exports[0]).unwrap();
+    let bytes = std::fs::read(root.join("../../Samples/DISC.BAK")).unwrap();
+    let dwg = acad_dwg::parse(&bytes).unwrap();
+    for drawing in [&dxf, &dwg] {
+        let entities = drawing.entities().collect::<Vec<_>>();
+        assert_eq!(entities.len(), 14);
+        let entities = &entities[2..6];
+        assert_eq!(
+            *entities[0],
+            Entity::Load {
+                name: "ROMAN-S".into()
+            }
+        );
+        assert!(matches!(entities[1], Entity::Insert { name, .. } if name == "SHUTTLE"));
+        assert_eq!(
+            *entities[2],
+            Entity::Load {
+                name: "ITALIC".into()
+            }
+        );
+        assert!(
+            matches!(entities[3], Entity::Text { value, height, .. } if value == "STAR WARS" && *height == 1.0)
+        );
+    }
+    assert_eq!(
+        acad_dxf::write(&ordered(dwg)),
+        acad_dxf::write(&ordered(dxf))
+    );
+}
+
+#[cfg(unix)]
+#[test]
 fn original_exports_verify_both_dwg_versions() {
     use acad_model::{Entity, Item};
 
@@ -43,15 +86,6 @@ fn original_exports_verify_both_dwg_versions() {
         // The DWG block table is flat and can place definitions in a
         // different order from AutoCAD's export. Match blocks by name while
         // retaining entity order inside each block and among loose entities.
-        fn ordered(mut drawing: acad_model::Drawing) -> acad_model::Drawing {
-            drawing.items.sort_by(|a, b| match (a, b) {
-                (Item::Block(a), Item::Block(b)) => a.name.cmp(&b.name),
-                (Item::Block(_), Item::Entity(_)) => std::cmp::Ordering::Less,
-                (Item::Entity(_), Item::Block(_)) => std::cmp::Ordering::Greater,
-                (Item::Entity(_), Item::Entity(_)) => std::cmp::Ordering::Equal,
-            });
-            drawing
-        }
         // Compare the full header too, including BASE and the layer table.
         let expected = acad_dxf::write(&ordered(dxf.clone()));
         let actual = acad_dxf::write(&ordered(dwg));
@@ -92,4 +126,15 @@ fn original_exports_verify_both_dwg_versions() {
             assert_eq!((points, traces, solids), expected, "{name}: new DXF kinds");
         }
     }
+}
+
+#[cfg(unix)]
+fn ordered(mut drawing: acad_model::Drawing) -> acad_model::Drawing {
+    drawing.items.sort_by(|a, b| match (a, b) {
+        (acad_model::Item::Block(a), acad_model::Item::Block(b)) => a.name.cmp(&b.name),
+        (acad_model::Item::Block(_), acad_model::Item::Entity(_)) => std::cmp::Ordering::Less,
+        (acad_model::Item::Entity(_), acad_model::Item::Block(_)) => std::cmp::Ordering::Greater,
+        (acad_model::Item::Entity(_), acad_model::Item::Entity(_)) => std::cmp::Ordering::Equal,
+    });
+    drawing
 }

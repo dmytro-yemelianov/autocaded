@@ -35,6 +35,17 @@ const TOLERANCE: f64 = 5e-7;
 /// not just aggregate per-kind counts.
 fn kind_and_fields(e: &Entity) -> (&'static str, Vec<f64>, Option<&str>) {
     match e {
+        Entity::Load { name } => ("LOAD", vec![], Some(name.as_str())),
+        Entity::Shape {
+            origin,
+            height,
+            rotation_deg,
+            number,
+        } => (
+            "SHAPE",
+            vec![origin.x, origin.y, *height, *rotation_deg, *number as f64],
+            None,
+        ),
         Entity::Line { start, end } => ("LINE", vec![start.x, start.y, end.x, end.y], None),
         Entity::Circle { center, radius } => ("CIRCLE", vec![center.x, center.y, *radius], None),
         Entity::Arc {

@@ -227,6 +227,24 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                     end_deg: v[4],
                 }
             }
+            "LOAD" => Entity::Load {
+                name: rec.rows[0].clone(),
+            },
+            "SHAPE" => {
+                let v = nums::<5>(rec, 0)?;
+                if v[4] < 0.0 || v[4] > u16::MAX as f64 || v[4].fract() != 0.0 {
+                    return Err(DxfError::BadNumber {
+                        row: rec.rows[0].clone(),
+                        line: rec.line,
+                    });
+                }
+                Entity::Shape {
+                    origin: Point { x: v[0], y: v[1] },
+                    height: v[2],
+                    rotation_deg: v[3],
+                    number: v[4] as u16,
+                }
+            }
             "TEXT" => {
                 let v = nums::<4>(rec, 0)?;
                 Entity::Text {
@@ -312,6 +330,61 @@ mod tests {
         assert!(d.header.fill);
         assert_eq!(d.header.text_size, 0.2);
         assert_eq!(d.header.current_layer, 1);
+    }
+
+    #[test]
+    fn load_and_shape_keep_order_and_block_membership() {
+        let d = parse(&with_header("LOAD,0\r\nB:ES\r\nSHAPE,7\r\n2.250000,3.500000,0.750000,30.000000,129\r\nBLOCK,1\r\n0,0\r\nB1\r\nLOAD,1\r\nITALIC\r\nTEXT,1\r\n1,2,0.5,45\r\nA\r\nENDBLK,1\r\n")).unwrap();
+        assert_eq!(d.items.len(), 3);
+        assert_eq!(
+            d.items[0],
+            Item::Entity(Entity::Load {
+                name: "B:ES".into()
+            })
+        );
+        assert_eq!(
+            d.items[1],
+            Item::Entity(Entity::Shape {
+                origin: Point { x: 2.25, y: 3.5 },
+                height: 0.75,
+                rotation_deg: 30.0,
+                number: 129
+            })
+        );
+        let block = d.block("B1").unwrap();
+        assert_eq!(block.entities.len(), 2);
+        assert_eq!(
+            block.entities[0],
+            Entity::Load {
+                name: "ITALIC".into()
+            }
+        );
+        assert!(matches!(&block.entities[1], Entity::Text { value, .. } if value == "A"));
+        let written = crate::write(&d);
+        let expected = b"SHAPE,1\r\n2.250000,3.500000,0.750000,30.000000,129\r\n";
+        assert!(written.windows(expected.len()).any(|s| s == expected));
+        assert_eq!(parse(&written).unwrap(), d);
+    }
+
+    #[test]
+    fn shape_numbers_must_be_representable_in_a_dwg_word() {
+        for number in ["-1", "65536", "129.5", "NaN", "inf"] {
+            assert!(
+                matches!(
+                    parse(&with_header(&format!("SHAPE,1\r\n0,0,1,0,{number}\r\n"))),
+                    Err(DxfError::BadNumber { .. })
+                ),
+                "{number}"
+            );
+        }
+        assert!(matches!(
+            parse(&with_header("SHAPE,1\r\n0,0,1,0\r\n")),
+            Err(DxfError::WrongFieldCount {
+                want: 5,
+                got: 4,
+                ..
+            })
+        ));
     }
 
     #[test]

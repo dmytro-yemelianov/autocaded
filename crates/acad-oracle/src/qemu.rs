@@ -21,12 +21,31 @@ pub fn available() -> bool {
         .is_ok_and(|s| s.success())
 }
 
-/// Ask the original to export AC1.2 sample drawings as DXF, using the
+/// Ask the original to export sample drawings as DXF, using the
 /// System floppy in drive A and a disposable Samples floppy in drive B.
 pub fn export_samples(
     system_disk: &Path,
     samples_disk: &Path,
     names: &[&str],
+) -> Result<Vec<Vec<u8>>, String> {
+    export(system_disk, samples_disk, names, false)
+}
+
+/// Export backups by renaming .BAK to .DWG on the disposable Samples copy
+/// before boot. Reject a name if a .DWG already exists; never overwrite it.
+pub fn export_sample_backups(
+    system_disk: &Path,
+    samples_disk: &Path,
+    names: &[&str],
+) -> Result<Vec<Vec<u8>>, String> {
+    export(system_disk, samples_disk, names, true)
+}
+
+fn export(
+    system_disk: &Path,
+    samples_disk: &Path,
+    names: &[&str],
+    backups: bool,
 ) -> Result<Vec<Vec<u8>>, String> {
     if names.iter().any(|name| {
         name.is_empty()
@@ -37,7 +56,11 @@ pub fn export_samples(
     }) {
         return Err("sample names must be 1–8 uppercase ASCII letters or digits".into());
     }
-    let mut vm = Vm::boot(system_disk, Some(samples_disk))?;
+    let mut vm = Vm::boot(
+        system_disk,
+        Some(samples_disk),
+        if backups { names } else { &[] },
+    )?;
     vm.wait_for_text("Enter selection:", BOOT_TIMEOUT)?;
     for (i, name) in names.iter().enumerate() {
         vm.type_line("5")?;
@@ -66,7 +89,7 @@ pub fn generate_dwg(
     name: &str,
     editor_lines: &[&str],
 ) -> Result<Vec<u8>, String> {
-    run(system_disk, name, editor_lines, false).map(|(dwg, _)| dwg)
+    run(system_disk, None, name, editor_lines, false).map(|(dwg, _)| dwg)
 }
 
 /// Also ask the original to export the generated drawing as 1983 DXF.
@@ -75,12 +98,25 @@ pub fn generate_pair(
     name: &str,
     editor_lines: &[&str],
 ) -> Result<(Vec<u8>, Vec<u8>), String> {
-    let (dwg, dxf) = run(system_disk, name, editor_lines, true)?;
+    let (dwg, dxf) = run(system_disk, None, name, editor_lines, true)?;
+    Ok((dwg, dxf.expect("export requested")))
+}
+
+/// Generate a drawing with the copied Samples floppy available in drive B,
+/// for commands such as `LOAD B:ES` that need external shape definitions.
+pub fn generate_pair_with_samples(
+    system_disk: &Path,
+    samples_disk: &Path,
+    name: &str,
+    editor_lines: &[&str],
+) -> Result<(Vec<u8>, Vec<u8>), String> {
+    let (dwg, dxf) = run(system_disk, Some(samples_disk), name, editor_lines, true)?;
     Ok((dwg, dxf.expect("export requested")))
 }
 
 fn run(
     system_disk: &Path,
+    samples_disk: Option<&Path>,
     name: &str,
     editor_lines: &[&str],
     export_dxf: bool,
@@ -93,7 +129,7 @@ fn run(
     {
         return Err("drawing name must be 1–8 uppercase ASCII letters or digits".into());
     }
-    let mut vm = Vm::boot(system_disk, None)?;
+    let mut vm = Vm::boot(system_disk, samples_disk, &[])?;
     vm.wait_for_text("Enter selection:", BOOT_TIMEOUT)?;
     vm.type_line("1")?;
     vm.wait_for_text("Enter NAME of drawing:", BOOT_TIMEOUT)
@@ -136,7 +172,7 @@ struct Vm {
 }
 
 impl Vm {
-    fn boot(source: &Path, samples: Option<&Path>) -> Result<Self, String> {
+    fn boot(source: &Path, samples: Option<&Path>, backups: &[&str]) -> Result<Self, String> {
         let dir = loop {
             let candidate = PathBuf::from(format!(
                 "/tmp/acad-oracle-{}-{}",
@@ -158,6 +194,20 @@ impl Vm {
             if let Err(e) = fs::copy(samples, dir.join("samples.img")) {
                 let _ = fs::remove_dir_all(&dir);
                 return Err(format!("copy {}: {e}", samples.display()));
+            }
+            if !backups.is_empty() {
+                let path = dir.join("samples.img");
+                let prepared = (|| -> Result<(), String> {
+                    let mut bytes = fs::read(&path).map_err(|e| e.to_string())?;
+                    for name in backups {
+                        promote_backup(&mut bytes, name)?;
+                    }
+                    fs::write(&path, bytes).map_err(|e| e.to_string())
+                })();
+                if let Err(e) = prepared {
+                    let _ = fs::remove_dir_all(&dir);
+                    return Err(e);
+                }
             }
         }
         let socket = dir.join("qmp.sock");
@@ -366,6 +416,31 @@ impl Drop for Vm {
     }
 }
 
+/// Change only the directory extension; the backup's cluster chain and
+/// drawing bytes are left intact. Names have been validated by `export`.
+fn promote_backup(image: &mut [u8], name: &str) -> Result<(), String> {
+    // Validate the source and its FAT chain before reading boot fields.
+    fat12_file(image, &format!("{name}.BAK"))?;
+    let word = |at| u16::from_le_bytes([image[at], image[at + 1]]) as usize;
+    let root_start = (word(14) + image[16] as usize * word(22)) * word(11);
+    let root_end = root_start + word(17) * 32;
+    let mut old = [b' '; 11];
+    old[..name.len()].copy_from_slice(name.as_bytes());
+    old[8..].copy_from_slice(b"BAK");
+    let mut new = old;
+    new[8..].copy_from_slice(b"DWG");
+    let root = &mut image[root_start..root_end];
+    if root.chunks_exact(32).any(|row| row[..11] == new) {
+        return Err(format!("refusing to replace existing {name}.DWG"));
+    }
+    let entry = root
+        .chunks_exact_mut(32)
+        .find(|row| row[..11] == old && row[11] & 0x18 == 0)
+        .ok_or_else(|| format!("{name}.BAK missing from root"))?;
+    entry[8..11].copy_from_slice(b"DWG");
+    Ok(())
+}
+
 /// Read one 8.3 file from the original 360 KiB FAT12 floppy layout.
 fn fat12_file(image: &[u8], filename: &str) -> Result<Vec<u8>, String> {
     fn le16(bytes: &[u8], at: usize) -> Result<usize, String> {
@@ -446,6 +521,27 @@ mod tests {
     #[test]
     fn invalid_drawing_name_is_rejected_before_boot() {
         assert!(generate_dwg(Path::new("/missing"), "TOO-LONG-NAME", &[]).is_err());
+    }
+
+    #[test]
+    fn backup_promotion_preserves_content_and_rejects_collisions() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/Samples.img");
+        let Ok(original) = fs::read(path) else { return };
+        let mut image = original.clone();
+        let backup = fat12_file(&image, "DISC.BAK").unwrap();
+        promote_backup(&mut image, "DISC").unwrap();
+        assert_eq!(fat12_file(&image, "DISC.DWG").unwrap(), backup);
+        assert!(fat12_file(&image, "DISC.BAK").is_err());
+        assert_eq!(
+            image.iter().zip(&original).filter(|(a, b)| a != b).count(),
+            3
+        );
+        let saved = image.clone();
+        assert!(promote_backup(&mut image, "HOUSE")
+            .unwrap_err()
+            .contains("existing HOUSE.DWG"));
+        assert_eq!(image, saved);
     }
 
     #[test]

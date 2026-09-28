@@ -22,6 +22,12 @@ exports block definitions in an order that can differ from their DWG order.
 The floppies are copied under `/tmp`; corpus images are never modified. A
 small in-tree FAT12 reader extracts the output.
 
+The backup test exports `DISC.BAK` by changing only its directory extension
+on the disposable Samples copy before boot. It compares the complete drawing,
+including `LOAD ROMAN-S`, the following SHUTTLE insert, `LOAD ITALIC`, and
+the following STAR WARS text in their original order. An existing DWG with
+the same name is an error, so backup promotion cannot overwrite a drawing.
+
 `tests/commands.rs` exercises entity creation too: two `CIRCLE` commands
 with different centers and radii, a `LINE` with fractional endpoints, an
 `ARC` through three points, and rotated `TEXT`. The expectations come from the command
@@ -32,6 +38,20 @@ their complete DXF representation with the original's exports. A separate
 case changes BASE, limits, snap/grid spacing, ortho, fill, and two layer
 colors, so defaults cannot conceal offset mistakes. The circle test rejects
 every truncated prefix before the declared end of entity data.
+
+`tests/shapes.rs` mounts Samples in drive B and issues `LOAD B:ES`, followed
+by `SHAPE RES` and `SHAPE CAP` with different positions, heights, and nonzero
+rotations. ES.SHP independently supplies definition numbers 129 and 130.
+The test checks those inputs against the original DXF and compares decoded
+DWG output byte for byte, then rejects every truncated DWG prefix. Loading
+TXT and trying its glyph names did not create SHAPE records; the successful
+probe uses the dedicated ES shape library.
+
+LOAD's binary body is a length-prefixed name; its DXF body is one name row.
+SHAPE's binary body is four doubles (x, y, scale, angle in radians), then a
+u16 definition number. DXF uses one row of x,y,scale,angle-in-degrees,number.
+These new record layouts are verified for AC1.40; the AC1.2 corpus contains
+neither LOAD nor SHAPE, so their older-version layouts are not independently verified.
 
 These probes established the `AC1.40` entity start at `0x202`, direct TEXT
 height (the `AC1.2` corpus requires a 0.75 conversion), BASE at `0x0C`, the
@@ -68,8 +88,9 @@ workaround until a QEMU version containing the fix is required and tested.
 
 ## Remaining limits
 
-The reader still rejects font `LOAD` and `SHAPE` records, including the
-`LOAD ROMAN-S` in `DISC.BAK`; DWG writing is not implemented. The harness
+LOAD and SHAPE records now survive both codecs. The renderer still omits
+text and shape glyphs: interpreting external `.SHP` definitions remains open,
+as does DWG writing. The harness
 requires an external QEMU installation; it is not the spec's in-tree
 8086 core. Editor input uses paced keystrokes; synchronization with visible
 prompts currently covers the text-mode menus only.

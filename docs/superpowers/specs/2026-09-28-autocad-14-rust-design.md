@@ -322,9 +322,15 @@ every `AC1.2` drawing in the corpus loading and rendering. `AC1.40`, the write d
 verification against oracle-generated drawings stay after ③.
 
 Current progress: the QEMU bootstrap now generates the expected side for
-`AC1.40`. The reader passes command-generated DWG/DXF comparisons and four
-sample exports. `DISC.BAK` still stops at its `LOAD ROMAN-S` record; font
-LOAD/SHAPE support and DWG writing remain open.
+`AC1.40`. The reader passes command-generated DWG/DXF comparisons and five
+sample exports, including `DISC.BAK`. LOAD is a length-prefixed name in DWG
+and one name row in DXF. SHAPE is x/y/scale/radians as four doubles, then a
+u16 definition number; DXF is one x,y,scale,degrees,number row. Original
+`LOAD B:ES` plus `SHAPE RES`/`SHAPE CAP` commands verify the layouts and
+definition IDs 129/130 from ES.SHP. Both records retain document order in
+the model, including block bodies. Their AC1.2 layouts lack independent
+evidence because no AC1.2 corpus file uses them. `.SHP` glyph rendering and
+DWG writing remain open.
 
 **⑤ Command loop.** Screen menu, command line, entity creation and editing commands,
 each backed by a differential test.

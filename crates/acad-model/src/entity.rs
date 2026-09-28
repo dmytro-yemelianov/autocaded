@@ -9,6 +9,18 @@ use crate::geom::Point;
 /// model just holds the four points.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Entity {
+    /// Load a shape library or select a text font for subsequent records.
+    /// Keep this in document order, including inside block definitions.
+    Load {
+        name: String,
+    },
+    /// A numbered shape from a previously loaded library; height is scale.
+    Shape {
+        origin: Point,
+        height: f64,
+        rotation_deg: f64,
+        number: u16,
+    },
     Line {
         start: Point,
         end: Point,

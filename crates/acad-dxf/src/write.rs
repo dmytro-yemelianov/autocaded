@@ -10,6 +10,24 @@ fn pt(p: &Point) -> String {
 
 fn entity(out: &mut String, e: &Entity) {
     match e {
+        Entity::Load { name } => {
+            let _ = write!(out, "LOAD,1\r\n{name}\r\n");
+        }
+        Entity::Shape {
+            origin,
+            height,
+            rotation_deg,
+            number,
+        } => {
+            let _ = write!(
+                out,
+                "SHAPE,1\r\n{},{},{},{}\r\n",
+                pt(origin),
+                f(*height),
+                f(*rotation_deg),
+                number
+            );
+        }
         Entity::Line { start, end } => {
             let _ = write!(out, "LINE,1\r\n{},{}\r\n", pt(start), pt(end));
         }

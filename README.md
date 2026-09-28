@@ -18,7 +18,7 @@ Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/sup
 | ① | DXF codec, corpus integrity, first render | **done** |
 | ② | Ghidra overlay loader, dual AST export, `acad-re` | **done** |
 | ③ | Oracle harness — in-tree 8086, differential tests | in progress: QEMU command and sample-export comparisons |
-| ④ | DWG codec — `AC1.40`, then `AC1.2` | both versions read; 20 corpus drawings render; font LOAD/SHAPE and writing remain |
+| ④ | DWG codec — `AC1.40`, then `AC1.2` | all 21 corpus drawings read; LOAD/SHAPE records preserved; writing remains |
 | ⑤ | Command loop | |
 
 `SUBDIV.DXF` round-trips byte-identically and renders. The full 1983 command set
@@ -36,12 +36,16 @@ reading; the write direction remains future work.
 
 `acad-oracle` now has a QEMU-backed development probe. It boots disposable
 copies of the original floppies, creates an empty `AC1.40` drawing, and asks
-AutoCAD to export five `AC1.2` and four `AC1.40` sample drawings as DXF. The tests compare the
+AutoCAD to export five `AC1.2` and five `AC1.40` sample drawings as DXF (including
+`DISC.BAK`, renamed on the disposable copy). The tests compare the
 empty export byte for byte and the sample exports against the DWG reader's
 geometry, including `POINT`, `TRACE`, `SOLID`, and entities inside `REPEAT`.
 It also creates circles, a line, a three-point arc, and rotated text, checking
 geometry against the command inputs and the decoded DWG against the exported
 DXF. Nondefault header settings pin BASE, fill mode, and the layer table.
+Generated `LOAD B:ES` and `SHAPE` commands verify library names, definition
+numbers, placement, scale, and rotation. These records are preserved in
+document order; `.SHP` interpretation for text and shape rendering is still open.
 A QEMU 11.0.1 branch bug requires
 disabling TCG block chaining (`-d nochain`). QEMU must be installed for this
 probe; the spec's in-tree, CI-independent oracle remains future work. See
@@ -94,8 +98,8 @@ renderer's transform composition.
 than its extension, so a `.BAK` file — four corpus drawings have one — is
 identified as the DWG it is rather than guessed from its name. The four
 `AC1.40` drawings (`HOUSE`, `COLORS`, `OFFICE`, `SHUTTLE`) and the three
-matching backups now parse and render. `DISC.BAK` remains unsupported at its
-font `LOAD` record (`ROMAN-S`); the reader reports the type and byte offset.
+matching backups now parse and render. `DISC.BAK` also opens, preserving its
+`ROMAN-S` and `ITALIC` font loads; its geometry renders, but text glyphs do not yet.
 
 ## Build
 
@@ -115,7 +119,7 @@ without it.
 |---|---|
 | `acad-model` | Entity model. The one crate everything depends on, and the one written for the future rather than for 1983. |
 | `acad-dxf` | The 1983 `KEYWORD,n` DXF codec (entity suffixes denote layers) — not the modern group-code format. |
-| `acad-dwg` | The 1983 binary DWG reader for `AC1.2` and `AC1.40`. Font LOAD/SHAPE and writing remain unsupported. Depends only on `acad-model`. |
+| `acad-dwg` | The 1983 binary DWG reader for `AC1.2` and `AC1.40`, including LOAD/SHAPE records. Writing remains unsupported. Depends only on `acad-model`. |
 | `acad-render` | Viewport fit and entity flattening (numerically testable), then rasterisation. |
 | `acad-app` | Window, via `winit` + `softbuffer`. Opens either `.DXF` or `.DWG`, chosen by the file's magic bytes. |
 | `acad-corpus` | Generates `corpus/manifest.toml`, the integrity record. |

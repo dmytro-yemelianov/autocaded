@@ -52,7 +52,9 @@ pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
             vp,
         ))],
         // TEXT needs the .SHP font files, which milestone 1 does not decode.
-        Entity::Text { .. } => Vec::new(),
+        // Font/shape library interpretation is not implemented yet. Keep
+        // LOAD and SHAPE in the model so a future renderer can resolve them.
+        Entity::Text { .. } | Entity::Load { .. } | Entity::Shape { .. } => Vec::new(),
         Entity::Insert { .. } => Vec::new(), // expanded by `flatten`, which has the blocks
         Entity::Point { origin } => {
             // A bare dot has nothing to stroke a polyline between (`rasterize`

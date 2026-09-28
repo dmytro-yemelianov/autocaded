@@ -22,6 +22,18 @@ const TOLERANCE: f64 = 5e-7;
 /// `end_deg`.
 fn coords(e: &Entity) -> Vec<(&'static str, f64)> {
     match e {
+        Entity::Load { .. } => vec![],
+        Entity::Shape {
+            origin,
+            height,
+            rotation_deg,
+            ..
+        } => vec![
+            ("x", origin.x),
+            ("y", origin.y),
+            ("h", *height),
+            ("rot", *rotation_deg),
+        ],
         Entity::Line { start, end } => vec![
             ("x1", start.x),
             ("y1", start.y),
@@ -127,6 +139,8 @@ fn main() -> ExitCode {
 
 fn entity_name(e: &Entity) -> &'static str {
     match e {
+        Entity::Load { .. } => "LOAD",
+        Entity::Shape { .. } => "SHAPE",
         Entity::Line { .. } => "LINE",
         Entity::Circle { .. } => "CIRCLE",
         Entity::Arc { .. } => "ARC",

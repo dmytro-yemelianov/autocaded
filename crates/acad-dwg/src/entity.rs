@@ -7,9 +7,11 @@
 //! 1-based index into the entity name table recovered from `ACAD.EXE`:
 //! 1 `LINE`, 2 `POINT`, 3 `CIRCLE`, 4 `SHAPE`, 5 `REPEAT`, 6 `ENDREP`,
 //! 7 `TEXT`, 8 `ARC`, 9 `TRACE`, 10 `LOAD`, 11 `SOLID`, 12 `BLOCK`,
-//! 13 `ENDBLK`, 14 `INSERT`. Every code except `SHAPE`(4) and `LOAD`(10) is
-//! implemented here. `DISC.BAK` uses `LOAD` to select fonts, which the
-//! model cannot yet preserve; it remains `DwgError::UnknownEntityType`.
+//! 13 `ENDBLK`, 14 `INSERT`. All fourteen codes are decoded. `LOAD` names
+//! a font or shape library and stays in document order; `SHAPE` references
+//! a numeric definition with position, scale and rotation. Their layouts
+//! are verified by original AC1.40 commands and DISC.BAK's font loads;
+//! no AC1.2 corpus drawing exercises those two codes.
 //!
 //! **Erased entities (spec §4.2, Part A of Task 8).** The type code is a
 //! **signed** `i16`; a negative value marks an erased entity whose magnitude
@@ -122,6 +124,9 @@ use acad_model::{Block, Entity, Item, Point};
 /// Entity start for AC1.2 test fixtures; production reads it from `Version`.
 #[cfg(test)]
 const ENTITY_START: usize = 0x1D8;
+
+const TYPE_LOAD: u16 = 10;
+const TYPE_SHAPE: u16 = 4;
 
 /// 1-based index into `ACAD.EXE`'s entity name table; `LINE` is its first
 /// entry.
@@ -249,6 +254,30 @@ fn read_entity_fields(
     version: Version,
 ) -> Result<(Entity, usize), DwgError> {
     match type_code {
+        TYPE_SHAPE => {
+            // Original SHAPE RES/CAP commands: x, y, scale, radians, then
+            // a u16 definition number (129/130 in ES.SHP).
+            let x = checked_f64(bytes, at, index)?;
+            let y = checked_f64(bytes, at + 8, index)?;
+            let height = checked_f64(bytes, at + 16, index)?;
+            let rotation_deg = checked_f64(bytes, at + 24, index)?.to_degrees();
+            let number = checked_u16(bytes, at + 32, index)?;
+            Ok((
+                Entity::Shape {
+                    origin: Point { x, y },
+                    height,
+                    rotation_deg,
+                    number,
+                },
+                at + 34,
+            ))
+        }
+        TYPE_LOAD => {
+            // DISC.BAK and original LOAD commands: only a length-prefixed
+            // library/font name follows the record header.
+            let (name, next) = checked_string(bytes, at, index)?;
+            Ok((Entity::Load { name }, next))
+        }
         TYPE_LINE => {
             let x1 = checked_f64(bytes, at, index)?;
             let y1 = checked_f64(bytes, at + 8, index)?;
@@ -460,7 +489,7 @@ fn read_record_body(
 
     let (body, next, logical): (RecordBody, usize, u32) = match type_code {
         TYPE_LINE | TYPE_POINT | TYPE_CIRCLE | TYPE_ARC | TYPE_TEXT | TYPE_TRACE | TYPE_SOLID
-        | TYPE_INSERT => {
+        | TYPE_INSERT | TYPE_LOAD | TYPE_SHAPE => {
             let (entity, next) =
                 read_entity_fields(bytes, type_code, pos, pos + 4, index, version)?;
             (RecordBody::Entity(entity), next, 1)
@@ -966,6 +995,65 @@ mod tests {
         };
         assert_eq!(start.x, 1.012459);
         assert_eq!(end.y, 6.822910);
+    }
+
+    #[test]
+    fn load_and_shape_preserve_fields_order_and_truncation_errors() {
+        let mut bytes = vec![0; 0x202];
+        bytes.extend_from_slice(b"\x0a\0\x01\0\x04\0B:ES");
+        bytes.extend_from_slice(b"\x04\0\x01\0");
+        // Generated SHAPE RES 2.25,3.5 0.75 30: direct scale, radians,
+        // and ES.SHP's definition number 129 at the end of the record.
+        for v in [2.25f64, 3.5, 0.75, 30f64.to_radians()] {
+            bytes.extend_from_slice(&v.to_le_bytes());
+        }
+        bytes.extend_from_slice(&129u16.to_le_bytes());
+        let meta = HeaderMeta {
+            version: Version::Ac140,
+            entity_count: 2,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 2);
+        assert_eq!(
+            entities[0],
+            Entity::Load {
+                name: "B:ES".into()
+            }
+        );
+        let Entity::Shape {
+            origin,
+            height,
+            rotation_deg,
+            number,
+        } = entities[1]
+        else {
+            panic!("expected SHAPE")
+        };
+        assert_eq!(origin, Point { x: 2.25, y: 3.5 });
+        assert_eq!(height, 0.75);
+        assert!((rotation_deg - 30.0).abs() < 1e-12);
+        assert_eq!(number, 129);
+        assert_eq!(
+            read_items(&bytes, &meta).unwrap(),
+            entities
+                .iter()
+                .cloned()
+                .map(Item::Entity)
+                .collect::<Vec<_>>()
+        );
+        for cut in 0x202..bytes.len() {
+            assert!(
+                matches!(
+                    read_items(&bytes[..cut], &meta),
+                    Err(DwgError::TruncatedEntity { .. })
+                ),
+                "cut {cut:#x}"
+            );
+        }
+        // Erasure must consume the complete LOAD body before the SHAPE.
+        bytes[0x202..0x204].copy_from_slice(&(-10i16).to_le_bytes());
+        assert_eq!(read_entities(&bytes, &meta).unwrap(), entities[1..]);
     }
 
     #[test]

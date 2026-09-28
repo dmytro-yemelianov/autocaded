@@ -1,5 +1,5 @@
 //! The 1983 DWG binary reader for `AC1.2` and `AC1.40`.
-//! SHAPE/LOAD entities and the write direction remain unsupported.
+//! Includes ordered LOAD records and SHAPE references; writing is unsupported.
 pub mod discover;
 pub mod entity;
 pub mod error;

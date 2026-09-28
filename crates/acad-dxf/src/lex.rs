@@ -14,7 +14,7 @@ const DOS_EOF: u8 = 0x1a;
 
 /// Rows consumed by one instance of a record. `POINT`, `TRACE`, `SOLID`,
 /// `REPEAT` and `ENDREP` are evidenced by DXFs exported by the original
-/// from the AC1.2 corpus; `SHAPE` remains unsupported.
+/// from the AC1.2 corpus; `LOAD` and `SHAPE` by generated AC1.40 drawings.
 pub fn rows_per_instance(keyword: &str) -> Option<usize> {
     Some(match keyword {
         "ENDBLK" | "REPEAT" => 0,
@@ -22,7 +22,7 @@ pub fn rows_per_instance(keyword: &str) -> Option<usize> {
         "TEXT" | "INSERT" | "BLOCK" | "TRACE" | "SOLID" => 2,
         "EXTENTS" | "LIMITS" | "BASE" | "DWGVIEW" | "MODERES" | "MODEGRID" | "MODEORTHO"
         | "MODEFILL" | "TXTSIZE" | "TRACEWID" | "LAYER" | "LINE" | "CIRCLE" | "ARC" | "POINT"
-        | "ENDREP" => 1,
+        | "ENDREP" | "LOAD" | "SHAPE" => 1,
         _ => return None,
     })
 }
@@ -31,6 +31,8 @@ fn is_entity(keyword: &str) -> bool {
     matches!(
         keyword,
         "LINE"
+            | "LOAD"
+            | "SHAPE"
             | "CIRCLE"
             | "ARC"
             | "POINT"
@@ -178,11 +180,11 @@ mod tests {
 
     #[test]
     fn unimplemented_entity_is_rejected_not_guessed() {
-        let src = b"SHAPE,1\r\n0,0,1,1\r\n\x1a";
+        let src = b"UNKNOWN,1\r\n0,0,1,1\r\n\x1a";
         assert_eq!(
             lex(src),
             Err(DxfError::UnknownKeyword {
-                keyword: "SHAPE".into(),
+                keyword: "UNKNOWN".into(),
                 line: 1
             })
         );
