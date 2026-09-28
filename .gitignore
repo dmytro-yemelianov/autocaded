@@ -6,3 +6,7 @@ autocad/
 
 # Superpowers execution scratch
 .superpowers/
+
+# Extracted corpus: bytes stay local, the manifest is the record
+corpus/*
+!corpus/manifest.toml
