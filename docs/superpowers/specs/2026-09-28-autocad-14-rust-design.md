@@ -64,6 +64,18 @@ MZ header. No emulator trace was needed (§10).
 **DWG** — magic is an ASCII version stamp: `AC1.2` and `AC1.40` both occur in the 1.4
 sample corpus, so the codec must handle two versions and the corpus itself documents the
 format's evolution. `ACAD.OVL` contains the literal `AC1.40` it stamps into files it writes.
+Census of the sample disk: 16 `AC1.2`, 5 `AC1.40` (`HOUSE`, `COLORS`, `OFFICE`, `SHUTTLE`,
+`DISC`; the `.BAK` copies match their drawings). `SUBDIV.DWG`, the parallel-corpus file, is
+`AC1.2`.
+
+Header layout, established 2026-09-28 against `SUBDIV.DXF`'s own header values and identical
+in shape in both versions: `u32` at `+0x24` = one past the last byte of entity data (`0x19E5`
+for `SUBDIV`, whose file is `0x1A00` — the rest is cluster slack); `u32` at `+0x28` = the
+entity record count (171 for `SUBDIV` = 159 entities + 6 `BLOCK` + 6 `ENDBLK`); then IEEE
+doubles from `+0x2A` — `EXTENTS` min/max as 3D points, `LIMITS` min/max as 2D pairs at
+`+0x5A`, `DWGVIEW` centre and height at `+0x7A`, `MODERES`/`MODEGRID` as `u16`+`f64` pairs at
+`+0x9A`, `TXTSIZE` at `+0xB4`, `TRACEWID` at `+0xBC`. Entity data appears to run in the
+**opposite order to the DXF**: the DXF's first `LINE` is the last record in the DWG.
 
 **DXF (1983)** — *not* the modern group-code format. Record-oriented plain text:
 
@@ -213,9 +225,16 @@ against oracle-generated drawings.
 `SUBDIV.DWG` + `SUBDIV.DXF` as the primary lever for reversing DWG "without an emulator in
 the loop", and §9's reason for putting the oracle first — that it supplies the expected side
 so tests do not invent expectations — is already satisfied for this half by the parallel
-corpus: `SUBDIV.DWG` must decode to the `Drawing` that `SUBDIV.DXF` decodes to. Scope of the
-early half: decode `AC1.40` into `acad-model`, verified against that equality and against
-every `.DWG` in the corpus loading and rendering. The write direction, `AC1.2`, and
+corpus: `SUBDIV.DWG` must decode to the `Drawing` that `SUBDIV.DXF` decodes to.
+
+**This inverts ④'s internal order: `AC1.2` comes first, not `AC1.40`.** `SUBDIV.DWG` is
+`AC1.2` — a magic census of the sample disk gives 16 `AC1.2` drawings against 5 `AC1.40`
+(`HOUSE`, `COLORS`, `OFFICE`, `SHUTTLE`, `DISC`), and the only file with DXF ground truth is
+`AC1.2`. Reversing `AC1.40` first would mean inventing expectations for the one format that
+cannot be checked, which is what §9 exists to prevent.
+
+Scope of the early half: decode `AC1.2` into `acad-model`, verified by that equality and by
+every `AC1.2` drawing in the corpus loading and rendering. `AC1.40`, the write direction, and
 verification against oracle-generated drawings stay after ③.
 
 **⑤ Command loop.** Screen menu, command line, entity creation and editing commands,
