@@ -574,12 +574,18 @@ pub fn read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Entity>, Dwg
 /// definitions interleave in document order (`acad_model::drawing`'s doc
 /// comment), which this preserves: nothing is bucketed by kind.
 ///
-/// A `BLOCK` with no matching `ENDBLK` before `meta.entity_end` — either
-/// because the entity region ends first, or because another `BLOCK` opens
-/// before the first one closes — is `DwgError::UnterminatedBlock`, naming
-/// the offset the unterminated `BLOCK` record itself started at, not a
-/// silent truncation of its entities. A stray `ENDBLK` with no `BLOCK` open
-/// is `DwgError::StrayEndblk`, naming its own offset.
+/// A `BLOCK` with no matching `ENDBLK` before `meta.entity_end` ends is
+/// `DwgError::UnterminatedBlock`, naming the offset the unterminated
+/// `BLOCK` record itself started at, not a silent truncation of its
+/// entities. A stray `ENDBLK` with no `BLOCK` open is `DwgError::StrayEndblk`,
+/// naming its own offset. A `BLOCK` opening while another is already open is
+/// a *different* situation — not an unterminated block, since both may well
+/// go on to close correctly — and is `DwgError::NestedBlock`, naming both
+/// the outer and the inner (nested) block and the inner one's own offset:
+/// `acad_model::Block`'s flat `Vec<Entity>` cannot represent one block
+/// definition inside another, so this is a limitation of this codec, not a
+/// defect in the file (`SELEXOL` and `BLIVET` are both perfectly
+/// well-formed drawings that trip this — see `corpus_smoke.rs`).
 pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError> {
     let end = meta.entity_end as usize;
     let mut pos = ENTITY_START;
@@ -595,10 +601,11 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
                 None => out.push(Item::Entity(e)),
             },
             RecordBody::BlockStart { name, base } => {
-                if let Some((at, block)) = &open {
-                    return Err(DwgError::UnterminatedBlock {
-                        name: block.name.clone(),
-                        at: *at,
+                if let Some((_, block)) = &open {
+                    return Err(DwgError::NestedBlock {
+                        outer: block.name.clone(),
+                        inner: name,
+                        at: pos,
                     });
                 }
                 open = Some((
@@ -1164,17 +1171,29 @@ mod tests {
     }
 
     #[test]
-    fn a_block_opened_before_the_previous_one_closes_is_an_error() {
+    fn a_block_opened_before_the_previous_one_closes_is_a_nested_block_error() {
+        // Final review Fix 2: this used to be reported as UnterminatedBlock,
+        // naming only the outer block "B1" — which is false. Neither block
+        // is unterminated here (this fixture never even gives either one a
+        // matching ENDBLK, but that isn't why this fails); the real
+        // situation is a BLOCK nested inside another BLOCK, which
+        // acad_model::Block's flat Vec<Entity> can't represent. The
+        // diagnostic must say that, naming both blocks.
         let bytes = records(&[raw_block("B1", 0.0, 0.0), raw_block("B2", 1.0, 1.0)]);
+        // raw_block("B1", ..) is 24 bytes (4-byte header + 2-byte name
+        // length + 2-byte name "B1" + 2 doubles), so B2's own BLOCK record
+        // starts right after it.
+        let b2_at = ENTITY_START + 24;
         let meta = HeaderMeta {
             entity_count: 2,
             entity_end: bytes.len() as u32,
         };
         assert_eq!(
             read_items(&bytes, &meta).unwrap_err(),
-            DwgError::UnterminatedBlock {
-                name: "B1".into(),
-                at: ENTITY_START,
+            DwgError::NestedBlock {
+                outer: "B1".into(),
+                inner: "B2".into(),
+                at: b2_at,
             }
         );
     }

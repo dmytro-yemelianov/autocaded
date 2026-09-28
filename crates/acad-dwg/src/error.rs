@@ -17,12 +17,25 @@ pub enum DwgError {
     /// The header promises more entities than the bytes hold.
     EntityCountMismatch { want: u32, got: u32 },
     /// A `BLOCK` record with no matching `ENDBLK` before the entity region
-    /// ends, or before another `BLOCK` opens. Names the offset the
-    /// unterminated `BLOCK` record itself started at.
+    /// ends. Names the offset the unterminated `BLOCK` record itself
+    /// started at. A second `BLOCK` opening before the first one closes is
+    /// a different situation — see `NestedBlock`.
     UnterminatedBlock { name: String, at: usize },
     /// An `ENDBLK` record with no `BLOCK` currently open. Names the stray
     /// `ENDBLK` record's own offset.
     StrayEndblk { at: usize },
+    /// A `BLOCK` record encountered while another `BLOCK` is still open.
+    /// The file is not malformed — both blocks may be perfectly
+    /// well-terminated — but `acad_model::Block`'s flat `Vec<Entity>` has
+    /// no room for a block definition nested inside another one, so this
+    /// codec cannot represent it yet. Names the outer (already-open) block,
+    /// the inner (nested) block, and the offset the inner `BLOCK` record
+    /// itself started at.
+    NestedBlock {
+        outer: String,
+        inner: String,
+        at: usize,
+    },
     /// The record walk stopped at a byte offset that is not the header's
     /// own `entity_end` — either a record decoded past it, or `entity_end`
     /// was already at or before the fixed start of the entity region (a
@@ -63,6 +76,11 @@ impl fmt::Display for DwgError {
             Self::StrayEndblk { at } => {
                 write!(f, "ENDBLK at offset {at:#x} has no matching BLOCK")
             }
+            Self::NestedBlock { outer, inner, at } => write!(
+                f,
+                "BLOCK \"{inner}\" at offset {at:#x} is nested inside BLOCK \"{outer}\"; \
+                 nested block definitions are not supported yet"
+            ),
             Self::WalkOverran { pos, entity_end } => write!(
                 f,
                 "entity walk stopped at offset {pos:#x}, not the header's own entity_end \

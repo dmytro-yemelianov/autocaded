@@ -56,11 +56,14 @@ oracle check); `ADDER`, `FLOOR` and `FLOW` are new — erasure, `REPEAT` and
 `REPEAT` included — checked directly against their real bytes, not just a
 synthetic fixture) but both contain a `BLOCK` definition nested inside another
 `BLOCK` definition, which `read_items`'s single-level tracking (and
-`acad_model::Block`'s flat `Vec<Entity>`) cannot represent; opening a second
-`BLOCK` while one is open is `DwgError::UnterminatedBlock`, naming the outer
-one. Fixing that needs `acad_model::Block`/`Item` to nest, a design decision
-with no oracle to verify it against for either file, so it is left for
-whoever picks it up next rather than guessed at.
+`acad_model::Block`'s flat `Vec<Entity>`) cannot represent; both files are
+otherwise perfectly well-formed (every `BLOCK` does have a matching `ENDBLK`),
+so opening a second `BLOCK` while one is open is `DwgError::NestedBlock`,
+naming the outer block, the inner one, and the inner block's own offset — not
+a claim that the file itself is malformed. Fixing that needs
+`acad_model::Block`/`Item` to nest, a design decision with no oracle to
+verify it against for either file, so it is left for whoever picks it up
+next rather than guessed at.
 
 `acad-app` opens either format, dispatching on the file's own magic bytes rather
 than its extension, so a `.BAK` file — four corpus drawings have one — is

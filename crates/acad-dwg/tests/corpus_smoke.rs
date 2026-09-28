@@ -27,13 +27,17 @@
 //! `"$BCIRC"` inside a block named `"BLIVET"`), which `read_items` cannot
 //! represent — its `Item::Block` is a single flat level, tracked with one
 //! `Option`, not a stack, and `acad_model::Block.entities` is `Vec<Entity>`,
-//! with no room for a nested `Block` inside it. Opening a second `BLOCK`
-//! while one is already open is `DwgError::UnterminatedBlock`, naming the
-//! *outer* block, which is exactly what both files now produce. This is not
-//! one of the four record types Task 8's brief named, and fixing it
-//! properly means widening `acad_model::Block`/`Item` to nest — a real
-//! design decision with no DXF oracle for either file to verify it against,
-//! so it is left unimplemented and reported here rather than guessed at.
+//! with no room for a nested `Block` inside it. Both files are perfectly
+//! well-formed — every `BLOCK` they hold does have a matching `ENDBLK` —
+//! so opening a second `BLOCK` while one is already open is
+//! `DwgError::NestedBlock`, naming both the outer and inner block and the
+//! inner one's own offset, not `UnterminatedBlock` (final review Fix 2:
+//! that used to be raised here, naming only the outer block, which falsely
+//! implied the file itself was malformed). This is not one of the four
+//! record types Task 8's brief named, and fixing it properly means
+//! widening `acad_model::Block`/`Item` to nest — a real design decision
+//! with no DXF oracle for either file to verify it against, so it is left
+//! unimplemented and reported here rather than guessed at.
 //!
 //! `SUBDIV` is still the only drawing with a DXF sibling
 //! (`parallel_corpus.rs`, `entity_corpus.rs`), so `LINE`, `CIRCLE`, `ARC`,
@@ -80,13 +84,16 @@ const RENDERS: &[&str] = &[
 ];
 
 /// The 2 drawings that still fail, and exactly how: both are
-/// `DwgError::UnterminatedBlock`, naming the outer `BLOCK` that a nested one
-/// opened inside of, and the offset that outer `BLOCK` itself started at —
-/// see the module doc's explanation of why. Any change to these — a fix, a
-/// different failure, a different offset — is real news about the codec and
-/// must change this table, not be masked by a looser assertion.
-const UNSUPPORTED: &[(&str, &str, usize)] =
-    &[("SELEXOL", "PACKTWR", 0x1d8), ("BLIVET", "BLIVET", 0x144f)];
+/// `DwgError::NestedBlock`, naming the outer `BLOCK` that was still open,
+/// the inner `BLOCK` that opened inside it, and the offset the inner one
+/// itself started at — see the module doc's explanation of why. Any change
+/// to these — a fix, a different failure, a different offset — is real news
+/// about the codec and must change this table, not be masked by a looser
+/// assertion.
+const UNSUPPORTED: &[(&str, &str, &str, usize)] = &[
+    ("SELEXOL", "PACKTWR", "HEAD", 0x395),
+    ("BLIVET", "BLIVET", "$BCIRC", 0x146b),
+];
 
 #[test]
 fn the_census_accounts_for_all_sixteen_ac12_drawings() {
@@ -132,19 +139,21 @@ fn known_good_drawings_parse_and_render_non_blank() {
 #[test]
 fn known_unsupported_drawings_fail_with_the_recorded_type_code() {
     let mut ran = 0;
-    for &(name, block_name, at) in UNSUPPORTED {
+    for &(name, outer_name, inner_name, at) in UNSUPPORTED {
         let Some(bytes) = corpus(name) else { return };
         match acad_dwg::parse(&bytes) {
-            Err(DwgError::UnterminatedBlock {
-                name: got_name,
+            Err(DwgError::NestedBlock {
+                outer: got_outer,
+                inner: got_inner,
                 at: got_at,
             }) => {
-                assert_eq!(got_name, block_name, "{name}: unexpected outer block name");
+                assert_eq!(got_outer, outer_name, "{name}: unexpected outer block name");
+                assert_eq!(got_inner, inner_name, "{name}: unexpected inner block name");
                 assert_eq!(got_at, at, "{name}: unexpected offset");
             }
             Err(other) => panic!(
-                "{name}: expected UnterminatedBlock {{ name: {block_name:?}, at: {at:#x} }}, \
-                 got {other}"
+                "{name}: expected NestedBlock {{ outer: {outer_name:?}, inner: {inner_name:?}, \
+                 at: {at:#x} }}, got {other}"
             ),
             Ok(_) => panic!(
                 "{name}: now parses — this is progress! Move it into RENDERS, and say in the \
