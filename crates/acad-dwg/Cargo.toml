@@ -1,0 +1,13 @@
+[package]
+name = "acad-dwg"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+acad-model.workspace = true
+
+# acad-dxf is the test oracle only (spec §4.4). A shipped codec must not
+# depend on another codec.
+[dev-dependencies]
+acad-dxf.workspace = true

@@ -38,6 +38,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "acad-dwg"
+version = "0.1.0"
+dependencies = [
+ "acad-dxf",
+ "acad-model",
+]
+
+[[package]]
 name = "acad-dxf"
 version = "0.1.0"
 dependencies = [
