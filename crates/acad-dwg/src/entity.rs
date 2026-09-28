@@ -543,6 +543,22 @@ pub fn read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Entity>, Dwg
         index += logical;
     }
 
+    // The loop above only ever exits with pos >= end (its own condition), so
+    // this catches the walk landing strictly past entity_end — a record's
+    // on-disk size carried it beyond the header's declared boundary — and
+    // also the degenerate case where entity_end was already at or before
+    // ENTITY_START (pos starts there and the loop never runs at all). Either
+    // way this must be an error, not a silently accepted mismatch: the
+    // module doc's evidence for POINT/TRACE/SOLID/REPEAT rests specifically
+    // on the walk landing *exactly* on entity_end, and that claim is only
+    // true if something checks it.
+    if pos != end {
+        return Err(DwgError::WalkOverran {
+            pos,
+            entity_end: end,
+        });
+    }
+
     if index != meta.entity_count {
         return Err(DwgError::EntityCountMismatch {
             want: meta.entity_count,
@@ -602,6 +618,17 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
         }
         pos = next;
         index += logical;
+    }
+
+    // See read_entities's identical check for why this is needed: the loop
+    // only exits with pos >= end, so pos != end here means either a record
+    // walked past the declared entity_end, or entity_end never gave the
+    // walk anywhere valid to land in the first place.
+    if pos != end {
+        return Err(DwgError::WalkOverran {
+            pos,
+            entity_end: end,
+        });
     }
 
     if let Some((at, block)) = open {
@@ -1231,6 +1258,74 @@ mod tests {
         assert_eq!(
             read_entities(&bytes, &meta).unwrap_err(),
             DwgError::EntityCountMismatch { want: 5, got: 1 }
+        );
+    }
+
+    /// The bug the final review found: `entity_end` declared 20 bytes into
+    /// the entity region, but the buffer holds one genuine 36-byte `LINE`
+    /// record and `entity_count` says 1. Before this fix, `read_entities`
+    /// checked only `index != meta.entity_count` after the loop — 1 == 1,
+    /// so it returned `Ok`, silently accepting that the walk actually
+    /// consumed 16 bytes (36 - 20) outside the header's declared entity
+    /// region. This is the module doc's own claim ("the walk lands exactly
+    /// on entity_end") turned into an enforced check rather than an
+    /// unverified assertion.
+    #[test]
+    fn the_walk_must_land_exactly_on_entity_end_not_just_the_right_record_count() {
+        let bytes = one_line(0.0, 0.0, 1.0, 1.0); // ENTITY_START + 36 bytes total
+        let declared_end = ENTITY_START + 20;
+        let meta = HeaderMeta {
+            entity_count: 1,
+            entity_end: declared_end as u32,
+        };
+        assert_eq!(
+            read_entities(&bytes, &meta).unwrap_err(),
+            DwgError::WalkOverran {
+                pos: ENTITY_START + 36,
+                entity_end: declared_end,
+            }
+        );
+    }
+
+    /// The same check, in `read_items` — the walk `parse` actually uses.
+    #[test]
+    fn read_items_also_rejects_a_walk_that_overshoots_entity_end() {
+        let bytes = one_line(0.0, 0.0, 1.0, 1.0);
+        let declared_end = ENTITY_START + 20;
+        let meta = HeaderMeta {
+            entity_count: 1,
+            entity_end: declared_end as u32,
+        };
+        assert_eq!(
+            read_items(&bytes, &meta).unwrap_err(),
+            DwgError::WalkOverran {
+                pos: ENTITY_START + 36,
+                entity_end: declared_end,
+            }
+        );
+    }
+
+    /// The second hole the same fix closes: an `entity_end` at or before
+    /// `ENTITY_START` (a bad floppy read zeroing the header's `0x24..0x2a`
+    /// bytes could produce exactly this) with `entity_count: 0` used to
+    /// return `Ok` with an empty `Drawing`, because the loop never runs (its
+    /// own `pos < end` guard is false immediately) and 0 == 0 passed the old
+    /// entity-count check. `pos` never reaches `end` in this case either, so
+    /// the same `pos == end` guard catches it.
+    #[test]
+    fn an_entity_end_at_or_before_entity_start_is_rejected_not_silently_empty() {
+        let bytes = vec![0u8; ENTITY_START];
+        let declared_end = ENTITY_START - 10;
+        let meta = HeaderMeta {
+            entity_count: 0,
+            entity_end: declared_end as u32,
+        };
+        assert_eq!(
+            read_items(&bytes, &meta).unwrap_err(),
+            DwgError::WalkOverran {
+                pos: ENTITY_START,
+                entity_end: declared_end,
+            }
         );
     }
 

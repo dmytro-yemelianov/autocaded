@@ -23,6 +23,12 @@ pub enum DwgError {
     /// An `ENDBLK` record with no `BLOCK` currently open. Names the stray
     /// `ENDBLK` record's own offset.
     StrayEndblk { at: usize },
+    /// The record walk stopped at a byte offset that is not the header's
+    /// own `entity_end` — either a record decoded past it, or `entity_end`
+    /// was already at or before the fixed start of the entity region (a
+    /// zeroed or corrupt header field) so the walk had nowhere valid to
+    /// land. `pos` is where the walk actually stopped.
+    WalkOverran { pos: usize, entity_end: usize },
 }
 
 impl fmt::Display for DwgError {
@@ -57,6 +63,11 @@ impl fmt::Display for DwgError {
             Self::StrayEndblk { at } => {
                 write!(f, "ENDBLK at offset {at:#x} has no matching BLOCK")
             }
+            Self::WalkOverran { pos, entity_end } => write!(
+                f,
+                "entity walk stopped at offset {pos:#x}, not the header's own entity_end \
+                 {entity_end:#x}"
+            ),
         }
     }
 }
