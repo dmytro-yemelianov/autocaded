@@ -3,3 +3,6 @@ autocad/
 
 # Rust
 /target
+
+# Superpowers execution scratch
+.superpowers/
