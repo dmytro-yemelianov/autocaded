@@ -24,6 +24,7 @@ version = "0.1.0"
 name = "acad-render"
 version = "0.1.0"
 dependencies = [
+ "acad-dxf",
  "acad-model",
  "tiny-skia",
 ]
