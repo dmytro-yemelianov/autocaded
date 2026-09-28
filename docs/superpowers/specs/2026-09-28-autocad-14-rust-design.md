@@ -70,12 +70,36 @@ Census of the sample disk: 16 `AC1.2`, 5 `AC1.40` (`HOUSE`, `COLORS`, `OFFICE`, 
 
 Header layout, established 2026-09-28 against `SUBDIV.DXF`'s own header values and identical
 in shape in both versions: `u32` at `+0x24` = one past the last byte of entity data (`0x19E5`
-for `SUBDIV`, whose file is `0x1A00` — the rest is cluster slack); `u32` at `+0x28` = the
+for `SUBDIV`, whose file is `0x1A00` — the rest is cluster slack); `u16` at `+0x28` = the
 entity record count (171 for `SUBDIV` = 159 entities + 6 `BLOCK` + 6 `ENDBLK`); then IEEE
 doubles from `+0x2A` — `EXTENTS` min/max as 3D points, `LIMITS` min/max as 2D pairs at
 `+0x5A`, `DWGVIEW` centre and height at `+0x7A`, `MODERES`/`MODEGRID` as `u16`+`f64` pairs at
-`+0x9A`, `TXTSIZE` at `+0xB4`, `TRACEWID` at `+0xBC`. Entity data appears to run in the
-**opposite order to the DXF**: the DXF's first `LINE` is the last record in the DWG.
+`+0x9A`, `TXTSIZE` at `+0xB4`, `TRACEWID` at `+0xBC`. Entity records begin at a fixed `+0x1D8`,
+constant across all 16 `AC1.2` drawings, and run in **the same order as the DXF**, ending at
+the `+0x24` offset. Each record is a `u16` type code, a `u16` whose meaning is not yet known,
+then the type's fields as IEEE doubles — so `LINE` is 36 bytes and `ARC` 44.
+
+**The type code is a 1-based index into the entity type table recovered from `ACAD.EXE`**
+(`DS:0x38EE`: `LINE POINT CIRCLE SHAPE REPEAT ENDREP TEXT ARC TRACE LOAD SOLID BLOCK ENDBLK
+INSERT`). Checked against first records: `SUBDIV` = 8 = `ARC`, and its DXF's first entity is
+an `ARC`; `ADDER` = 12 = `BLOCK`; `FLOOR` and `BOX` = 1 = `LINE`; `BLIVET` = 9 = `TRACE`.
+Milestone ②'s string-table recovery therefore decodes milestone ④'s binary format.
+
+*(Corrects a 2026-09-28 reading that had the order reversed. That reading searched the DWG
+for `1.012459,6.822910,1.261682,6.822910`, quoted as a `LINE` example in §4.2 above — a value
+that does not appear in `SUBDIV.DXF` at all. Two of its numbers matched unrelated entities
+near the end of the file, which looked like a reversal. The DXF's first entity is an `ARC`,
+and its coordinates sit at `0x1DC`, immediately after the header.)*
+
+The entity-record count was first established as a `u32`, which reads correctly for
+`SUBDIV` only by coincidence: `SUBDIV`'s `EXTENTS` xmin is `-1.75`, an exactly representable
+double whose low mantissa bytes (at `+0x2A`/`+0x2B`, immediately following the count) are
+zero, so a 4-byte read at `+0x28` picked up two extra zero bytes and happened to still equal
+171. Corpus files whose xmin isn't a clean fraction (`ADDER`, `FLOOR`, `BLIVET`, `ANDGATE`,
+`HALFADD`, `NANDGATE`) exposed the error: their low mantissa bytes are non-zero, so the `u32`
+read returns nonsense (billions, or implausibly small counts) while the `u16` read gives a
+count consistent with the file's size and `SUBDIV`'s bytes-per-entity ratio. The field is a
+`u16`.
 
 **DXF (1983)** — *not* the modern group-code format. Record-oriented plain text:
 
@@ -84,8 +108,10 @@ KEYWORD,<record-count>
 <comma-separated values>...
 ```
 
-e.g. `LINE,1` followed by `1.012459,6.822910,1.261682,6.822910`. Undocumented but
-self-describing. Files terminate with DOS EOF (`0x1A`).
+e.g. `LINE,1` followed by `8.800000,5.700000,19.000000,1.899999`. Undocumented but
+self-describing. Files terminate with DOS EOF (`0x1A`). *(The example previously given here,
+`1.012459,6.822910,1.261682,6.822910`, appears in no corpus file and caused a wrong reading
+of the DWG entity order; the replacement is `SUBDIV.DXF`'s first `LINE`, verified present.)*
 
 **Entity and block records (11)** — `LINE`, `POINT`, `CIRCLE`, `ARC`, `TRACE`, `SOLID`, `TEXT`,
 `SHAPE`, `INSERT`, plus the `BLOCK`/`ENDBLK` definition delimiters. Confirmed as string
@@ -93,6 +119,23 @@ constants in the binaries.
 
 **Header records (12)** — `EXTENTS`, `LIMITS`, `BASE`, `DWGVIEW`, `MODERES`, `MODEGRID`,
 `MODEORTHO`, `MODEFILL`, `TXTSIZE`, `TRACEWID`, `LAYER`, `LAYERC`.
+
+**Erased entities** — the record type code is a **signed** `i16`, and a negative value marks
+an erased entity whose magnitude is its real type. `ADDER.DWG` holds 7 of them, including
+`-1` (an erased `LINE`) and `-14` (an erased `INSERT`); read as unsigned they appear as the
+nonsensical types 65535 and 65522. The record keeps its full body, which is presumably how
+`OOPS` restores the last erase. Treating the code as signed and skipping negatives makes
+`ADDER` walk exactly 66 records to `entity_end`, matching its header count; read as unsigned
+the walk dies at record 42. `SUBDIV` has none and is unaffected.
+
+**Text height** — a `TEXT` entity's height is stored differently in the two formats. The
+DWG holds the font's full cell height; the DXF reports cap height. `.SHP` fonts declare the
+ratio in their header — `corpus/System/TXT.SHP` opens `*0,4,Roman Simplex` / `21,7,0,0`,
+meaning 21 above the baseline and 7 below — so `dwg_height = dxf_height * (21+7)/21 = 4/3`.
+Verified on `SUBDIV`: the DWG holds `0.4613465` where the DXF prints `0.346010`. Every text
+font the 1.4 corpus ships is 3:1 (`ITALIC`, `ROMAN-C`, `ROMAN-S` and `System/TXT.SHP` at
+`21,7`; `Samples/TXT.SHP` at `6,2`), so the factor is constant across this corpus — but it is
+a property of the font, not of the format, and a reader that hardcodes it says so.
 
 **Auxiliary formats** — `.SHP` shape/font files (`TXT`, `ROMAN-S`, `ROMAN-C`, `ITALIC`,
 `ES`, `PC`), `ACAD.PAT` hatch patterns (5,120 B), `ACAD.MNU` screen menu (456 B, text with
@@ -115,9 +158,12 @@ The samples disk is a used 1983 working floppy and is **partly corrupt**:
   an exact 512-byte sector boundary. Broken FAT cluster chain. **Unusable.**
 - `SUBDIV.DXF` — clean and complete, proper `0x1A` terminator. 389 content lines, 183 records:
   `LINE`×133, `ARC`×8, `TEXT`×8, `INSERT`×8, `CIRCLE`×2, `BLOCK`/`ENDBLK`×6 pairs.
-  Block definitions and loose entities are **interleaved** — 47 lines precede the first
-  block and further blocks appear between inserts — so document order is content, and a
-  writer that buckets by kind cannot round-trip.
+  Block definitions and loose entities are **interleaved** — 53 `LINE` records precede the
+  first block (61 records counting the `ARC`s interleaved among them) and further blocks
+  appear between inserts — so document order is content, and a writer that buckets by kind
+  cannot round-trip. (Final review fix pass: this previously said "47 lines precede the
+  first block", which was simply wrong — 53 and 61 are what
+  `crates/acad-dwg/tests/entity_corpus.rs` verifies directly against real bytes.)
 
 `SUBDIV.DWG` + `SUBDIV.DXF` is therefore the parallel corpus — the same drawing in binary
 and text form — and is the primary lever for reversing DWG without an emulator in the loop.

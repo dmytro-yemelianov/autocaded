@@ -22,6 +22,7 @@ checksum = "366ffbaa4442f4684d91e2cd7c5ea7c4ed8add41959a31447066e279e432b618"
 name = "acad-app"
 version = "0.1.0"
 dependencies = [
+ "acad-dwg",
  "acad-dxf",
  "acad-model",
  "acad-render",
@@ -35,6 +36,15 @@ version = "0.1.0"
 dependencies = [
  "acad-dxf",
  "sha2",
+]
+
+[[package]]
+name = "acad-dwg"
+version = "0.1.0"
+dependencies = [
+ "acad-dxf",
+ "acad-model",
+ "acad-render",
 ]
 
 [[package]]

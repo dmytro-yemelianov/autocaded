@@ -30,8 +30,11 @@
 | `u32` at `+0x24` | `0x19E5` for `SUBDIV` |
 | `u32` at `+0x28` | `171` — the entity record count. `SUBDIV.DXF` holds 133 `LINE` + 8 `ARC` + 8 `TEXT` + 8 `INSERT` + 2 `CIRCLE` = 159 entities, plus 6 `BLOCK` and 6 `ENDBLK` = **171**. That arithmetic is the whole reason to believe this field |
 | Header doubles | `EXTENTS` min/max as 3D points from `+0x2A`; `LIMITS` min/max as 2D pairs from `+0x5A`; `DWGVIEW` centre + height from `+0x7A`; `MODERES`/`MODEGRID` as `u16`+`f64` pairs from `+0x9A`; `TXTSIZE` at `+0xB4`; `TRACEWID` at `+0xBC`. All verified against `SUBDIV.DXF`'s own header values |
-| Entity order | **Reversed relative to the DXF.** The DXF's first `LINE` (`1.012459,6.822910,1.261682,6.822910`) has its last three fields at `0x19E4`, `0x19EC`, `0x19F4` — the end of the file |
-| Alignment | Records are **not** 8-byte aligned: a clean `1.0` double sits at `0x19CD`. Do not assume a stride |
+| Entity start | Fixed `+0x1D8` in every `AC1.2` file, running to the `+0x24` offset |
+| Entity order | **Same as the DXF.** `SUBDIV.DXF`'s entity 0 is an `ARC` whose first coordinate sits at `0x1DC`; offsets increase monotonically with DXF index, and entity 158 sits at `0x19BD`, just before `entity_end` `0x19E5` |
+| Record shape | `u16` type code, `u16` of unknown meaning, then the type's fields as doubles. `LINE` is 36 bytes, `ARC` 44 |
+| Type codes | 1-based index into `ACAD.EXE`'s entity table (spec §4.2): 1 `LINE`, 2 `POINT`, 3 `CIRCLE`, 4 `SHAPE`, 5 `REPEAT`, 6 `ENDREP`, 7 `TEXT`, 8 `ARC`, 9 `TRACE`, 10 `LOAD`, 11 `SOLID`, 12 `BLOCK`, 13 `ENDBLK`, 14 `INSERT` |
+| Alignment | Records are **not** 8-byte aligned. Do not assume a stride across differing types |
 
 `SUBDIV.DXF`'s header, for reference — this is the oracle for Task 1:
 
@@ -63,7 +66,7 @@ TRACEWID,1
 1. **A file whose magic is `AC1.40`** — this codec reads `AC1.2`. An `AC1.40` file must be a named error saying which version was found and which is supported, never a misparse. Five corpus drawings are `AC1.40`, so a user *will* hit this. *(Task 1)*
 2. **A truncated DWG** — a file shorter than the header, or whose entity count promises more records than the bytes hold, must be a named error carrying the offset, never a panic and never a half-built `Drawing`. `SHUTTLE.DXF` shows a bad floppy read is a real event on this corpus. *(Tasks 1, 3)*
 3. **An entity record naming a type this codec does not know** — must name the type code and the byte offset, never be skipped silently. A silently dropped entity renders as a drawing that is quietly *wrong*, which is worse than one that fails to open. *(Task 3)*
-4. **The reversed entity order** — `SUBDIV.DWG`'s records run opposite to `SUBDIV.DXF`'s. A reader that returns them in file order produces a `Drawing` that is element-wise equal but ordered wrongly, and milestone ① established that document order is content. *(Task 6)*
+4. **Document order** — `SUBDIV.DWG`'s records run in the **same** order as `SUBDIV.DXF`'s, and milestone ① established that document order is content, so a reader must preserve file order rather than bucket by kind. *(Task 6)* — *(Revised during execution: this line originally claimed the DWG order was reversed. It is not; see the Task 2 finding recorded in spec §4.2.)*
 5. **A `Drawing` that compares equal only because both sides are empty** — every equality test against the DXF must first assert the drawing is non-trivial, or a reader that returns nothing passes the milestone. *(Task 6)*
 
 ---
@@ -853,7 +856,7 @@ git commit -m "feat(dwg): record discovery harness over the parallel corpus"
 - Consumes: `parse_header`, `HeaderMeta` (Task 1); the offsets Task 2 printed.
 - Produces:
   - `acad_dwg::entity::{RecordHeader, read_entities}`
-  - `read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<acad_model::Entity>, DwgError>`, returning entities in **DXF order** (see Review Focus 4)
+  - `read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<acad_model::Entity>, DwgError>`, returning entities in file order, which **is** DXF order — do not reverse
   - `read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<acad_model::Item>, DwgError>` — the same walk, but keeping `BLOCK`/`ENDBLK` grouping as `Item::Block`. Task 3 implements `read_entities` and Task 5 adds `read_items` on top of it once block delimiters are understood; until then `read_items` wraps every entity as `Item::Entity`.
 
 - [ ] **Step 1: Write the failing `LINE` test**
@@ -880,6 +883,8 @@ mod tests {
 
     #[test]
     fn reads_a_line_record() {
+        // TYPE_LINE is 1: the type code indexes ACAD.EXE's entity name table,
+        // whose first entry is LINE.
         let bytes = one_line(1.012459, 6.822910, 1.261682, 6.822910);
         let meta = HeaderMeta { entity_count: 1, entity_end: bytes.len() as u32 };
         let entities = read_entities(&bytes, &meta).unwrap();
@@ -937,9 +942,10 @@ Expected: FAIL — `cannot find function `read_entities``.
 
 Write `crates/acad-dwg/src/entity.rs` with:
 
-- `TYPE_LINE` set to the code Task 2's output identified;
-- `read_entities`, which walks the entity region, dispatches on the type code, and
-  **reverses the result** before returning so callers see DXF order;
+- `TYPE_LINE = 1`, from `ACAD.EXE`'s entity table (see the facts table above);
+- `read_entities`, which walks the entity region from `ENTITY_START = 0x1D8` to
+  `meta.entity_end` and dispatches on the `u16` type code. **Do not reverse it** — file
+  order already is DXF order;
 - `read_items`, which for now is
   `read_entities(..).map(|v| v.into_iter().map(Item::Entity).collect())`. Task 5
   replaces its body once `BLOCK`/`ENDBLK` are understood. It exists from this task so
@@ -949,10 +955,10 @@ Every offset arithmetic goes through a checked helper returning
 `DwgError::TruncatedEntity` rather than indexing directly, or Review Focus 2 fails on
 the first truncated file.
 
-Where the entity region *starts* is the one thing Task 2's output must tell you: the
-header's scalars end at `0xC4`, the layer table follows, and entities begin after it.
-Derive the start as `entity_end` minus the walked record sizes if the table's length is
-not yet known, and ledger that as provisional until Task 7 pins the layer table.
+The entity region starts at a fixed `0x1D8` in every `AC1.2` file — verified across six of
+them, each showing a plausible `u16` type code there. The header's scalars end at `0xC4` and
+the layer table fills `0xC4..0x1D8`; Task 7 reverses the table itself, but its length is
+settled, so define `ENTITY_START = 0x1D8` as a named constant rather than deriving it.
 
 Add `pub mod entity;` to `crates/acad-dwg/src/lib.rs`.
 

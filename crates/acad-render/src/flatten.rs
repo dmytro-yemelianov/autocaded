@@ -54,6 +54,45 @@ pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
         // TEXT needs the .SHP font files, which milestone 1 does not decode.
         Entity::Text { .. } => Vec::new(),
         Entity::Insert { .. } => Vec::new(), // expanded by `flatten`, which has the blocks
+        Entity::Point { origin } => {
+            // A bare dot has nothing to stroke a polyline between (`rasterize`
+            // drops anything under 2 points), and 1983 AutoCAD has no vector
+            // font glyph to reuse here (`PDMODE`-style point styles are a
+            // later AutoCAD feature) — so this draws a small screen-space "+"
+            // at a fixed pixel size, independent of the drawing's own scale,
+            // rather than rendering to nothing (Review Focus 3).
+            let p = vp.to_screen(*origin);
+            const R: f64 = 3.0;
+            vec![
+                Prim::Polyline(vec![
+                    Point { x: p.x - R, y: p.y },
+                    Point { x: p.x + R, y: p.y },
+                ]),
+                Prim::Polyline(vec![
+                    Point { x: p.x, y: p.y - R },
+                    Point { x: p.x, y: p.y + R },
+                ]),
+            ]
+        }
+        // `TRACE` and `SOLID` are inferred record types (`acad-dwg`'s
+        // `entity.rs` module doc: no corpus DXF exercises either, so their
+        // four corners' file-order semantics are not verified field by
+        // field). AutoCAD stores both in a "Z" order — p1-p2 one edge,
+        // p4-p3 the parallel opposite edge — not sequential winding, so the
+        // outline must visit p1, p2, p4, p3 to trace the quadrilateral
+        // rather than a self-crossing bowtie. That ordering is the
+        // well-documented AutoCAD SOLID/TRACE convention, applied here
+        // un-verified against this corpus; milestone 1 has no fill, so both
+        // draw as an outline only.
+        Entity::Trace { p1, p2, p3, p4 } | Entity::Solid { p1, p2, p3, p4 } => {
+            vec![Prim::Polyline(vec![
+                vp.to_screen(*p1),
+                vp.to_screen(*p2),
+                vp.to_screen(*p4),
+                vp.to_screen(*p3),
+                vp.to_screen(*p1),
+            ])]
+        }
     }
 }
 
@@ -167,5 +206,58 @@ mod tests {
             &vp()
         )
         .is_empty());
+    }
+
+    #[test]
+    fn point_draws_a_visible_marker_not_nothing() {
+        // A single-point polyline is dropped by `rasterize` (needs >= 2
+        // points), so a POINT must produce something with real extent or it
+        // renders as a silently missing shape (Review Focus 3).
+        let prims = flatten_entity(
+            &Entity::Point {
+                origin: Point { x: 5.0, y: 5.0 },
+            },
+            &vp(),
+        );
+        assert!(!prims.is_empty());
+        for Prim::Polyline(pts) in &prims {
+            assert!(pts.len() >= 2, "every primitive must be drawable");
+            let (a, b) = (pts[0], pts[1]);
+            assert!(
+                (a.x - b.x).abs() > 0.0 || (a.y - b.y).abs() > 0.0,
+                "marker must have non-zero extent"
+            );
+        }
+    }
+
+    #[test]
+    fn trace_and_solid_close_into_a_quadrilateral_outline() {
+        // Corners stored in AutoCAD's "Z" order (p1-p2 one edge, p4-p3 the
+        // opposite edge): drawn as p1,p2,p4,p3,p1 this closes a simple
+        // (non-self-crossing) rectangle. Values are SELEXOL's own TRACE, the
+        // corpus's one real example (see acad-dwg's entity.rs module doc).
+        let quad = |ctor: fn(Point, Point, Point, Point) -> Entity| {
+            ctor(
+                Point { x: 7.0, y: 30.725 },
+                Point { x: 7.0, y: 30.775 },
+                Point { x: 2.5, y: 30.725 },
+                Point { x: 2.5, y: 30.775 },
+            )
+        };
+        for e in [
+            quad(|p1, p2, p3, p4| Entity::Trace { p1, p2, p3, p4 }),
+            quad(|p1, p2, p3, p4| Entity::Solid { p1, p2, p3, p4 }),
+        ] {
+            let prims = flatten_entity(&e, &vp());
+            assert_eq!(prims.len(), 1);
+            let Prim::Polyline(pts) = &prims[0];
+            assert_eq!(pts.len(), 5, "4 corners plus closing back to the first");
+            let (first, last) = (pts[0], *pts.last().unwrap());
+            assert!((first.x - last.x).abs() < 1e-9 && (first.y - last.y).abs() < 1e-9);
+            // p2 (index 1) then p4 (index 2): the "Z" order, not sequential
+            // p3. p4 is (2.5, 30.775); a naive p1,p2,p3,p4 walk would visit
+            // p3 (2.5, 30.725) here instead.
+            assert!((pts[2].y - vp().to_screen(Point { x: 2.5, y: 30.775 }).y).abs() < 1e-9);
+        }
     }
 }
