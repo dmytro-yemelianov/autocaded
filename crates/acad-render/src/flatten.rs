@@ -123,6 +123,13 @@ pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
 /// 16 is therefore ours, not 1983's — picked generously above the corpus's
 /// observed depth of 2, not recovered from the binary. Whoever resolves the
 /// open question above should start at `DS:0x3740`.
+///
+/// When the cap is reached, `expand_insert` returns an empty `Vec` for that
+/// branch: the offending sub-tree's geometry is silently dropped rather than
+/// reported, because `flatten` returns `Vec<Prim>` and has no error channel
+/// to carry a diagnosis back through. That silence is deliberate, not an
+/// oversight — the alternative is a `Result`-based `flatten` for a case
+/// nothing in the corpus exercises.
 const MAX_INSERT_DEPTH: u32 = 16;
 
 #[allow(clippy::too_many_arguments)]
@@ -440,5 +447,102 @@ mod tests {
         };
         // The assertion is that this returns at all.
         let _ = flatten(&d, &vp());
+    }
+
+    #[test]
+    fn nested_insert_composes_outer_and_inner_transforms_exactly() {
+        // `an_insert_inside_a_block_body_is_expanded` above only pins that
+        // something is drawn: every transform it exercises is the identity
+        // except one translation, so an implementation that applied only one
+        // level's transform, or dropped the outer block's placement
+        // entirely, would still produce one polyline landing on the same
+        // point. This test gives every parameter — both blocks' `base`,
+        // both inserts' scale (x != y, so a transposed axis would show),
+        // both inserts' origin, and a non-90-degree rotation at *each*
+        // level — a distinct, non-identity value, so a broken composition
+        // lands somewhere else.
+        //
+        // The expected point below is derived from the INSERT transform
+        // definition itself (translate by -base, scale, rotate, translate
+        // by origin — the same formula `expand_insert` documents itself as
+        // implementing), not by running this code and recording its output.
+        //
+        // INNER's own LINE start point, in INNER's local frame:
+        //   p = (4.0, 3.0)
+        // INNER block's base point:
+        //   base_in = (1.0, 2.0)
+        // The INSERT-of-INNER living inside OUTER's body:
+        //   origin_in = (10.0, -5.0), scale_in = (2.0, 0.5), rot_in = 30 deg
+        //
+        // Applying INNER's placement to p:
+        //   d1 = p - base_in                = (3.0, 1.0)
+        //   s1 = (d1.x*2.0, d1.y*0.5)        = (6.0, 0.5)
+        //   sin(30 deg) = 0.5, cos(30 deg) = sqrt(3)/2 = 0.8660254037844387
+        //   q  = origin_in + (s1.x*cos30 - s1.y*sin30, s1.x*sin30 + s1.y*cos30)
+        //      = (10.0 + (6.0*0.8660254037844387 - 0.5*0.5),
+        //         -5.0 + (6.0*0.5 + 0.5*0.8660254037844387))
+        //      = (14.946152422706632, -1.566987298107781)
+        // `q` is a point in OUTER's local frame — where a broken
+        // implementation that stops composing after one level would land.
+        //
+        // OUTER block's base point:
+        //   base_out = (-2.0, 1.0)
+        // The top-level INSERT referencing OUTER:
+        //   origin_out = (100.0, 50.0), scale_out = (3.0, 1.5), rot_out = 60 deg
+        //
+        // Applying OUTER's placement to q:
+        //   d2 = q - base_out                = (16.946152422706632, -2.5669872981077813)
+        //   s2 = (d2.x*3.0, d2.y*1.5)         = (50.838457268119896, -3.850480947161672)
+        //   sin(60 deg) = sqrt(3)/2 = 0.8660254037844386, cos(60 deg) = 0.5000000000000001
+        //   final = origin_out + (s2.x*cos60 - s2.y*sin60, s2.x*sin60 + s2.y*cos60)
+        //         = (128.75384295108992, 92.10215500982062)
+        let d = Drawing {
+            header: test_header(),
+            items: vec![
+                Item::Block(Block {
+                    name: "INNER".into(),
+                    base: Point { x: 1.0, y: 2.0 },
+                    entities: vec![Entity::Line {
+                        start: Point { x: 4.0, y: 3.0 },
+                        end: Point { x: 6.0, y: 7.0 },
+                    }],
+                }),
+                Item::Block(Block {
+                    name: "OUTER".into(),
+                    base: Point { x: -2.0, y: 1.0 },
+                    entities: vec![Entity::Insert {
+                        origin: Point { x: 10.0, y: -5.0 },
+                        x_scale: 2.0,
+                        y_scale: 0.5,
+                        rotation_deg: 30.0,
+                        name: "INNER".into(),
+                    }],
+                }),
+                Item::Entity(Entity::Insert {
+                    origin: Point { x: 100.0, y: 50.0 },
+                    x_scale: 3.0,
+                    y_scale: 1.5,
+                    rotation_deg: 60.0,
+                    name: "OUTER".into(),
+                }),
+            ],
+        };
+        let prims = flatten(&d, &vp());
+        assert_eq!(prims.len(), 1);
+        let Prim::Polyline(pts) = &prims[0];
+        // Compare in world space, not screen space, so the assertion reads
+        // in the drawing's own units and does not depend on the viewport's
+        // fit/scale (`to_world` is `to_screen`'s exact inverse, up to f64
+        // rounding — pinned separately by `to_world_inverts_to_screen` in
+        // viewport.rs).
+        let world = vp().to_world(pts[0]);
+        let expected = Point {
+            x: 128.753_842_951_089_92,
+            y: 92.102_155_009_820_62,
+        };
+        assert!(
+            (world.x - expected.x).abs() < 1e-9 && (world.y - expected.y).abs() < 1e-9,
+            "composed transform landed at {world:?}, expected {expected:?}"
+        );
     }
 }
