@@ -1220,15 +1220,44 @@ if __name__ == "__main__":
     export(prog, out_dir)
 ```
 
-- [ ] **Step 2: Add analysis to the loader**
+- [ ] **Step 2: Seed the overlay entry points, then analyse**
 
-`load_acad.load()` currently passes `analyze=False`. Analysis must run after the overlay blocks exist, or Ghidra never sees the overlay code. Add, immediately before `check(program, ...)`:
+Analysis must run after the overlay blocks exist, or Ghidra never sees the overlay
+code — `export_ast.main()` calls `load_acad.prepare()` and then `api.analyzeAll()`
+inside one `open_program` context.
+
+That alone is not enough. Ghidra finds functions by following flow from somewhere it
+already knows is code, and an overlay block has no such anchor: analysis found
+functions in only 4 of the 11 overlay code blocks, 21 in total. The directory records
+where `ACAD.EXE` far-calls into each overlay, and `ovl-map.json` already carries those
+as `entry_points`. `prepare()` disassembles and creates a function at each before
+analysis:
 
 ```python
-        api.analyzeAll(program)
-        print("analysis complete: %d functions"
-              % program.getFunctionManager().getFunctionCount())
+def seed_entry_points(program, m):
+    from ghidra.app.cmd.disassemble import DisassembleCommand
+    from ghidra.app.cmd.function import CreateFunctionCmd
+
+    blocks = {b["name"]: b for b in m["blocks"] if b["overlay"]}
+    seeded = 0
+    for ep in m["entry_points"]:
+        name = "OVL%02d_CODE" % ep["entry"]
+        spec, block = blocks.get(name), gc.block_by_name(program, name)
+        if spec is None or block is None:
+            continue
+        delta = ep["off"] - spec["off"]
+        if delta < 0 or delta >= spec["len"]:
+            print("entry %d: entry point %#x is outside %s" % (ep["entry"], ep["off"], name))
+            continue
+        addr = block.getStart().add(delta)
+        DisassembleCommand(addr, None, True).applyTo(program)
+        CreateFunctionCmd("ovl%02d_entry" % ep["entry"], addr, None, None).applyTo(program)
+        seeded += 1
+    print("seeded %d overlay entry points" % seeded)
+    return seeded
 ```
+
+Called from `prepare()` after the blocks are made, asserting `seeded == 11`.
 
 - [ ] **Step 3: Write the pipeline driver**
 

@@ -13,6 +13,7 @@ block exits, so it cannot be returned and used afterwards.
 import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 
@@ -63,6 +64,9 @@ def prepare(program, m):
     made = add_overlay_blocks(program, m, ConsoleTaskMonitor())
     assert made == 22, "expected 22 overlay regions, made %d" % made
 
+    seeded = seed_entry_points(program, m)
+    assert seeded == 11, "expected 11 overlay entry points, seeded %d" % seeded
+
     check(program, exe_data["seg"])
 
 
@@ -106,6 +110,39 @@ def add_overlay_blocks(program, m, monitor):
     return made
 
 
+def seed_entry_points(program, m):
+    """Mark each overlay's entry point as a function before analysis.
+
+    Ghidra finds functions by following flow from somewhere it already knows is
+    code. An overlay block has no such anchor, so without this it only stumbles
+    on whatever a data reference happens to point at — 4 of the 11 code blocks
+    had any functions at all, and 7 had none. The directory records where
+    `ACAD.EXE` far-calls into each overlay (`entry+0x10`), which is exactly the
+    anchor analysis needs.
+    """
+    from ghidra.app.cmd.disassemble import DisassembleCommand
+    from ghidra.app.cmd.function import CreateFunctionCmd
+
+    blocks = {b["name"]: b for b in m["blocks"] if b["overlay"]}
+    seeded = 0
+    for ep in m["entry_points"]:
+        name = "OVL%02d_CODE" % ep["entry"]
+        spec = blocks.get(name)
+        block = gc.block_by_name(program, name)
+        if spec is None or block is None:
+            continue
+        delta = ep["off"] - spec["off"]
+        if delta < 0 or delta >= spec["len"]:
+            print("entry %d: entry point %#x is outside %s" % (ep["entry"], ep["off"], name))
+            continue
+        addr = block.getStart().add(delta)
+        DisassembleCommand(addr, None, True).applyTo(program)
+        CreateFunctionCmd("ovl%02d_entry" % ep["entry"], addr, None, None).applyTo(program)
+        seeded += 1
+    print("seeded %d overlay entry points" % seeded)
+    return seeded
+
+
 def check(program, data_seg):
     """The layout is right only if known strings read back at known addresses.
 
@@ -128,8 +165,12 @@ def check(program, data_seg):
     print("overlay payload verified: OVL00_DATA begins at the !root token")
 
 
-def project_location(project_dir):
+def project_location(project_dir, fresh=False):
     """An existing absolute directory Ghidra will accept as a project location.
+
+    `fresh` removes any previous project first. The pipeline always passes it:
+    a project carried over from an earlier `ovl-map.json` would keep stale
+    overlay blocks, and re-creating a block that already exists is an error.
 
     Ghidra's ProjectLocator rejects any path element starting with '.', so a
     checkout under a dot-directory — ~/.local/src/..., or a git worktree under
@@ -140,11 +181,15 @@ def project_location(project_dir):
     """
     path = os.path.abspath(project_dir)
     if not any(part.startswith(".") for part in path.split(os.sep) if part):
+        if fresh:
+            shutil.rmtree(path, ignore_errors=True)
         os.makedirs(path, exist_ok=True)
         return path
 
     key = hashlib.sha1(path.encode()).hexdigest()[:12]
     fallback = os.path.join(tempfile.gettempdir(), "autorust-ghidra", key)
+    if fresh:
+        shutil.rmtree(fallback, ignore_errors=True)
     os.makedirs(fallback, exist_ok=True)
     print("ghidra project: %s is under a dot-directory, which Ghidra rejects; using %s" % (path, fallback))
     return fallback
