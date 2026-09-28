@@ -4,5 +4,6 @@ pub mod discover;
 pub mod entity;
 pub mod error;
 pub mod header;
+pub mod text;
 
 pub use error::DwgError;

@@ -16,6 +16,13 @@ pub enum DwgError {
     UnknownEntityType { code: u16, at: usize },
     /// The header promises more entities than the bytes hold.
     EntityCountMismatch { want: u32, got: u32 },
+    /// A `BLOCK` record with no matching `ENDBLK` before the entity region
+    /// ends, or before another `BLOCK` opens. Names the offset the
+    /// unterminated `BLOCK` record itself started at.
+    UnterminatedBlock { name: String, at: usize },
+    /// An `ENDBLK` record with no `BLOCK` currently open. Names the stray
+    /// `ENDBLK` record's own offset.
+    StrayEndblk { at: usize },
 }
 
 impl fmt::Display for DwgError {
@@ -42,6 +49,13 @@ impl fmt::Display for DwgError {
             }
             Self::EntityCountMismatch { want, got } => {
                 write!(f, "header promises {want} entities, found {got}")
+            }
+            Self::UnterminatedBlock { name, at } => write!(
+                f,
+                "BLOCK \"{name}\" at offset {at:#x} has no matching ENDBLK"
+            ),
+            Self::StrayEndblk { at } => {
+                write!(f, "ENDBLK at offset {at:#x} has no matching BLOCK")
             }
         }
     }
