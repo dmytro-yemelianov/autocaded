@@ -574,41 +574,44 @@ pub fn read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Entity>, Dwg
 /// definitions interleave in document order (`acad_model::drawing`'s doc
 /// comment), which this preserves: nothing is bucketed by kind.
 ///
-/// A `BLOCK` with no matching `ENDBLK` before `meta.entity_end` ends is
-/// `DwgError::UnterminatedBlock`, naming the offset the unterminated
-/// `BLOCK` record itself started at, not a silent truncation of its
-/// entities. A stray `ENDBLK` with no `BLOCK` open is `DwgError::StrayEndblk`,
-/// naming its own offset. A `BLOCK` opening while another is already open is
-/// a *different* situation — not an unterminated block, since both may well
-/// go on to close correctly — and is `DwgError::NestedBlock`, naming both
-/// the outer and the inner (nested) block and the inner one's own offset:
-/// `acad_model::Block`'s flat `Vec<Entity>` cannot represent one block
-/// definition inside another, so this is a limitation of this codec, not a
-/// defect in the file (`SELEXOL` and `BLIVET` are both perfectly
-/// well-formed drawings that trip this — see `corpus_smoke.rs`).
+/// The block table is flat (`acad_model::Block`'s `entities: Vec<Entity>`
+/// has no room for a nested `Block`, and none is needed): a `BLOCK` record
+/// encountered while another is already open defines a **sibling**, not a
+/// child — evidenced by `SELEXOL`, which defines `ARROW` inside `COOLER`'s
+/// own span and then `INSERT`s `ARROW` fourteen times at top level, all
+/// outside `COOLER`'s span. A definition referenced from outside its
+/// parent's span cannot be scoped to that parent. So open `BLOCK`s are
+/// tracked as a stack: each `BLOCK` pushes, each `ENDBLK` pops the
+/// *innermost* one and emits it as `Item::Block` in the position its own
+/// `ENDBLK` closed — an inner block that closes before its outer one
+/// therefore appears earlier in `items` than the outer one, exactly as
+/// `a_block_defined_inside_another_is_a_sibling_not_a_child` (below) checks.
+/// Every other record is pushed onto the innermost open block, or onto
+/// `items` directly when the stack is empty.
+///
+/// A `BLOCK` left open when `meta.entity_end` is reached is
+/// `DwgError::UnterminatedBlock`, naming the **innermost** still-open
+/// block and the offset its own `BLOCK` record started at — not any
+/// enclosing block, which may be fine; naming the outer one would send a
+/// reader to the wrong offset. A stray `ENDBLK` with nothing open is
+/// `DwgError::StrayEndblk`, naming its own offset: the stack is popped only
+/// when non-empty, so this can never silently underflow.
 pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError> {
     let end = meta.entity_end as usize;
     let mut pos = ENTITY_START;
     let mut index: u32 = 0;
     let mut out = Vec::new();
-    let mut open: Option<(usize, Block)> = None;
+    let mut open: Vec<(usize, Block)> = Vec::new();
 
     while pos < end {
         let (body, next, logical) = read_record_body(bytes, pos, index)?;
         match body {
-            RecordBody::Entity(e) => match &mut open {
+            RecordBody::Entity(e) => match open.last_mut() {
                 Some((_, block)) => block.entities.push(e),
                 None => out.push(Item::Entity(e)),
             },
             RecordBody::BlockStart { name, base } => {
-                if let Some((_, block)) = &open {
-                    return Err(DwgError::NestedBlock {
-                        outer: block.name.clone(),
-                        inner: name,
-                        at: pos,
-                    });
-                }
-                open = Some((
+                open.push((
                     pos,
                     Block {
                         name,
@@ -617,7 +620,7 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
                     },
                 ));
             }
-            RecordBody::BlockEnd => match open.take() {
+            RecordBody::BlockEnd => match open.pop() {
                 Some((_, block)) => out.push(Item::Block(block)),
                 None => return Err(DwgError::StrayEndblk { at: pos }),
             },
@@ -638,7 +641,11 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
         });
     }
 
-    if let Some((at, block)) = open {
+    // A non-empty stack means at least one BLOCK never got its ENDBLK. The
+    // innermost one (the last pushed) is the informative one to name — it's
+    // the record whose own body is actually missing bytes; any enclosing
+    // block may well have gone on to close correctly had the file continued.
+    if let Some((at, block)) = open.pop() {
         return Err(DwgError::UnterminatedBlock {
             name: block.name,
             at,
@@ -733,6 +740,38 @@ mod tests {
         r.extend_from_slice(&TYPE_ENDBLK.to_le_bytes());
         r.extend_from_slice(&0u16.to_le_bytes());
         r
+    }
+
+    /// `SELEXOL`'s own shape (module doc / Task 1 brief): `BLOCK "OUTER"`, a
+    /// `LINE`, `BLOCK "INNER"`, a `LINE`, `ENDBLK` (closes `INNER`), a `LINE`,
+    /// `ENDBLK` (closes `OUTER`) — 7 records. `INNER` holds one `LINE`
+    /// (record 4); `OUTER` holds two, records 2 and 6 — not `INNER`'s.
+    fn nested_block_fixture() -> Vec<u8> {
+        records(&[
+            raw_block("OUTER", 0.0, 0.0),
+            raw_line(0.0, 0.0, 1.0, 1.0),
+            raw_block("INNER", 1.0, 1.0),
+            raw_line(2.0, 2.0, 3.0, 3.0),
+            raw_endblk(),
+            raw_line(4.0, 4.0, 5.0, 5.0),
+            raw_endblk(),
+        ])
+    }
+
+    /// A single `ENDBLK` with no `BLOCK` ever open.
+    fn lone_endblk_fixture() -> Vec<u8> {
+        records(&[raw_endblk()])
+    }
+
+    /// Two `BLOCK`s opened back to back, neither ever closed: `OUTER` then
+    /// `INNER`, then a `LINE`, then `entity_end`. The innermost open block
+    /// (`INNER`) is the one that should be named in the error.
+    fn unterminated_nest_fixture() -> Vec<u8> {
+        records(&[
+            raw_block("OUTER", 0.0, 0.0),
+            raw_block("INNER", 1.0, 1.0),
+            raw_line(0.0, 0.0, 1.0, 1.0),
+        ])
     }
 
     fn raw_insert(
@@ -1171,31 +1210,70 @@ mod tests {
     }
 
     #[test]
-    fn a_block_opened_before_the_previous_one_closes_is_a_nested_block_error() {
-        // Final review Fix 2: this used to be reported as UnterminatedBlock,
-        // naming only the outer block "B1" — which is false. Neither block
-        // is unterminated here (this fixture never even gives either one a
-        // matching ENDBLK, but that isn't why this fails); the real
-        // situation is a BLOCK nested inside another BLOCK, which
-        // acad_model::Block's flat Vec<Entity> can't represent. The
-        // diagnostic must say that, naming both blocks.
-        let bytes = records(&[raw_block("B1", 0.0, 0.0), raw_block("B2", 1.0, 1.0)]);
-        // raw_block("B1", ..) is 24 bytes (4-byte header + 2-byte name
-        // length + 2-byte name "B1" + 2 doubles), so B2's own BLOCK record
-        // starts right after it.
-        let b2_at = ENTITY_START + 24;
+    fn a_block_defined_inside_another_is_a_sibling_not_a_child() {
+        // SELEXOL defines ARROW inside COOLER and then INSERTs ARROW at top
+        // level fourteen times, so a nested definition is globally
+        // referenceable: the block table is flat. This replaces the old
+        // a_block_opened_before_the_previous_one_closes_is_a_nested_block_error
+        // test, which asserted the removed DwgError::NestedBlock behaviour.
+        let bytes = nested_block_fixture();
         let meta = HeaderMeta {
-            entity_count: 2,
+            entity_count: 7,
             entity_end: bytes.len() as u32,
         };
+        let items = read_items(&bytes, &meta).unwrap();
+
+        let blocks: Vec<&str> = items
+            .iter()
+            .filter_map(|i| match i {
+                Item::Block(b) => Some(b.name.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(blocks, vec!["INNER", "OUTER"], "INNER closes first");
+
+        let outer = items
+            .iter()
+            .find_map(|i| match i {
+                Item::Block(b) if b.name == "OUTER" => Some(b),
+                _ => None,
+            })
+            .unwrap();
         assert_eq!(
-            read_items(&bytes, &meta).unwrap_err(),
-            DwgError::NestedBlock {
-                outer: "B1".into(),
-                inner: "B2".into(),
-                at: b2_at,
-            }
+            outer.entities.len(),
+            2,
+            "OUTER holds its own two LINEs, not INNER's"
         );
+    }
+
+    #[test]
+    fn an_endblk_with_no_open_block_is_still_an_error() {
+        // Review Focus 2: a stack makes it easy to over-pop silently.
+        let bytes = lone_endblk_fixture();
+        let meta = HeaderMeta {
+            entity_count: 1,
+            entity_end: bytes.len() as u32,
+        };
+        assert!(matches!(
+            read_items(&bytes, &meta),
+            Err(DwgError::StrayEndblk { .. })
+        ));
+    }
+
+    #[test]
+    fn a_nested_block_left_open_at_the_end_names_the_innermost() {
+        // Review Focus 5. The innermost unterminated block is the
+        // informative one: naming the outer would send a reader to the
+        // wrong offset.
+        let bytes = unterminated_nest_fixture();
+        let meta = HeaderMeta {
+            entity_count: 3,
+            entity_end: bytes.len() as u32,
+        };
+        let Err(DwgError::UnterminatedBlock { name, .. }) = read_items(&bytes, &meta) else {
+            panic!("expected UnterminatedBlock");
+        };
+        assert_eq!(name, "INNER");
     }
 
     #[test]

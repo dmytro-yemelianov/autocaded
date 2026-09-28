@@ -50,7 +50,6 @@
 //! only the seven verified types, so their success is evidence the layout
 //! generalises, not a second independent verification.
 
-use acad_dwg::DwgError;
 use acad_render::{flatten, rasterize, Viewport};
 
 const CANVAS: u32 = 800;
@@ -136,34 +135,18 @@ fn known_good_drawings_parse_and_render_non_blank() {
     assert_eq!(ran, RENDERS.len());
 }
 
-#[test]
-fn known_unsupported_drawings_fail_with_the_recorded_type_code() {
-    let mut ran = 0;
-    for &(name, outer_name, inner_name, at) in UNSUPPORTED {
-        let Some(bytes) = corpus(name) else { return };
-        match acad_dwg::parse(&bytes) {
-            Err(DwgError::NestedBlock {
-                outer: got_outer,
-                inner: got_inner,
-                at: got_at,
-            }) => {
-                assert_eq!(got_outer, outer_name, "{name}: unexpected outer block name");
-                assert_eq!(got_inner, inner_name, "{name}: unexpected inner block name");
-                assert_eq!(got_at, at, "{name}: unexpected offset");
-            }
-            Err(other) => panic!(
-                "{name}: expected NestedBlock {{ outer: {outer_name:?}, inner: {inner_name:?}, \
-                 at: {at:#x} }}, got {other}"
-            ),
-            Ok(_) => panic!(
-                "{name}: now parses — this is progress! Move it into RENDERS, and say in the \
-                 module doc how nested BLOCK definitions ended up supported."
-            ),
-        }
-        ran += 1;
-    }
-    assert_eq!(ran, UNSUPPORTED.len());
-}
+// known_unsupported_drawings_fail_with_the_recorded_type_code used to live
+// here, asserting that SELEXOL and BLIVET fail to parse with
+// DwgError::NestedBlock. The nested-block-definitions plan's Task 1 (see
+// .superpowers/sdd/2026-09-28-nested-block-definitions/) removed that
+// variant: read_items now tracks open BLOCKs with a stack instead of one
+// slot, so a BLOCK nested inside another's span is grouped as a sibling, not
+// rejected — both files now parse. A test asserting they fail is simply
+// wrong now, regardless of what the RENDERS/UNSUPPORTED tables above still
+// say; that plan's Task 3 moves both files into RENDERS and rewrites this
+// module's doc comment and census tables to match. Left as a removal rather
+// than a rewrite here because Task 1's own scope is read_items, not this
+// file's bookkeeping.
 
 /// The record-level evidence behind the module doc's claim that `SELEXOL`
 /// and `BLIVET` are stopped by nested `BLOCK` definitions, not by anything

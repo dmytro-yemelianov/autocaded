@@ -329,6 +329,48 @@ fn circle_radii_remain_unique_in_the_file() {
     }
 }
 
+/// The corpus evidence behind the nested-block-definitions plan's Task 1: a
+/// `BLOCK` defined inside another `BLOCK`'s span is a sibling in the flat
+/// block table, not a child, so `read_items` now groups both previously-
+/// unsupported drawings cleanly instead of erroring.
+#[test]
+fn selexol_and_blivet_group_their_nested_blocks() {
+    for (file, count, nested) in [
+        (
+            "SELEXOL",
+            167usize,
+            [("HEAD", "PACKTWR"), ("ARROW", "COOLER")].as_slice(),
+        ),
+        ("BLIVET", 149, [("$BCIRC", "BLIVET")].as_slice()),
+    ] {
+        let Some(bytes) = corpus(&format!("Samples/{file}.DWG")) else {
+            return;
+        };
+        let (_, meta) = parse_header(&bytes).unwrap();
+        assert_eq!(meta.entity_count as usize, count, "{file} record count");
+
+        let items =
+            read_items(&bytes, &meta).unwrap_or_else(|e| panic!("{file} should now group: {e}"));
+        let names: Vec<&str> = items
+            .iter()
+            .filter_map(|i| match i {
+                Item::Block(b) => Some(b.name.as_str()),
+                _ => None,
+            })
+            .collect();
+        for (inner, outer) in nested {
+            assert!(
+                names.contains(inner),
+                "{file}: {inner} is a block in its own right"
+            );
+            assert!(
+                names.contains(outer),
+                "{file}: {outer} survived the nesting"
+            );
+        }
+    }
+}
+
 #[test]
 fn stopping_the_walk_inside_a_real_block_is_an_unterminated_block_error() {
     // Not a real-corpus scenario (SUBDIV's own BLOCKs are all well-formed —
