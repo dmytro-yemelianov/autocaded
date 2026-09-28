@@ -120,6 +120,14 @@ constants in the binaries.
 **Header records (12)** — `EXTENTS`, `LIMITS`, `BASE`, `DWGVIEW`, `MODERES`, `MODEGRID`,
 `MODEORTHO`, `MODEFILL`, `TXTSIZE`, `TRACEWID`, `LAYER`, `LAYERC`.
 
+**Erased entities** — the record type code is a **signed** `i16`, and a negative value marks
+an erased entity whose magnitude is its real type. `ADDER.DWG` holds 7 of them, including
+`-1` (an erased `LINE`) and `-14` (an erased `INSERT`); read as unsigned they appear as the
+nonsensical types 65535 and 65522. The record keeps its full body, which is presumably how
+`OOPS` restores the last erase. Treating the code as signed and skipping negatives makes
+`ADDER` walk exactly 66 records to `entity_end`, matching its header count; read as unsigned
+the walk dies at record 42. `SUBDIV` has none and is unaffected.
+
 **Text height** — a `TEXT` entity's height is stored differently in the two formats. The
 DWG holds the font's full cell height; the DXF reports cap height. `.SHP` fonts declare the
 ratio in their header — `corpus/System/TXT.SHP` opens `*0,4,Roman Simplex` / `21,7,0,0`,
