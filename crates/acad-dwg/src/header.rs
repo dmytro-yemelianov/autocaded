@@ -112,7 +112,7 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
         limits,
         // BASE is 0,0 in SUBDIV, so its offset is not yet pinned — a field
         // whose only sample is zero cannot be located by searching for it.
-        // Task 7 revisits this against a drawing with a non-zero BASE.
+        // Pinning it needs a drawing with a non-zero BASE.
         base: Point { x: 0.0, y: 0.0 },
         view: DwgView {
             center: Point {
@@ -133,7 +133,7 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
         fill: u16_at(bytes, OFF_FILL) != 0,
         text_size: f64_at(bytes, OFF_TXTSIZE),
         trace_width: f64_at(bytes, OFF_TRACEWID),
-        // The layer table follows the scalars and is reversed in Task 7, where
+        // The layer table follows the scalars and is not yet reversed. When it is,
         // SUBDIV.DXF's LAYERC record is the oracle. Until then a drawing reads
         // as layer 0 with no table, which renders correctly because milestone
         // ① does not colour by layer yet.
