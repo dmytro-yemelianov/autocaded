@@ -80,7 +80,9 @@ constants in the binaries.
 `MODEORTHO`, `MODEFILL`, `TXTSIZE`, `TRACEWID`, `LAYER`, `LAYERC`.
 
 **Auxiliary formats** — `.SHP` shape/font files (`TXT`, `ROMAN-S`, `ROMAN-C`, `ITALIC`,
-`ES`, `PC`), `ACAD.PAT` hatch patterns (5,120 B), `ACAD.MNU` screen menu (456 B, plain text).
+`ES`, `PC`), `ACAD.PAT` hatch patterns (5,120 B), `ACAD.MNU` screen menu (456 B, text with
+embedded control codes — `[^Snap]\x02`, `[^Ortho]\x0f`, `\x03` for Cancel — which are
+the literal bytes each menu item sends, not corruption).
 
 ### 4.3 Command set
 
