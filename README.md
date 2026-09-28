@@ -39,7 +39,9 @@ copies of the original floppies, creates an empty `AC1.40` drawing, and asks
 AutoCAD to export five `AC1.2` sample drawings as DXF. The tests compare the
 empty export byte for byte and the sample exports against the DWG reader's
 geometry, including `POINT`, `TRACE`, `SOLID`, and entities inside `REPEAT`.
-Entity-creation commands are not running yet. QEMU must be installed for this
+It also creates circles, a line, and a three-point arc, checking their DXF
+geometry against the command inputs. A QEMU 11.0.1 branch bug requires
+disabling TCG block chaining (`-d nochain`). QEMU must be installed for this
 probe; the spec's in-tree, CI-independent oracle remains future work. See
 [the oracle note](docs/oracle-qemu.md).
 

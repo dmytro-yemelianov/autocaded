@@ -163,6 +163,11 @@ impl Vm {
         let socket = dir.join("qmp.sock");
         let mut command = Command::new("qemu-system-i386");
         command.args(["-machine", "isapc", "-m", "16"]);
+        // QEMU 11.0.1's chained TCG blocks can fail to truncate EIP after
+        // a wrapping 16-bit near call (observed during CIRCLE). Disabling
+        // chaining keeps AutoCAD's overlay calls inside their code segment.
+        // See docs/oracle-qemu.md for the trace and upstream fix.
+        command.args(["-d", "nochain"]);
         command.arg("-drive").arg(format!(
             "file={},if=floppy,index=0,format=raw",
             image.display()

@@ -21,6 +21,14 @@ exports block definitions in an order that can differ from their DWG order.
 The floppies are copied under `/tmp`; corpus images are never modified. A
 small in-tree FAT12 reader extracts the output.
 
+`tests/commands.rs` exercises entity creation too: two `CIRCLE` commands
+with different centers and radii, a `LINE` with fractional endpoints, and
+an `ARC` through three points. The test expectations come from the command
+inputs and elementary geometry. It checks the complete entity list, then
+compares the Rust DXF writer's output with the original's exported bytes
+through DOS EOF. The generated binary drawings still require an `AC1.40`
+reader before they can be compared with the Rust DWG codec.
+
 The exports establish the DXF shapes of `POINT`, `TRACE`, `SOLID`, `REPEAT`,
 and `ENDREP`. They also expose an earlier lexer error: the number in an
 entity header such as `LINE,20` denotes its layer, not an instance count.
@@ -29,22 +37,30 @@ geometry and structure, not layer fidelity. `REPEAT` and `ENDREP` markers are
 also discarded after decoding their enclosed entities, so the test does not
 establish the construct's full repeat semantics.
 
-## Current limit
+## QEMU 11.0.1 branch workaround
 
-The sample exports verify geometry already present on the original floppies,
-but the harness does not yet verify entity-creation command semantics.
-Sending `CIRCLE` after entering the editor
-leaves the original at `Command: CIRCLE` and it does not return to the menu
-after center, radius, and `END` are sent. In one run QEMU repeatedly
-reported `CS:IP = 20C2:0D6C`; bytes at that physical address were `FF`.
-Adding the `DSIBMSS.DRV`, `DGMS.DRV`, and `PLHP.DRV` files named in
-`ACAD.CFG` from the Utilities disk to a disposable System image did not
-resolve it. This does not establish whether the remaining problem is QEMU's
-hardware model, the disk arrangement, or the input sequence.
+The harness passes `-d nochain` to disable TCG block chaining. Without it,
+QEMU 11.0.1 can leave a wrapping 16-bit near call's EIP untruncated. During
+`CIRCLE`, the instruction at `20C2:016A` (`E8 10 F8`) should call `F97D`
+in the same segment. The CPU trace instead records `EIP=FFFFF97D`, and
+execution enters physical address `2059D` instead of `3059D`. Running data
+as code then corrupts memory; later symptoms include an invalid-opcode loop,
+false resource errors, and AutoCAD aborting.
 
-The original writes `AC1.40`, while the shipped DWG reader currently supports
-only `AC1.2`. Both entity-command execution and `AC1.40` decoding are needed
-before this path can verify a generated drawing against the Rust model.
+This matches the upstream report and fix,
+[“fix EIP truncation for wrapping 16-bit near branches”](https://www.mail-archive.com/qemu-devel@nongnu.org/msg1224825.html).
+Disabling chaining takes the path that masks EIP correctly. The command
+tests pass with the workaround; removing it made the circle test time out
+after the original aborted. No AutoCAD binary bytes are changed. Keep the
+workaround until a QEMU version containing the fix is required and tested.
+
+## Remaining limits
+
+The original writes `AC1.40`, while the shipped DWG reader supports only
+`AC1.2`. Command checks currently use the original's DXF export. The harness
+still requires an external QEMU installation; it is not the spec's in-tree
+8086 core. Editor input uses paced keystrokes; synchronization with visible
+prompts currently covers the text-mode menus only.
 
 AutoCAD draws its editor into CGA memory at `B800:0000` while QEMU displays
 that memory as VGA text. The screen appears corrupted in a QEMU screenshot,
