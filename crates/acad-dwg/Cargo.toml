@@ -7,7 +7,9 @@ rust-version.workspace = true
 [dependencies]
 acad-model.workspace = true
 
-# acad-dxf is the test oracle only (spec §4.4). A shipped codec must not
-# depend on another codec.
+# acad-dxf is the test oracle only (spec §4.4). acad-render is needed only to
+# rasterise a corpus smoke test. A shipped codec must not depend on another
+# codec, or on the renderer.
 [dev-dependencies]
 acad-dxf.workspace = true
+acad-render.workspace = true

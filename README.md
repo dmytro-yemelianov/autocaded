@@ -18,7 +18,7 @@ Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/sup
 | ① | DXF codec, corpus integrity, first render | **done** |
 | ② | Ghidra overlay loader, dual AST export, `acad-re` | **done** |
 | ③ | Oracle harness — in-tree 8086, differential tests | next |
-| ④ | DWG codec — `AC1.40`, then `AC1.2` | read half starts first (see below) |
+| ④ | DWG codec — `AC1.40`, then `AC1.2` | `AC1.2` read: 11 of 16 corpus drawings render; 5 need record types not modelled yet (see below) |
 | ⑤ | Command loop | |
 
 `SUBDIV.DXF` round-trips byte-identically and renders. The full 1983 command set
@@ -34,12 +34,30 @@ shipped Rust is hand-written. The measurements behind that are in
 emulator (spec §4.4). Its write direction, `AC1.2`, and oracle verification wait
 for ③.
 
+`SUBDIV` is the corpus's only drawing with a DXF sibling, so it is the only
+independent check there is. Seven `AC1.2` record types decode through it and are
+**verified**, byte for byte, against `SUBDIV.DXF`: `LINE`, `CIRCLE`, `ARC`, `TEXT`,
+`BLOCK`, `ENDBLK`, `INSERT`. All 16 `AC1.2` drawings in the corpus have been run
+through the reader (`crates/acad-dwg/tests/corpus_smoke.rs`): 11 use only that
+same verified set of seven types and render correctly, which shows the layout
+generalises but is not a second oracle check — it is **inferred**, not verified,
+for anything beyond `SUBDIV` itself. The other 5 need a record type this codec
+does not model yet — `POINT`, `REPEAT`, `TRACE` or `SOLID` — which
+`acad_model::Entity` has no variant for; one of the five (`ADDER`) fails on a type
+code that does not even index the known entity table and needs its own look.
+`acad-app` opens either format, dispatching on the file's own magic bytes rather
+than its extension, so a `.BAK` file — four corpus drawings have one — is
+identified as the DWG it is rather than guessed from its name. Every `.BAK` in
+this corpus happens to be `AC1.40`, so today that means each is correctly
+refused with a message naming both versions, not silently misread as DXF.
+
 ## Build
 
 Rust 1.88.0, pinned by `rust-toolchain.toml`.
 
     cargo test --workspace
     cargo run -p acad-app        # renders SUBDIV.DXF in a window
+    cargo run -p acad-app -- corpus/Samples/SUBDIV.DWG   # or the DWG sibling
 
 Tests that need the corpus skip when it is absent, so a fresh checkout is green
 without it.
@@ -50,12 +68,13 @@ without it.
 |---|---|
 | `acad-model` | Entity model. The one crate everything depends on, and the one written for the future rather than for 1983. |
 | `acad-dxf` | The 1983 `KEYWORD,count` DXF codec — not the modern group-code format. |
+| `acad-dwg` | The 1983 binary DWG codec. `AC1.2` read support so far; `AC1.40` and the write direction come after milestone ③. Depends only on `acad-model` — a shipped codec must not depend on another codec. |
 | `acad-render` | Viewport fit and entity flattening (numerically testable), then rasterisation. |
-| `acad-app` | Window, via `winit` + `softbuffer`. |
+| `acad-app` | Window, via `winit` + `softbuffer`. Opens either `.DXF` or `.DWG`, chosen by the file's magic bytes. |
 | `acad-corpus` | Generates `corpus/manifest.toml`, the integrity record. |
 | `acad-re` | **Dev only.** `ACAD.OVL` container codec, typed Ghidra AST, call graph, command recovery, gate metrics. Nothing shipped depends on it. |
 
-Still to come, per spec §5: `acad-dwg`, `acad-cmd`, `acad-oracle`.
+Still to come, per spec §5: `acad-cmd`, `acad-oracle`.
 
 ## The corpus
 

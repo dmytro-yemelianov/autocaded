@@ -62,12 +62,28 @@ fn fail(path: &str, e: impl std::fmt::Display) -> ! {
     std::process::exit(2);
 }
 
+/// Chooses the codec by the file's own magic bytes, not its extension: a
+/// `.BAK` file (the corpus has several) is a DWG whatever its name says, and
+/// an AC1.2 or AC1.40 magic is unambiguous evidence either way (spec §4.2's
+/// `Version::detect`). Only when neither magic matches — i.e. this is not a
+/// DWG at all — does the file get handed to the DXF parser, which reports
+/// its own error if it isn't a DXF either.
+fn parse(path: &str, bytes: &[u8]) -> acad_model::Drawing {
+    match acad_dwg::header::Version::detect(bytes) {
+        // AC1.40 is a real DWG magic, just one this codec can't read yet
+        // (milestone ④); acad_dwg::parse reports that itself rather than
+        // this function duplicating the check.
+        Ok(_) => acad_dwg::parse(bytes).unwrap_or_else(|e| fail(path, e)),
+        Err(_) => acad_dxf::parse(bytes).unwrap_or_else(|e| fail(path, e)),
+    }
+}
+
 fn main() {
     let path = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "corpus/Samples/SUBDIV.DXF".to_string());
     let bytes = std::fs::read(&path).unwrap_or_else(|e| fail(&path, e));
-    let drawing = acad_dxf::parse(&bytes).unwrap_or_else(|e| fail(&path, e));
+    let drawing = parse(&path, &bytes);
     let undrawn = drawing
         .entities()
         .filter(|e| matches!(e, acad_model::Entity::Text { .. }))

@@ -9,6 +9,7 @@ name = "acad"
 path = "src/main.rs"
 
 [dependencies]
+acad-dwg.workspace = true
 acad-dxf.workspace = true
 acad-model.workspace = true
 acad-render.workspace = true
