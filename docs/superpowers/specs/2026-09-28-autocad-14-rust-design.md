@@ -70,12 +70,22 @@ Census of the sample disk: 16 `AC1.2`, 5 `AC1.40` (`HOUSE`, `COLORS`, `OFFICE`, 
 
 Header layout, established 2026-09-28 against `SUBDIV.DXF`'s own header values and identical
 in shape in both versions: `u32` at `+0x24` = one past the last byte of entity data (`0x19E5`
-for `SUBDIV`, whose file is `0x1A00` — the rest is cluster slack); `u32` at `+0x28` = the
+for `SUBDIV`, whose file is `0x1A00` — the rest is cluster slack); `u16` at `+0x28` = the
 entity record count (171 for `SUBDIV` = 159 entities + 6 `BLOCK` + 6 `ENDBLK`); then IEEE
 doubles from `+0x2A` — `EXTENTS` min/max as 3D points, `LIMITS` min/max as 2D pairs at
 `+0x5A`, `DWGVIEW` centre and height at `+0x7A`, `MODERES`/`MODEGRID` as `u16`+`f64` pairs at
 `+0x9A`, `TXTSIZE` at `+0xB4`, `TRACEWID` at `+0xBC`. Entity data appears to run in the
 **opposite order to the DXF**: the DXF's first `LINE` is the last record in the DWG.
+
+The entity-record count was first established as a `u32`, which reads correctly for
+`SUBDIV` only by coincidence: `SUBDIV`'s `EXTENTS` xmin is `-1.75`, an exactly representable
+double whose low mantissa bytes (at `+0x2A`/`+0x2B`, immediately following the count) are
+zero, so a 4-byte read at `+0x28` picked up two extra zero bytes and happened to still equal
+171. Corpus files whose xmin isn't a clean fraction (`ADDER`, `FLOOR`, `BLIVET`, `ANDGATE`,
+`HALFADD`, `NANDGATE`) exposed the error: their low mantissa bytes are non-zero, so the `u32`
+read returns nonsense (billions, or implausibly small counts) while the `u16` read gives a
+count consistent with the file's size and `SUBDIV`'s bytes-per-entity ratio. The field is a
+`u16`.
 
 **DXF (1983)** — *not* the modern group-code format. Record-oriented plain text:
 

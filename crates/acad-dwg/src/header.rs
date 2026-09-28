@@ -8,6 +8,7 @@ use std::fmt;
 
 /// Header field offsets, established against `SUBDIV.DXF` (spec §4.2).
 const OFF_ENTITY_END: usize = 0x24;
+/// A `u16`, not `u32` — see the comment where it is read in `meta_of`.
 const OFF_ENTITY_COUNT: usize = 0x28;
 const OFF_EXTENTS: usize = 0x2a;
 const OFF_LIMITS: usize = 0x5a;
@@ -144,7 +145,11 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
 
 fn meta_of(bytes: &[u8]) -> HeaderMeta {
     HeaderMeta {
-        entity_count: u32_at(bytes, OFF_ENTITY_COUNT),
+        // A u16, not a u32: SUBDIV's xmin (-1.75) is exactly representable,
+        // so its low mantissa bytes at 0x2a-0x2b happen to be zero, which
+        // made a wider read look correct until other corpus files (whose
+        // xmin isn't a clean fraction) exposed it — see spec §4.2.
+        entity_count: u16_at(bytes, OFF_ENTITY_COUNT) as u32,
         entity_end: u32_at(bytes, OFF_ENTITY_END),
     }
 }
@@ -157,13 +162,13 @@ fn u16_at(b: &[u8], at: usize) -> u16 {
 mod tests {
     use super::*;
 
-    /// A synthetic AC1.2 header: magic, the two u32s, then doubles at the
-    /// offsets the spec records.
+    /// A synthetic AC1.2 header: magic, the entity-end `u32` and the
+    /// entity-count `u16`, then doubles at the offsets the spec records.
     fn header_bytes() -> Vec<u8> {
         let mut h = vec![0u8; 0x100];
         h[..6].copy_from_slice(b"AC1.2\0");
         h[0x24..0x28].copy_from_slice(&0x19e5u32.to_le_bytes());
-        h[0x28..0x2c].copy_from_slice(&171u32.to_le_bytes());
+        h[0x28..0x2a].copy_from_slice(&171u16.to_le_bytes());
         let put = |h: &mut Vec<u8>, at: usize, v: f64| {
             h[at..at + 8].copy_from_slice(&v.to_le_bytes());
         };

@@ -96,7 +96,19 @@ fn every_ac12_drawing_in_the_corpus_has_a_readable_header() {
             return;
         };
         assert_eq!(Version::detect(&bytes).unwrap(), Version::Ac12, "{name}");
-        parse_header(&bytes).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let (_, meta) = parse_header(&bytes).unwrap_or_else(|e| panic!("{name}: {e}"));
+        // A wrong field width (e.g. reading entity_count as u32 instead of
+        // u16 — see spec §4.2) still returns Ok, just with nonsense inside;
+        // "parses" alone doesn't catch that, so check the numbers are sane:
+        // at least one entity, and no more entities than there are bytes to
+        // hold them (each needs at least one byte).
+        assert!(meta.entity_count > 0, "{name}: entity_count is 0");
+        assert!(
+            meta.entity_count < meta.entity_end,
+            "{name}: entity_count {} >= entity_end {:#x}",
+            meta.entity_count,
+            meta.entity_end
+        );
         seen += 1;
     }
     assert_eq!(seen, 16, "the census says 16 AC1.2 drawings");
