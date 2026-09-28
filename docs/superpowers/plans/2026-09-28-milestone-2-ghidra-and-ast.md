@@ -1763,7 +1763,26 @@ Expected: FAIL — `cannot find function `commands` in module `analysis``.
 
 - [ ] **Step 7: Implement command recovery**
 
-Append to `crates/acad-re/src/analysis.rs`. Command names are NUL-terminated uppercase ASCII literals in the overlays' string pools; attributing each to the entry whose regions contain it gives the overlay→command map.
+Append to `crates/acad-re/src/analysis.rs`.
+
+Command names are **not** stored one per NUL-terminated literal. They live in a single
+NUL-terminated, space-separated table that the dispatcher indexes, at file offset
+`0x2b4f4` — inside entry 2's data region:
+
+```
+LINE POINT CIRCLE SHAPE REPEAT ENDREP TEXT ARC TRACE LOAD SOLID LIST INSERT BASE
+ORTHO LAYER GRID LIMITS ID RES RESOLUTION ZOOM PAN MOVE ERASE MENU REDRAW STATUS
+REGEN DBLIST DIST CHANGE END QUIT ? AREA OOPS TABLET PLOT DELAY RESUME COPY BLOCK
+DIM QPLOT SNAP FILL HELP UNITS ARRAY WBLOCK AXIS HATCH FILLET BREAK SKETCH FILES
+```
+
+57 commands, a superset of `ACAD.MNU`'s 30. So the extractor looks for a
+NUL-terminated run of uppercase letters, spaces and `?` holding at least 8
+space-separated words, and splits it. Anything shorter is ordinary message text.
+
+This attributes commands to the overlay whose bytes carry the table. Which overlay
+*implements* each command needs the dispatcher that indexes the table, and is not
+recovered here.
 
 ```rust
 /// Uppercase ASCII words of 2..=8 characters, NUL-terminated, are how the
