@@ -333,15 +333,55 @@ fn circle_radii_remain_unique_in_the_file() {
 /// `BLOCK` defined inside another `BLOCK`'s span is a sibling in the flat
 /// block table, not a child, so `read_items` now groups both previously-
 /// unsupported drawings cleanly instead of erroring.
+///
+/// The plan's original version of this test only asserted that the inner
+/// and outer names appeared *somewhere* in the block list — a bug that put
+/// `HEAD`'s entities into `PACKTWR` would have passed it. This version
+/// instead checks, for every block `read_items` produces (not just the
+/// nested pair): its exact entity count in document order, so cross-
+/// contamination between an inner block and its outer one would show up as
+/// a count mismatch even with both names still present; and, for each
+/// nested pair, that the inner block's own `Item` sits at an earlier index
+/// in `items` than its outer block's — matching `read_items`'s documented
+/// stack behaviour (the innermost open `BLOCK` is the one popped and
+/// emitted when its `ENDBLK` is seen, so it always closes, and therefore
+/// appears, before the block it was nested inside).
+///
+/// The expected names/counts/order below were read directly off a real
+/// `read_items` run over each file's own corpus bytes: a temporary
+/// diagnostic test printed every `Item::Block`'s name, its index in
+/// `items`, and its `entities.len()` for both files
+/// (`cargo test -p acad-dwg --test entity_corpus -- --nocapture` against a
+/// one-off `for (i, item) in items.iter().enumerate() { ... }` dump), and
+/// its output was transcribed here verbatim, then the diagnostic was
+/// discarded.
 #[test]
 fn selexol_and_blivet_group_their_nested_blocks() {
-    for (file, count, nested) in [
+    for (file, count, blocks, nested) in [
         (
             "SELEXOL",
             167usize,
+            [
+                ("HEAD", 1usize),
+                ("PACKTWR", 14),
+                ("VESSEL", 4),
+                ("ARROW", 6),
+                ("COOLER", 3),
+                ("FINFAN", 26),
+                ("PUMPER", 4),
+                ("COMPRESS", 4),
+                ("BOX", 4),
+                ("UNBOX", 4),
+            ]
+            .as_slice(),
             [("HEAD", "PACKTWR"), ("ARROW", "COOLER")].as_slice(),
         ),
-        ("BLIVET", 149, [("$BCIRC", "BLIVET")].as_slice()),
+        (
+            "BLIVET",
+            149,
+            [("$$AROW", 2), ("$BCIRC", 1), ("BLIVET", 18), ("BLUVET", 10)].as_slice(),
+            [("$BCIRC", "BLIVET")].as_slice(),
+        ),
     ] {
         let Some(bytes) = corpus(&format!("Samples/{file}.DWG")) else {
             return;
@@ -351,21 +391,32 @@ fn selexol_and_blivet_group_their_nested_blocks() {
 
         let items =
             read_items(&bytes, &meta).unwrap_or_else(|e| panic!("{file} should now group: {e}"));
-        let names: Vec<&str> = items
+
+        let found: Vec<(&str, usize)> = items
             .iter()
             .filter_map(|i| match i {
-                Item::Block(b) => Some(b.name.as_str()),
+                Item::Block(b) => Some((b.name.as_str(), b.entities.len())),
                 _ => None,
             })
             .collect();
+        assert_eq!(
+            found.as_slice(),
+            blocks,
+            "{file}: block names/entity counts, in document order"
+        );
+
+        let index_of = |name: &str| {
+            items
+                .iter()
+                .position(|i| matches!(i, Item::Block(b) if b.name == name))
+                .unwrap_or_else(|| panic!("{file}: no block named {name}"))
+        };
         for (inner, outer) in nested {
+            let (inner_at, outer_at) = (index_of(inner), index_of(outer));
             assert!(
-                names.contains(inner),
-                "{file}: {inner} is a block in its own right"
-            );
-            assert!(
-                names.contains(outer),
-                "{file}: {outer} survived the nesting"
+                inner_at < outer_at,
+                "{file}: {inner} (item {inner_at}) should close, and so appear \
+                 in `items`, before its outer block {outer} (item {outer_at})"
             );
         }
     }

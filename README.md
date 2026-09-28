@@ -18,7 +18,7 @@ Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/sup
 | ① | DXF codec, corpus integrity, first render | **done** |
 | ② | Ghidra overlay loader, dual AST export, `acad-re` | **done** |
 | ③ | Oracle harness — in-tree 8086, differential tests | next |
-| ④ | DWG codec — `AC1.40`, then `AC1.2` | `AC1.2` read: 14 of 16 corpus drawings render; 2 are stopped by nested `BLOCK` definitions (see below) |
+| ④ | DWG codec — `AC1.40`, then `AC1.2` | `AC1.2` read: all 16 corpus drawings parse and render |
 | ⑤ | Command loop | |
 
 `SUBDIV.DXF` round-trips byte-identically and renders. The full 1983 command set
@@ -48,22 +48,42 @@ erased entity (`ADDER`'s own finding) is confirmed the same way: reading the cod
 as `i16` makes `ADDER`'s walk land exactly, where reading it unsigned does not.
 
 All 16 `AC1.2` drawings in the corpus have been run through the reader
-(`crates/acad-dwg/tests/corpus_smoke.rs`): **14 render**. The pre-existing 11 use
-only the seven verified types (evidence the layout generalises, not a second
-oracle check); `ADDER`, `FLOOR` and `FLOW` are new — erasure, `REPEAT` and
-`SOLID` respectively were all they needed. The remaining 2, `SELEXOL` and
-`BLIVET`, decode every individual record correctly (`POINT`, `TRACE` and
-`REPEAT` included — checked directly against their real bytes, not just a
-synthetic fixture) but both contain a `BLOCK` definition nested inside another
-`BLOCK` definition, which `read_items`'s single-level tracking (and
-`acad_model::Block`'s flat `Vec<Entity>`) cannot represent; both files are
-otherwise perfectly well-formed (every `BLOCK` does have a matching `ENDBLK`),
-so opening a second `BLOCK` while one is open is `DwgError::NestedBlock`,
-naming the outer block, the inner one, and the inner block's own offset — not
-a claim that the file itself is malformed. Fixing that needs
-`acad_model::Block`/`Item` to nest, a design decision with no oracle to
-verify it against for either file, so it is left for whoever picks it up
-next rather than guessed at.
+(`crates/acad-dwg/tests/corpus_smoke.rs`): **all 16 render**. The pre-existing 11
+use only the seven verified types (evidence the layout generalises, not a
+second oracle check); `ADDER`, `FLOOR` and `FLOW` needed erasure, `REPEAT` and
+`SOLID` respectively.
+
+The last two, `SELEXOL` and `BLIVET`, needed a structural fix rather than a new
+record type. Both decoded every individual record correctly from the start
+(`POINT`, `TRACE` and `REPEAT` included — checked directly against their real
+bytes, not a synthetic fixture), but both also contain a `BLOCK` definition
+nested inside another `BLOCK` definition (`SELEXOL`'s `"HEAD"` inside
+`"PACKTWR"`, and independently `"ARROW"` inside `"COOLER"`; `BLIVET`'s
+`"$BCIRC"` inside a block named `"BLIVET"`), which the reader used to track
+with a single `Option`, not a stack, and so rejected as `DwgError::NestedBlock`
+even though both files are otherwise perfectly well-formed (every `BLOCK` does
+have a matching `ENDBLK`). The reader now tracks open `BLOCK`s as a stack: a
+`BLOCK` opened while another is already open defines a **sibling**, not a
+child — evidenced by `SELEXOL`'s `ARROW`, which is also `INSERT`ed fourteen
+times outside `COOLER`'s own span, so it cannot be scoped to `COOLER` — and
+each `ENDBLK` closes and emits the innermost open one. `DwgError::NestedBlock`
+no longer exists.
+
+Grouping the blocks correctly still wasn't enough to draw them: both files
+also `INSERT` one block from inside another block's own body, so the renderer's
+`INSERT` expansion had to become recursive, composing each nesting level's own
+translate/scale/rotate transform with the one enclosing it, with a depth cap
+(ours, not a recovered 1983 constant — the corpus never nests past depth 2)
+against a self-referencing `INSERT`.
+
+**This plan adds no oracle.** `SELEXOL` and `BLIVET` still have no DXF sibling,
+so their render — 21,439 and 31,729 lit pixels respectively, on the smoke
+test's 800×800 canvas, well clear of `SUBDIV`'s 15,660 and `ORGATE`'s
+smallest-of-the-corpus 2,466 — is evidence that the record layouts and this
+nesting fix generalise across the corpus, not a second, independent
+verification the way a DXF comparison would be. The verified-versus-inferred
+split above is unchanged by any of this: `POINT`, `TRACE`, `SOLID` and
+`REPEAT`/`ENDREP` remain inferred, not verified, exactly as before.
 
 `acad-app` opens either format, dispatching on the file's own magic bytes rather
 than its extension, so a `.BAK` file — four corpus drawings have one — is
