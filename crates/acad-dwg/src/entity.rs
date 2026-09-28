@@ -3,14 +3,82 @@
 //! Entity records sit after the header and layer table, from a fixed
 //! `ENTITY_START` to `meta.entity_end` (both discovered against `SUBDIV`,
 //! Task 2). Each record is a `u16` type code, a `u16` of not-yet-understood
-//! meaning, then the type's own fields. The type code is a 1-based index
-//! into the entity name table recovered from `ACAD.EXE`: 1 `LINE`, 2 `POINT`,
-//! 3 `CIRCLE`, 4 `SHAPE`, 5 `REPEAT`, 6 `ENDREP`, 7 `TEXT`, 8 `ARC`,
-//! 9 `TRACE`, 10 `LOAD`, 11 `SOLID`, 12 `BLOCK`, 13 `ENDBLK`, 14 `INSERT`.
-//! `LINE`, `CIRCLE`, `ARC`, `TEXT`, `BLOCK`, `ENDBLK` and `INSERT` are
-//! implemented here; every other code is `DwgError::UnknownEntityType` until
-//! Task 8 adds it (`POINT`, `SOLID`, `TRACE`, `SHAPE` — none with a model
-//! representation yet).
+//! meaning ("flags" below), then the type's own fields. The type code is a
+//! 1-based index into the entity name table recovered from `ACAD.EXE`:
+//! 1 `LINE`, 2 `POINT`, 3 `CIRCLE`, 4 `SHAPE`, 5 `REPEAT`, 6 `ENDREP`,
+//! 7 `TEXT`, 8 `ARC`, 9 `TRACE`, 10 `LOAD`, 11 `SOLID`, 12 `BLOCK`,
+//! 13 `ENDBLK`, 14 `INSERT`. Every code except `SHAPE`(4) and `LOAD`(10) is
+//! implemented here; those two have no corpus drawing that needs them
+//! (evidence-driven scope, Task 8's brief) and remain
+//! `DwgError::UnknownEntityType`.
+//!
+//! **Erased entities (spec §4.2, Part A of Task 8).** The type code is a
+//! **signed** `i16`; a negative value marks an erased entity whose magnitude
+//! is its real type (`ADDER.DWG`'s `-1` is an erased `LINE`, `-14` an erased
+//! `INSERT` — read as unsigned they are the nonsensical 65535 and 65522).
+//! The record keeps its full body — presumably how `OOPS` restores the last
+//! erase — so the byte walk decodes it exactly like the live version of the
+//! same type and simply discards the result. Confirmed on `ADDER`, the
+//! corpus's only file with any: reading the sign makes it walk exactly 66
+//! records to `entity_end` (matching its header's `entity_count`, which
+//! counts all 7 erased records too), with all 7 landing on `LINE` or
+//! `INSERT`. `SUBDIV` and the other 15 `AC1.2` drawings have none.
+//!
+//! **`POINT`, `TRACE`, `SOLID` (Task 8, Part B).** Straightforward
+//! fixed-field records like `LINE`/`CIRCLE`: `POINT` is a header plus one
+//! point (20 bytes); `TRACE` and `SOLID` are a header plus four points, 8
+//! doubles, 68 bytes. **None of the three has a DXF oracle** — `SUBDIV.DXF`,
+//! the corpus's only DXF, contains none of them — so unlike every other type
+//! in this file, their layout is inferred from record size and internal
+//! consistency (the whole-file walk landing exactly on `entity_end` with a
+//! record count matching the header's, across the files that use them: 68
+//! bytes for `TRACE` on `SELEXOL` — 167/167 records, exact byte landing —
+//! and independently on `BLIVET`; `SOLID` the same shape on `FLOW`,
+//! 177/177). `POINT`'s two doubles were read directly off `SELEXOL` bytes:
+//! a clean `(5.0, 5.0)` immediately followed by a plausible `LINE`, with no
+//! plausible alternative field count.
+//!
+//! **`REPEAT`/`ENDREP` (Task 8, Part B) — the one non-leaf construct.**
+//! Also inferred, not verified (no DXF oracle), but cross-checked against
+//! *two* independent corpus files (`FLOOR`, whose only failing code was
+//! `REPEAT`, and `BLIVET`, which turned out to use it too once `TRACE` was
+//! in place) — both land exactly on `entity_end` with a record count
+//! matching the header once the accounting below is applied. `REPEAT`
+//! fuses two logical records into one physical one: header, then a `u16`
+//! pair — the first (`nested_type`) is *itself* an entity-table type code,
+//! the second is uninterpreted here — then that nested type's own fields
+//! **with no separate 4-byte header of its own** (`REPEAT`'s header stands
+//! in for it). Evidenced nested types: `LINE` (`FLOOR`, both of its
+//! `REPEAT`s; `BLIVET`, 3 of its 5) and `INSERT` (`BLIVET`, 2 of its 5, one
+//! naming block `"$BCIRC"`) — no other nested type appears anywhere in the
+//! corpus, so only those two are decoded; anything else is
+//! `DwgError::UnknownEntityType`, not a guess. This nested record **is**
+//! counted as its own entity by the header's `entity_count` even though it
+//! shares `REPEAT`'s physical bytes: `FLOOR` has 2 `REPEAT`s and its walk is
+//! short by exactly 2 until this is accounted for; `BLIVET` has 5 and is
+//! short by exactly 5. So it is decoded and emitted as a real `Entity` here
+//! — it is unambiguously present, real geometry, not invented.
+//!
+//! What is *not* modelled, because the corpus gives no evidence for it: the
+//! actual "repeat" semantics. `REPEAT`'s second `u16` (a plausible "repeat
+//! count") is 1 in every simple case and otherwise uncorrelated with
+//! anything checkable, and no case in the corpus shows more than one copy
+//! of a repeated element with a discoverable offset between copies — so no
+//! repetition is synthesised; the nested entity is emitted exactly once,
+//! and ordinary entity records between a `REPEAT` and its `ENDREP` (`FLOOR`
+//! nests 3 plain `LINE` records this way) are decoded completely normally
+//! by the same per-record dispatch, with no special "inside a repeat"
+//! behaviour at all. `ENDREP` is simpler to size (header, the same kind of
+//! `u16` pair, then always exactly two more doubles — 24 bytes, fixed,
+//! regardless of what the pair holds) but its own two doubles and its `u16`
+//! pair have no evidenced meaning — no correlation was found against the
+//! `REPEAT` they close, the nested entities between, or anything else
+//! checkable — so they are consumed for correct byte alignment and produce
+//! no entity. This is the "decode and skip the construct" half of Task 8's
+//! dispatch guidance: the construct's own open/close bookkeeping is walked
+//! over, not represented, while the genuine entities it contains (both the
+//! ones between `REPEAT`/`ENDREP` and the one fused into `REPEAT` itself)
+//! are read like any other record.
 //!
 //! `ARC`, `TEXT` and `INSERT` each carry an angle field stored in radians;
 //! they are converted to degrees here because `acad_model` documents them in
@@ -18,7 +86,7 @@
 //! sweeps counter-clockwise through 0°.
 //!
 //! `TEXT`'s height field is *also* not a direct copy: the raw double is 4/3
-//! the DXF's printed height (see the `TYPE_TEXT` arm of `read_record_body`
+//! the DXF's printed height (see the `TYPE_TEXT` arm of `read_entity_fields`
 //! for how this was found), so it is scaled by 0.75 on the way in. This is
 //! local to the entity field — the header's own `TXTSIZE` needs no such
 //! scaling — and was not expected going in; only the angle fields were known
@@ -35,13 +103,16 @@
 //! header.
 //!
 //! `read_entities` decodes every entity-shaped record (including those
-//! inside a `BLOCK`/`ENDBLK` pair) into one flat, file-order `Vec<Entity>`,
-//! skipping `BLOCK`/`ENDBLK` themselves without erroring on them — it has no
-//! way to represent them, since `acad_model::Entity` has no block variant.
-//! `read_items` walks the same records through the same per-record decoder
-//! but tracks `BLOCK`/`ENDBLK` nesting to group each pair's entities into one
+//! inside a `BLOCK`/`ENDBLK` pair, or a `REPEAT`/`ENDREP` pair) into one
+//! flat, file-order `Vec<Entity>`, skipping `BLOCK`/`ENDBLK`/`ENDREP`
+//! themselves without erroring on them — it has no way to represent them,
+//! since `acad_model::Entity` has no block or repeat variant. `read_items`
+//! walks the same records through the same per-record decoder but tracks
+//! `BLOCK`/`ENDBLK` nesting to group each pair's entities into one
 //! `Item::Block`, preserving interleaving with loose entities exactly as
-//! `acad_model::drawing`'s doc comment requires.
+//! `acad_model::drawing`'s doc comment requires; `REPEAT`/`ENDREP` are not
+//! given the same grouping treatment (see above) — the entities they
+//! surround land as ordinary loose `Item::Entity`s, same as `read_entities`.
 
 use crate::header::HeaderMeta;
 use crate::text::decode_latin1;
@@ -59,14 +130,33 @@ const ENTITY_START: usize = 0x1D8;
 /// entry.
 const TYPE_LINE: u16 = 1;
 
+/// `ACAD.EXE`'s entity name table, entry 2: `POINT`. No DXF oracle — see the
+/// module doc.
+const TYPE_POINT: u16 = 2;
+
 /// `ACAD.EXE`'s entity name table, entry 3: `CIRCLE`.
 const TYPE_CIRCLE: u16 = 3;
+
+/// `ACAD.EXE`'s entity name table, entry 5: `REPEAT`. Not a leaf entity —
+/// see the module doc's `REPEAT`/`ENDREP` section.
+const TYPE_REPEAT: u16 = 5;
+
+/// `ACAD.EXE`'s entity name table, entry 6: `ENDREP`.
+const TYPE_ENDREP: u16 = 6;
 
 /// `ACAD.EXE`'s entity name table, entry 7: `TEXT`.
 const TYPE_TEXT: u16 = 7;
 
 /// `ACAD.EXE`'s entity name table, entry 8: `ARC`.
 const TYPE_ARC: u16 = 8;
+
+/// `ACAD.EXE`'s entity name table, entry 9: `TRACE`. No DXF oracle — see the
+/// module doc.
+const TYPE_TRACE: u16 = 9;
+
+/// `ACAD.EXE`'s entity name table, entry 11: `SOLID`. No DXF oracle — see the
+/// module doc.
+const TYPE_SOLID: u16 = 11;
 
 /// `ACAD.EXE`'s entity name table, entry 12: `BLOCK`.
 const TYPE_BLOCK: u16 = 12;
@@ -129,56 +219,90 @@ fn checked_string(bytes: &[u8], at: usize, index: u32) -> Result<(String, usize)
 }
 
 /// One physical record's payload, once its header and fields are read: a
-/// decoded entity, or one of the `BLOCK`/`ENDBLK` delimiters `read_items`
-/// groups by. Not `pub` — `read_entities` and `read_items` are the crate's
-/// two supported ways to walk the entity stream; nothing outside this module
-/// needs a record-level view.
+/// decoded entity, one of the `BLOCK`/`ENDBLK` delimiters `read_items` groups
+/// by, or nothing (an erased record, or `ENDREP` — see the module doc). Not
+/// `pub` — `read_entities` and `read_items` are the crate's two supported
+/// ways to walk the entity stream; nothing outside this module needs a
+/// record-level view.
 enum RecordBody {
     Entity(Entity),
-    BlockStart { name: String, base: Point },
+    BlockStart {
+        name: String,
+        base: Point,
+    },
     BlockEnd,
+    /// Consumed correctly for byte alignment, but produces no output:
+    /// either the type code was negative (an erased record — spec §4.2) and
+    /// its otherwise-normal body is simply discarded, or the record is
+    /// `ENDREP`, whose own fields have no evidenced meaning (module doc).
+    Skip,
 }
 
-/// Decodes the one record starting at `pos`, returning its payload and the
-/// offset of the next record. Shared by `read_entities` (which keeps only
-/// the `Entity` payloads, flattening past `BLOCK`/`ENDBLK`) and `read_items`
-/// (which uses the delimiters to group).
-fn read_record_body(bytes: &[u8], pos: usize, index: u32) -> Result<(RecordBody, usize), DwgError> {
-    let header = read_record_header(bytes, pos, index)?;
-    match header.type_code {
+/// Decodes one entity's fields, given its type code and the offset right
+/// after its 4-byte header. Shared by the top-level dispatch in
+/// `read_record_body` (where that header is a genuine on-disk record header
+/// at `record_at`) and `REPEAT`'s nested entity (where `record_at` is the
+/// enclosing `REPEAT` record's own start — it has no separate header of its
+/// own on disk; `REPEAT`'s header and `u16` pair stand in for it). `at` is
+/// where the type-specific fields actually begin, which for the two callers
+/// is `record_at + 4` and `record_at + 8` respectively.
+fn read_entity_fields(
+    bytes: &[u8],
+    type_code: u16,
+    record_at: usize,
+    at: usize,
+    index: u32,
+) -> Result<(Entity, usize), DwgError> {
+    match type_code {
         TYPE_LINE => {
-            let x1 = checked_f64(bytes, pos + 4, index)?;
-            let y1 = checked_f64(bytes, pos + 12, index)?;
-            let x2 = checked_f64(bytes, pos + 20, index)?;
-            let y2 = checked_f64(bytes, pos + 28, index)?;
+            let x1 = checked_f64(bytes, at, index)?;
+            let y1 = checked_f64(bytes, at + 8, index)?;
+            let x2 = checked_f64(bytes, at + 16, index)?;
+            let y2 = checked_f64(bytes, at + 24, index)?;
             Ok((
-                RecordBody::Entity(Entity::Line {
+                Entity::Line {
                     start: Point { x: x1, y: y1 },
                     end: Point { x: x2, y: y2 },
-                }),
-                pos + 36,
+                },
+                at + 32,
+            ))
+        }
+        TYPE_POINT => {
+            // Layout read directly off SELEXOL's own first POINT (file
+            // offset 0x1f5): header, then origin.x, origin.y as two
+            // consecutive doubles — a clean (5.0, 5.0) immediately followed
+            // by a plausible LINE, and the whole file's walk lands exactly
+            // on entity_end with this size. No DXF oracle — see the module
+            // doc.
+            let x = checked_f64(bytes, at, index)?;
+            let y = checked_f64(bytes, at + 8, index)?;
+            Ok((
+                Entity::Point {
+                    origin: Point { x, y },
+                },
+                at + 16,
             ))
         }
         TYPE_CIRCLE => {
-            let cx = checked_f64(bytes, pos + 4, index)?;
-            let cy = checked_f64(bytes, pos + 12, index)?;
-            let radius = checked_f64(bytes, pos + 20, index)?;
+            let cx = checked_f64(bytes, at, index)?;
+            let cy = checked_f64(bytes, at + 8, index)?;
+            let radius = checked_f64(bytes, at + 16, index)?;
             Ok((
-                RecordBody::Entity(Entity::Circle {
+                Entity::Circle {
                     center: Point { x: cx, y: cy },
                     radius,
-                }),
-                pos + 28,
+                },
+                at + 24,
             ))
         }
         TYPE_ARC => {
-            let cx = checked_f64(bytes, pos + 4, index)?;
-            let cy = checked_f64(bytes, pos + 12, index)?;
-            let radius = checked_f64(bytes, pos + 20, index)?;
-            let start_rad = checked_f64(bytes, pos + 28, index)?;
-            let end_rad = checked_f64(bytes, pos + 36, index)?;
+            let cx = checked_f64(bytes, at, index)?;
+            let cy = checked_f64(bytes, at + 8, index)?;
+            let radius = checked_f64(bytes, at + 16, index)?;
+            let start_rad = checked_f64(bytes, at + 24, index)?;
+            let end_rad = checked_f64(bytes, at + 32, index)?;
             Ok((
-                RecordBody::Entity(Entity::Arc {
+                Entity::Arc {
                     center: Point { x: cx, y: cy },
                     radius,
                     // The DWG stores these in radians; acad_model documents
@@ -188,8 +312,8 @@ fn read_record_body(bytes: &[u8], pos: usize, index: u32) -> Result<(RecordBody,
                     // through 0°, start (78.604°) > end (22.451°).
                     start_deg: start_rad.to_degrees(),
                     end_deg: end_rad.to_degrees(),
-                }),
-                pos + 44,
+                },
+                at + 40,
             ))
         }
         TYPE_TEXT => {
@@ -211,20 +335,116 @@ fn read_record_body(bytes: &[u8], pos: usize, index: u32) -> Result<(RecordBody,
             // the entity field: the header's own TXTSIZE (spec §4.2, offset
             // 0xb4) holds SUBDIV's 0.2 raw, unconverted, so this is not a
             // global text-height unit and must not be applied there.
-            let x = checked_f64(bytes, pos + 4, index)?;
-            let y = checked_f64(bytes, pos + 12, index)?;
-            let height_raw = checked_f64(bytes, pos + 20, index)?;
-            let rotation_rad = checked_f64(bytes, pos + 28, index)?;
-            let (value, next) = checked_string(bytes, pos + 36, index)?;
+            let x = checked_f64(bytes, at, index)?;
+            let y = checked_f64(bytes, at + 8, index)?;
+            let height_raw = checked_f64(bytes, at + 16, index)?;
+            let rotation_rad = checked_f64(bytes, at + 24, index)?;
+            let (value, next) = checked_string(bytes, at + 32, index)?;
             Ok((
-                RecordBody::Entity(Entity::Text {
+                Entity::Text {
                     origin: Point { x, y },
                     height: height_raw * 0.75,
                     rotation_deg: rotation_rad.to_degrees(),
                     value,
-                }),
+                },
                 next,
             ))
+        }
+        TYPE_TRACE | TYPE_SOLID => {
+            // Header, then four points as 8 consecutive doubles (68 bytes
+            // total with the header). Inferred from record size and
+            // internal consistency alone — no DXF oracle, see the module
+            // doc — but cross-checked two ways: TRACE's shape makes
+            // SELEXOL's and BLIVET's whole-file walks land exactly on
+            // entity_end with the header's own record count, and SOLID's
+            // identical shape does the same for FLOW. The four points are
+            // stored in AutoCAD's usual "Z" order for these two entity
+            // types (p1-p2 one edge, p4-p3 the parallel opposite edge), not
+            // sequential winding — SELEXOL's own TRACE, (7,30.725),
+            // (7,30.775), (2.5,30.725), (2.5,30.775), is a thin rectangle
+            // only under that reading; `acad-render`'s `flatten` draws them
+            // accordingly.
+            let mut pts = [Point { x: 0.0, y: 0.0 }; 4];
+            for (i, slot) in pts.iter_mut().enumerate() {
+                let x = checked_f64(bytes, at + i * 16, index)?;
+                let y = checked_f64(bytes, at + i * 16 + 8, index)?;
+                *slot = Point { x, y };
+            }
+            let entity = if type_code == TYPE_TRACE {
+                Entity::Trace {
+                    p1: pts[0],
+                    p2: pts[1],
+                    p3: pts[2],
+                    p4: pts[3],
+                }
+            } else {
+                Entity::Solid {
+                    p1: pts[0],
+                    p2: pts[1],
+                    p3: pts[2],
+                    p4: pts[3],
+                }
+            };
+            Ok((entity, at + 64))
+        }
+        TYPE_INSERT => {
+            // Layout established against SUBDIV's first INSERT (also
+            // HOUSEA, file offset 0x1648): header, then a length-prefixed
+            // name — same placement as BLOCK's — then origin.x, origin.y,
+            // x_scale, y_scale, rotation (radians) as five consecutive
+            // doubles.
+            let (name, after_name) = checked_string(bytes, at, index)?;
+            let x = checked_f64(bytes, after_name, index)?;
+            let y = checked_f64(bytes, after_name + 8, index)?;
+            let x_scale = checked_f64(bytes, after_name + 16, index)?;
+            let y_scale = checked_f64(bytes, after_name + 24, index)?;
+            let rotation_rad = checked_f64(bytes, after_name + 32, index)?;
+            Ok((
+                Entity::Insert {
+                    origin: Point { x, y },
+                    x_scale,
+                    y_scale,
+                    rotation_deg: rotation_rad.to_degrees(),
+                    name,
+                },
+                after_name + 40,
+            ))
+        }
+        code => Err(DwgError::UnknownEntityType {
+            code,
+            at: record_at,
+        }),
+    }
+}
+
+/// Decodes the one record starting at `pos`, returning its payload, the
+/// offset of the next record, and how many of the header's `entity_count`
+/// slots this physical record fills — 1 for everything except `REPEAT`,
+/// which fuses a container marker with one nested entity into a single
+/// on-disk record but counts as 2 (module doc). Shared by `read_entities`
+/// (which keeps only the `Entity` payloads, flattening past
+/// `BLOCK`/`ENDBLK`/`ENDREP`) and `read_items` (which uses the `BLOCK`
+/// delimiters to group).
+fn read_record_body(
+    bytes: &[u8],
+    pos: usize,
+    index: u32,
+) -> Result<(RecordBody, usize, u32), DwgError> {
+    let header = read_record_header(bytes, pos, index)?;
+    // The type code is a signed i16: a negative value marks an erased
+    // record whose magnitude is its real type (spec §4.2, module doc). The
+    // record's body is still fully, correctly decoded below — only the
+    // final result is discarded — so a truncated erased record is still
+    // TruncatedEntity, never silently accepted.
+    let signed = header.type_code as i16;
+    let erased = signed.is_negative();
+    let type_code = signed.unsigned_abs();
+
+    let (body, next, logical): (RecordBody, usize, u32) = match type_code {
+        TYPE_LINE | TYPE_POINT | TYPE_CIRCLE | TYPE_ARC | TYPE_TEXT | TYPE_TRACE | TYPE_SOLID
+        | TYPE_INSERT => {
+            let (entity, next) = read_entity_fields(bytes, type_code, pos, pos + 4, index)?;
+            (RecordBody::Entity(entity), next, 1)
         }
         TYPE_BLOCK => {
             // Layout established against SUBDIV's first BLOCK (HOUSEA, file
@@ -233,7 +453,7 @@ fn read_record_body(bytes: &[u8], pos: usize, index: u32) -> Result<(RecordBody,
             let (name, after_name) = checked_string(bytes, pos + 4, index)?;
             let base_x = checked_f64(bytes, after_name, index)?;
             let base_y = checked_f64(bytes, after_name + 8, index)?;
-            Ok((
+            (
                 RecordBody::BlockStart {
                     name,
                     base: Point {
@@ -242,33 +462,39 @@ fn read_record_body(bytes: &[u8], pos: usize, index: u32) -> Result<(RecordBody,
                     },
                 },
                 after_name + 16,
-            ))
+                1,
+            )
         }
-        TYPE_ENDBLK => Ok((RecordBody::BlockEnd, pos + 4)),
-        TYPE_INSERT => {
-            // Layout established against SUBDIV's first INSERT (also
-            // HOUSEA, file offset 0x1648): header, then a length-prefixed
-            // name — same placement as BLOCK's — then origin.x, origin.y,
-            // x_scale, y_scale, rotation (radians) as five consecutive
-            // doubles.
-            let (name, after_name) = checked_string(bytes, pos + 4, index)?;
-            let x = checked_f64(bytes, after_name, index)?;
-            let y = checked_f64(bytes, after_name + 8, index)?;
-            let x_scale = checked_f64(bytes, after_name + 16, index)?;
-            let y_scale = checked_f64(bytes, after_name + 24, index)?;
-            let rotation_rad = checked_f64(bytes, after_name + 32, index)?;
-            Ok((
-                RecordBody::Entity(Entity::Insert {
-                    origin: Point { x, y },
-                    x_scale,
-                    y_scale,
-                    rotation_deg: rotation_rad.to_degrees(),
-                    name,
-                }),
-                after_name + 40,
-            ))
+        TYPE_ENDBLK => (RecordBody::BlockEnd, pos + 4, 1),
+        TYPE_REPEAT => {
+            // header(4) + [nested_type, repeat_count] as two u16s (4) + the
+            // nested type's own fields, with no separate 4-byte header of
+            // its own — REPEAT's header stands in for it (module doc).
+            // `repeat_count` is read (so a truncated file still errors) but
+            // not applied: no corpus REPEAT shows a discoverable offset
+            // between copies, so no repetition is synthesised.
+            let nested_type = checked_u16(bytes, pos + 4, index)?;
+            let _repeat_count = checked_u16(bytes, pos + 6, index)?;
+            let (entity, next) = read_entity_fields(bytes, nested_type, pos, pos + 8, index)?;
+            (RecordBody::Entity(entity), next, 2)
         }
-        code => Err(DwgError::UnknownEntityType { code, at: pos }),
+        TYPE_ENDREP => {
+            // header(4) + a u16 pair(4) + 2 doubles(16) = 24 bytes, fixed.
+            // Read fully (so truncation still errors) but not interpreted —
+            // no evidenced meaning for any of it (module doc).
+            let _u1 = checked_u16(bytes, pos + 4, index)?;
+            let _u2 = checked_u16(bytes, pos + 6, index)?;
+            let _d1 = checked_f64(bytes, pos + 8, index)?;
+            let _d2 = checked_f64(bytes, pos + 16, index)?;
+            (RecordBody::Skip, pos + 24, 1)
+        }
+        code => return Err(DwgError::UnknownEntityType { code, at: pos }),
+    };
+
+    if erased {
+        Ok((RecordBody::Skip, next, logical))
+    } else {
+        Ok((body, next, logical))
     }
 }
 
@@ -292,12 +518,12 @@ pub fn read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Entity>, Dwg
     let mut out = Vec::new();
 
     while pos < end {
-        let (body, next) = read_record_body(bytes, pos, index)?;
+        let (body, next, logical) = read_record_body(bytes, pos, index)?;
         if let RecordBody::Entity(e) = body {
             out.push(e);
         }
         pos = next;
-        index += 1;
+        index += logical;
     }
 
     if index != meta.entity_count {
@@ -329,7 +555,7 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
     let mut open: Option<(usize, Block)> = None;
 
     while pos < end {
-        let (body, next) = read_record_body(bytes, pos, index)?;
+        let (body, next, logical) = read_record_body(bytes, pos, index)?;
         match body {
             RecordBody::Entity(e) => match &mut open {
                 Some((_, block)) => block.entities.push(e),
@@ -355,9 +581,10 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
                 Some((_, block)) => out.push(Item::Block(block)),
                 None => return Err(DwgError::StrayEndblk { at: pos }),
             },
+            RecordBody::Skip => {}
         }
         pos = next;
-        index += 1;
+        index += logical;
     }
 
     if let Some((at, block)) = open {
@@ -491,6 +718,110 @@ mod tests {
         r.extend_from_slice(&TYPE_LINE.to_le_bytes());
         r.extend_from_slice(&0u16.to_le_bytes());
         for v in [x1, y1, x2, y2] {
+            r.extend_from_slice(&v.to_le_bytes());
+        }
+        r
+    }
+
+    /// An erased record: the same bytes as its live counterpart, except the
+    /// type code is written as a negative `i16` (spec §4.2). `magnitude`
+    /// must be a real, positive entity-table code.
+    fn erase(magnitude: u16, mut record: Vec<u8>) -> Vec<u8> {
+        let negated = -(magnitude as i16);
+        record[0..2].copy_from_slice(&negated.to_le_bytes());
+        record
+    }
+
+    fn raw_point(x: f64, y: f64) -> Vec<u8> {
+        let mut r = Vec::new();
+        r.extend_from_slice(&TYPE_POINT.to_le_bytes());
+        r.extend_from_slice(&0u16.to_le_bytes());
+        for v in [x, y] {
+            r.extend_from_slice(&v.to_le_bytes());
+        }
+        r
+    }
+
+    fn raw_quad(type_code: u16, corners: [(f64, f64); 4]) -> Vec<u8> {
+        let mut r = Vec::new();
+        r.extend_from_slice(&type_code.to_le_bytes());
+        r.extend_from_slice(&0u16.to_le_bytes());
+        for (x, y) in corners {
+            r.extend_from_slice(&x.to_le_bytes());
+            r.extend_from_slice(&y.to_le_bytes());
+        }
+        r
+    }
+
+    fn raw_trace(corners: [(f64, f64); 4]) -> Vec<u8> {
+        raw_quad(TYPE_TRACE, corners)
+    }
+
+    fn raw_solid(corners: [(f64, f64); 4]) -> Vec<u8> {
+        raw_quad(TYPE_SOLID, corners)
+    }
+
+    /// A `REPEAT` record wrapping a nested `LINE` — no separate 4-byte
+    /// header for the nested entity, since `REPEAT`'s own header and `u16`
+    /// pair stand in for it (module doc). `repeat_count` is written but this
+    /// crate never reads it back out; it exists so tests can show it doesn't
+    /// affect decoding.
+    fn raw_repeat_line(repeat_count: u16, x1: f64, y1: f64, x2: f64, y2: f64) -> Vec<u8> {
+        let mut r = Vec::new();
+        r.extend_from_slice(&TYPE_REPEAT.to_le_bytes());
+        r.extend_from_slice(&0u16.to_le_bytes());
+        r.extend_from_slice(&TYPE_LINE.to_le_bytes());
+        r.extend_from_slice(&repeat_count.to_le_bytes());
+        for v in [x1, y1, x2, y2] {
+            r.extend_from_slice(&v.to_le_bytes());
+        }
+        r
+    }
+
+    /// A `REPEAT` wrapping a nested `INSERT` — evidenced by `BLIVET`'s own
+    /// `"$BCIRC"` repeat (module doc).
+    fn raw_repeat_insert(
+        name: &str,
+        x: f64,
+        y: f64,
+        x_scale: f64,
+        y_scale: f64,
+        rotation_rad: f64,
+    ) -> Vec<u8> {
+        let mut r = Vec::new();
+        r.extend_from_slice(&TYPE_REPEAT.to_le_bytes());
+        r.extend_from_slice(&0u16.to_le_bytes());
+        r.extend_from_slice(&TYPE_INSERT.to_le_bytes());
+        r.extend_from_slice(&1u16.to_le_bytes());
+        r.extend_from_slice(&(name.len() as u16).to_le_bytes());
+        r.extend_from_slice(name.as_bytes());
+        for v in [x, y, x_scale, y_scale, rotation_rad] {
+            r.extend_from_slice(&v.to_le_bytes());
+        }
+        r
+    }
+
+    /// A `REPEAT` record with an unsupported nested type — nothing in the
+    /// corpus needs any nested type but `LINE` or `INSERT` (module doc), so
+    /// anything else must be a named error, not a guess.
+    fn raw_repeat_unsupported(nested_type: u16) -> Vec<u8> {
+        let mut r = Vec::new();
+        r.extend_from_slice(&TYPE_REPEAT.to_le_bytes());
+        r.extend_from_slice(&0u16.to_le_bytes());
+        r.extend_from_slice(&nested_type.to_le_bytes());
+        r.extend_from_slice(&1u16.to_le_bytes());
+        r
+    }
+
+    /// A fixed 24-byte `ENDREP`: header, a `u16` pair, two doubles — none of
+    /// it interpreted (module doc).
+    fn raw_endrep(u1: u16, u2: u16, d1: f64, d2: f64) -> Vec<u8> {
+        let mut r = Vec::new();
+        r.extend_from_slice(&TYPE_ENDREP.to_le_bytes());
+        r.extend_from_slice(&0u16.to_le_bytes());
+        r.extend_from_slice(&u1.to_le_bytes());
+        r.extend_from_slice(&u2.to_le_bytes());
+        for v in [d1, d2] {
             r.extend_from_slice(&v.to_le_bytes());
         }
         r
@@ -896,5 +1227,281 @@ mod tests {
         let items = read_items(&bytes, &meta).unwrap();
         assert_eq!(items.len(), 1);
         assert!(matches!(items[0], Item::Entity(Entity::Line { .. })));
+    }
+
+    // --- POINT, TRACE, SOLID (Task 8, Part B) ---------------------------
+
+    #[test]
+    fn reads_a_point_record() {
+        // TYPE_POINT is 2. Values are SELEXOL's own first POINT (file offset
+        // 0x1f5): a clean (5.0, 5.0) immediately followed by a plausible
+        // LINE — see the module doc; no DXF oracle exists for this type.
+        let bytes = records(&[raw_point(5.0, 5.0)]);
+        let meta = HeaderMeta {
+            entity_count: 1,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 1);
+        let Entity::Point { origin } = &entities[0] else {
+            panic!("expected a POINT, got {:?}", entities[0]);
+        };
+        assert_eq!(*origin, Point { x: 5.0, y: 5.0 });
+    }
+
+    #[test]
+    fn reads_a_trace_record_in_file_order() {
+        // TYPE_TRACE is 9. Values are SELEXOL's own TRACE (file offset
+        // 0x1d39... see corpus_smoke.rs / the module doc): a thin rectangle,
+        // stored as four points with no reordering by this codec — the
+        // "file order" the module doc promises.
+        let corners = [(7.0, 30.725), (7.0, 30.775), (2.5, 30.725), (2.5, 30.775)];
+        let bytes = records(&[raw_trace(corners)]);
+        let meta = HeaderMeta {
+            entity_count: 1,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 1);
+        let Entity::Trace { p1, p2, p3, p4 } = &entities[0] else {
+            panic!("expected a TRACE, got {:?}", entities[0]);
+        };
+        assert_eq!(*p1, Point { x: 7.0, y: 30.725 });
+        assert_eq!(*p2, Point { x: 7.0, y: 30.775 });
+        assert_eq!(*p3, Point { x: 2.5, y: 30.725 });
+        assert_eq!(*p4, Point { x: 2.5, y: 30.775 });
+    }
+
+    #[test]
+    fn reads_a_solid_record_in_file_order() {
+        // TYPE_SOLID is 11 — same field shape as TRACE (module doc);
+        // exercised against FLOW in the corpus.
+        let corners = [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)];
+        let bytes = records(&[raw_solid(corners)]);
+        let meta = HeaderMeta {
+            entity_count: 1,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 1);
+        let Entity::Solid { p1, p2, p3, p4 } = &entities[0] else {
+            panic!("expected a SOLID, got {:?}", entities[0]);
+        };
+        assert_eq!(*p1, Point { x: 0.0, y: 0.0 });
+        assert_eq!(*p2, Point { x: 1.0, y: 0.0 });
+        assert_eq!(*p3, Point { x: 0.0, y: 1.0 });
+        assert_eq!(*p4, Point { x: 1.0, y: 1.0 });
+    }
+
+    // --- REPEAT / ENDREP (Task 8, Part B) --------------------------------
+
+    #[test]
+    fn a_repeats_embedded_line_decodes_as_a_real_entity() {
+        // BLIVET's simple case: REPEAT immediately followed by ENDREP, no
+        // entities nested between them. REPEAT's own u16 pair and 4 doubles
+        // are the nested LINE's fields (module doc) — values are BLIVET's
+        // own first REPEAT (file offset 0x3b4).
+        let bytes = records(&[
+            raw_repeat_line(1, 0.01999999, 0.25, 2.23, 0.25),
+            raw_endrep(1, 5, 0.0, 0.25),
+        ]);
+        // REPEAT counts as 2 (container + its fused nested entity), ENDREP
+        // as 1 — matching the header's own entity_count (module doc).
+        let meta = HeaderMeta {
+            entity_count: 3,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 1);
+        let Entity::Line { start, end } = &entities[0] else {
+            panic!("expected a LINE, got {:?}", entities[0]);
+        };
+        assert_eq!(
+            *start,
+            Point {
+                x: 0.01999999,
+                y: 0.25
+            }
+        );
+        assert_eq!(*end, Point { x: 2.23, y: 0.25 });
+    }
+
+    #[test]
+    fn a_repeats_embedded_insert_decodes_as_a_real_entity() {
+        // BLIVET's other observed nested type: INSERT of block "$BCIRC"
+        // (file offset 0x14a7).
+        let bytes = records(&[
+            raw_repeat_insert("$BCIRC", 2.0, 2.5, 0.5, 1.0, 0.0),
+            raw_endrep(1, 3, 2.0, 1.5),
+        ]);
+        let meta = HeaderMeta {
+            entity_count: 3,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 1);
+        let Entity::Insert {
+            origin,
+            x_scale,
+            y_scale,
+            rotation_deg,
+            name,
+        } = &entities[0]
+        else {
+            panic!("expected an INSERT, got {:?}", entities[0]);
+        };
+        assert_eq!(*origin, Point { x: 2.0, y: 2.5 });
+        assert_eq!(*x_scale, 0.5);
+        assert_eq!(*y_scale, 1.0);
+        assert_eq!(*rotation_deg, 0.0);
+        assert_eq!(name, "$BCIRC");
+    }
+
+    #[test]
+    fn repeat_can_wrap_ordinary_entities_between_it_and_endrep() {
+        // FLOOR's case: REPEAT's own embedded LINE is one edge of a small
+        // rectangle, followed by three plain LINE records (decoded by the
+        // ordinary top-level dispatch, nothing special about being "inside"
+        // a REPEAT), then ENDREP. Values are FLOOR's own first REPEAT (file
+        // offset 0x16c9).
+        let bytes = records(&[
+            raw_repeat_line(1, 7.12, 8.4, 7.32, 8.4),
+            raw_line(7.32, 8.4, 7.32, 8.66),
+            raw_line(7.32, 8.66, 7.12, 8.66),
+            raw_line(7.12, 8.66, 7.12, 8.4),
+            raw_endrep(3, 1, 0.672, 0.0),
+        ]);
+        // REPEAT: 2, three LINEs: 1 each, ENDREP: 1 -> 2+3+1 = 6.
+        let meta = HeaderMeta {
+            entity_count: 6,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 4);
+        assert!(entities.iter().all(|e| matches!(e, Entity::Line { .. })));
+        // The rectangle closes: REPEAT's own edge starts at (7.12, 8.4), the
+        // last plain LINE ends there too.
+        let Entity::Line { start, .. } = &entities[0] else {
+            unreachable!()
+        };
+        let Entity::Line { end, .. } = &entities[3] else {
+            unreachable!()
+        };
+        assert_eq!(start, end);
+    }
+
+    #[test]
+    fn an_unsupported_nested_type_inside_repeat_is_an_unknown_entity_type_error() {
+        // Nothing in the corpus nests anything but LINE or INSERT inside a
+        // REPEAT (module doc) — anything else must fail loudly, not guess a
+        // layout with no evidence behind it.
+        let bytes = records(&[raw_repeat_unsupported(99)]);
+        let meta = HeaderMeta {
+            entity_count: 2,
+            entity_end: bytes.len() as u32,
+        };
+        assert_eq!(
+            read_entities(&bytes, &meta).unwrap_err(),
+            DwgError::UnknownEntityType {
+                code: 99,
+                at: ENTITY_START,
+            }
+        );
+    }
+
+    #[test]
+    fn endrep_is_a_fixed_24_bytes_regardless_of_its_own_fields() {
+        // A REPEAT/ENDREP pair with no nested entities, followed by a plain
+        // LINE: if ENDREP consumed anything other than exactly 24 bytes,
+        // this LINE would desync and either fail or decode to nonsense.
+        let bytes = records(&[
+            raw_repeat_line(1, 1.0, 1.0, 2.0, 2.0),
+            raw_endrep(7, 42, 9.5, -3.25),
+            raw_line(10.0, 10.0, 20.0, 20.0),
+        ]);
+        let meta = HeaderMeta {
+            entity_count: 4, // REPEAT(2) + ENDREP(1) + LINE(1)
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 2);
+        let Entity::Line { start, .. } = &entities[1] else {
+            panic!("expected a LINE, got {:?}", entities[1]);
+        };
+        assert_eq!(*start, Point { x: 10.0, y: 10.0 });
+    }
+
+    // --- Erased entities (Task 8, Part A) --------------------------------
+
+    #[test]
+    fn an_erased_line_is_skipped_but_still_counted() {
+        // ADDER.DWG holds 7 erased records, including -1 (an erased LINE).
+        // Its body decodes exactly like a live LINE but produces no Entity;
+        // entity_count still counts it (spec §4.2, module doc).
+        let bytes = records(&[
+            erase(TYPE_LINE, raw_line(0.0, 0.0, 1.0, 1.0)),
+            raw_line(5.0, 5.0, 6.0, 6.0),
+        ]);
+        let meta = HeaderMeta {
+            entity_count: 2,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 1);
+        let Entity::Line { start, .. } = &entities[0] else {
+            panic!("expected a LINE, got {:?}", entities[0]);
+        };
+        assert_eq!(*start, Point { x: 5.0, y: 5.0 });
+    }
+
+    #[test]
+    fn an_erased_insert_is_skipped_and_its_variable_length_is_still_honoured() {
+        // ADDER also holds -14, an erased INSERT — a variable-length record
+        // (a length-prefixed name), so this checks the erased path still
+        // reads the real size for *this* record's type, not some fixed
+        // guess, before resuming the walk.
+        let bytes = records(&[
+            erase(TYPE_INSERT, raw_insert("HOUSEA", 1.0, 2.0, 1.0, 1.0, 0.0)),
+            raw_line(9.0, 9.0, 10.0, 10.0),
+        ]);
+        let meta = HeaderMeta {
+            entity_count: 2,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 1);
+        assert!(matches!(entities[0], Entity::Line { .. }));
+    }
+
+    #[test]
+    fn read_items_also_skips_erased_records() {
+        let bytes = records(&[
+            erase(TYPE_LINE, raw_line(0.0, 0.0, 1.0, 1.0)),
+            raw_line(5.0, 5.0, 6.0, 6.0),
+        ]);
+        let meta = HeaderMeta {
+            entity_count: 2,
+            entity_end: bytes.len() as u32,
+        };
+        let items = read_items(&bytes, &meta).unwrap();
+        assert_eq!(items.len(), 1);
+        assert!(matches!(items[0], Item::Entity(Entity::Line { .. })));
+    }
+
+    #[test]
+    fn a_truncated_erased_record_is_still_an_error_not_a_panic() {
+        // Review Focus 2 extends to erased records: the body is still fully
+        // read (that's how OOPS could restore it), so a truncated one must
+        // still be caught, not silently swallowed because it's "just" erased.
+        let mut bytes = records(&[erase(TYPE_LINE, raw_line(0.0, 0.0, 1.0, 1.0))]);
+        bytes.truncate(bytes.len() - 4);
+        let meta = HeaderMeta {
+            entity_count: 1,
+            entity_end: bytes.len() as u32,
+        };
+        assert!(matches!(
+            read_entities(&bytes, &meta),
+            Err(DwgError::TruncatedEntity { index: 0, .. })
+        ));
     }
 }
