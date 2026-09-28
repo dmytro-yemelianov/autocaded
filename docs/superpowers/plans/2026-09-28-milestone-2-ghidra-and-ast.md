@@ -1863,7 +1863,15 @@ git commit -m "feat(re): call graph and overlay-to-command map"
 
 **Interfaces:**
 - Consumes: everything above.
-- Produces: `acad_re::analysis::Gate` with `measure(&PcodeExport, &CallGraph) -> Gate` and fields `total`, `clean`, `marked`, `failed`, `clean_ratio`, `cross_overlay_edges`, `cross_overlay_named`; binary `re-report` writing `build/re-report.json` and a human summary to stdout.
+- Produces: `acad_re::analysis::Gate` with `measure(&PcodeExport, &CallGraph) -> Gate` and fields `total`, `clean`, `marked`, `failed`, `clean_ratio`, `non_code_functions`, `non_code_marked`, `cross_overlay_edges`, `cross_overlay_named`; binary `re-report` writing `build/re-report.json` and a human summary to stdout.
+
+**The gate's population is functions in a `*_CODE` block.** Ghidra also creates
+functions in the EXE's data segment, where the overlay data windows live: in the real
+export, 17 of them, 11 carrying a bad marker against 3 of 151 in code. That signature —
+65% bad against 2% — is decompiling data as code, so they are not functions of the
+program and do not belong in the denominator. They are counted and printed separately
+rather than dropped, because excluding them *raises* the headline ratio (98.0% against
+91.7%) and a reader is entitled to see that.
 
 - [ ] **Step 1: Write the failing gate tests**
 

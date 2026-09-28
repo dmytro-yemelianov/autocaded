@@ -13,3 +13,6 @@ corpus/*
 
 # Generated RE pipeline output: reproducible from the corpus, not history
 /build
+
+# Python bytecode from the PyGhidra scripts
+__pycache__/

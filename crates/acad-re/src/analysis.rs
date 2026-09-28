@@ -2,6 +2,7 @@
 //! which command.
 use crate::ast::{Function, PcodeBody, PcodeExport};
 use crate::ovl::Directory;
+use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A directed call graph over exported function addresses (`"seg:off"`).
@@ -11,21 +12,36 @@ pub struct CallGraph {
     blocks: BTreeMap<String, String>,
 }
 
-/// `"1000:01a3"` -> `0x101a3`, the linear address Ghidra reports in varnodes.
+/// The linear address Ghidra reports in varnodes, from either address form it
+/// prints: `"1000:01a3"` in the default space is `seg * 16 + off`, and
+/// `"OVL00_CODE::023310"` in an overlay space is already linear.
 fn linear(addr: &str) -> Option<i64> {
+    if let Some((_, flat)) = addr.split_once("::") {
+        return i64::from_str_radix(flat, 16).ok();
+    }
     let (seg, off) = addr.split_once(':')?;
     let seg = i64::from_str_radix(seg, 16).ok()?;
     let off = i64::from_str_radix(off, 16).ok()?;
     Some(seg * 16 + off)
 }
 
+/// The overlay space an address lives in, or `None` for the default space
+/// (everything in `ACAD.EXE`).
+fn space_of(addr: &str) -> Option<&str> {
+    addr.split_once("::").map(|(space, _)| space)
+}
+
 impl CallGraph {
     pub fn from_pcode(export: &PcodeExport) -> Self {
-        let by_linear: BTreeMap<i64, &str> = export
-            .functions
-            .iter()
-            .filter_map(|f| linear(&f.address).map(|l| (l, f.address.as_str())))
-            .collect();
+        // The overlays share one window, so distinct overlay spaces hold
+        // distinct functions at the same linear address. One address can
+        // therefore have several candidates.
+        let mut by_linear: BTreeMap<i64, Vec<&str>> = BTreeMap::new();
+        for f in &export.functions {
+            if let Some(l) = linear(&f.address) {
+                by_linear.entry(l).or_default().push(f.address.as_str());
+            }
+        }
 
         let mut graph = Self::default();
         for f in &export.functions {
@@ -34,13 +50,15 @@ impl CallGraph {
             }
         }
         for f in &export.functions {
+            let caller_space = space_of(&f.address);
             for target in call_targets(f) {
                 // Only edges to functions we actually exported. A CALL into
                 // unanalysed bytes is a fact about Ghidra, not about the program.
-                if let Some(callee) = by_linear.get(&target) {
-                    graph
-                        .edges
-                        .insert((f.address.clone(), (*callee).to_string()));
+                let Some(candidates) = by_linear.get(&target) else {
+                    continue;
+                };
+                if let Some(callee) = resolve(candidates, caller_space) {
+                    graph.edges.insert((f.address.clone(), callee.to_string()));
                 }
             }
         }
@@ -80,6 +98,26 @@ impl CallGraph {
 
     pub fn edge_count(&self) -> usize {
         self.edges.len()
+    }
+}
+
+/// Pick the one function a call at some linear address means.
+///
+/// An overlay only ever has its own bytes and the kernel's mapped at once, so a
+/// call resolves in the caller's own space first and the default space — all of
+/// `ACAD.EXE` — second. If neither matches and more than one candidate remains,
+/// the address is genuinely ambiguous between overlays that are never resident
+/// together, and guessing would invent an edge.
+fn resolve<'a>(candidates: &[&'a str], caller_space: Option<&str>) -> Option<&'a str> {
+    if let Some(own) = candidates.iter().find(|c| space_of(c) == caller_space) {
+        return Some(own);
+    }
+    if let Some(kernel) = candidates.iter().find(|c| space_of(c).is_none()) {
+        return Some(kernel);
+    }
+    match candidates {
+        [only] => Some(only),
+        _ => None,
     }
 }
 
@@ -157,4 +195,76 @@ pub fn commands(ovl_bytes: &[u8], dir: &Directory) -> BTreeMap<usize, Vec<String
         }
     }
     map
+}
+
+/// The §8 decision-gate metrics. Transpilation of the AST to Rust is adopted
+/// only if `clean_ratio >= 0.70`, cross-overlay calls resolve to named targets,
+/// and the DWG entity record is recoverable as a coherent struct. This type
+/// measures the first two; the third is a judgement recorded alongside.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Gate {
+    /// Functions in a code block, plus functions that failed to decompile.
+    pub total: usize,
+    /// Decompiled with no `halt_baddata` and no `UNRECOVERED_JUMPTABLE`.
+    pub clean: usize,
+    pub marked: usize,
+    pub failed: usize,
+    pub clean_ratio: f64,
+    /// Functions Ghidra placed outside any `*_CODE` block — in practice the
+    /// EXE's data segment, where the overlay data windows live. Decompiling
+    /// data as code produces these; they are reported but kept out of the
+    /// population above, because they are not functions of the program.
+    pub non_code_functions: usize,
+    pub non_code_marked: usize,
+    pub cross_overlay_edges: usize,
+    /// Cross-overlay edges whose callee has a name Ghidra assigned, rather
+    /// than a bare `FUN_` placeholder.
+    pub cross_overlay_named: usize,
+}
+
+fn in_code_block<B>(f: &Function<B>) -> bool {
+    f.block.as_deref().is_some_and(|b| b.ends_with("_CODE"))
+}
+
+impl Gate {
+    pub fn measure(export: &PcodeExport, graph: &CallGraph) -> Self {
+        let (code, non_code): (Vec<_>, Vec<_>) =
+            export.functions.iter().partition(|f| in_code_block(f));
+        let clean = code.iter().filter(|f| f.markers.is_empty()).count();
+        let marked = code.len() - clean;
+        let failed = export.failures.len();
+        let total = code.len() + failed;
+        let non_code_functions = non_code.len();
+        let non_code_marked = non_code.iter().filter(|f| !f.markers.is_empty()).count();
+        let named: BTreeMap<&str, &str> = export
+            .functions
+            .iter()
+            .map(|f| (f.address.as_str(), f.name.as_str()))
+            .collect();
+        let edges = graph.cross_overlay_edges();
+        let cross_overlay_named = edges
+            .iter()
+            .filter(|(_, to)| named.get(to).is_some_and(|n| !n.starts_with("FUN_")))
+            .count();
+        Self {
+            total,
+            clean,
+            marked,
+            failed,
+            clean_ratio: if total == 0 {
+                0.0
+            } else {
+                clean as f64 / total as f64
+            },
+            non_code_functions,
+            non_code_marked,
+            cross_overlay_edges: edges.len(),
+            cross_overlay_named,
+        }
+    }
+
+    /// The §8 threshold on decompiler quality.
+    pub fn meets_decompile_threshold(&self) -> bool {
+        self.clean_ratio >= 0.70
+    }
 }
