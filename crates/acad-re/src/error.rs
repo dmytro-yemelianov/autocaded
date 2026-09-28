@@ -16,6 +16,9 @@ pub enum ReError {
     /// A region reaches past the end of the window it pages into.
     RegionPastWindow {
         entry: usize,
+        /// `"code"` or `"data"` — the two windows have different bounds, and an
+        /// error that did not say which would point at the wrong one.
+        region: &'static str,
         dest: u16,
         end: u32,
         window: u16,
@@ -49,12 +52,13 @@ impl fmt::Display for ReError {
             ),
             Self::RegionPastWindow {
                 entry,
+                region,
                 dest,
                 end,
                 window,
             } => write!(
                 f,
-                "entry {entry} code region at {dest:#x} ends at {end:#x}, past the {window:#x}-byte window"
+                "entry {entry} {region} region at {dest:#x} ends at {end:#x}, past its window ending {window:#x}"
             ),
         }
     }

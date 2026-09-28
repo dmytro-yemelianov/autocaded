@@ -89,3 +89,22 @@ fn every_command_is_attributed_to_an_overlay_that_exists() {
         );
     }
 }
+
+#[test]
+fn the_command_table_keeps_its_file_order() {
+    // The table is positional — the dispatcher indexes it, so LINE is command 0
+    // and POINT is command 1. Sorting the names alphabetically would throw away
+    // the index, which is the join key for mapping each command to the overlay
+    // that implements it.
+    let Some(bytes) = corpus("System/ACAD.OVL") else {
+        return;
+    };
+    let dir = ovl::parse(&bytes).unwrap();
+    let names = &analysis::commands(&bytes, &dir)[&2];
+    assert_eq!(
+        &names[..6],
+        &["LINE", "POINT", "CIRCLE", "SHAPE", "REPEAT", "ENDREP"]
+    );
+    assert_eq!(names.last().unwrap(), "FILES");
+    assert_eq!(names.iter().position(|n| n == "FILLET"), Some(53));
+}

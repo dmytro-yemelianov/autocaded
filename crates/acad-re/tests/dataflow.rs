@@ -52,17 +52,25 @@ fn no_function_yields_a_constant_offset_store_layout() {
 }
 
 #[test]
-fn the_export_still_carries_stores_to_read() {
+fn the_export_still_carries_stores_in_real_code_to_read() {
     // Guards the test above from passing vacuously: if the exporter stopped
-    // emitting STOREs at all, "no constant offsets" would be trivially true.
+    // emitting STOREs, "no constant offsets" would be trivially true.
+    //
+    // Counted over `*_CODE` blocks only. Most stores in the export — 4,855 of
+    // 5,314 — come from the 17 functions Ghidra invented in the EXE's data
+    // segment, which `Gate` excludes and which this project treats as garbage.
+    // A guard that counted those would still pass if every real function
+    // stopped being analysed, which is exactly the regression it exists to
+    // catch. Real code carries 459; the bound leaves room to move.
     let Some(e) = export() else { return };
     let stores: usize = e
         .functions
         .iter()
+        .filter(|f| f.block.as_deref().is_some_and(|b| b.ends_with("_CODE")))
         .map(|f| trace_stores(&e, &f.address).len())
         .sum();
     assert!(
-        stores > 1000,
-        "expected thousands of STOREs, found {stores}"
+        stores > 300,
+        "expected hundreds of STOREs in code blocks, found {stores}"
     );
 }

@@ -31,6 +31,24 @@ def read_map(map_path):
         return json.load(fh)
 
 
+def set_segment_registers(ctx, block, code_seg, data_seg):
+    """Tell the disassembler what CS/DS/SS/ES are over one block.
+
+    Without this every data reference in the block resolves to the wrong place,
+    because the program does its own segment arithmetic and carries no
+    relocations for Ghidra to infer from.
+    """
+    for reg_name, value in (
+        ("CS", code_seg),
+        ("DS", data_seg),
+        ("SS", data_seg),
+        ("ES", data_seg),
+    ):
+        reg = ctx.getRegister(reg_name)
+        if reg is not None:
+            ctx.setValue(reg, block.getStart(), block.getEnd(), BigInteger.valueOf(value))
+
+
 def prepare(program, m):
     """Split the EXE into code and data, set the segment registers, verify."""
     exe_code = next(b for b in m["blocks"] if b["name"] == "EXE_CODE")
@@ -49,20 +67,22 @@ def prepare(program, m):
 
     ctx = program.getProgramContext()
     code = gc.block_by_name(program, "EXE_CODE")
-    for reg_name, value in (
-        ("CS", exe_code["seg"]),
-        ("DS", exe_data["seg"]),
-        ("SS", exe_data["seg"]),
-        ("ES", exe_data["seg"]),
-    ):
-        reg = ctx.getRegister(reg_name)
-        if reg is not None:
-            ctx.setValue(reg, code.getStart(), code.getEnd(), BigInteger.valueOf(value))
+    set_segment_registers(ctx, code, exe_code["seg"], exe_data["seg"])
 
     from ghidra.util.task import ConsoleTaskMonitor
 
     made = add_overlay_blocks(program, m, ConsoleTaskMonitor())
     assert made == 22, "expected 22 overlay regions, made %d" % made
+
+    # Overlay code needs the segment registers just as much as the EXE's does,
+    # and the blocks only exist now. Overlay code runs with the same DS: its
+    # data pages into the EXE's data segment, and it reaches the EXE's strings
+    # there too. Without this, 69 of the 151 analysed functions would be
+    # disassembled with an unknown DS and their data references would not
+    # resolve.
+    for block in program.getMemory().getBlocks():
+        if block.getName().startswith("OVL") and block.getName().endswith("_CODE"):
+            set_segment_registers(ctx, block, exe_code["seg"], exe_data["seg"])
 
     seeded = seed_entry_points(program, m)
     assert seeded == 11, "expected 11 overlay entry points, seeded %d" % seeded

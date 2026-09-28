@@ -178,20 +178,29 @@ fn table_words(bytes: &[u8], from: usize, to: usize) -> Vec<String> {
 /// is where the names live — not to the overlay that implements each command.
 /// The latter needs the dispatcher that indexes this table, and is not
 /// recovered here.
+/// Names are returned in table order, not sorted. The table is positional — the
+/// dispatcher indexes it, so `LINE` is command 0 — and that index is the join
+/// key for mapping a command to the overlay that implements it. Sorting here
+/// would throw it away; callers that want alphabetical can sort a copy.
 pub fn commands(ovl_bytes: &[u8], dir: &Directory) -> BTreeMap<usize, Vec<String>> {
     let mut map: BTreeMap<usize, Vec<String>> = BTreeMap::new();
     for entry in &dir.entries {
-        let mut names: BTreeSet<String> = BTreeSet::new();
+        let mut names: Vec<String> = Vec::new();
+        let mut seen: BTreeSet<String> = BTreeSet::new();
         for region in [entry.code, entry.data] {
             if region.is_empty() {
                 continue;
             }
             let from = region.file_off as usize;
             let to = region.end() as usize;
-            names.extend(table_words(ovl_bytes, from, to));
+            for word in table_words(ovl_bytes, from, to) {
+                if seen.insert(word.clone()) {
+                    names.push(word);
+                }
+            }
         }
         if !names.is_empty() {
-            map.insert(entry.index, names.into_iter().collect());
+            map.insert(entry.index, names);
         }
     }
     map

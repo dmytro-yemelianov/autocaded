@@ -79,9 +79,16 @@ dispatcher that indexes this table.
 ### §8 decision gate
 
 **1. ≥70% of `ACAD.OVL` functions decompile without `halt_baddata` or
-`UNRECOVERED_JUMPTABLE` — MET.** 148 of 151, 98.0%. Note the population is 151
-functions, not the whole binary: this measures the quality of what Ghidra found,
-not how much of the 179,480 bytes it reached.
+`UNRECOVERED_JUMPTABLE` — MET.** 148 of 151, 98.0%.
+
+No framing of the population decides this. Taking the spec's words literally —
+`ACAD.OVL` functions only — it is 68 of 69, 98.6%. Counting every function
+including the 17 non-code ones, it is 154 of 168, 91.7%. The reported figure sits
+between them. All three clear 70%, so the choice to exclude the non-code
+functions, which is the one that flatters the number, does not change the answer.
+
+What the criterion does *not* measure is how much of the 179,480 bytes Ghidra
+reached: 151 functions is what it found, not what is there.
 
 **2. Cross-overlay calls resolve to named targets — NOT DEMONSTRATED, and the
 criterion is mis-specified.** There are no cross-overlay calls: every overlay
@@ -103,13 +110,16 @@ Ghidra has not resolved. Resolving it is the next piece of work on this track.
 The record could not be recovered, for a structural reason rather than a missing
 step. `acad-re::analysis::trace_stores` reads a layout off `STORE`s whose pointer
 operand is a constant, which is how a struct write looks in flat code. In 16-bit
-segmented code there are none, in any of the 151 functions: every store address
-is built by `SEGMENTOP(space, segment, offset)`, so the pointer is always a
-computed `unique` varnode. Of 5,543 stores, 5,328 have a `SEGMENTOP`-defined
-pointer whose constant operand is the *segment* (`0x1E15`), not a displacement.
-Walking one level further reaches a `PTRADD` whose constant is the element size,
-not a field offset. `crates/acad-re/tests/dataflow.rs` pins this, so an
-improvement trips it.
+segmented code there are none — not one, in any of the 151 gate functions, nor in
+all 168. Every store address is built by `SEGMENTOP(space, segment, offset)`, so
+the pointer is always a computed `unique` varnode: of the 459 stores in code
+blocks, 407 have a `SEGMENTOP`-defined pointer whose constant operand is the
+*segment* (`0x1E15`), not a displacement. (Over all 168 functions it is 5,099 of
+5,314, but 4,855 of those stores belong to the 17 non-code functions excluded
+above, so the code-block figure is the one that bears on this.) Walking one level
+further reaches a `PTRADD` whose constant is the element size, not a field
+offset. `crates/acad-re/tests/dataflow.rs` pins this, so an improvement trips
+it.
 
 Nor could the writer be located by name. `ACAD.EXE` holds `EREAD`, `EWRITE`,
 `EWRITE error`, `** ILLEGAL TCODE VALUE %d IN %s` and
@@ -121,11 +131,22 @@ named `FUN_*`. The same holds for the geometry markers,
 `DS:0x397A`, so **arc tessellation and `FILLET` were not located either** — the
 other half of §6.4 that this track owes.
 
-This is not the overlay layout's fault. Loading three ways — `ACAD.EXE` alone,
-plus code overlays, plus all overlays — gives identical string resolution (13
-symbols each), so the 22 overlay blocks neither help nor hurt here. They do add
-16 phantom functions in `EXE_DATA`, which is where the 17 non-code functions
-above come from.
+This is not the overlay layout's fault, and it is not an unset segment register
+either — the two hypotheses worth ruling out, and both were.
+
+Loading three ways — `ACAD.EXE` alone, plus code overlays, plus all overlays —
+gives identical string resolution, so the 22 overlay blocks neither help nor hurt
+here. They do add 16 phantom functions in `EXE_DATA`, which is where the 17
+non-code functions above come from.
+
+Separately, the overlay code blocks originally got no segment-register context at
+all: `CS`/`DS`/`SS`/`ES` were set over `EXE_CODE` only, so 69 of the 151 functions
+were analysed with an unknown `DS`. Setting them over every `OVLxx_CODE` block
+too more than tripled the resolved data references (`DAT_` symbols went from
+1,039 to 3,513) and changed **none** of the numbers above: same 151/148/3, same
+346 edges, same zero cross-overlay edges, same zero constant-offset stores, and
+`EWRITE` still does not appear. So the structural claim in this section is a
+measurement, not an inference from a gap.
 
 ### Verdict
 

@@ -4,8 +4,15 @@
 #   source tools/ghidra-env.sh   # exports GHIDRA_INSTALL_DIR, JAVA_HOME, PYGHIDRA_PYTHON
 #   ./tools/ghidra-env.sh        # diagnose only; non-zero if anything is missing
 set -euo pipefail
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# ${BASH_SOURCE[0]:-$0} so this can be sourced from zsh, where BASH_SOURCE does
+# not exist and `set -u` would make reading it fatal. nullglob so an unmatched
+# search glob below expands to nothing instead of aborting under zsh's nomatch.
+setopt nullglob 2>/dev/null || shopt -s nullglob
+root="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
 venv="$root/build/pyghidra-venv"
+
+# Ghidra 12 requires a JDK 21 or newer.
+MIN_JDK=21
 
 die() { echo "ghidra-env: $*" >&2; return 1; }
 
@@ -27,12 +34,28 @@ find_ghidra() {
   die "Ghidra not found. Install it (macOS: brew install ghidra) or set GHIDRA_INSTALL_DIR."
 }
 
+# Major version of a JDK, or nothing if it will not report one.
+jdk_major() {
+  "$1/bin/java" -version 2>&1 | sed -n '1s/.*version "\([0-9]*\).*/\1/p' | head -1
+}
+
 find_jdk() {
+  # An explicit JAVA_HOME is honoured only if it is new enough. A stale one
+  # pointing at an older JDK must not shadow an installed openjdk@21 — the
+  # failure then lands as a Java stack trace from pyghidra.start(), which is
+  # exactly what this script exists to prevent.
   for c in "${JAVA_HOME:-}" /opt/homebrew/opt/openjdk@21 /usr/local/opt/openjdk@21 \
            /usr/lib/jvm/java-21-openjdk; do
-    [ -n "$c" ] && [ -x "$c/bin/java" ] && { echo "$c"; return; }
+    [ -n "$c" ] && [ -x "$c/bin/java" ] || continue
+    major="$(jdk_major "$c")"
+    if [ -n "$major" ] && [ "$major" -ge "$MIN_JDK" ] 2>/dev/null; then
+      echo "$c"; return
+    fi
+    if [ "$c" = "${JAVA_HOME:-}" ]; then
+      echo "ghidra-env: JAVA_HOME=$c is Java ${major:-unknown}, need $MIN_JDK+; searching instead" >&2
+    fi
   done
-  die "JDK 21 not found. Ghidra 12 needs it (macOS: brew install openjdk@21) or set JAVA_HOME."
+  die "JDK $MIN_JDK+ not found. Ghidra 12 needs it (macOS: brew install openjdk@21) or set JAVA_HOME."
 }
 
 find_python() {

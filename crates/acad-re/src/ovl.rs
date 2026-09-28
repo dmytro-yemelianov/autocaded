@@ -10,6 +10,14 @@ pub const ENTRY_LEN: usize = 18;
 /// `(211 - 13) / 18`.
 pub const ENTRY_COUNT: usize = (HEADER_LEN - DIR_OFF) / ENTRY_LEN;
 
+/// One past the last byte an overlay data region may occupy.
+///
+/// Overlay data pages into `ACAD.EXE`'s own data segment at `DS:0x0002-0x3552`;
+/// `DS:0x3553` is the first byte of the EXE's string pool. Unlike the code
+/// window, whose size the overlay file declares at `+11`, this bound is a
+/// property of `ACAD.EXE` (spec §4.1) and so is a constant here.
+pub const DATA_WINDOW_END: u16 = 0x3553;
+
 /// One contiguous run of file bytes paged into one window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Region {
@@ -88,21 +96,26 @@ pub fn parse(bytes: &[u8]) -> Result<Directory, ReError> {
                 });
             }
         }
-        // `ACAD.EXE` reserves exactly `window` bytes above its image for the
-        // code window and reads each region straight into it. A region ending
-        // past that edge would write off the end of the allocation — the silent
-        // clobber that matters here. Code and data cannot collide with each
-        // other: region 1 always pages into the code window and region 2 into
-        // the EXE's own data segment, so their offsets overlap by design.
-        // Computed in u32 because dest + len overflows u16 near the top.
-        let code_end = entry.code.dest as u32 + entry.code.len as u32;
-        if !entry.code.is_empty() && code_end > window as u32 {
-            return Err(ReError::RegionPastWindow {
-                entry: index,
-                dest: entry.code.dest,
-                end: code_end,
-                window,
-            });
+        // Each region is read straight into its window, so a region ending past
+        // that window's edge writes off the end of it — the silent clobber that
+        // matters here. Code and data cannot collide with *each other*: region 1
+        // always pages into the code window and region 2 into the EXE's own data
+        // segment, so their offsets overlap by design. Computed in u32 because
+        // dest + len overflows u16 near the top of a window.
+        for (region, name, bound) in [
+            (entry.code, "code", window),
+            (entry.data, "data", DATA_WINDOW_END),
+        ] {
+            let end = region.dest as u32 + region.len as u32;
+            if !region.is_empty() && end > bound as u32 {
+                return Err(ReError::RegionPastWindow {
+                    entry: index,
+                    region: name,
+                    dest: region.dest,
+                    end,
+                    window: bound,
+                });
+            }
         }
 
         entries.push(entry);
@@ -248,6 +261,7 @@ mod tests {
             parse(&bytes).unwrap_err(),
             ReError::RegionPastWindow {
                 entry: 0,
+                region: "code",
                 dest: 0xfd00,
                 end: 0xfe00,
                 window: 0xfd00
@@ -262,5 +276,46 @@ mod tests {
         let e = [0x3770, 0xc590, 0x0100, 0x0000, 0, 0, 0, 0, 0x4d90];
         let bytes = with_body(header(0xfd00, &[e]), 0x2bd18);
         assert!(parse(&bytes).is_ok());
+    }
+
+    #[test]
+    fn a_data_region_reaching_the_exe_string_pool_is_an_error() {
+        // Overlay data pages into the EXE's own data segment at DS:0x0002-0x3552.
+        // DS:0x3553 is the first byte of ACAD.EXE's string pool — a data region
+        // reaching it would overwrite "Not enough core for overlays". The codec
+        // proved this for the shipping file in a corpus test; it must enforce it
+        // for every file.
+        let e = [0, 0, 0, 0, 0x3500, 0x0100, 0x5e00, 0x0000, 0x0100];
+        let bytes = with_body(header(0xfd00, &[e]), 0x2bd18);
+        assert_eq!(
+            parse(&bytes).unwrap_err(),
+            ReError::RegionPastWindow {
+                entry: 0,
+                region: "data",
+                dest: 0x3500,
+                end: 0x3600,
+                window: DATA_WINDOW_END,
+            }
+        );
+    }
+
+    #[test]
+    fn a_data_region_ending_exactly_at_the_string_pool_is_allowed() {
+        // The bound is the first byte of the pool, so ending on it is legal.
+        let e = [0, 0, 0, 0, 0x3453, 0x0100, 0x5e00, 0x0000, 0x0100];
+        let bytes = with_body(header(0xfd00, &[e]), 0x2bd18);
+        assert!(parse(&bytes).is_ok());
+    }
+
+    #[test]
+    fn the_overrun_error_names_which_window_was_exceeded() {
+        // Code and data page into different windows; an error that did not say
+        // which would send a reader to the wrong one.
+        let code = [0xfd00, 0x0100, 0x0100, 0x0000, 0, 0, 0, 0, 0x0100];
+        let bytes = with_body(header(0xfd00, &[code]), 0x2bd18);
+        let ReError::RegionPastWindow { region, .. } = parse(&bytes).unwrap_err() else {
+            panic!("expected RegionPastWindow");
+        };
+        assert_eq!(region, "code");
     }
 }
