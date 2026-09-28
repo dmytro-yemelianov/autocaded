@@ -10,3 +10,6 @@ autocad/
 # Extracted corpus: bytes stay local, the manifest is the record
 corpus/*
 !corpus/manifest.toml
+
+# Generated RE pipeline output: reproducible from the corpus, not history
+/build

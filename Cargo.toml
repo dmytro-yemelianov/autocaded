@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/acad-model", "crates/acad-corpus", "crates/acad-dxf", "crates/acad-render", "crates/acad-app"]
+members = ["crates/acad-model", "crates/acad-corpus", "crates/acad-dxf", "crates/acad-render", "crates/acad-app", "crates/acad-re"]
 resolver = "2"
 
 [workspace.package]
