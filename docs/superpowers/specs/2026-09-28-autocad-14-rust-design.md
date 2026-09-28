@@ -79,6 +79,23 @@ constant across all 16 `AC1.2` drawings, and run in **the same order as the DXF*
 the `+0x24` offset. Each record is a `u16` type code, a `u16` whose meaning is not yet known,
 then the type's fields as IEEE doubles — so `LINE` is 36 bytes and `ARC` 44.
 
+**Block definitions are globally scoped.** In the `AC1.2` corpus, a `BLOCK`
+record can open inside another block's `BLOCK`/`ENDBLK` span. It defines a
+sibling in a flat block table, not a child of the surrounding definition:
+`SELEXOL` defines `ARROW` inside `COOLER`, then `INSERT`s `ARROW` fourteen
+times at top level. `SELEXOL` and `BLIVET` both have balanced nested
+definitions; the greatest observed definition nesting depth is 2. The reader
+uses a stack to match delimiters, but `acad-model::Block` needs no recursive
+block structure. The corpus does not establish whether a 1983 writer emitted
+such nesting deliberately or these files acquired it through later editing.
+
+The 1983 DXF parser rejects a nested `BLOCK`, and the DXF writer emits each
+block from the flat `items` list in closure order. Writing either drawing as
+DXF would therefore emit flat definitions and lose the original nesting;
+DWG→DXF is not byte-preserving for these files. Full conversion of their
+other, inferred record types has no independent DXF oracle yet. This is a
+limit to account for in milestone ④'s write direction.
+
 **The type code is a 1-based index into the entity type table recovered from `ACAD.EXE`**
 (`DS:0x38EE`: `LINE POINT CIRCLE SHAPE REPEAT ENDREP TEXT ARC TRACE LOAD SOLID BLOCK ENDBLK
 INSERT`). Checked against first records: `SUBDIV` = 8 = `ARC`, and its DXF's first entity is
