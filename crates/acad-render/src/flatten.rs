@@ -96,6 +96,86 @@ pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
     }
 }
 
+/// A block may insert another block; `SELEXOL` nests two deep (`PACKTWR`
+/// inserts `HEAD`, `COOLER` inserts `ARROW`). The insert graph comes from the
+/// file, not from anything this program controls, so a cycle is possible — a
+/// single corrupt block-name field is enough (`A` inserts `B` inserts `A`) —
+/// and unbounded recursion on that graph is a stack overflow, not a missing
+/// shape or an error message (confirmed by running this module's
+/// `a_block_that_inserts_itself_terminates` test against an uncapped version
+/// of `expand_insert`: it aborted with a stack overflow, not a hang).
+///
+/// `ACAD.EXE` itself carries the literal string `NESTED BLOCK` at `DS:0x3740`,
+/// among its entity-regeneration errors (`BLOCK ERROR IN EREGEN` at
+/// `DS:0x374D`, `** UNEXPECTED END-OF-BLOCK` at `DS:0x3763`, `** Undefined
+/// block: %s` at `DS:0x377E`) — `EREGEN` being the regeneration path this
+/// function reimplements. That is evidence AutoCAD 1.4 imposed *some* nesting
+/// limit and raised a named error rather than recursing without bound, i.e.
+/// that a cap is the right shape of answer. It is not evidence for what the
+/// limit's value was, or even for which direction it constrained: the string
+/// could equally concern a nested block *definition* encountered mid-regen
+/// (rejected outright) as a nested block *reference* like the one here (an
+/// insert whose body inserts another block). `SELEXOL` shipped as a sample
+/// drawing and nests references two deep, which argues at least one level of
+/// reference nesting was allowed. Nothing in the corpus nests past depth 2, so
+/// no observed behaviour here depends on the exact number.
+///
+/// 16 is therefore ours, not 1983's — picked generously above the corpus's
+/// observed depth of 2, not recovered from the binary. Whoever resolves the
+/// open question above should start at `DS:0x3740`.
+const MAX_INSERT_DEPTH: u32 = 16;
+
+#[allow(clippy::too_many_arguments)]
+fn expand_insert(
+    d: &Drawing,
+    origin: Point,
+    x_scale: f64,
+    y_scale: f64,
+    rotation_deg: f64,
+    name: &str,
+    vp: &Viewport,
+    depth_remaining: u32,
+) -> Vec<Prim> {
+    if depth_remaining == 0 {
+        return Vec::new();
+    }
+    let Some(b) = d.block(name) else {
+        return Vec::new();
+    };
+    let (sin, cos) = rotation_deg.to_radians().sin_cos();
+    let mut out = Vec::new();
+    for inner in &b.entities {
+        let prims = match inner {
+            Entity::Insert {
+                origin: o2,
+                x_scale: xs2,
+                y_scale: ys2,
+                rotation_deg: r2,
+                name: n2,
+            } => expand_insert(d, *o2, *xs2, *ys2, *r2, n2, vp, depth_remaining - 1),
+            other => flatten_entity(other, vp),
+        };
+        for prim in prims {
+            let Prim::Polyline(pts) = prim;
+            // Re-place in world space, then re-project.
+            out.push(Prim::Polyline(
+                pts.into_iter()
+                    .map(|sp| {
+                        let w = vp.to_world(sp);
+                        let (dx, dy) = (w.x - b.base.x, w.y - b.base.y);
+                        let (sx, sy) = (dx * x_scale, dy * y_scale);
+                        vp.to_screen(Point {
+                            x: origin.x + sx * cos - sy * sin,
+                            y: origin.y + sx * sin + sy * cos,
+                        })
+                    })
+                    .collect(),
+            ));
+        }
+    }
+    out
+}
+
 pub fn flatten(d: &Drawing, vp: &Viewport) -> Vec<Prim> {
     let mut out = Vec::new();
     for e in d.entities() {
@@ -107,27 +187,16 @@ pub fn flatten(d: &Drawing, vp: &Viewport) -> Vec<Prim> {
                 rotation_deg,
                 name,
             } => {
-                let Some(b) = d.block(name) else { continue };
-                let (sin, cos) = rotation_deg.to_radians().sin_cos();
-                for inner in &b.entities {
-                    for prim in flatten_entity(inner, vp) {
-                        let Prim::Polyline(pts) = prim;
-                        // Re-place in world space, then re-project.
-                        out.push(Prim::Polyline(
-                            pts.into_iter()
-                                .map(|sp| {
-                                    let w = vp.to_world(sp);
-                                    let (dx, dy) = (w.x - b.base.x, w.y - b.base.y);
-                                    let (sx, sy) = (dx * x_scale, dy * y_scale);
-                                    vp.to_screen(Point {
-                                        x: origin.x + sx * cos - sy * sin,
-                                        y: origin.y + sx * sin + sy * cos,
-                                    })
-                                })
-                                .collect(),
-                        ));
-                    }
-                }
+                out.extend(expand_insert(
+                    d,
+                    *origin,
+                    *x_scale,
+                    *y_scale,
+                    *rotation_deg,
+                    name,
+                    vp,
+                    MAX_INSERT_DEPTH,
+                ));
             }
             other => out.extend(flatten_entity(other, vp)),
         }
@@ -138,7 +207,10 @@ pub fn flatten(d: &Drawing, vp: &Viewport) -> Vec<Prim> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use acad_model::{Entity, Extents, Point};
+    use acad_model::{
+        header::{DwgView, Header, Mode},
+        Block, Entity, Extents, Item, Point,
+    };
 
     fn vp() -> Viewport {
         Viewport::fit(
@@ -151,6 +223,41 @@ mod tests {
             100,
             100,
         )
+    }
+
+    /// `Header` has no `Default` and `acad-model`'s own `test_header` is private
+    /// to its test module. `flatten` reads only `Drawing::items`, so every field
+    /// here is a zero that no assertion depends on.
+    fn test_header() -> Header {
+        let zero = Extents {
+            xmin: 0.0,
+            xmax: 0.0,
+            ymin: 0.0,
+            ymax: 0.0,
+        };
+        Header {
+            extents: zero,
+            limits: zero,
+            base: Point { x: 0.0, y: 0.0 },
+            view: DwgView {
+                center: Point { x: 0.0, y: 0.0 },
+                height: 0.0,
+            },
+            snap: Mode {
+                on: false,
+                spacing: 0.0,
+            },
+            grid: Mode {
+                on: false,
+                spacing: 0.0,
+            },
+            ortho: false,
+            fill: false,
+            text_size: 0.0,
+            trace_width: 0.0,
+            current_layer: 0,
+            layers: Default::default(),
+        }
     }
 
     #[test]
@@ -259,5 +366,79 @@ mod tests {
             // p3 (2.5, 30.725) here instead.
             assert!((pts[2].y - vp().to_screen(Point { x: 2.5, y: 30.775 }).y).abs() < 1e-9);
         }
+    }
+
+    #[test]
+    fn an_insert_inside_a_block_body_is_expanded() {
+        // SELEXOL's PACKTWR inserts HEAD; COOLER inserts ARROW. Without this,
+        // those parts of the drawing are silently missing.
+        let d = Drawing {
+            header: test_header(),
+            items: vec![
+                Item::Block(Block {
+                    name: "INNER".into(),
+                    base: Point { x: 0.0, y: 0.0 },
+                    entities: vec![Entity::Line {
+                        start: Point { x: 0.0, y: 0.0 },
+                        end: Point { x: 1.0, y: 1.0 },
+                    }],
+                }),
+                Item::Block(Block {
+                    name: "OUTER".into(),
+                    base: Point { x: 0.0, y: 0.0 },
+                    entities: vec![Entity::Insert {
+                        origin: Point { x: 2.0, y: 2.0 },
+                        x_scale: 1.0,
+                        y_scale: 1.0,
+                        rotation_deg: 0.0,
+                        name: "INNER".into(),
+                    }],
+                }),
+                Item::Entity(Entity::Insert {
+                    origin: Point { x: 0.0, y: 0.0 },
+                    x_scale: 1.0,
+                    y_scale: 1.0,
+                    rotation_deg: 0.0,
+                    name: "OUTER".into(),
+                }),
+            ],
+        };
+        assert_eq!(
+            flatten(&d, &vp()).len(),
+            1,
+            "the LINE inside INNER, reached through OUTER, must be drawn"
+        );
+    }
+
+    #[test]
+    fn a_block_that_inserts_itself_terminates() {
+        // Review Focus 1: the file controls this graph. A corrupt name field is
+        // enough to make a cycle, and unbounded recursion is a stack overflow,
+        // not an error message.
+        let d = Drawing {
+            header: test_header(),
+            items: vec![
+                Item::Block(Block {
+                    name: "LOOP".into(),
+                    base: Point { x: 0.0, y: 0.0 },
+                    entities: vec![Entity::Insert {
+                        origin: Point { x: 1.0, y: 1.0 },
+                        x_scale: 1.0,
+                        y_scale: 1.0,
+                        rotation_deg: 0.0,
+                        name: "LOOP".into(),
+                    }],
+                }),
+                Item::Entity(Entity::Insert {
+                    origin: Point { x: 0.0, y: 0.0 },
+                    x_scale: 1.0,
+                    y_scale: 1.0,
+                    rotation_deg: 0.0,
+                    name: "LOOP".into(),
+                }),
+            ],
+        };
+        // The assertion is that this returns at all.
+        let _ = flatten(&d, &vp());
     }
 }
