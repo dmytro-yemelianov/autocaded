@@ -17,8 +17,9 @@ use std::{fs, process::ExitCode};
 const TOLERANCE: f64 = 5e-7;
 
 /// `Entity` is an enum of struct variants — `Entity::Line { start, end }`, not
-/// `Entity::Line(line)` — with exactly five kinds. Spelling is American:
-/// `center`, `start_deg`, `end_deg`.
+/// `Entity::Line(line)` — with eight kinds since Task 8 added `Point`,
+/// `Trace` and `Solid`. Spelling is American: `center`, `start_deg`,
+/// `end_deg`.
 fn coords(e: &Entity) -> Vec<(&'static str, f64)> {
     match e {
         Entity::Line { start, end } => vec![
@@ -65,6 +66,22 @@ fn coords(e: &Entity) -> Vec<(&'static str, f64)> {
             ("xs", *x_scale),
             ("ys", *y_scale),
             ("rot", *rotation_deg),
+        ],
+        // acad_dxf::parse never produces these (no corpus DXF exercises
+        // POINT/TRACE/SOLID — see acad-dwg's entity.rs module doc), so this
+        // arm never actually runs against real discovery input; it exists
+        // to keep this match exhaustive now that acad_dwg::parse can
+        // produce them.
+        Entity::Point { origin } => vec![("x", origin.x), ("y", origin.y)],
+        Entity::Trace { p1, p2, p3, p4 } | Entity::Solid { p1, p2, p3, p4 } => vec![
+            ("x1", p1.x),
+            ("y1", p1.y),
+            ("x2", p2.x),
+            ("y2", p2.y),
+            ("x3", p3.x),
+            ("y3", p3.y),
+            ("x4", p4.x),
+            ("y4", p4.y),
         ],
     }
 }
@@ -115,5 +132,8 @@ fn entity_name(e: &Entity) -> &'static str {
         Entity::Arc { .. } => "ARC",
         Entity::Text { .. } => "TEXT",
         Entity::Insert { .. } => "INSERT",
+        Entity::Point { .. } => "POINT",
+        Entity::Trace { .. } => "TRACE",
+        Entity::Solid { .. } => "SOLID",
     }
 }

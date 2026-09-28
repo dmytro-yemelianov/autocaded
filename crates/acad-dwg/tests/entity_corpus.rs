@@ -68,6 +68,20 @@ fn kind_and_fields(e: &Entity) -> (&'static str, Vec<f64>, Option<&str>) {
             vec![origin.x, origin.y, *x_scale, *y_scale, *rotation_deg],
             Some(name.as_str()),
         ),
+        // SUBDIV, this file's only fixture, uses none of these (Task 8's
+        // new types have no DXF oracle at all — see acad-dwg's entity.rs
+        // module doc); these arms exist only to keep the match exhaustive.
+        Entity::Point { origin } => ("POINT", vec![origin.x, origin.y], None),
+        Entity::Trace { p1, p2, p3, p4 } => (
+            "TRACE",
+            vec![p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y],
+            None,
+        ),
+        Entity::Solid { p1, p2, p3, p4 } => (
+            "SOLID",
+            vec![p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y],
+            None,
+        ),
     }
 }
 
