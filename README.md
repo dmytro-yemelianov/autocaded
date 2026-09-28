@@ -18,7 +18,7 @@ Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/sup
 | ① | DXF codec, corpus integrity, first render | **done** |
 | ② | Ghidra overlay loader, dual AST export, `acad-re` | **done** |
 | ③ | Oracle harness — in-tree 8086, differential tests | next |
-| ④ | DWG codec — `AC1.40`, then `AC1.2` | `AC1.2` read: 11 of 16 corpus drawings render; 5 need record types not modelled yet (see below) |
+| ④ | DWG codec — `AC1.40`, then `AC1.2` | `AC1.2` read: 14 of 16 corpus drawings render; 2 are stopped by nested `BLOCK` definitions (see below) |
 | ⑤ | Command loop | |
 
 `SUBDIV.DXF` round-trips byte-identically and renders. The full 1983 command set
@@ -37,14 +37,31 @@ for ③.
 `SUBDIV` is the corpus's only drawing with a DXF sibling, so it is the only
 independent check there is. Seven `AC1.2` record types decode through it and are
 **verified**, byte for byte, against `SUBDIV.DXF`: `LINE`, `CIRCLE`, `ARC`, `TEXT`,
-`BLOCK`, `ENDBLK`, `INSERT`. All 16 `AC1.2` drawings in the corpus have been run
-through the reader (`crates/acad-dwg/tests/corpus_smoke.rs`): 11 use only that
-same verified set of seven types and render correctly, which shows the layout
-generalises but is not a second oracle check — it is **inferred**, not verified,
-for anything beyond `SUBDIV` itself. The other 5 need a record type this codec
-does not model yet — `POINT`, `REPEAT`, `TRACE` or `SOLID` — which
-`acad_model::Entity` has no variant for; one of the five (`ADDER`) fails on a type
-code that does not even index the known entity table and needs its own look.
+`BLOCK`, `ENDBLK`, `INSERT`. Four more — `POINT`, `TRACE`, `SOLID`, and the
+`REPEAT`/`ENDREP` pair — have no DXF sibling anywhere in the corpus, so they are
+**inferred** from record size and whole-file consistency alone: the file's
+record-by-record walk lands exactly on the header's own `entity_end` with a
+record count matching `entity_count`, cross-checked against two independent
+corpus files apiece where one was available (see `crates/acad-dwg/src/entity.rs`'s
+module doc for the full evidence behind each). A signed type code marking an
+erased entity (`ADDER`'s own finding) is confirmed the same way: reading the code
+as `i16` makes `ADDER`'s walk land exactly, where reading it unsigned does not.
+
+All 16 `AC1.2` drawings in the corpus have been run through the reader
+(`crates/acad-dwg/tests/corpus_smoke.rs`): **14 render**. The pre-existing 11 use
+only the seven verified types (evidence the layout generalises, not a second
+oracle check); `ADDER`, `FLOOR` and `FLOW` are new — erasure, `REPEAT` and
+`SOLID` respectively were all they needed. The remaining 2, `SELEXOL` and
+`BLIVET`, decode every individual record correctly (`POINT`, `TRACE` and
+`REPEAT` included — checked directly against their real bytes, not just a
+synthetic fixture) but both contain a `BLOCK` definition nested inside another
+`BLOCK` definition, which `read_items`'s single-level tracking (and
+`acad_model::Block`'s flat `Vec<Entity>`) cannot represent; opening a second
+`BLOCK` while one is open is `DwgError::UnterminatedBlock`, naming the outer
+one. Fixing that needs `acad_model::Block`/`Item` to nest, a design decision
+with no oracle to verify it against for either file, so it is left for
+whoever picks it up next rather than guessed at.
+
 `acad-app` opens either format, dispatching on the file's own magic bytes rather
 than its extension, so a `.BAK` file — four corpus drawings have one — is
 identified as the DWG it is rather than guessed from its name. Every `.BAK` in
