@@ -1,5 +1,9 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Verdict { Ok, CorruptAt(usize), Binary }
+pub enum Verdict {
+    Ok,
+    CorruptAt(usize),
+    Binary,
+}
 
 /// A text file from the 1.4 disks is intact only if every byte up to its DOS
 /// EOF marker is printable ASCII, CR or LF. Bytes after the marker are FAT
@@ -8,9 +12,10 @@ pub fn classify(name: &str, bytes: &[u8]) -> Verdict {
     // .MNU is deliberately excluded: menu files embed the literal control
     // byte each item sends (0x02 snap, 0x03 cancel, 0x0f ortho), so the
     // printable-ASCII rule reports them as corrupt when they are intact.
-    let textual = name.ends_with(".DXF")
-        || name.ends_with(".DOC") || name.ends_with(".BAT");
-    if !textual { return Verdict::Binary; }
+    let textual = name.ends_with(".DXF") || name.ends_with(".DOC") || name.ends_with(".BAT");
+    if !textual {
+        return Verdict::Binary;
+    }
 
     // One implementation of "what may appear in a 1983 text file", shared with
     // the DXF lexer so the manifest and the parser can never disagree.

@@ -2,10 +2,16 @@ use crate::geom::{Extents, Point};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Mode { pub on: bool, pub spacing: f64 }
+pub struct Mode {
+    pub on: bool,
+    pub spacing: f64,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct DwgView { pub center: Point, pub height: f64 }
+pub struct DwgView {
+    pub center: Point,
+    pub height: f64,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Header {

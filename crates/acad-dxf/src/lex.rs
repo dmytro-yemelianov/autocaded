@@ -3,7 +3,11 @@ use crate::error::DxfError;
 /// One instance of one record. A header of `LINE,3` yields three `Record`s.
 /// `line` is the 1-based index of the record's header line.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Record { pub keyword: String, pub rows: Vec<String>, pub line: usize }
+pub struct Record {
+    pub keyword: String,
+    pub rows: Vec<String>,
+    pub line: usize,
+}
 
 const DOS_EOF: u8 = 0x1a;
 
@@ -15,9 +19,8 @@ pub fn rows_per_instance(keyword: &str) -> Option<usize> {
         "ENDBLK" => 0,
         "LAYERC" => 8,
         "TEXT" | "INSERT" | "BLOCK" => 2,
-        "EXTENTS" | "LIMITS" | "BASE" | "DWGVIEW" | "MODERES" | "MODEGRID"
-        | "MODEORTHO" | "MODEFILL" | "TXTSIZE" | "TRACEWID" | "LAYER"
-        | "LINE" | "CIRCLE" | "ARC" => 1,
+        "EXTENTS" | "LIMITS" | "BASE" | "DWGVIEW" | "MODERES" | "MODEGRID" | "MODEORTHO"
+        | "MODEFILL" | "TXTSIZE" | "TRACEWID" | "LAYER" | "LINE" | "CIRCLE" | "ARC" => 1,
         _ => return None,
     })
 }
@@ -28,15 +31,23 @@ pub fn rows_per_instance(keyword: &str) -> Option<usize> {
 /// Only C0 control bytes other than CR and LF disqualify a file. Bytes >= 0x80
 /// are legal Latin-1 text -- rejecting them reports intact drawings as corrupt.
 pub fn first_non_text_byte(bytes: &[u8]) -> Option<usize> {
-    let end = bytes.iter().position(|&b| b == DOS_EOF).unwrap_or(bytes.len());
-    bytes[..end].iter().position(|&b| b < 0x20 && b != b'\r' && b != b'\n')
+    let end = bytes
+        .iter()
+        .position(|&b| b == DOS_EOF)
+        .unwrap_or(bytes.len());
+    bytes[..end]
+        .iter()
+        .position(|&b| b < 0x20 && b != b'\r' && b != b'\n')
 }
 
 pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
     if let Some(off) = first_non_text_byte(bytes) {
         return Err(DxfError::Corrupt { offset: off });
     }
-    let end = bytes.iter().position(|&b| b == DOS_EOF).unwrap_or(bytes.len());
+    let end = bytes
+        .iter()
+        .position(|&b| b == DOS_EOF)
+        .unwrap_or(bytes.len());
     // Latin-1: `u8 as char` maps 0x00..=0xFF onto U+0000..=U+00FF, which is
     // exactly Latin-1, so this is a faithful decode rather than an ASCII one.
     let text: String = bytes[..end].iter().map(|&b| b as char).collect();
@@ -44,23 +55,37 @@ pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
     // empty line would swallow a legitimately empty TEXT value and would shift
     // every reported line number away from the real one.
     let mut lines: Vec<&str> = text.split("\r\n").collect();
-    if lines.last() == Some(&"") { lines.pop(); }
+    if lines.last() == Some(&"") {
+        lines.pop();
+    }
 
     let mut out = Vec::new();
     let mut i = 0usize;
     while i < lines.len() {
-        let (kw, count) = lines[i].rsplit_once(',')
+        let (kw, count) = lines[i]
+            .rsplit_once(',')
             .and_then(|(k, n)| n.parse::<usize>().ok().map(|n| (k.to_string(), n)))
             .ok_or(DxfError::BadHeader { line: i + 1 })?;
-        let per = rows_per_instance(&kw)
-            .ok_or_else(|| DxfError::UnknownKeyword { keyword: kw.clone(), line: i + 1 })?;
+        let per = rows_per_instance(&kw).ok_or_else(|| DxfError::UnknownKeyword {
+            keyword: kw.clone(),
+            line: i + 1,
+        })?;
         let mut cursor = i + 1;
         for _ in 0..count {
             if cursor + per > lines.len() {
-                return Err(DxfError::Truncated { keyword: kw.clone(), line: i + 1 });
+                return Err(DxfError::Truncated {
+                    keyword: kw.clone(),
+                    line: i + 1,
+                });
             }
-            out.push(Record { keyword: kw.clone(), line: i + 1,
-                rows: lines[cursor..cursor + per].iter().map(|s| s.to_string()).collect() });
+            out.push(Record {
+                keyword: kw.clone(),
+                line: i + 1,
+                rows: lines[cursor..cursor + per]
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect(),
+            });
             cursor += per;
         }
         i = cursor;
@@ -84,7 +109,11 @@ mod tests {
     #[test]
     fn layerc_takes_eight_rows_for_one_instance() {
         let mut src = b"LAYERC,1\r\n".to_vec();
-        for _ in 0..8 { src.extend_from_slice(b"0,15,255,255,255,255,255,255,255,255,255,255,255,255,255,255\r\n"); }
+        for _ in 0..8 {
+            src.extend_from_slice(
+                b"0,15,255,255,255,255,255,255,255,255,255,255,255,255,255,255\r\n",
+            );
+        }
         src.push(0x1a);
         let recs = lex(&src).unwrap();
         assert_eq!(recs.len(), 1);
@@ -103,7 +132,10 @@ mod tests {
     fn text_record_takes_two_rows() {
         let src = b"TEXT,1\r\n9.624130,12.295160,0.346010,0.000000\r\nA\r\n\x1a";
         let recs = lex(src).unwrap();
-        assert_eq!(recs[0].rows, vec!["9.624130,12.295160,0.346010,0.000000", "A"]);
+        assert_eq!(
+            recs[0].rows,
+            vec!["9.624130,12.295160,0.346010,0.000000", "A"]
+        );
     }
 
     #[test]
@@ -126,12 +158,24 @@ mod tests {
     #[test]
     fn unimplemented_entity_is_rejected_not_guessed() {
         let src = b"SOLID,1\r\n0,0,1,1\r\n\x1a";
-        assert_eq!(lex(src), Err(DxfError::UnknownKeyword { keyword: "SOLID".into(), line: 1 }));
+        assert_eq!(
+            lex(src),
+            Err(DxfError::UnknownKeyword {
+                keyword: "SOLID".into(),
+                line: 1
+            })
+        );
     }
 
     #[test]
     fn record_running_past_end_of_file_is_truncated() {
         let src = b"TEXT,1\r\n9.6,12.2,0.3,0.0\r\n\x1a";
-        assert_eq!(lex(src), Err(DxfError::Truncated { keyword: "TEXT".into(), line: 1 }));
+        assert_eq!(
+            lex(src),
+            Err(DxfError::Truncated {
+                keyword: "TEXT".into(),
+                line: 1
+            })
+        );
     }
 }

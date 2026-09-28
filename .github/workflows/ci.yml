@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # acad-app links winit/softbuffer, which need the X11 and Wayland
+      # development headers even for a headless build.
+      - name: Install windowing headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libx11-dev libxkbcommon-dev \
+            libwayland-dev libxcursor-dev libxi-dev libxrandr-dev
+
+      # The toolchain is pinned by rust-toolchain.toml; rustup honours it.
+      - name: Show toolchain
+        run: rustc --version && cargo --version
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # The corpus is extracted from archives that are not in the repository,
+      # so the five tests that read it skip here. corpus/manifest.toml is
+      # committed, so the manifest's own consistency is still checked.
+      - name: Test
+        run: cargo test --workspace
