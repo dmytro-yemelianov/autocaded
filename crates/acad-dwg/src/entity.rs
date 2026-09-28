@@ -330,11 +330,28 @@ fn read_entity_fields(
             // at both the DXF's tolerance and much looser). The ratio is
             // 0.75 to seven significant figures (0.4613465 * 0.75 =
             // 0.3460098749999999, which rounds to the DXF's printed
-            // 0.346010) — most likely the classic vector-font convention of
-            // a 3/4 cap-height-to-design-height ratio. This is specific to
-            // the entity field: the header's own TXTSIZE (spec §4.2, offset
-            // 0xb4) holds SUBDIV's 0.2 raw, unconverted, so this is not a
-            // global text-height unit and must not be applied there.
+            // 0.346010).
+            //
+            // This 0.75 is *not* a property of the format or a "classic
+            // vector-font convention" — it is `above / (above + below)` from
+            // the loaded `.SHP` font's own header (spec §4.2): the DWG
+            // stores the font's full cell height (above-baseline + below-
+            // baseline), the DXF reports cap height (above-baseline only).
+            // `corpus/System/TXT.SHP` opens `*0,4,Roman Simplex` /
+            // `21,7,0,0` — 21 above the baseline, 7 below — so
+            // `21/(21+7) = 0.75`, matching SUBDIV exactly. Every text font
+            // this corpus ships happens to use that same 21:7 (or
+            // equivalently 3:1) ratio (`ITALIC`, `ROMAN-C`, `ROMAN-S`,
+            // `System/TXT.SHP`; `Samples/TXT.SHP` at `6,2`), which is why
+            // 0.75 works for every drawing in the corpus — but a drawing
+            // using a font with a different above:below split would need
+            // its own ratio read from its `.SHP` file. Hardcoding 0.75 here
+            // is a corpus-wide coincidence, not a discovered constant; the
+            // milestone ⑤ `.SHP` loader should read this ratio from the
+            // font instead of relying on this arm. This is specific to the
+            // entity field either way: the header's own TXTSIZE (spec §4.2,
+            // offset 0xb4) holds SUBDIV's 0.2 raw, unconverted, so this is
+            // not a global text-height unit and must not be applied there.
             let x = checked_f64(bytes, at, index)?;
             let y = checked_f64(bytes, at + 8, index)?;
             let height_raw = checked_f64(bytes, at + 16, index)?;
