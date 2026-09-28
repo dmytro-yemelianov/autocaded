@@ -13,11 +13,12 @@ pub enum ReError {
         end: u64,
         file_len: u64,
     },
-    /// Two regions of one entry claim the same bytes of the same window.
-    RegionsOverlap {
+    /// A region reaches past the end of the window it pages into.
+    RegionPastWindow {
         entry: usize,
-        window: &'static str,
-        at: u16,
+        dest: u16,
+        end: u32,
+        window: u16,
     },
 }
 
@@ -46,12 +47,15 @@ impl fmt::Display for ReError {
                 f,
                 "entry {entry} {region} region ends at {end:#x}, past end of file {file_len:#x}"
             ),
-            Self::RegionsOverlap { entry, window, at } => {
-                write!(
-                    f,
-                    "entry {entry}: code and data overlap in the {window} window at {at:#x}"
-                )
-            }
+            Self::RegionPastWindow {
+                entry,
+                dest,
+                end,
+                window,
+            } => write!(
+                f,
+                "entry {entry} code region at {dest:#x} ends at {end:#x}, past the {window:#x}-byte window"
+            ),
         }
     }
 }

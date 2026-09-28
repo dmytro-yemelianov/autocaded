@@ -58,7 +58,52 @@ def prepare(program, m):
         if reg is not None:
             ctx.setValue(reg, code.getStart(), code.getEnd(), BigInteger.valueOf(value))
 
+    from ghidra.util.task import ConsoleTaskMonitor
+
+    made = add_overlay_blocks(program, m, ConsoleTaskMonitor())
+    assert made == 22, "expected 22 overlay regions, made %d" % made
+
     check(program, exe_data["seg"])
+
+
+def add_overlay_blocks(program, m, monitor):
+    """One Ghidra overlay block per region.
+
+    The 11 entries page into the same two windows, so their bytes cannot
+    coexist in one flat address space. Ghidra overlay blocks are exactly this:
+    several blocks claiming one address range, each in its own space.
+    """
+    import jpype
+
+    mem = program.getMemory()
+    with open(m["ovl"], "rb") as fh:
+        ovl = fh.read()
+
+    made = 0
+    for b in m["blocks"]:
+        if not b["overlay"]:
+            continue
+        chunk = ovl[b["src_off"] : b["src_off"] + b["len"]]
+        if len(chunk) != b["len"]:
+            raise SystemExit(
+                "%s wants %d bytes at %#x, file has %d"
+                % (b["name"], b["len"], b["src_off"], len(chunk))
+            )
+        start = gc.seg_addr(program, b["seg"], b["off"])
+        try:
+            block = mem.createInitializedBlock(b["name"], start, b["len"], 0, monitor, True)
+        except jpype.JException as exc:
+            raise SystemExit("overlay block %s could not be created: %s" % (b["name"], exc))
+        # Java bytes are signed; values >= 0x80 must be sign-extended or JPype
+        # rejects the array.
+        mem.setBytes(
+            block.getStart(),
+            jpype.JArray(jpype.JByte)([c - 256 if c > 127 else c for c in chunk]),
+        )
+        block.setExecute(b["name"].endswith("_CODE"))
+        made += 1
+    print("created %d overlay blocks" % made)
+    return made
 
 
 def check(program, data_seg):
@@ -73,6 +118,14 @@ def check(program, data_seg):
         got = gc.read_bytes(program, addr, len(want))
         assert got == want, "DS:%04x is %r, expected %r" % (off, got, want)
     print("segment layout verified: DS:3553 and DS:3597 read back correctly")
+
+    # The overlay payload must land where the directory says. `!root` sits at
+    # file offset 0x5e00, which is entry 0's data region start, so it must be
+    # the first thing in OVL00_DATA.
+    block = gc.block_by_name(program, "OVL00_DATA")
+    got = gc.read_bytes(program, block.getStart(), 5)
+    assert got == b"!root", "OVL00_DATA starts with %r, expected b'!root'" % got
+    print("overlay payload verified: OVL00_DATA begins at the !root token")
 
 
 def project_location(project_dir):

@@ -44,7 +44,7 @@
 1. **Truncated or non-`AC1.40` `ACAD.OVL`** — a file shorter than 211 bytes, or with the wrong magic, must be a named error carrying the offset or the bytes found, never a panic and never a half-built `Directory`. *(Task 1)*
 2. **A directory entry whose region runs past end-of-file** — `file_off + len > file_len` must name the entry index and the region, because a truncated OVL is exactly what a bad floppy read produces. *(Task 1)*
 3. **Ghidra or JDK 21 absent** — the pipeline must say which one is missing and how to install it, not surface a Java stack trace or a `FileNotFoundError`. A contributor without Ghidra must still get a green `cargo test`. *(Task 2)*
-4. **Two overlay regions claiming the same window bytes in one entry** — the loader must reject an entry whose code and data regions overlap within a window rather than silently letting the second `setBytes` win. *(Task 4)*
+4. **A region reaching past the end of the window it pages into** — `ACAD.EXE` reserves exactly `window_bytes` and reads each region straight in, so a region ending past that edge writes off the end of the allocation. It must be a named error. *(Task 4)* — *(Revised during execution: this line originally asked for an intra-entry code/data overlap check, which is vacuous. Region 1 always pages into the code window and region 2 into the EXE's data segment, so the two can never collide; entry 0's dests already overlap numerically and correctly. The window overrun is the real instance of the same defect class.)*
 5. **A function Ghidra fails to decompile** — must be exported as an explicit failure record with its reason, never dropped. The §8 gate measures precisely this rate, so a silent drop would inflate the score and decide the gate wrongly. *(Task 5)*
 
 ---
@@ -213,8 +213,8 @@ pub enum ReError {
     BadMagic { found: [u8; 8] },
     /// A directory entry points past the end of the file.
     RegionPastEof { entry: usize, region: &'static str, end: u64, file_len: u64 },
-    /// Two regions of one entry claim the same bytes of the same window.
-    RegionsOverlap { entry: usize, window: &'static str, at: u16 },
+    /// A region reaches past the end of the window it pages into.
+    RegionPastWindow { entry: usize, dest: u16, end: u32, window: u16 },
 }
 
 impl fmt::Display for ReError {
@@ -942,60 +942,68 @@ git commit -m "feat(re): Ghidra loader for ACAD.EXE with recovered segment layou
 - Consumes: `Directory` from Task 1, `load()` from Task 3.
 - Produces: `acad_re::ovl::parse` additionally rejecting intra-entry window overlap; `load_acad.py` creating one Ghidra overlay block per region.
 
-- [ ] **Step 1: Write the failing overlap test**
+- [ ] **Step 1: Write the failing window-overrun tests**
 
-The entries share window addresses, so Ghidra needs overlay blocks — but within a *single* entry, code and data go to different windows and must never collide. Add to `crates/acad-re/src/ovl.rs`'s tests module:
+Region 1 of every entry pages into the code window and region 2 into the EXE's own
+data segment, so code and data can never collide — entry 0's dests overlap numerically
+(`0x0100..0x5DA0` against `0x0002..0x3520`) and that is correct. The real instance of
+Review Focus 4 is a region reaching past the edge of the window it pages into: the
+loader would write off the end of the allocation. Add to `crates/acad-re/src/ovl.rs`'s
+tests module:
 
 ```rust
     #[test]
-    fn code_and_data_overlapping_in_one_window_is_an_error() {
-        // Both regions land in the code window at the same bytes. `ACAD.EXE`
-        // would let the second read win; we refuse to model that silently.
-        let e = [0x0100, 0x0200, 0x0100, 0x0000, 0x0100, 0x0200, 0x0400, 0x0000, 0x0100];
-        let mut bytes = with_body(header(0xfd00, &[e]), 0x2bd18);
-        // Mark the data region as belonging to the code window by giving it the
-        // same dest and an overlapping extent.
-        bytes[13 + 8] = 0x00;
-        bytes[13 + 9] = 0x01;
+    fn a_code_region_overrunning_the_declared_window_is_an_error() {
+        let e = [0xfd00, 0x0100, 0x0100, 0x0000, 0, 0, 0, 0, 0x0100];
+        let bytes = with_body(header(0xfd00, &[e]), 0x2bd18);
         assert_eq!(
             parse(&bytes).unwrap_err(),
-            ReError::RegionsOverlap { entry: 0, window: "code", at: 0x0100 }
+            ReError::RegionPastWindow { entry: 0, dest: 0xfd00, end: 0xfe00, window: 0xfd00 }
         );
+    }
+
+    #[test]
+    fn a_code_region_ending_exactly_at_the_window_edge_is_allowed() {
+        // Entry 2 of the real overlay does exactly this: 0x3770 + 0xc590 =
+        // 0xfd00. An off-by-one here would reject the shipping file.
+        let e = [0x3770, 0xc590, 0x0100, 0x0000, 0, 0, 0, 0, 0x4d90];
+        let bytes = with_body(header(0xfd00, &[e]), 0x2bd18);
+        assert!(parse(&bytes).is_ok());
     }
 ```
 
-Note the real corpus never trips this — `every_data_region_fits_below_the_exe_string_pool` in Task 1 already shows data stays under `0x3553` while code starts at `0x0100` and runs far higher. The check exists because a corrupt directory is a real possibility on a 1983 floppy, and Review Focus item 4 says a silent overwrite is the wrong answer.
+- [ ] **Step 2: Run them and confirm they fail**
 
-- [ ] **Step 2: Run it and confirm it fails**
+Run: `cargo test -p acad-re overrunning`
+Expected: FAIL — `no variant named `RegionPastWindow` found for enum `error::ReError``.
 
-Run: `cargo test -p acad-re code_and_data_overlapping`
-Expected: FAIL — `assertion failed: left == right`, because `parse` currently returns `Ok`.
+- [ ] **Step 3: Implement the window check**
 
-- [ ] **Step 3: Implement the overlap check**
-
-In `parse`, after the `RegionPastEof` loop and before `entries.push(entry)`:
+Replace the `RegionsOverlap` variant in `error.rs` with `RegionPastWindow { entry, dest, end, window }`
+and its `Display` arm. In `parse`, hoist `let window = u16_at(bytes, 11);` above the entry
+loop and add, before `entries.push(entry)`:
 
 ```rust
-        // Code and data go to different windows, so they may share offsets. They
-        // may not share bytes *within* one window — that would mean one read
-        // silently clobbering the other.
-        if !entry.code.is_empty() && !entry.data.is_empty() {
-            let (c0, c1) = (entry.code.dest, entry.code.dest + entry.code.len);
-            let (d0, d1) = (entry.data.dest, entry.data.dest + entry.data.len);
-            if entry.code.file_off == entry.data.file_off && c0 < d1 && d0 < c1 {
-                return Err(ReError::RegionsOverlap {
-                    entry: index,
-                    window: "code",
-                    at: c0.max(d0),
-                });
-            }
+        // `ACAD.EXE` reserves exactly `window` bytes above its image for the
+        // code window and reads each region straight into it. A region ending
+        // past that edge would write off the end of the allocation. Computed in
+        // u32 because dest + len overflows u16 near the top.
+        let code_end = entry.code.dest as u32 + entry.code.len as u32;
+        if !entry.code.is_empty() && code_end > window as u32 {
+            return Err(ReError::RegionPastWindow {
+                entry: index,
+                dest: entry.code.dest,
+                end: code_end,
+                window,
+            });
         }
 ```
 
 - [ ] **Step 4: Run and confirm green**
 
 Run: `cargo test -p acad-re`
-Expected: PASS, 8 unit tests plus the corpus tests.
+Expected: PASS, 9 unit tests plus the 5 corpus tests. The real overlay must still
+parse — entry 2 ends exactly at the window edge, so a `>=` here would reject it.
 
 - [ ] **Step 5: Add overlay block creation to the loader**
 

@@ -68,6 +68,7 @@ pub fn parse(bytes: &[u8]) -> Result<Directory, ReError> {
     }
 
     let file_len = bytes.len() as u64;
+    let window = u16_at(bytes, 11);
     let mut entries = Vec::with_capacity(ENTRY_COUNT);
     for index in 0..ENTRY_COUNT {
         let at = DIR_OFF + index * ENTRY_LEN;
@@ -87,11 +88,28 @@ pub fn parse(bytes: &[u8]) -> Result<Directory, ReError> {
                 });
             }
         }
+        // `ACAD.EXE` reserves exactly `window` bytes above its image for the
+        // code window and reads each region straight into it. A region ending
+        // past that edge would write off the end of the allocation — the silent
+        // clobber that matters here. Code and data cannot collide with each
+        // other: region 1 always pages into the code window and region 2 into
+        // the EXE's own data segment, so their offsets overlap by design.
+        // Computed in u32 because dest + len overflows u16 near the top.
+        let code_end = entry.code.dest as u32 + entry.code.len as u32;
+        if !entry.code.is_empty() && code_end > window as u32 {
+            return Err(ReError::RegionPastWindow {
+                entry: index,
+                dest: entry.code.dest,
+                end: code_end,
+                window,
+            });
+        }
+
         entries.push(entry);
     }
 
     Ok(Directory {
-        window_bytes: u16_at(bytes, 11),
+        window_bytes: window,
         entries,
     })
 }
@@ -217,5 +235,32 @@ mod tests {
             .entries
             .iter()
             .all(|e| e.code.is_empty() && e.data.is_empty()));
+    }
+
+    #[test]
+    fn a_code_region_overrunning_the_declared_window_is_an_error() {
+        // ACAD.EXE reserves exactly `window_bytes` for the code window. A region
+        // reaching past it would have the loader write off the end of the
+        // allocation — the silent clobber Review Focus 4 exists to catch.
+        let e = [0xfd00, 0x0100, 0x0100, 0x0000, 0, 0, 0, 0, 0x0100];
+        let bytes = with_body(header(0xfd00, &[e]), 0x2bd18);
+        assert_eq!(
+            parse(&bytes).unwrap_err(),
+            ReError::RegionPastWindow {
+                entry: 0,
+                dest: 0xfd00,
+                end: 0xfe00,
+                window: 0xfd00
+            }
+        );
+    }
+
+    #[test]
+    fn a_code_region_ending_exactly_at_the_window_edge_is_allowed() {
+        // Entry 2 of the real overlay does exactly this: 0x3770 + 0xc590 =
+        // 0xfd00. An off-by-one here would reject the shipping file.
+        let e = [0x3770, 0xc590, 0x0100, 0x0000, 0, 0, 0, 0, 0x4d90];
+        let bytes = with_body(header(0xfd00, &[e]), 0x2bd18);
+        assert!(parse(&bytes).is_ok());
     }
 }
