@@ -120,6 +120,15 @@ constants in the binaries.
 **Header records (12)** — `EXTENTS`, `LIMITS`, `BASE`, `DWGVIEW`, `MODERES`, `MODEGRID`,
 `MODEORTHO`, `MODEFILL`, `TXTSIZE`, `TRACEWID`, `LAYER`, `LAYERC`.
 
+**Text height** — a `TEXT` entity's height is stored differently in the two formats. The
+DWG holds the font's full cell height; the DXF reports cap height. `.SHP` fonts declare the
+ratio in their header — `corpus/System/TXT.SHP` opens `*0,4,Roman Simplex` / `21,7,0,0`,
+meaning 21 above the baseline and 7 below — so `dwg_height = dxf_height * (21+7)/21 = 4/3`.
+Verified on `SUBDIV`: the DWG holds `0.4613465` where the DXF prints `0.346010`. Every text
+font the 1.4 corpus ships is 3:1 (`ITALIC`, `ROMAN-C`, `ROMAN-S` and `System/TXT.SHP` at
+`21,7`; `Samples/TXT.SHP` at `6,2`), so the factor is constant across this corpus — but it is
+a property of the font, not of the format, and a reader that hardcodes it says so.
+
 **Auxiliary formats** — `.SHP` shape/font files (`TXT`, `ROMAN-S`, `ROMAN-C`, `ITALIC`,
 `ES`, `PC`), `ACAD.PAT` hatch patterns (5,120 B), `ACAD.MNU` screen menu (456 B, text with
 embedded control codes — `[^Snap]\x02`, `[^Ortho]\x0f`, `\x03` for Cancel — which are
