@@ -259,8 +259,10 @@ fn every_entity_in_the_dwg_matches_the_flattened_dxf_in_file_order() {
 /// `items` sequence position by position — not merely hold the same blocks
 /// and entities in aggregate, but have every block boundary fall exactly
 /// where the DXF's does among the loose, interleaved entities (spec §4.4:
-/// "47 lines precede the first block and further blocks appear between
-/// inserts").
+/// 53 `LINE` records — 61 counting the interleaved `ARC`s, exactly what
+/// `every_line_and_arc_before_subdivs_first_block_matches_the_dxf` above
+/// verifies — precede the first block, and further blocks appear between
+/// inserts).
 #[test]
 fn read_items_matches_the_dxfs_document_order_including_block_boundaries() {
     let (Some(dwg), Some(dxf)) = (corpus("Samples/SUBDIV.DWG"), corpus("Samples/SUBDIV.DXF"))

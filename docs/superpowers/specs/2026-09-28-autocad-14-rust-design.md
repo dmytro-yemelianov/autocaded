@@ -158,9 +158,12 @@ The samples disk is a used 1983 working floppy and is **partly corrupt**:
   an exact 512-byte sector boundary. Broken FAT cluster chain. **Unusable.**
 - `SUBDIV.DXF` — clean and complete, proper `0x1A` terminator. 389 content lines, 183 records:
   `LINE`×133, `ARC`×8, `TEXT`×8, `INSERT`×8, `CIRCLE`×2, `BLOCK`/`ENDBLK`×6 pairs.
-  Block definitions and loose entities are **interleaved** — 47 lines precede the first
-  block and further blocks appear between inserts — so document order is content, and a
-  writer that buckets by kind cannot round-trip.
+  Block definitions and loose entities are **interleaved** — 53 `LINE` records precede the
+  first block (61 records counting the `ARC`s interleaved among them) and further blocks
+  appear between inserts — so document order is content, and a writer that buckets by kind
+  cannot round-trip. (Final review fix pass: this previously said "47 lines precede the
+  first block", which was simply wrong — 53 and 61 are what
+  `crates/acad-dwg/tests/entity_corpus.rs` verifies directly against real bytes.)
 
 `SUBDIV.DWG` + `SUBDIV.DXF` is therefore the parallel corpus — the same drawing in binary
 and text form — and is the primary lever for reversing DWG without an emulator in the loop.
