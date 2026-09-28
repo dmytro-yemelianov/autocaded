@@ -22,16 +22,29 @@ pub fn rows_per_instance(keyword: &str) -> Option<usize> {
     })
 }
 
-pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
+/// Offset of the first byte that cannot occur in a 1983 text file, ignoring
+/// anything past the DOS EOF marker (that is FAT cluster slack, not content).
+///
+/// Only C0 control bytes other than CR and LF disqualify a file. Bytes >= 0x80
+/// are legal Latin-1 text -- rejecting them reports intact drawings as corrupt.
+pub fn first_non_text_byte(bytes: &[u8]) -> Option<usize> {
     let end = bytes.iter().position(|&b| b == DOS_EOF).unwrap_or(bytes.len());
-    let body = &bytes[..end];
-    if let Some(off) = body.iter().position(
-        |&b| !(0x20..0x7f).contains(&b) && b != b'\r' && b != b'\n') {
+    bytes[..end].iter().position(|&b| b < 0x20 && b != b'\r' && b != b'\n')
+}
+
+pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
+    if let Some(off) = first_non_text_byte(bytes) {
         return Err(DxfError::Corrupt { offset: off });
     }
-    // Latin-1: every byte here is already ASCII, so a direct map is exact.
-    let text: String = body.iter().map(|&b| b as char).collect();
-    let lines: Vec<&str> = text.split("\r\n").filter(|l| !l.is_empty()).collect();
+    let end = bytes.iter().position(|&b| b == DOS_EOF).unwrap_or(bytes.len());
+    // Latin-1: `u8 as char` maps 0x00..=0xFF onto U+0000..=U+00FF, which is
+    // exactly Latin-1, so this is a faithful decode rather than an ASCII one.
+    let text: String = bytes[..end].iter().map(|&b| b as char).collect();
+    // Drop only the empty element after the file's final CRLF. Filtering every
+    // empty line would swallow a legitimately empty TEXT value and would shift
+    // every reported line number away from the real one.
+    let mut lines: Vec<&str> = text.split("\r\n").collect();
+    if lines.last() == Some(&"") { lines.pop(); }
 
     let mut out = Vec::new();
     let mut i = 0usize;

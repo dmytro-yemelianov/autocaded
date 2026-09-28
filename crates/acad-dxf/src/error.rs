@@ -7,6 +7,8 @@ pub enum DxfError {
     Truncated { keyword: String, line: usize },
     BadHeader { line: usize },
     BadNumber { row: String, line: usize },
+    WrongFieldCount { keyword: String, want: usize, got: usize, line: usize },
+    UnterminatedBlock { name: String, line: usize },
     UndefinedBlock { name: String },
 }
 
@@ -23,6 +25,10 @@ impl fmt::Display for DxfError {
                 write!(f, "line {line}: expected `KEYWORD,<count>`"),
             Self::BadNumber { row, line } =>
                 write!(f, "line {line}: cannot parse numbers from `{row}`"),
+            Self::WrongFieldCount { keyword, want, got, line } =>
+                write!(f, "line {line}: `{keyword}` needs {want} fields, found {got}"),
+            Self::UnterminatedBlock { name, line } =>
+                write!(f, "line {line}: block `{name}` is never closed by ENDBLK"),
             Self::UndefinedBlock { name } =>
                 write!(f, "INSERT references undefined block `{name}`"),
         }

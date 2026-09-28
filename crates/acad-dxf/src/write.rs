@@ -38,8 +38,13 @@ pub fn write(d: &Drawing) -> Vec<u8> {
     let _ = write!(s, "TXTSIZE,1\r\n{}\r\n", f(h.text_size));
     let _ = write!(s, "TRACEWID,1\r\n{}\r\n", f(h.trace_width));
     let _ = write!(s, "LAYER,1\r\n{}\r\n", h.current_layer);
+    // Marshal the model's sparse layer map back into the record's fixed
+    // 8x16 grid, writing the unused sentinel for every absent slot.
     s.push_str("LAYERC,1\r\n");
-    for row in h.layer_colors.chunks(16) {
+    let slots: Vec<u8> = (0..crate::parse::LAYER_SLOTS)
+        .map(|i| *h.layers.get(&(i as u8)).unwrap_or(&crate::parse::LAYER_UNUSED))
+        .collect();
+    for row in slots.chunks(16) {
         let cells: Vec<String> = row.iter().map(|c| c.to_string()).collect();
         let _ = write!(s, "{}\r\n", cells.join(","));
     }

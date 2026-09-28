@@ -33,6 +33,7 @@ dependencies = [
 name = "acad-corpus"
 version = "0.1.0"
 dependencies = [
+ "acad-dxf",
  "sha2",
 ]
 

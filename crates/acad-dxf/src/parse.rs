@@ -1,10 +1,25 @@
 use crate::{error::DxfError, lex::{lex, Record}};
 use acad_model::{Block, Drawing, DwgView, Entity, Extents, Header, Item, Mode, Point};
 
-fn nums(rec: &Record, row: usize) -> Result<Vec<f64>, DxfError> {
-    rec.rows[row].split(',').map(|t| t.trim().parse::<f64>()
-        .map_err(|_| DxfError::BadNumber { row: rec.rows[row].clone(), line: rec.line }))
-        .collect()
+/// The 1983 LAYERC record is a fixed 8x16 grid; 255 marks an unused slot.
+pub(crate) const LAYER_SLOTS: usize = 128;
+pub(crate) const LAYER_UNUSED: u8 = 255;
+
+/// Parse exactly `N` comma-separated numbers from a record row. The arity is
+/// part of the record's definition, so a row of the wrong length is a named
+/// error rather than an out-of-bounds index on the caller's side.
+fn nums<const N: usize>(rec: &Record, row: usize) -> Result<[f64; N], DxfError> {
+    let parts: Vec<&str> = rec.rows[row].split(',').collect();
+    if parts.len() != N {
+        return Err(DxfError::WrongFieldCount {
+            keyword: rec.keyword.clone(), want: N, got: parts.len(), line: rec.line });
+    }
+    let mut out = [0.0f64; N];
+    for (i, t) in parts.iter().enumerate() {
+        out[i] = t.trim().parse::<f64>().map_err(|_| DxfError::BadNumber {
+            row: rec.rows[row].clone(), line: rec.line })?;
+    }
+    Ok(out)
 }
 
 fn default_header() -> Header {
@@ -14,7 +29,7 @@ fn default_header() -> Header {
         view: DwgView { center: Point { x: 0.0, y: 0.0 }, height: 0.0 },
         snap: Mode { on: false, spacing: 0.0 }, grid: Mode { on: false, spacing: 0.0 },
         ortho: false, fill: false, text_size: 0.0, trace_width: 0.0,
-        current_layer: 0, layer_colors: [255; 128],
+        current_layer: 0, layers: Default::default(),
     }
 }
 
@@ -27,37 +42,48 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
     for rec in &records {
         let entity = match rec.keyword.as_str() {
             "EXTENTS" | "LIMITS" => {
-                let v = nums(rec, 0)?;
+                let v = nums::<4>(rec, 0)?;
                 let e = Extents { xmin: v[0], xmax: v[1], ymin: v[2], ymax: v[3] };
                 if rec.keyword == "EXTENTS" { header.extents = e } else { header.limits = e }
                 continue;
             }
-            "BASE" => { let v = nums(rec, 0)?; header.base = Point { x: v[0], y: v[1] }; continue }
-            "DWGVIEW" => { let v = nums(rec, 0)?;
+            "BASE" => { let v = nums::<2>(rec, 0)?; header.base = Point { x: v[0], y: v[1] }; continue }
+            "DWGVIEW" => { let v = nums::<3>(rec, 0)?;
                 header.view = DwgView { center: Point { x: v[0], y: v[1] }, height: v[2] }; continue }
             "MODERES" | "MODEGRID" => {
-                let v = nums(rec, 0)?;
+                let v = nums::<2>(rec, 0)?;
                 let m = Mode { on: v[0] != 0.0, spacing: v[1] };
                 if rec.keyword == "MODERES" { header.snap = m } else { header.grid = m }
                 continue;
             }
-            "MODEORTHO" => { header.ortho = nums(rec, 0)?[0] != 0.0; continue }
-            "MODEFILL" => { header.fill = nums(rec, 0)?[0] != 0.0; continue }
-            "TXTSIZE" => { header.text_size = nums(rec, 0)?[0]; continue }
-            "TRACEWID" => { header.trace_width = nums(rec, 0)?[0]; continue }
-            "LAYER" => { header.current_layer = nums(rec, 0)?[0] as u8; continue }
+            "MODEORTHO" => { header.ortho = nums::<1>(rec, 0)?[0] != 0.0; continue }
+            "MODEFILL" => { header.fill = nums::<1>(rec, 0)?[0] != 0.0; continue }
+            "TXTSIZE" => { header.text_size = nums::<1>(rec, 0)?[0]; continue }
+            "TRACEWID" => { header.trace_width = nums::<1>(rec, 0)?[0]; continue }
+            "LAYER" => { header.current_layer = nums::<1>(rec, 0)?[0] as u8; continue }
             "LAYERC" => {
-                for (r, row) in rec.rows.iter().enumerate() {
-                    for (c, tok) in row.split(',').enumerate() {
-                        header.layer_colors[r * 16 + c] =
-                            tok.trim().parse::<u8>().map_err(|_| DxfError::BadNumber {
-                                row: row.clone(), line: rec.line })?;
+                let mut slot = 0usize;
+                for row in rec.rows.iter() {
+                    for tok in row.split(',') {
+                        if slot >= LAYER_SLOTS {
+                            return Err(DxfError::WrongFieldCount {
+                                keyword: "LAYERC".into(), want: LAYER_SLOTS,
+                                got: slot + 1, line: rec.line });
+                        }
+                        let color = tok.trim().parse::<u8>().map_err(|_| DxfError::BadNumber {
+                            row: row.clone(), line: rec.line })?;
+                        if color != LAYER_UNUSED { header.layers.insert(slot as u8, color); }
+                        slot += 1;
                     }
                 }
                 continue;
             }
             "BLOCK" => {
-                let v = nums(rec, 0)?;
+                let v = nums::<2>(rec, 0)?;
+                if let Some(open) = &open_block {
+                    return Err(DxfError::UnterminatedBlock {
+                        name: open.name.clone(), line: rec.line });
+                }
                 open_block = Some(Block { name: rec.rows[1].clone(),
                     base: Point { x: v[0], y: v[1] }, entities: Vec::new() });
                 continue;
@@ -66,17 +92,17 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 if let Some(b) = open_block.take() { items.push(Item::Block(b)) }
                 continue;
             }
-            "LINE" => { let v = nums(rec, 0)?;
+            "LINE" => { let v = nums::<4>(rec, 0)?;
                 Entity::Line { start: Point { x: v[0], y: v[1] }, end: Point { x: v[2], y: v[3] } } }
-            "CIRCLE" => { let v = nums(rec, 0)?;
+            "CIRCLE" => { let v = nums::<3>(rec, 0)?;
                 Entity::Circle { center: Point { x: v[0], y: v[1] }, radius: v[2] } }
-            "ARC" => { let v = nums(rec, 0)?;
+            "ARC" => { let v = nums::<5>(rec, 0)?;
                 Entity::Arc { center: Point { x: v[0], y: v[1] }, radius: v[2],
                     start_deg: v[3], end_deg: v[4] } }
-            "TEXT" => { let v = nums(rec, 0)?;
+            "TEXT" => { let v = nums::<4>(rec, 0)?;
                 Entity::Text { origin: Point { x: v[0], y: v[1] }, height: v[2],
                     rotation_deg: v[3], value: rec.rows[1].clone() } }
-            "INSERT" => { let v = nums(rec, 0)?;
+            "INSERT" => { let v = nums::<5>(rec, 0)?;
                 Entity::Insert { origin: Point { x: v[0], y: v[1] }, x_scale: v[2],
                     y_scale: v[3], rotation_deg: v[4], name: rec.rows[1].clone() } }
             other => return Err(DxfError::UnknownKeyword { keyword: other.into(), line: rec.line }),
@@ -87,8 +113,14 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
         }
     }
 
+    if let Some(open) = open_block {
+        let line = records.last().map(|r| r.line).unwrap_or(0);
+        return Err(DxfError::UnterminatedBlock { name: open.name, line });
+    }
+
     let drawing = Drawing { header, items };
-    for e in drawing.entities() {
+    // Scan entities inside block definitions too, not only top-level ones.
+    for e in drawing.entities().chain(drawing.blocks().flat_map(|b| b.entities.iter())) {
         if let Entity::Insert { name, .. } = e {
             if drawing.block(name).is_none() {
                 return Err(DxfError::UndefinedBlock { name: name.clone() });
@@ -172,6 +204,80 @@ mod tests {
         assert_eq!(blocks[0].name, "HOUSEA");
         assert_eq!(blocks[0].entities.len(), 1);
         assert_eq!(d.entities().count(), 1); // the INSERT only
+    }
+
+    #[test]
+    fn short_rows_are_errors_not_panics() {
+        // Every one of these panicked before: nums() returned a Vec of whatever
+        // length the row had and each call site indexed it positionally.
+        for (kw, body) in [
+            ("LINE",      "LINE,1\r\n1.0,2.0\r\n"),
+            ("CIRCLE",    "CIRCLE,1\r\n1.0,2.0\r\n"),
+            ("ARC",       "ARC,1\r\n1.0,2.0,3.0\r\n"),
+            ("TEXT",      "TEXT,1\r\n1.0,2.0\r\nA\r\n"),
+            ("INSERT",    "INSERT,1\r\n1.0,2.0,1.0\r\nB\r\n"),
+            ("EXTENTS",   "EXTENTS,1\r\n1.0,2.0\r\n"),
+            ("BASE",      "BASE,1\r\n1.0\r\n"),
+            ("DWGVIEW",   "DWGVIEW,1\r\n1.0,2.0\r\n"),
+            ("MODERES",   "MODERES,1\r\n0\r\n"),
+        ] {
+            let got = parse(&with_header(body));
+            assert!(got.is_err(), "{kw}: short row must be an error, got Ok");
+        }
+    }
+
+    #[test]
+    fn a_row_cut_short_at_end_of_file_is_an_error_not_a_panic() {
+        // A file truncated mid-row reaches the parser as a well-formed-looking
+        // record with too few fields. Review Focus 1: never a panic.
+        let mut b = with_header("LINE,1\r\n1.0,2.0");
+        b.pop(); // drop the DOS EOF so the row really is the last thing present
+        assert!(parse(&b).is_err());
+    }
+
+    #[test]
+    fn overlong_layerc_row_is_an_error_not_an_out_of_bounds_write() {
+        let mut row = vec!["0"; 17].join(",");
+        row.push_str("\r\n");
+        let mut body = String::from("LAYERC,1\r\n");
+        body.push_str(&row);
+        for _ in 0..7 { body.push_str("255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255\r\n"); }
+        assert!(parse(&with_header(&body)).is_err());
+    }
+
+    #[test]
+    fn block_left_open_at_end_of_file_is_an_error_not_silent_loss() {
+        let got = parse(&with_header("BLOCK,1\r\n0,0\r\nB1\r\nLINE,1\r\n0,0,1,1\r\n"));
+        assert!(got.is_err(), "unterminated BLOCK must not load as an empty drawing");
+    }
+
+    #[test]
+    fn block_reopened_before_endblk_is_an_error_not_silent_loss() {
+        let got = parse(&with_header(
+            "BLOCK,1\r\n0,0\r\nB1\r\nLINE,1\r\n0,0,1,1\r\n\
+             BLOCK,1\r\n0,0\r\nB2\r\nENDBLK,1\r\n"));
+        assert!(got.is_err(), "re-opening a block must not discard the first");
+    }
+
+    #[test]
+    fn undefined_block_referenced_from_inside_a_block_is_caught() {
+        let got = parse(&with_header(
+            "BLOCK,1\r\n0,0\r\nOUTER\r\n\
+             INSERT,1\r\n1.0,2.0,1.0,1.0,0.0\r\nGHOST\r\nENDBLK,1\r\n"));
+        assert_eq!(got.unwrap_err(), DxfError::UndefinedBlock { name: "GHOST".into() });
+    }
+
+    #[test]
+    fn high_bit_latin1_text_loads_rather_than_being_called_corrupt() {
+        // 1983 DXF is Latin-1. 0xB0 is the degree sign; rejecting it reports an
+        // intact drawing as corrupt.
+        let mut b = with_header("TEXT,1\r\n1.0,2.0,0.2,0.0\r\n");
+        b.pop();
+        b.extend_from_slice(&[0xB0]);
+        b.extend_from_slice(b"C\r\n");
+        b.push(0x1a);
+        let d = parse(&b).expect("Latin-1 text must load");
+        assert_eq!(d.entities().count(), 1);
     }
 
     #[test]

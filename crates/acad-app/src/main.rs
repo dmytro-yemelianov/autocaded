@@ -39,13 +39,26 @@ impl ApplicationHandler for App {
     }
 }
 
+/// Report a diagnostic and exit. A bad file is a normal outcome for a tool
+/// that reads 43-year-old floppies; dressing it as a crash report makes a
+/// correct message look like a bug in the program.
+fn fail(path: &str, e: impl std::fmt::Display) -> ! {
+    eprintln!("acad: {path}: {e}");
+    std::process::exit(2);
+}
+
 fn main() {
     let path = std::env::args().nth(1)
         .unwrap_or_else(|| "corpus/Samples/SUBDIV.DXF".to_string());
-    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{path}: {e}"));
-    let drawing = acad_dxf::parse(&bytes).unwrap_or_else(|e| panic!("{path}: {e}"));
+    let bytes = std::fs::read(&path).unwrap_or_else(|e| fail(&path, e));
+    let drawing = acad_dxf::parse(&bytes).unwrap_or_else(|e| fail(&path, e));
+    let undrawn = drawing.entities()
+        .filter(|e| matches!(e, acad_model::Entity::Text { .. })).count();
     println!("{}: {} entities, {} blocks", path,
         drawing.entities().count(), drawing.blocks().count());
+    if undrawn > 0 {
+        println!("  note: {undrawn} TEXT entities are not drawn (.SHP fonts, milestone 5)");
+    }
     let el = EventLoop::new().unwrap();
     el.run_app(&mut App { drawing, state: None }).unwrap();
 }

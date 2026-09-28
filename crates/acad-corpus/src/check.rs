@@ -1,8 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Verdict { Ok, CorruptAt(usize), Binary }
 
-const DOS_EOF: u8 = 0x1a;
-
 /// A text file from the 1.4 disks is intact only if every byte up to its DOS
 /// EOF marker is printable ASCII, CR or LF. Bytes after the marker are FAT
 /// cluster slack, not content.
@@ -14,9 +12,9 @@ pub fn classify(name: &str, bytes: &[u8]) -> Verdict {
         || name.ends_with(".DOC") || name.ends_with(".BAT");
     if !textual { return Verdict::Binary; }
 
-    let end = bytes.iter().position(|&b| b == DOS_EOF).unwrap_or(bytes.len());
-    match bytes[..end].iter().position(
-        |&b| !(0x20..0x7f).contains(&b) && b != b'\r' && b != b'\n') {
+    // One implementation of "what may appear in a 1983 text file", shared with
+    // the DXF lexer so the manifest and the parser can never disagree.
+    match acad_dxf::first_non_text_byte(bytes) {
         Some(off) => Verdict::CorruptAt(off),
         None => Verdict::Ok,
     }
@@ -53,6 +51,15 @@ mod tests {
         // by the printable-ASCII rule.
         let bytes = b"[< GO >];\r\n[^Snap]\x02\r\n".to_vec();
         assert_eq!(classify("ACAD.MNU", &bytes), Verdict::Binary);
+    }
+
+    #[test]
+    fn latin1_high_bytes_are_text_not_corruption() {
+        // 0xB0 is the degree sign in Latin-1; an intact drawing may contain it.
+        let mut bytes = b"TEXT,1\r\n1.0,2.0,0.2,0.0\r\n".to_vec();
+        bytes.extend_from_slice(&[0xB0]);
+        bytes.extend_from_slice(b"C\r\n\x1a");
+        assert_eq!(classify("SUBDIV.DXF", &bytes), Verdict::Ok);
     }
 
     #[test]

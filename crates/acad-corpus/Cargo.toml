@@ -5,4 +5,5 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+acad-dxf.workspace = true
 sha2 = "0.10"

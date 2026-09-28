@@ -1,4 +1,5 @@
 use crate::geom::{Extents, Point};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Mode { pub on: bool, pub spacing: f64 }
@@ -19,5 +20,9 @@ pub struct Header {
     pub text_size: f64,
     pub trace_width: f64,
     pub current_layer: u8,
-    pub layer_colors: [u8; 128],
+    /// Defined layers, keyed by index, valued by colour index. Slots a file
+    /// leaves unused are simply absent: the 1983 fixed-width layer table is
+    /// the DXF codec's concern, not the model's, so this can grow named
+    /// layers and per-layer state without disturbing either codec.
+    pub layers: BTreeMap<u8, u8>,
 }

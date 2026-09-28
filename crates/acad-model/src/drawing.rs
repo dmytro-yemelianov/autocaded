@@ -34,7 +34,7 @@ mod tests {
             view: DwgView { center: Point { x: 0.0, y: 0.0 }, height: 0.0 },
             snap: Mode { on: false, spacing: 0.0 }, grid: Mode { on: false, spacing: 0.0 },
             ortho: false, fill: false, text_size: 0.0, trace_width: 0.0,
-            current_layer: 0, layer_colors: [255; 128],
+            current_layer: 0, layers: Default::default(),
         }
     }
 
