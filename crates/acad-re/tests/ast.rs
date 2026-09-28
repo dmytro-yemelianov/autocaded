@@ -189,3 +189,87 @@ fn functions_outside_a_code_block_are_counted_apart_from_the_gate() {
     );
     assert_eq!(g.non_code_marked, 1);
 }
+
+use acad_re::analysis::{record_layout, trace_stores, StoreSite};
+
+#[test]
+fn stores_are_returned_in_pcode_order_with_their_offsets() {
+    let json = r#"{"functions":[
+      {"address":"1000:0003","name":"w","block":"EXE_CODE","markers":[],"ops":[
+        {"seq":"1000:0010","op":"STORE","out":null,
+         "in":[{"space":"const","offset":0,"size":4,"unique":false},
+               {"space":"const","offset":0,"size":2,"unique":false},
+               {"space":"register","offset":0,"size":2,"unique":false}]},
+        {"seq":"1000:0018","op":"COPY","out":null,"in":[]},
+        {"seq":"1000:0020","op":"STORE","out":null,
+         "in":[{"space":"const","offset":0,"size":4,"unique":false},
+               {"space":"const","offset":2,"size":2,"unique":false},
+               {"space":"register","offset":0,"size":8,"unique":false}]}
+      ]}],"failures":[]}"#;
+    let e = PcodeExport::from_json(json).unwrap();
+    let sites = trace_stores(&e, "1000:0003");
+    assert_eq!(
+        sites,
+        vec![
+            StoreSite {
+                seq: "1000:0010".into(),
+                offset: Some(0),
+                size: 2
+            },
+            StoreSite {
+                seq: "1000:0020".into(),
+                offset: Some(2),
+                size: 8
+            },
+        ]
+    );
+}
+
+#[test]
+fn a_store_through_a_computed_pointer_has_no_constant_offset() {
+    // The offset is only meaningful when the pointer operand is a constant.
+    // Reporting a register's number as a struct offset would invent a layout.
+    let json = r#"{"functions":[
+      {"address":"1000:0003","name":"w","block":"EXE_CODE","markers":[],"ops":[
+        {"seq":"1000:0010","op":"STORE","out":null,
+         "in":[{"space":"const","offset":0,"size":4,"unique":false},
+               {"space":"register","offset":8,"size":2,"unique":false},
+               {"space":"register","offset":0,"size":2,"unique":false}]}
+      ]}],"failures":[]}"#;
+    let e = PcodeExport::from_json(json).unwrap();
+    assert_eq!(trace_stores(&e, "1000:0003")[0].offset, None);
+}
+
+#[test]
+fn an_unknown_function_address_traces_to_nothing() {
+    let e = PcodeExport::from_json(r#"{"functions":[],"failures":[]}"#).unwrap();
+    assert!(trace_stores(&e, "1000:9999").is_empty());
+}
+
+#[test]
+fn record_layout_sorts_and_deduplicates_offsets() {
+    // A writer may store the same field twice; the struct still has one slot.
+    let sites = vec![
+        StoreSite {
+            seq: "a".into(),
+            offset: Some(4),
+            size: 8,
+        },
+        StoreSite {
+            seq: "b".into(),
+            offset: Some(0),
+            size: 2,
+        },
+        StoreSite {
+            seq: "c".into(),
+            offset: Some(4),
+            size: 8,
+        },
+        StoreSite {
+            seq: "d".into(),
+            offset: None,
+            size: 2,
+        },
+    ];
+    assert_eq!(record_layout(&sites), vec![(0, 2), (4, 8)]);
+}

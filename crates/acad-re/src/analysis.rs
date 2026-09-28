@@ -268,3 +268,50 @@ impl Gate {
         self.clean_ratio >= 0.70
     }
 }
+
+/// One `STORE` in a function, as the writer emitted it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct StoreSite {
+    pub seq: String,
+    /// The pointer operand, when it is a constant — i.e. a field offset.
+    pub offset: Option<i64>,
+    /// Bytes written: 2 for a 16-bit int, 8 for an IEEE double.
+    pub size: u32,
+}
+
+/// Every `STORE` in one function, in P-Code order.
+///
+/// Ghidra's `STORE` takes three inputs: the address space id (a constant), the
+/// pointer, and the value. A constant pointer is a struct offset; anything else
+/// is computed and says nothing about the layout.
+pub fn trace_stores(export: &PcodeExport, addr: &str) -> Vec<StoreSite> {
+    let Some(f) = export.functions.iter().find(|f| f.address == addr) else {
+        return Vec::new();
+    };
+    f.body
+        .ops
+        .iter()
+        .filter(|op| op.op == "STORE")
+        .filter_map(|op| {
+            let ptr = op.inputs.get(1)?.as_ref()?;
+            let val = op.inputs.get(2)?.as_ref()?;
+            Some(StoreSite {
+                seq: op.seq.clone(),
+                offset: (ptr.space == "const").then_some(ptr.offset),
+                size: val.size,
+            })
+        })
+        .collect()
+}
+
+/// The record as the writer lays it out: offset/size pairs, sorted, deduplicated.
+/// Stores through computed pointers are excluded — they carry no layout information.
+pub fn record_layout(sites: &[StoreSite]) -> Vec<(i64, u32)> {
+    let mut fields: Vec<(i64, u32)> = sites
+        .iter()
+        .filter_map(|s| s.offset.map(|o| (o, s.size)))
+        .collect();
+    fields.sort_unstable();
+    fields.dedup();
+    fields
+}

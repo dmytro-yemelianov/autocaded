@@ -98,4 +98,44 @@ offset `0x8e61` ends in an indirect call through a variable. Overlays appear to
 reach the kernel through a function-pointer table in the data segment, which
 Ghidra has not resolved. Resolving it is the next piece of work on this track.
 
-**3. The DWG entity record is recoverable as a coherent struct — see below.**
+**3. The DWG entity record is recoverable as a coherent struct — NOT MET.**
+
+The record could not be recovered, for a structural reason rather than a missing
+step. `acad-re::analysis::trace_stores` reads a layout off `STORE`s whose pointer
+operand is a constant, which is how a struct write looks in flat code. In 16-bit
+segmented code there are none, in any of the 151 functions: every store address
+is built by `SEGMENTOP(space, segment, offset)`, so the pointer is always a
+computed `unique` varnode. Of 5,543 stores, 5,328 have a `SEGMENTOP`-defined
+pointer whose constant operand is the *segment* (`0x1E15`), not a displacement.
+Walking one level further reaches a `PTRADD` whose constant is the element size,
+not a field offset. `crates/acad-re/tests/dataflow.rs` pins this, so an
+improvement trips it.
+
+Nor could the writer be located by name. `ACAD.EXE` holds `EREAD`, `EWRITE`,
+`EWRITE error`, `** ILLEGAL TCODE VALUE %d IN %s` and
+`BAD ENTITY TYPE %d PASSED TO EREGEN` at `DS:0x36B3`–`DS:0x36FB`, and the entity
+type table at `DS:0x38EE`. None appears in the 4.7 MB of decompiled C: Ghidra
+resolves only 13 string symbols across the whole program, and every function is
+named `FUN_*`. The same holds for the geometry markers,
+`Improper argument (%g) to SQRT.` at `DS:0x3942` and `ACOS undefined for %g` at
+`DS:0x397A`, so **arc tessellation and `FILLET` were not located either** — the
+other half of §6.4 that this track owes.
+
+This is not the overlay layout's fault. Loading three ways — `ACAD.EXE` alone,
+plus code overlays, plus all overlays — gives identical string resolution (13
+symbols each), so the 22 overlay blocks neither help nor hurt here. They do add
+16 phantom functions in `EXE_DATA`, which is where the 17 non-code functions
+above come from.
+
+### Verdict
+
+**The gate does not pass.** One of three criteria is met. Per spec §8, that
+settles the deferred decision: transpiling the AST to Rust is **not** adopted,
+`acad-re` remains an understanding tool, and all shipped Rust stays hand-written.
+The §3 clean-room posture stands unchanged.
+
+What would move it: resolving the kernel's function-pointer table so
+overlay-to-kernel calls land on named targets (criterion 2), and improving string
+and data-reference resolution so the entity writer can be found by name
+(criterion 3). Both are tractable and both are about Ghidra's data-reference
+analysis in segmented real mode, not about the overlay format, which is settled.
