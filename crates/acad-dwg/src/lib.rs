@@ -1,5 +1,5 @@
-//! The 1983 DWG binary codec. `AC1.2` read support; `AC1.40` and the write
-//! direction come after milestone ③ (spec §8).
+//! The 1983 DWG binary reader for `AC1.2` and `AC1.40`.
+//! SHAPE/LOAD entities and the write direction remain unsupported.
 pub mod discover;
 pub mod entity;
 pub mod error;
@@ -8,7 +8,7 @@ pub mod text;
 
 pub use error::DwgError;
 
-/// Read an `AC1.2` drawing.
+/// Read an `AC1.2` or `AC1.40` drawing.
 ///
 /// This is the crate's one public entry point, mirroring `acad_dxf::parse`:
 /// decode the fixed header, then walk the entity region into a flat,

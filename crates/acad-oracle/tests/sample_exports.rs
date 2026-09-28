@@ -1,6 +1,6 @@
 #[cfg(unix)]
 #[test]
-fn original_exports_verify_ac12_entity_layouts() {
+fn original_exports_verify_both_dwg_versions() {
     use acad_model::{Entity, Item};
 
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -14,7 +14,9 @@ fn original_exports_verify_ac12_entity_layouts() {
 
     // None has a DXF sibling on the original Samples disk. These are freshly
     // exported by AutoCAD on a copied disk, independent of the Rust codecs.
-    let names = ["SELEXOL", "BLIVET", "FLOW", "FLOOR", "ADDER"];
+    let names = [
+        "SELEXOL", "BLIVET", "FLOW", "FLOOR", "ADDER", "HOUSE", "COLORS", "OFFICE", "SHUTTLE",
+    ];
     let exports = acad_oracle::export_samples(&system, &samples, &names).unwrap();
     for (name, dxf_bytes) in names.into_iter().zip(exports) {
         let records = acad_dxf::lex(&dxf_bytes).unwrap();
@@ -22,6 +24,7 @@ fn original_exports_verify_ac12_entity_layouts() {
         let repeat_pairs = match name {
             "BLIVET" => 5,
             "FLOOR" => 2,
+            "SHUTTLE" => 1,
             _ => 0,
         };
         assert_eq!(count("REPEAT"), repeat_pairs, "{name}: repeat opens");
@@ -36,7 +39,7 @@ fn original_exports_verify_ac12_entity_layouts() {
                 .join(format!("../../corpus/Samples/{name}.DWG")),
         )
         .unwrap();
-        let mut dwg = acad_dwg::parse(&dwg_bytes).unwrap();
+        let dwg = acad_dwg::parse(&dwg_bytes).unwrap();
         // The DWG block table is flat and can place definitions in a
         // different order from AutoCAD's export. Match blocks by name while
         // retaining entity order inside each block and among loose entities.
@@ -49,9 +52,7 @@ fn original_exports_verify_ac12_entity_layouts() {
             });
             drawing
         }
-        // Header comparison is a separate problem; use the original DXF
-        // header on both sides and compare canonical six-decimal fields.
-        dwg.header = dxf.header.clone();
+        // Compare the full header too, including BASE and the layer table.
         let expected = acad_dxf::write(&ordered(dxf.clone()));
         let actual = acad_dxf::write(&ordered(dwg));
         if actual != expected {
@@ -81,11 +82,14 @@ fn original_exports_verify_ac12_entity_layouts() {
             }
         }
         let expected = match name {
-            "SELEXOL" => (1, 18, 0),
-            "BLIVET" => (0, 16, 4),
-            "FLOW" => (0, 2, 2),
-            _ => (0, 0, 0),
+            "SELEXOL" => Some((1, 18, 0)),
+            "BLIVET" => Some((0, 16, 4)),
+            "FLOW" => Some((0, 2, 2)),
+            "FLOOR" | "ADDER" => Some((0, 0, 0)),
+            _ => None,
         };
-        assert_eq!((points, traces, solids), expected, "{name}: new DXF kinds");
+        if let Some(expected) = expected {
+            assert_eq!((points, traces, solids), expected, "{name}: new DXF kinds");
+        }
     }
 }

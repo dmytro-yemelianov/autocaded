@@ -59,18 +59,15 @@ fn the_dwg_header_agrees_with_the_dxf_header() {
         from_dxf.grid.spacing,
         "MODEGRID spacing",
     );
-    // MODEORTHO (offset 0xae) is 0 and MODEFILL (0xb0) is 1 in SUBDIV — and
-    // there is a second, currently-unmapped `0x0001` two bytes further in,
-    // at 0xb2 (TXTSIZE itself doesn't start until 0xb4), so an off-by-2 read
-    // of either field would still silently come back as SUBDIV's own value.
-    // SUBDIV.DXF declares MODEORTHO 0 and MODEFILL 1, so both are real,
-    // discriminating assertions, not vacuous ones.
+    // SUBDIV alone cannot distinguish the adjacent 1s at 0xb0 and 0xb2.
+    // The generated FILL OFF oracle test pins MODEFILL to 0xb2.
     assert_eq!(from_dwg.ortho, from_dxf.ortho, "MODEORTHO");
     assert_eq!(from_dwg.fill, from_dxf.fill, "MODEFILL");
     approx_eq(from_dwg.text_size, from_dxf.text_size, "TXTSIZE");
     approx_eq(from_dwg.trace_width, from_dxf.trace_width, "TRACEWID");
-    // `base`, `current_layer` and `layers` are Task 7's, and are deliberately
-    // not compared here — see parse_header.
+    assert_eq!(from_dwg.base, from_dxf.base, "BASE");
+    assert_eq!(from_dwg.current_layer, from_dxf.current_layer, "LAYER");
+    assert_eq!(from_dwg.layers, from_dxf.layers, "LAYERC");
 }
 
 #[test]
@@ -123,8 +120,7 @@ fn every_ac12_drawing_in_the_corpus_has_a_readable_header() {
 }
 
 #[test]
-fn an_ac140_drawing_is_refused_by_name() {
-    // Review Focus 1, against a real file rather than a synthetic one.
+fn an_ac140_drawing_has_the_extended_header_and_correct_record_count() {
     let Some(bytes) = corpus("Samples/HOUSE.DWG") else {
         return;
     };
@@ -132,9 +128,8 @@ fn an_ac140_drawing_is_refused_by_name() {
         acad_dwg::header::Version::detect(&bytes).unwrap(),
         Version::Ac140
     );
-    let msg = parse_header(&bytes).unwrap_err().to_string();
-    assert!(
-        msg.contains("AC1.40") && msg.contains("AC1.2"),
-        "message was: {msg}"
-    );
+    let (_, meta) = parse_header(&bytes).unwrap();
+    assert_eq!(meta.version.entity_start(), 0x202);
+    assert_eq!(meta.entity_end, 0x1613);
+    assert_eq!(meta.entity_count, 141);
 }

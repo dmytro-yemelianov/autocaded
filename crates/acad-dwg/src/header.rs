@@ -7,6 +7,8 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 /// Header field offsets, established against `SUBDIV.DXF` (spec §4.2).
+/// Non-zero BASE is independently located by generated AC1.40 drawings.
+const OFF_BASE: usize = 0x0c;
 const OFF_ENTITY_END: usize = 0x24;
 /// A `u16`, not `u32` — see the comment where it is read in `meta_of`.
 const OFF_ENTITY_COUNT: usize = 0x28;
@@ -19,11 +21,12 @@ const OFF_SNAP: usize = 0x9c;
 const OFF_GRID_FLAG: usize = 0xa4;
 const OFF_GRID: usize = 0xa6;
 const OFF_ORTHO: usize = 0xae;
-const OFF_FILL: usize = 0xb0;
+const OFF_FILL: usize = 0xb2;
 const OFF_TXTSIZE: usize = 0xb4;
 const OFF_TRACEWID: usize = 0xbc;
-/// The last field this codec reads, plus its width.
-const HEADER_MIN: usize = OFF_TRACEWID + 8;
+const OFF_CURRENT_LAYER: usize = 0xc4;
+const OFF_LAYERS: usize = 0xc8;
+const LAYER_SLOTS: usize = 128;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Version {
@@ -41,6 +44,15 @@ impl fmt::Display for Version {
 }
 
 impl Version {
+    /// AC1.40 adds 42 header bytes before the otherwise shared entity layout.
+    /// Established against generated drawings and original sample exports.
+    pub fn entity_start(self) -> usize {
+        match self {
+            Self::Ac12 => 0x1d8,
+            Self::Ac140 => 0x202,
+        }
+    }
+
     pub fn detect(bytes: &[u8]) -> Result<Version, DwgError> {
         if bytes.starts_with(b"AC1.40") {
             return Ok(Version::Ac140);
@@ -65,6 +77,7 @@ impl Version {
 /// and `acad_model::Header` has no place for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HeaderMeta {
+    pub version: Version,
     pub entity_count: u32,
     pub entity_end: u32,
 }
@@ -79,17 +92,33 @@ fn u32_at(b: &[u8], at: usize) -> u32 {
 
 pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
     let version = Version::detect(bytes)?;
-    if version != Version::Ac12 {
-        return Err(DwgError::UnsupportedVersion {
-            found: version,
-            supported: Version::Ac12,
-        });
-    }
-    if bytes.len() < HEADER_MIN {
+    let header_min = version.entity_start();
+    if bytes.len() < header_min {
         return Err(DwgError::ShortHeader {
             len: bytes.len(),
-            need: HEADER_MIN,
+            need: header_min,
         });
+    }
+
+    let layer = u16_at(bytes, OFF_CURRENT_LAYER);
+    if layer as usize >= LAYER_SLOTS {
+        return Err(DwgError::InvalidHeaderValue {
+            field: "current layer",
+            value: layer,
+        });
+    }
+    let mut layers = BTreeMap::new();
+    for slot in 0..LAYER_SLOTS {
+        let color = u16_at(bytes, OFF_LAYERS + slot * 2);
+        if color > 255 {
+            return Err(DwgError::InvalidHeaderValue {
+                field: "layer color",
+                value: color,
+            });
+        }
+        if color != 255 {
+            layers.insert(slot as u8, color as u8);
+        }
     }
 
     // EXTENTS is two 3D points — min (x, y, z) then max (x, y, z), so the
@@ -110,10 +139,10 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
     let header = Header {
         extents,
         limits,
-        // BASE is 0,0 in SUBDIV, so its offset is not yet pinned — a field
-        // whose only sample is zero cannot be located by searching for it.
-        // Pinning it needs a drawing with a non-zero BASE.
-        base: Point { x: 0.0, y: 0.0 },
+        base: Point {
+            x: f64_at(bytes, OFF_BASE),
+            y: f64_at(bytes, OFF_BASE + 8),
+        },
         view: DwgView {
             center: Point {
                 x: f64_at(bytes, OFF_VIEW),
@@ -133,18 +162,15 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
         fill: u16_at(bytes, OFF_FILL) != 0,
         text_size: f64_at(bytes, OFF_TXTSIZE),
         trace_width: f64_at(bytes, OFF_TRACEWID),
-        // The layer table follows the scalars and is not yet reversed. When it is,
-        // SUBDIV.DXF's LAYERC record is the oracle. Until then a drawing reads
-        // as layer 0 with no table, which renders correctly because milestone
-        // ① does not colour by layer yet.
-        current_layer: 0,
-        layers: BTreeMap::new(),
+        current_layer: layer as u8,
+        layers,
     };
-    Ok((header, meta_of(bytes)))
+    Ok((header, meta_of(bytes, version)))
 }
 
-fn meta_of(bytes: &[u8]) -> HeaderMeta {
+fn meta_of(bytes: &[u8], version: Version) -> HeaderMeta {
     HeaderMeta {
+        version,
         // A u16, not a u32: SUBDIV's xmin (-1.75) is exactly representable,
         // so its low mantissa bytes at 0x2a-0x2b happen to be zero, which
         // made a wider read look correct until other corpus files (whose
@@ -165,7 +191,7 @@ mod tests {
     /// A synthetic AC1.2 header: magic, the entity-end `u32` and the
     /// entity-count `u16`, then doubles at the offsets the spec records.
     fn header_bytes() -> Vec<u8> {
-        let mut h = vec![0u8; 0x100];
+        let mut h = vec![0u8; 0x202];
         h[..6].copy_from_slice(b"AC1.2\0");
         h[0x24..0x28].copy_from_slice(&0x19e5u32.to_le_bytes());
         h[0x28..0x2a].copy_from_slice(&171u16.to_le_bytes());
@@ -204,16 +230,16 @@ mod tests {
     }
 
     #[test]
-    fn ac140_is_rejected_with_a_message_naming_both_versions() {
-        // Review Focus 1: five corpus drawings are AC1.40 and this codec reads
-        // AC1.2. Opening one must say so, not misparse.
+    fn ac140_uses_its_extended_header() {
         let mut b = header_bytes();
         b[..7].copy_from_slice(b"AC1.40\0");
+        assert_eq!(parse_header(&b).unwrap().1.version.entity_start(), 0x202);
+        b.truncate(0x1d8);
         assert_eq!(
             parse_header(&b).unwrap_err(),
-            DwgError::UnsupportedVersion {
-                found: Version::Ac140,
-                supported: Version::Ac12
+            DwgError::ShortHeader {
+                len: 0x1d8,
+                need: 0x202
             }
         );
     }
@@ -301,7 +327,29 @@ mod tests {
             parse_header(&short).unwrap_err(),
             DwgError::ShortHeader {
                 len: 0x40,
-                need: 0xc4
+                need: 0x1d8
+            }
+        );
+    }
+
+    #[test]
+    fn layer_values_outside_their_ranges_are_rejected() {
+        let mut h = header_bytes();
+        h[OFF_CURRENT_LAYER..OFF_CURRENT_LAYER + 2].copy_from_slice(&128u16.to_le_bytes());
+        assert_eq!(
+            parse_header(&h).unwrap_err(),
+            DwgError::InvalidHeaderValue {
+                field: "current layer",
+                value: 128
+            }
+        );
+        h[OFF_CURRENT_LAYER..OFF_CURRENT_LAYER + 2].copy_from_slice(&0u16.to_le_bytes());
+        h[OFF_LAYERS..OFF_LAYERS + 2].copy_from_slice(&256u16.to_le_bytes());
+        assert_eq!(
+            parse_header(&h).unwrap_err(),
+            DwgError::InvalidHeaderValue {
+                field: "layer color",
+                value: 256
             }
         );
     }

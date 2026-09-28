@@ -1,15 +1,13 @@
 use std::fmt;
 
-use crate::header::Version;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DwgError {
     /// The first bytes are neither `AC1.2` nor `AC1.40`.
     UnknownVersion { found: [u8; 8] },
-    /// A version this codec knows of but cannot read yet.
-    UnsupportedVersion { found: Version, supported: Version },
     /// The file is shorter than the fixed header.
     ShortHeader { len: usize, need: usize },
+    /// A header value cannot be represented by the drawing format's range.
+    InvalidHeaderValue { field: &'static str, value: u16 },
     /// An entity record runs past the end of the file.
     TruncatedEntity { index: u32, at: usize, len: usize },
     /// An entity type code this codec does not know.
@@ -41,13 +39,10 @@ impl fmt::Display for DwgError {
                 "not a DWG: magic is {:?}, expected \"AC1.2\" or \"AC1.40\"",
                 String::from_utf8_lossy(found)
             ),
-            Self::UnsupportedVersion { found, supported } => write!(
-                f,
-                "this is a {found} drawing; only {supported} can be read so far"
-            ),
             Self::ShortHeader { len, need } => {
                 write!(f, "file is {len} bytes: the header alone needs {need}")
             }
+            Self::InvalidHeaderValue { field, value } => write!(f, "invalid {field}: {value}"),
             Self::TruncatedEntity { index, at, len } => write!(
                 f,
                 "entity {index} at offset {at:#x} runs past end of file {len:#x}"

@@ -200,6 +200,7 @@ fn every_line_and_arc_before_subdivs_first_block_matches_the_dxf() {
     let mut buf = vec![0u8; ENTITY_START];
     buf.extend_from_slice(&dwg[ENTITY_START..pos]);
     let synth_meta = HeaderMeta {
+        version: acad_dwg::header::Version::Ac12,
         entity_count: top_level_count as u32,
         entity_end: buf.len() as u32,
     };
@@ -437,6 +438,7 @@ fn stopping_the_walk_inside_a_real_block_is_an_unterminated_block_error() {
         return;
     };
     let meta = HeaderMeta {
+        version: acad_dwg::header::Version::Ac12,
         entity_count: 999, // never reached: the error returns first
         entity_end: 0xaec, // BLOCK (0xaac..0xac8) + one interior LINE (36B)
     };

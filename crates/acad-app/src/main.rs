@@ -70,9 +70,6 @@ fn fail(path: &str, e: impl std::fmt::Display) -> ! {
 /// its own error if it isn't a DXF either.
 fn parse(path: &str, bytes: &[u8]) -> acad_model::Drawing {
     match acad_dwg::header::Version::detect(bytes) {
-        // AC1.40 is a real DWG magic, just one this codec can't read yet
-        // (milestone ④); acad_dwg::parse reports that itself rather than
-        // this function duplicating the check.
         Ok(_) => acad_dwg::parse(bytes).unwrap_or_else(|e| fail(path, e)),
         Err(_) => acad_dxf::parse(bytes).unwrap_or_else(|e| fail(path, e)),
     }

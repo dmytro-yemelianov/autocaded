@@ -18,4 +18,5 @@ fn original_empty_drawing_round_trips_through_our_dxf_codec() {
         dxf[..end],
         "Rust DXF output must match the original's generated interchange text"
     );
+    assert_eq!(acad_dxf::write(&acad_dwg::parse(&dwg).unwrap()), dxf[..end]);
 }

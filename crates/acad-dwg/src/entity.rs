@@ -1,16 +1,15 @@
 //! The entity record walk (spec §4.2, §4.4).
 //!
-//! Entity records sit after the header and layer table, from a fixed
-//! `ENTITY_START` to `meta.entity_end` (both discovered against `SUBDIV`,
-//! Task 2). Each record is a `u16` type code, a `u16` of not-yet-understood
+//! Entity records sit after the header and layer table, from the
+//! version-specific start (`AC1.2`: 0x1D8; `AC1.40`: 0x202) to
+//! `meta.entity_end`. Each record is a `u16` type code, a `u16` of not-yet-understood
 //! meaning ("flags" below), then the type's own fields. The type code is a
 //! 1-based index into the entity name table recovered from `ACAD.EXE`:
 //! 1 `LINE`, 2 `POINT`, 3 `CIRCLE`, 4 `SHAPE`, 5 `REPEAT`, 6 `ENDREP`,
 //! 7 `TEXT`, 8 `ARC`, 9 `TRACE`, 10 `LOAD`, 11 `SOLID`, 12 `BLOCK`,
 //! 13 `ENDBLK`, 14 `INSERT`. Every code except `SHAPE`(4) and `LOAD`(10) is
-//! implemented here; those two have no corpus drawing that needs them
-//! (evidence-driven scope, Task 8's brief) and remain
-//! `DwgError::UnknownEntityType`.
+//! implemented here. `DISC.BAK` uses `LOAD` to select fonts, which the
+//! model cannot yet preserve; it remains `DwgError::UnknownEntityType`.
 //!
 //! **Erased entities (spec §4.2, Part A of Task 8).** The type code is a
 //! **signed** `i16`; a negative value marks an erased entity whose magnitude
@@ -85,12 +84,13 @@
 //! degrees, and the angles are not normalised — `SUBDIV`'s own first `ARC`
 //! sweeps counter-clockwise through 0°.
 //!
-//! `TEXT`'s height field is *also* not a direct copy: the raw double is 4/3
+//! In `AC1.2`, `TEXT`'s height field is *also* not a direct copy: the raw double is 4/3
 //! the DXF's printed height (see the `TYPE_TEXT` arm of `read_entity_fields`
 //! for how this was found), so it is scaled by 0.75 on the way in. This is
 //! local to the entity field — the header's own `TXTSIZE` needs no such
 //! scaling — and was not expected going in; only the angle fields were known
-//! to need a unit conversion.
+//! to need a unit conversion. `AC1.40` stores the DXF height directly,
+//! verified by generated TEXT commands and the HOUSE/OFFICE exports.
 //!
 //! `BLOCK`, `TEXT` and `INSERT` also carry a length-prefixed Latin-1 string
 //! (a `u16` byte count, then exactly that many bytes — no NUL terminator):
@@ -114,16 +114,13 @@
 //! given the same grouping treatment (see above) — the entities they
 //! surround land as ordinary loose `Item::Entity`s, same as `read_entities`.
 
-use crate::header::HeaderMeta;
+use crate::header::{HeaderMeta, Version};
 use crate::text::decode_latin1;
 use crate::DwgError;
 use acad_model::{Block, Entity, Item, Point};
 
-/// Entity records begin at a fixed offset in every `AC1.2` file. The
-/// header's scalars end at `0xC4` and the layer table fills `0xC4..0x1D8`
-/// (Task 7 reverses the table itself, but its length is already settled),
-/// so this is a named constant rather than something derived from the
-/// header.
+/// Entity start for AC1.2 test fixtures; production reads it from `Version`.
+#[cfg(test)]
 const ENTITY_START: usize = 0x1D8;
 
 /// 1-based index into `ACAD.EXE`'s entity name table; `LINE` is its first
@@ -249,6 +246,7 @@ fn read_entity_fields(
     record_at: usize,
     at: usize,
     index: u32,
+    version: Version,
 ) -> Result<(Entity, usize), DwgError> {
     match type_code {
         TYPE_LINE => {
@@ -320,7 +318,7 @@ fn read_entity_fields(
             // doubles, then the length-prefixed value *after* the numbers —
             // unlike BLOCK/INSERT, whose name comes first.
             //
-            // The stored height field is not the DXF's height directly: all
+            // In AC1.2 the stored height is not the DXF height directly: all
             // 8 of SUBDIV's TEXT records decode to 0.4613464999999999 there,
             // while SUBDIV.DXF prints 0.346010 for every one of them, and
             // that exact value never appears anywhere in the file (searched
@@ -329,8 +327,7 @@ fn read_entity_fields(
             // 0.3460098749999999, which rounds to the DXF's printed
             // 0.346010).
             //
-            // This 0.75 is *not* a property of the format or a "classic
-            // vector-font convention" — it is `above / (above + below)` from
+            // For the AC1.2 corpus, 0.75 matches `above / (above + below)` from
             // the loaded `.SHP` font's own header (spec §4.2): the DWG
             // stores the font's full cell height (above-baseline + below-
             // baseline), the DXF reports cap height (above-baseline only).
@@ -340,7 +337,7 @@ fn read_entity_fields(
             // this corpus ships happens to use that same 21:7 (or
             // equivalently 3:1) ratio (`ITALIC`, `ROMAN-C`, `ROMAN-S`,
             // `System/TXT.SHP`; `Samples/TXT.SHP` at `6,2`), which is why
-            // 0.75 works for every drawing in the corpus — but a drawing
+            // 0.75 works for every AC1.2 drawing in the corpus — but a drawing
             // using a font with a different above:below split would need
             // its own ratio read from its `.SHP` file. Hardcoding 0.75 here
             // is a corpus-wide coincidence, not a discovered constant; the
@@ -349,6 +346,8 @@ fn read_entity_fields(
             // entity field either way: the header's own TXTSIZE (spec §4.2,
             // offset 0xb4) holds SUBDIV's 0.2 raw, unconverted, so this is
             // not a global text-height unit and must not be applied there.
+            // AC1.40 stores cap height directly: original HOUSE exports and
+            // a generated 0.75-high TEXT independently verify that difference.
             let x = checked_f64(bytes, at, index)?;
             let y = checked_f64(bytes, at + 8, index)?;
             let height_raw = checked_f64(bytes, at + 16, index)?;
@@ -357,7 +356,11 @@ fn read_entity_fields(
             Ok((
                 Entity::Text {
                     origin: Point { x, y },
-                    height: height_raw * 0.75,
+                    height: height_raw
+                        * match version {
+                            Version::Ac12 => 0.75,
+                            Version::Ac140 => 1.0,
+                        },
                     rotation_deg: rotation_rad.to_degrees(),
                     value,
                 },
@@ -443,6 +446,7 @@ fn read_record_body(
     bytes: &[u8],
     pos: usize,
     index: u32,
+    version: Version,
 ) -> Result<(RecordBody, usize, u32), DwgError> {
     let header = read_record_header(bytes, pos, index)?;
     // The type code is a signed i16: a negative value marks an erased
@@ -457,7 +461,8 @@ fn read_record_body(
     let (body, next, logical): (RecordBody, usize, u32) = match type_code {
         TYPE_LINE | TYPE_POINT | TYPE_CIRCLE | TYPE_ARC | TYPE_TEXT | TYPE_TRACE | TYPE_SOLID
         | TYPE_INSERT => {
-            let (entity, next) = read_entity_fields(bytes, type_code, pos, pos + 4, index)?;
+            let (entity, next) =
+                read_entity_fields(bytes, type_code, pos, pos + 4, index, version)?;
             (RecordBody::Entity(entity), next, 1)
         }
         TYPE_BLOCK => {
@@ -489,7 +494,8 @@ fn read_record_body(
             // between copies, so no repetition is synthesised.
             let nested_type = checked_u16(bytes, pos + 4, index)?;
             let _repeat_count = checked_u16(bytes, pos + 6, index)?;
-            let (entity, next) = read_entity_fields(bytes, nested_type, pos, pos + 8, index)?;
+            let (entity, next) =
+                read_entity_fields(bytes, nested_type, pos, pos + 8, index, version)?;
             (RecordBody::Entity(entity), next, 2)
         }
         TYPE_ENDREP => {
@@ -527,12 +533,12 @@ fn read_record_body(
 /// `Err(DwgError::TruncatedEntity)`, never a panic.
 pub fn read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Entity>, DwgError> {
     let end = meta.entity_end as usize;
-    let mut pos = ENTITY_START;
+    let mut pos = meta.version.entity_start();
     let mut index: u32 = 0;
     let mut out = Vec::new();
 
     while pos < end {
-        let (body, next, logical) = read_record_body(bytes, pos, index)?;
+        let (body, next, logical) = read_record_body(bytes, pos, index, meta.version)?;
         if let RecordBody::Entity(e) = body {
             out.push(e);
         }
@@ -595,13 +601,13 @@ pub fn read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Entity>, Dwg
 /// when non-empty, so this can never silently underflow.
 pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError> {
     let end = meta.entity_end as usize;
-    let mut pos = ENTITY_START;
+    let mut pos = meta.version.entity_start();
     let mut index: u32 = 0;
     let mut out = Vec::new();
     let mut open: Vec<(usize, Block)> = Vec::new();
 
     while pos < end {
-        let (body, next, logical) = read_record_body(bytes, pos, index)?;
+        let (body, next, logical) = read_record_body(bytes, pos, index, meta.version)?;
         match body {
             RecordBody::Entity(e) => match open.last_mut() {
                 Some((_, block)) => block.entities.push(e),
@@ -949,6 +955,7 @@ mod tests {
         // table, whose first entry is LINE.
         let bytes = one_line(1.012459, 6.822910, 1.261682, 6.822910);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -967,6 +974,7 @@ mod tests {
         // Values are SUBDIV's TREE-block CIRCLE (spec's discovery run).
         let bytes = one_circle(16.464680, 12.562830, 0.420620);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -994,6 +1002,7 @@ mod tests {
             0.39184212503599475,
         );
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1026,6 +1035,7 @@ mod tests {
         // arm); without it this test fails with height == 0.4613465.
         let bytes = one_text(9.624130, 12.295160, 0.4613464999999999, 0.0, "A");
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1048,6 +1058,39 @@ mod tests {
     }
 
     #[test]
+    fn reads_ac140_text_at_its_extended_offset_without_height_scaling() {
+        // Values independently verified by the original TEXT command in
+        // acad-oracle/tests/commands.rs. This regression also runs without
+        // the original disk images or QEMU.
+        let mut bytes = vec![0u8; 0x202];
+        bytes.extend(raw_text(2.25, 3.5, 0.75, 30f64.to_radians(), "ORACLE"));
+        let meta = HeaderMeta {
+            version: Version::Ac140,
+            entity_count: 1,
+            entity_end: bytes.len() as u32,
+        };
+        let entities = read_entities(&bytes, &meta).unwrap();
+        assert_eq!(entities.len(), 1);
+        let Entity::Text {
+            origin,
+            height,
+            rotation_deg,
+            value,
+        } = &entities[0]
+        else {
+            panic!("expected TEXT, got {:?}", entities[0]);
+        };
+        assert_eq!(*origin, Point { x: 2.25, y: 3.5 });
+        assert_eq!(*height, 0.75);
+        assert!((rotation_deg - 30.0).abs() < 1e-12);
+        assert_eq!(value, "ORACLE");
+        assert_eq!(
+            read_items(&bytes, &meta).unwrap(),
+            vec![Item::Entity(entities[0].clone())]
+        );
+    }
+
+    #[test]
     fn reads_a_text_records_value_as_latin1() {
         // Distinct from text.rs's own decode_latin1 tests: this confirms
         // TEXT's length-prefixed value is actually routed through
@@ -1063,6 +1106,7 @@ mod tests {
         bytes.extend_from_slice(&(value_bytes.len() as u16).to_le_bytes());
         bytes.extend_from_slice(&value_bytes);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1081,6 +1125,7 @@ mod tests {
         // path itself: π/4 rad is 45°.
         let bytes = one_text(0.0, 0.0, 1.0, std::f64::consts::FRAC_PI_4, "X");
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1099,6 +1144,7 @@ mod tests {
         // 1.000000, 1.000000, 33.997790 degrees.
         let bytes = one_insert("HOUSEA", 3.214121, 5.297620, 1.0, 1.0, 0.593373373901603);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1134,6 +1180,7 @@ mod tests {
             raw_endblk(),
         ]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 3, // BLOCK + CIRCLE + ENDBLK — delimiters count too
             entity_end: bytes.len() as u32,
         };
@@ -1156,6 +1203,7 @@ mod tests {
             raw_insert("B1", 5.0, 6.0, 1.0, 1.0, 0.0),
         ]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 5,
             entity_end: bytes.len() as u32,
         };
@@ -1176,6 +1224,7 @@ mod tests {
     fn a_lone_block_with_no_endblk_is_unterminated() {
         let bytes = one_block("B1", 1.0, 2.0);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1194,6 +1243,7 @@ mod tests {
         // The BLOCK record starts right after the LINE record (36 bytes).
         let block_at = ENTITY_START + 36;
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 2,
             entity_end: bytes.len() as u32,
         };
@@ -1215,6 +1265,7 @@ mod tests {
         // test, which asserted the removed DwgError::NestedBlock behaviour.
         let bytes = nested_block_fixture();
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 7,
             entity_end: bytes.len() as u32,
         };
@@ -1248,6 +1299,7 @@ mod tests {
         // Review Focus 2: a stack makes it easy to over-pop silently.
         let bytes = lone_endblk_fixture();
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1264,6 +1316,7 @@ mod tests {
         // wrong offset.
         let bytes = unterminated_nest_fixture();
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 3,
             entity_end: bytes.len() as u32,
         };
@@ -1278,6 +1331,7 @@ mod tests {
         let bytes = records(&[raw_line(0.0, 0.0, 1.0, 1.0), raw_endblk()]);
         let endblk_at = ENTITY_START + 36;
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 2,
             entity_end: bytes.len() as u32,
         };
@@ -1298,6 +1352,7 @@ mod tests {
         bytes.extend_from_slice(&50u16.to_le_bytes()); // claims 50 bytes
         bytes.extend_from_slice(b"short"); // only 5 are actually present
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1315,6 +1370,7 @@ mod tests {
         let mut bytes = one_line(0.0, 0.0, 1.0, 1.0);
         bytes[ENTITY_START..ENTITY_START + 2].copy_from_slice(&0x00ffu16.to_le_bytes());
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1333,6 +1389,7 @@ mod tests {
         let mut bytes = one_line(0.0, 0.0, 1.0, 1.0);
         bytes.truncate(bytes.len() - 4);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1346,6 +1403,7 @@ mod tests {
     fn fewer_records_than_the_header_promises_is_an_error() {
         let bytes = one_line(0.0, 0.0, 1.0, 1.0);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 5,
             entity_end: bytes.len() as u32,
         };
@@ -1369,6 +1427,7 @@ mod tests {
         let bytes = one_line(0.0, 0.0, 1.0, 1.0); // ENTITY_START + 36 bytes total
         let declared_end = ENTITY_START + 20;
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: declared_end as u32,
         };
@@ -1387,6 +1446,7 @@ mod tests {
         let bytes = one_line(0.0, 0.0, 1.0, 1.0);
         let declared_end = ENTITY_START + 20;
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: declared_end as u32,
         };
@@ -1411,6 +1471,7 @@ mod tests {
         let bytes = vec![0u8; ENTITY_START];
         let declared_end = ENTITY_START - 10;
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 0,
             entity_end: declared_end as u32,
         };
@@ -1427,6 +1488,7 @@ mod tests {
     fn read_items_wraps_every_entity_as_item_entity() {
         let bytes = one_line(0.0, 0.0, 1.0, 1.0);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1444,6 +1506,7 @@ mod tests {
         // LINE — see the module doc and the later original DXF export.
         let bytes = records(&[raw_point(5.0, 5.0)]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1464,6 +1527,7 @@ mod tests {
         let corners = [(7.0, 30.725), (7.0, 30.775), (2.5, 30.725), (2.5, 30.775)];
         let bytes = records(&[raw_trace(corners)]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1485,6 +1549,7 @@ mod tests {
         let corners = [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)];
         let bytes = records(&[raw_solid(corners)]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };
@@ -1514,6 +1579,7 @@ mod tests {
         // REPEAT counts as 2 (container + its fused nested entity), ENDREP
         // as 1 — matching the header's own entity_count (module doc).
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 3,
             entity_end: bytes.len() as u32,
         };
@@ -1541,6 +1607,7 @@ mod tests {
             raw_endrep(1, 3, 2.0, 1.5),
         ]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 3,
             entity_end: bytes.len() as u32,
         };
@@ -1579,6 +1646,7 @@ mod tests {
         ]);
         // REPEAT: 2, three LINEs: 1 each, ENDREP: 1 -> 2+3+1 = 6.
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 6,
             entity_end: bytes.len() as u32,
         };
@@ -1603,6 +1671,7 @@ mod tests {
         // layout with no evidence behind it.
         let bytes = records(&[raw_repeat_unsupported(99)]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 2,
             entity_end: bytes.len() as u32,
         };
@@ -1626,6 +1695,7 @@ mod tests {
             raw_line(10.0, 10.0, 20.0, 20.0),
         ]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 4, // REPEAT(2) + ENDREP(1) + LINE(1)
             entity_end: bytes.len() as u32,
         };
@@ -1649,6 +1719,7 @@ mod tests {
             raw_line(5.0, 5.0, 6.0, 6.0),
         ]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 2,
             entity_end: bytes.len() as u32,
         };
@@ -1671,6 +1742,7 @@ mod tests {
             raw_line(9.0, 9.0, 10.0, 10.0),
         ]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 2,
             entity_end: bytes.len() as u32,
         };
@@ -1686,6 +1758,7 @@ mod tests {
             raw_line(5.0, 5.0, 6.0, 6.0),
         ]);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 2,
             entity_end: bytes.len() as u32,
         };
@@ -1702,6 +1775,7 @@ mod tests {
         let mut bytes = records(&[erase(TYPE_LINE, raw_line(0.0, 0.0, 1.0, 1.0))]);
         bytes.truncate(bytes.len() - 4);
         let meta = HeaderMeta {
+            version: Version::Ac12,
             entity_count: 1,
             entity_end: bytes.len() as u32,
         };

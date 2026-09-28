@@ -31,11 +31,78 @@ fn original_creates_circles_with_the_requested_centers_and_radii() {
     drawing.items = expected;
     let end = dxf.iter().position(|&b| b == 0x1a).unwrap() + 1;
     assert_eq!(acad_dxf::write(&drawing), dxf[..end]);
+    let from_dwg = acad_dwg::parse(&dwg).unwrap();
+    assert_eq!(acad_dxf::write(&from_dwg), dxf[..end]);
+    let (_, meta) = acad_dwg::header::parse_header(&dwg).unwrap();
+    for cut in 0..meta.entity_end as usize {
+        assert!(
+            acad_dwg::parse(&dwg[..cut]).is_err(),
+            "accepted truncated DWG at {cut:#x}"
+        );
+    }
 }
 
 #[cfg(unix)]
 #[test]
-fn original_creates_a_line_and_a_three_point_arc() {
+fn original_header_settings_survive_binary_decoding() {
+    use acad_model::{Extents, Mode, Point};
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+    let (dwg, dxf) = acad_oracle::generate_pair(
+        &disk,
+        "ORCHEAD",
+        &[
+            "BASE", "2.25,3.5", "SNAP", "0.375", "GRID", "0.625", "ORTHO", "ON", "FILL", "OFF",
+            "LIMITS", "-1,-2", "14,11", "LAYER", "12", "COLOR", "5", "3", "COLOR", "2", "",
+        ],
+    )
+    .unwrap();
+    let drawing = acad_dxf::parse(&dxf).unwrap();
+    let h = &drawing.header;
+    assert_eq!(h.base, Point { x: 2.25, y: 3.5 });
+    assert_eq!(
+        h.limits,
+        Extents {
+            xmin: -1.0,
+            xmax: 14.0,
+            ymin: -2.0,
+            ymax: 11.0
+        }
+    );
+    assert_eq!(
+        h.snap,
+        Mode {
+            on: true,
+            spacing: 0.375
+        }
+    );
+    assert_eq!(
+        h.grid,
+        Mode {
+            on: true,
+            spacing: 0.625
+        }
+    );
+    assert!(h.ortho);
+    assert!(!h.fill);
+    assert_eq!(h.current_layer, 3);
+    assert_eq!(h.layers.keys().copied().collect::<Vec<_>>(), [0, 1, 3, 12]);
+    assert_eq!(h.layers[&3], 2);
+    assert_eq!(h.layers[&12], 5);
+    assert!(drawing.items.is_empty());
+
+    let end = dxf.iter().position(|&b| b == 0x1a).unwrap() + 1;
+    assert_eq!(acad_dxf::write(&acad_dwg::parse(&dwg).unwrap()), dxf[..end]);
+}
+
+#[cfg(unix)]
+#[test]
+fn original_creates_a_line_arc_and_rotated_text() {
     use acad_model::{Entity, Item, Point};
 
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -45,11 +112,12 @@ fn original_creates_a_line_and_a_three_point_arc() {
         return;
     }
     // ACAD.HLP documents RETURN to terminate LINE and three points for ARC.
-    let (_, dxf) = acad_oracle::generate_pair(
+    let (dwg, dxf) = acad_oracle::generate_pair(
         &disk,
         "ORCARC",
         &[
-            "LINE", "1.25,2.5", "9.5,6.75", "", "ARC", "4,3", "3,4", "2,3",
+            "LINE", "1.25,2.5", "9.5,6.75", "", "ARC", "4,3", "3,4", "2,3", "TEXT", "2.25,3.5",
+            "0.75", "30", "ORACLE",
         ],
     )
     .unwrap();
@@ -69,8 +137,16 @@ fn original_creates_a_line_and_a_three_point_arc() {
                 start_deg: 0.0,
                 end_deg: 180.0,
             }),
+            Item::Entity(Entity::Text {
+                origin: Point { x: 2.25, y: 3.5 },
+                height: 0.75,
+                rotation_deg: 30.0,
+                value: "ORACLE".to_owned(),
+            }),
         ],
     );
     let end = dxf.iter().position(|&b| b == 0x1a).unwrap() + 1;
     assert_eq!(acad_dxf::write(&drawing), dxf[..end]);
+    let from_dwg = acad_dwg::parse(&dwg).unwrap();
+    assert_eq!(acad_dxf::write(&from_dwg), dxf[..end]);
 }

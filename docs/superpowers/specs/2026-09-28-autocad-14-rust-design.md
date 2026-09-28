@@ -64,8 +64,9 @@ MZ header. No emulator trace was needed (§10).
 **DWG** — magic is an ASCII version stamp: `AC1.2` and `AC1.40` both occur in the 1.4
 sample corpus, so the codec must handle two versions and the corpus itself documents the
 format's evolution. `ACAD.OVL` contains the literal `AC1.40` it stamps into files it writes.
-Census of the sample disk: 16 `AC1.2`, 5 `AC1.40` (`HOUSE`, `COLORS`, `OFFICE`, `SHUTTLE`,
-`DISC`; the `.BAK` copies match their drawings). `SUBDIV.DWG`, the parallel-corpus file, is
+Census of the sample disk: 16 `AC1.2` drawings, four `AC1.40` DWGs (`HOUSE`, `COLORS`,
+`OFFICE`, `SHUTTLE`), and a fifth AC1.40 drawing available only as `DISC.BAK`.
+HOUSE/COLORS/OFFICE have matching backups. `SUBDIV.DWG`, the parallel-corpus file, is
 `AC1.2`.
 
 Header layout, established 2026-09-28 against `SUBDIV.DXF`'s own header values and identical
@@ -79,6 +80,16 @@ constant across all 16 `AC1.2` drawings, and end at the `+0x24` offset. Entity
 order within each block agrees with AutoCAD's exported DXF, but block
 definitions can have a different order. Each record is a `u16` type code, a `u16` whose meaning is not yet known,
 then the type's fields as IEEE doubles — so `LINE` is 36 bytes and `ARC` 44.
+
+Generated QEMU drawings now establish `AC1.40`'s entity start at `0x202`,
+42 bytes later than `AC1.2`. The scalar offsets above are shared. Nondefault
+commands locate BASE x/y at `0x0C`/`0x14`, ORTHO at `0xAE`, and FILL at
+`0xB2` (correcting the earlier `0xB0` assumption, concealed by both words
+being 1 in the samples). Patching only SUBDIV's `0xB2` word to 0 in a copied
+disk makes the original export FILL=0, independently confirming the AC1.2
+offset. Current layer is a `u16` at `0xC4`; the layer table is 128 `u16`
+colors at `0xC8`, with 255 denoting an unused slot. The model retains these
+header fields; it still discards each entity's own layer.
 
 **Block definitions are globally scoped.** In the `AC1.2` corpus, a `BLOCK`
 record can open inside another block's `BLOCK`/`ENDBLK` span. It defines a
@@ -127,10 +138,11 @@ count consistent with the file's size and `SUBDIV`'s bytes-per-entity ratio. The
 **DXF (1983)** — *not* the modern group-code format. Record-oriented plain text:
 
 ```
-KEYWORD,<record-count>
+KEYWORD,<n>
 <comma-separated values>...
 ```
 
+For entity records, `n` is the layer number, not a record count;
 e.g. `LINE,1` followed by `8.800000,5.700000,19.000000,1.899999`. Undocumented but
 self-describing. Files terminate with DOS EOF (`0x1A`). *(The example previously given here,
 `1.012459,6.822910,1.261682,6.822910`, appears in no corpus file and caused a wrong reading
@@ -151,14 +163,17 @@ nonsensical types 65535 and 65522. The record keeps its full body, which is pres
 `ADDER` walk exactly 66 records to `entity_end`, matching its header count; read as unsigned
 the walk dies at record 42. `SUBDIV` has none and is unaffected.
 
-**Text height** — a `TEXT` entity's height is stored differently in the two formats. The
-DWG holds the font's full cell height; the DXF reports cap height. `.SHP` fonts declare the
+**Text height** — an `AC1.2` `TEXT` entity stores the font's full cell height;
+the DXF reports cap height. `.SHP` fonts declare the
 ratio in their header — `corpus/System/TXT.SHP` opens `*0,4,Roman Simplex` / `21,7,0,0`,
 meaning 21 above the baseline and 7 below — so `dwg_height = dxf_height * (21+7)/21 = 4/3`.
 Verified on `SUBDIV`: the DWG holds `0.4613465` where the DXF prints `0.346010`. Every text
 font the 1.4 corpus ships is 3:1 (`ITALIC`, `ROMAN-C`, `ROMAN-S` and `System/TXT.SHP` at
 `21,7`; `Samples/TXT.SHP` at `6,2`), so the factor is constant across this corpus — but it is
-a property of the font, not of the format, and a reader that hardcodes it says so.
+a property of the font, and a reader that hardcodes it says so. In `AC1.40`,
+the binary height is already the DXF height: HOUSE/OFFICE exports and an
+original TEXT command with height 0.75 confirm this. Applying the AC1.2
+factor to AC1.40 makes the independent export comparison fail.
 
 **Auxiliary formats** — `.SHP` shape/font files (`TXT`, `ROMAN-S`, `ROMAN-C`, `ITALIC`,
 `ES`, `PC`), `ACAD.PAT` hatch patterns (5,120 B), `ACAD.MNU` screen menu (456 B, text with
@@ -305,6 +320,11 @@ cannot be checked, which is what §9 exists to prevent.
 Scope of the early half: decode `AC1.2` into `acad-model`, verified by that equality and by
 every `AC1.2` drawing in the corpus loading and rendering. `AC1.40`, the write direction, and
 verification against oracle-generated drawings stay after ③.
+
+Current progress: the QEMU bootstrap now generates the expected side for
+`AC1.40`. The reader passes command-generated DWG/DXF comparisons and four
+sample exports. `DISC.BAK` still stops at its `LOAD ROMAN-S` record; font
+LOAD/SHAPE support and DWG writing remain open.
 
 **⑤ Command loop.** Screen menu, command line, entity creation and editing commands,
 each backed by a differential test.

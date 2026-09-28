@@ -17,8 +17,8 @@ Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/sup
 |---|---|---|
 | ① | DXF codec, corpus integrity, first render | **done** |
 | ② | Ghidra overlay loader, dual AST export, `acad-re` | **done** |
-| ③ | Oracle harness — in-tree 8086, differential tests | in progress: QEMU-backed generated empty-drawing DXF differential test |
-| ④ | DWG codec — `AC1.40`, then `AC1.2` | `AC1.2` read: all 16 corpus drawings parse and render |
+| ③ | Oracle harness — in-tree 8086, differential tests | in progress: QEMU command and sample-export comparisons |
+| ④ | DWG codec — `AC1.40`, then `AC1.2` | both versions read; 20 corpus drawings render; font LOAD/SHAPE and writing remain |
 | ⑤ | Command loop | |
 
 `SUBDIV.DXF` round-trips byte-identically and renders. The full 1983 command set
@@ -31,16 +31,18 @@ shipped Rust is hand-written. The measurements behind that are in
 
 ④'s read direction runs before ③, out of spec order, because `SUBDIV.DWG` and
 `SUBDIV.DXF` are the same drawing in both formats — ground truth that needs no
-emulator (spec §4.4). Its write direction, `AC1.2`, and oracle verification wait
-for ③.
+emulator (spec §4.4). The QEMU oracle now also supplies evidence for `AC1.40`
+reading; the write direction remains future work.
 
 `acad-oracle` now has a QEMU-backed development probe. It boots disposable
 copies of the original floppies, creates an empty `AC1.40` drawing, and asks
-AutoCAD to export five `AC1.2` sample drawings as DXF. The tests compare the
+AutoCAD to export five `AC1.2` and four `AC1.40` sample drawings as DXF. The tests compare the
 empty export byte for byte and the sample exports against the DWG reader's
 geometry, including `POINT`, `TRACE`, `SOLID`, and entities inside `REPEAT`.
-It also creates circles, a line, and a three-point arc, checking their DXF
-geometry against the command inputs. A QEMU 11.0.1 branch bug requires
+It also creates circles, a line, a three-point arc, and rotated text, checking
+geometry against the command inputs and the decoded DWG against the exported
+DXF. Nondefault header settings pin BASE, fill mode, and the layer table.
+A QEMU 11.0.1 branch bug requires
 disabling TCG block chaining (`-d nochain`). QEMU must be installed for this
 probe; the spec's in-tree, CI-independent oracle remains future work. See
 [the oracle note](docs/oracle-qemu.md).
@@ -90,9 +92,10 @@ renderer's transform composition.
 
 `acad-app` opens either format, dispatching on the file's own magic bytes rather
 than its extension, so a `.BAK` file — four corpus drawings have one — is
-identified as the DWG it is rather than guessed from its name. Every `.BAK` in
-this corpus happens to be `AC1.40`, so today that means each is correctly
-refused with a message naming both versions, not silently misread as DXF.
+identified as the DWG it is rather than guessed from its name. The four
+`AC1.40` drawings (`HOUSE`, `COLORS`, `OFFICE`, `SHUTTLE`) and the three
+matching backups now parse and render. `DISC.BAK` remains unsupported at its
+font `LOAD` record (`ROMAN-S`); the reader reports the type and byte offset.
 
 ## Build
 
@@ -101,6 +104,7 @@ Rust 1.88.0, pinned by `rust-toolchain.toml`.
     cargo test --workspace
     cargo run -p acad-app        # renders SUBDIV.DXF in a window
     cargo run -p acad-app -- corpus/Samples/SUBDIV.DWG   # or the DWG sibling
+    cargo run -p acad-app -- corpus/Samples/HOUSE.DWG    # AC1.40
 
 Tests that need the corpus skip when it is absent, so a fresh checkout is green
 without it.
@@ -111,7 +115,7 @@ without it.
 |---|---|
 | `acad-model` | Entity model. The one crate everything depends on, and the one written for the future rather than for 1983. |
 | `acad-dxf` | The 1983 `KEYWORD,n` DXF codec (entity suffixes denote layers) — not the modern group-code format. |
-| `acad-dwg` | The 1983 binary DWG codec. `AC1.2` read support so far; `AC1.40` and the write direction come after milestone ③. Depends only on `acad-model` — a shipped codec must not depend on another codec. |
+| `acad-dwg` | The 1983 binary DWG reader for `AC1.2` and `AC1.40`. Font LOAD/SHAPE and writing remain unsupported. Depends only on `acad-model`. |
 | `acad-render` | Viewport fit and entity flattening (numerically testable), then rasterisation. |
 | `acad-app` | Window, via `winit` + `softbuffer`. Opens either `.DXF` or `.DWG`, chosen by the file's magic bytes. |
 | `acad-corpus` | Generates `corpus/manifest.toml`, the integrity record. |

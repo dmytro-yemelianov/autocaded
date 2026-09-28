@@ -14,20 +14,32 @@ The tests skip if the extracted images or QEMU are absent. The first selects
 drawing interchange file**. It checks the original's 640-byte `AC1.40` DWG
 and compares the generated DXF, through DOS EOF, with the Rust DXF writer's
 output after parsing it. The second mounts Samples in drive B and asks the
-original to export `SELEXOL`, `BLIVET`, `FLOW`, `FLOOR`, and `ADDER`. Those
-fresh DXFs are compared with the Rust `AC1.2` DWG reader by block name,
-entity type, order within each block, and six-decimal field values. AutoCAD
+original to export `SELEXOL`, `BLIVET`, `FLOW`, `FLOOR`, `ADDER`, `HOUSE`,
+`COLORS`, `OFFICE`, and `SHUTTLE`. Those fresh DXFs are compared with the
+Rust DWG reader for both versions by block name, entity type, order within
+each block, full header, and six-decimal field values. AutoCAD
 exports block definitions in an order that can differ from their DWG order.
 The floppies are copied under `/tmp`; corpus images are never modified. A
 small in-tree FAT12 reader extracts the output.
 
 `tests/commands.rs` exercises entity creation too: two `CIRCLE` commands
-with different centers and radii, a `LINE` with fractional endpoints, and
-an `ARC` through three points. The test expectations come from the command
+with different centers and radii, a `LINE` with fractional endpoints, an
+`ARC` through three points, and rotated `TEXT`. The expectations come from the command
 inputs and elementary geometry. It checks the complete entity list, then
 compares the Rust DXF writer's output with the original's exported bytes
-through DOS EOF. The generated binary drawings still require an `AC1.40`
-reader before they can be compared with the Rust DWG codec.
+through DOS EOF. It also decodes the generated `AC1.40` DWGs and compares
+their complete DXF representation with the original's exports. A separate
+case changes BASE, limits, snap/grid spacing, ortho, fill, and two layer
+colors, so defaults cannot conceal offset mistakes. The circle test rejects
+every truncated prefix before the declared end of entity data.
+
+These probes established the `AC1.40` entity start at `0x202`, direct TEXT
+height (the `AC1.2` corpus requires a 0.75 conversion), BASE at `0x0C`, the
+current layer at `0xC4`, and 128 `u16` layer colors at `0xC8`. They also
+corrected FILL from `0xB0` to `0xB2`: both words were 1 in the old corpus,
+so only a nondefault drawing exposed the error. As an independent AC1.2
+check, setting just SUBDIV's word at `0xB2` to 0 on a disposable Samples
+image made the original export `MODEFILL,1` followed by `0`.
 
 The exports establish the DXF shapes of `POINT`, `TRACE`, `SOLID`, `REPEAT`,
 and `ENDREP`. They also expose an earlier lexer error: the number in an
@@ -56,9 +68,9 @@ workaround until a QEMU version containing the fix is required and tested.
 
 ## Remaining limits
 
-The original writes `AC1.40`, while the shipped DWG reader supports only
-`AC1.2`. Command checks currently use the original's DXF export. The harness
-still requires an external QEMU installation; it is not the spec's in-tree
+The reader still rejects font `LOAD` and `SHAPE` records, including the
+`LOAD ROMAN-S` in `DISC.BAK`; DWG writing is not implemented. The harness
+requires an external QEMU installation; it is not the spec's in-tree
 8086 core. Editor input uses paced keystrokes; synchronization with visible
 prompts currently covers the text-mode menus only.
 
