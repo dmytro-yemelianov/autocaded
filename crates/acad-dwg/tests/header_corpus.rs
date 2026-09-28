@@ -59,6 +59,14 @@ fn the_dwg_header_agrees_with_the_dxf_header() {
         from_dxf.grid.spacing,
         "MODEGRID spacing",
     );
+    // MODEORTHO (offset 0xae) is 0 and MODEFILL (0xb0) is 1 in SUBDIV — and
+    // there is a second, currently-unmapped `0x0001` two bytes further in,
+    // at 0xb2 (TXTSIZE itself doesn't start until 0xb4), so an off-by-2 read
+    // of either field would still silently come back as SUBDIV's own value.
+    // SUBDIV.DXF declares MODEORTHO 0 and MODEFILL 1, so both are real,
+    // discriminating assertions, not vacuous ones.
+    assert_eq!(from_dwg.ortho, from_dxf.ortho, "MODEORTHO");
+    assert_eq!(from_dwg.fill, from_dxf.fill, "MODEFILL");
     approx_eq(from_dwg.text_size, from_dxf.text_size, "TXTSIZE");
     approx_eq(from_dwg.trace_width, from_dxf.trace_width, "TRACEWID");
     // `base`, `current_layer` and `layers` are Task 7's, and are deliberately
