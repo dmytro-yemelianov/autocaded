@@ -18,7 +18,16 @@ fn a_diagonal_line_marks_pixels_on_both_ends() {
         vp.to_screen(Point { x: 9.0, y: 9.0 }),
     ])];
     let pm = rasterize(&prims, 64, 64);
-    let lit = pm.pixels().iter().filter(|p| p.alpha() > 0).count();
+    // `rasterize` fills an opaque black background and draws only opaque
+    // white strokes, so every pixel's alpha is 255 regardless of what was
+    // drawn (an_empty_drawing_rasterizes_to_uniform_opaque_background below
+    // pins exactly that for an empty scene) — content must be told apart by
+    // colour, not alpha.
+    let lit = pm
+        .pixels()
+        .iter()
+        .filter(|p| p.red() > 0 || p.green() > 0 || p.blue() > 0)
+        .count();
     assert!(lit > 40, "expected a drawn diagonal, got {lit} lit pixels");
 }
 
@@ -70,7 +79,16 @@ fn subdiv_renders_a_non_blank_image() {
     let d = acad_dxf::parse(&bytes).unwrap();
     let vp = Viewport::fit(&d.header.limits, 800, 600);
     let pm = rasterize(&acad_render::flatten(&d, &vp), 800, 600);
-    let lit = pm.pixels().iter().filter(|p| p.alpha() > 0).count();
+    // `rasterize`'s background is opaque black and its strokes are opaque
+    // white, so alpha is 255 everywhere regardless of what was drawn —
+    // an_empty_drawing_rasterizes_to_uniform_opaque_background above pins
+    // exactly that for an empty scene, which made the old alpha-based count
+    // here unable to ever fail. Content must be told apart by colour.
+    let lit = pm
+        .pixels()
+        .iter()
+        .filter(|p| p.red() > 0 || p.green() > 0 || p.blue() > 0)
+        .count();
     assert!(
         lit > 5000,
         "SUBDIV should draw substantial geometry, got {lit}"

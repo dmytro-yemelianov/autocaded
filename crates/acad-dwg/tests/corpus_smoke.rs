@@ -39,6 +39,12 @@ use acad_render::{flatten, rasterize, Viewport};
 
 const CANVAS: u32 = 800;
 
+/// A drawn-content floor for `known_good_drawings_parse_and_render_non_blank`.
+/// Comfortably below the smallest of the 11 drawings' real pixel counts
+/// (ORGATE's 2,466 on an 800x800 canvas — see that test), so it catches
+/// "drew almost nothing" as well as "drew nothing", not just a bare `> 0`.
+const MIN_LIT: usize = 500;
+
 /// The corpus is extracted from archives that are deliberately not in git, so
 /// a fresh checkout has none. Tests that need it skip rather than fail.
 fn corpus(name: &str) -> Option<Vec<u8>> {
@@ -88,10 +94,27 @@ fn known_good_drawings_parse_and_render_non_blank() {
             .unwrap_or_else(|e| panic!("{name}: expected to parse, got {e}"));
         let vp = Viewport::fit(&drawing.header.limits, CANVAS, CANVAS);
         let pm = rasterize(&flatten(&drawing, &vp), CANVAS, CANVAS);
-        let lit = pm.pixels().iter().filter(|p| p.alpha() > 0).count();
+        // The background `rasterize` fills is opaque black and every stroke
+        // it draws is opaque white, so alpha is 255 everywhere regardless of
+        // what was drawn (see raster.rs's own
+        // an_empty_drawing_rasterizes_to_uniform_opaque_background, which
+        // asserts exactly that for an empty scene). Content must be told
+        // apart by colour, the way
+        // background_is_opaque_so_strokes_are_visible_when_composited
+        // already does, not by alpha.
+        let lit = pm
+            .pixels()
+            .iter()
+            .filter(|p| p.red() > 0 || p.green() > 0 || p.blue() > 0)
+            .count();
+        // The smallest of the 11 (ORGATE) draws 2,466 lit pixels on this
+        // 800x800 canvas; MIN_LIT sits well under that so a real regression —
+        // a viewport bug leaving geometry off-canvas, flatten dropping
+        // everything — trips it, while never being so close to the real
+        // values that anti-aliasing noise could.
         assert!(
-            lit > 0,
-            "{name}: parsed but rendered blank ({lit} lit pixels)"
+            lit > MIN_LIT,
+            "{name}: parsed but rendered near-blank ({lit} lit pixels, need > {MIN_LIT})"
         );
         ran += 1;
     }
