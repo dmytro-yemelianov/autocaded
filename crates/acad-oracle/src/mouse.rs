@@ -99,6 +99,62 @@ impl Default for Tracker {
     }
 }
 
+/// Packets to a guest that may stop reading, as AutoCAD does whenever its
+/// driver is unhooked. A write that would block drops the rest of its batch
+/// instead of stalling the caller, and marks the mirror stale; the next move
+/// re-pins before heading for its target.
+pub struct Link<W> {
+    out: W,
+    tracker: Tracker,
+    stale: bool,
+}
+
+impl<W: std::io::Write> Link<W> {
+    /// `out` should be non-blocking; a blocking writer simply never drops.
+    pub fn new(out: W) -> Self {
+        Self {
+            out,
+            tracker: Tracker::new(),
+            stale: false,
+        }
+    }
+
+    pub fn position(&self) -> (i32, i32) {
+        self.tracker.position()
+    }
+
+    pub fn move_to(&mut self, x: i32, y: i32, buttons: u8) -> std::io::Result<()> {
+        let mut packets = if self.stale {
+            // The guest never saw the dropped batch's buttons either.
+            self.tracker.buttons = buttons;
+            self.tracker.pin()
+        } else {
+            Vec::new()
+        };
+        packets.extend(self.tracker.packets_to(x, y, buttons));
+        self.send(&packets)
+    }
+
+    pub fn pin(&mut self) -> std::io::Result<()> {
+        let packets = self.tracker.pin();
+        self.send(&packets)
+    }
+
+    fn send(&mut self, packets: &[[u8; 5]]) -> std::io::Result<()> {
+        match self.out.write_all(&packets.concat()) {
+            Ok(()) => {
+                self.stale = false;
+                Ok(())
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                self.stale = true;
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
 /// The CGA pixel under device position `(x, y)`, as measured from the
 /// original's crosshair: columns exactly, rows within one.
 pub fn pixel_for_device(x: i32, y: i32) -> (i32, i32) {
@@ -122,6 +178,75 @@ mod tests {
         packets.iter().fold(start, |(x, y), p| {
             (apply(x, p[1] as i8), apply(y, p[2] as i8))
         })
+    }
+
+    /// Accepts `room` more bytes, then reports `WouldBlock` like a full
+    /// non-blocking socket.
+    struct Choked {
+        room: usize,
+        written: Vec<u8>,
+    }
+
+    impl std::io::Write for Choked {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if self.room == 0 {
+                return Err(std::io::ErrorKind::WouldBlock.into());
+            }
+            let n = bytes.len().min(self.room);
+            self.room -= n;
+            self.written.extend_from_slice(&bytes[..n]);
+            Ok(n)
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn a_full_socket_drops_the_batch_instead_of_blocking() {
+        let mut link = Link::new(Choked {
+            room: 7,
+            written: Vec::new(),
+        });
+        link.move_to(15000, 15000, LEFT).unwrap();
+        assert_eq!(link.out.written.len(), 7, "partial batch, no error");
+
+        // Once the guest reads again, the next move re-pins first, so the
+        // guest lands on the target whatever the partial batch did.
+        link.out.room = usize::MAX;
+        link.out.written.clear();
+        link.move_to(5000, 6000, 0).unwrap();
+        let packets: Vec<[u8; 5]> = link
+            .out
+            .written
+            .chunks_exact(5)
+            .map(|p| p.try_into().unwrap())
+            .collect();
+        assert_eq!(packets[0], packet(MIN_DELTA, MIN_DELTA, 0));
+        for start in [(0, 0), (RANGE, RANGE), (15000, 15000)] {
+            assert_eq!(replay(start, &packets), (5000, 6000));
+        }
+        assert_eq!(link.position(), (5000, 6000));
+
+        // Healthy again: no further pins.
+        link.out.written.clear();
+        link.move_to(5010, 6000, 0).unwrap();
+        assert_eq!(link.out.written, packet(1, 0, 0));
+    }
+
+    #[test]
+    fn other_socket_errors_are_reported() {
+        struct Broken;
+        impl std::io::Write for Broken {
+            fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+                Err(std::io::ErrorKind::BrokenPipe.into())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        assert!(Link::new(Broken).move_to(100, 100, 0).is_err());
     }
 
     #[test]

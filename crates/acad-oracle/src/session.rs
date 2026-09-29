@@ -22,8 +22,7 @@ pub struct Session {
     child: Child,
     reader: BufReader<UnixStream>,
     writer: UnixStream,
-    mouse: UnixStream,
-    pointer: crate::mouse::Tracker,
+    mouse: crate::mouse::Link<UnixStream>,
     dir: PathBuf,
     _serial: MutexGuard<'static, ()>,
 }
@@ -190,8 +189,12 @@ impl Session {
                 return Err(format!("clone QMP socket: {e}"));
             }
         };
-        let mouse = match UnixStream::connect(&mouse_socket) {
-            Ok(mouse) => mouse,
+        // Non-blocking: when AutoCAD's driver stops reading, a full socket
+        // must drop mouse packets rather than freeze the caller.
+        let mouse = match UnixStream::connect(&mouse_socket)
+            .and_then(|mouse| mouse.set_nonblocking(true).map(|()| mouse))
+        {
+            Ok(mouse) => crate::mouse::Link::new(mouse),
             Err(e) => {
                 let _ = child.kill();
                 let _ = child.wait();
@@ -204,7 +207,6 @@ impl Session {
             reader: BufReader::new(stream),
             writer,
             mouse,
-            pointer: crate::mouse::Tracker::new(),
             dir,
             _serial: serial,
         };
@@ -241,28 +243,25 @@ impl Session {
 
     /// Move the COM1 mouse to device position `(x, y)` (`0..=20480`, see
     /// `crate::mouse`) with `buttons` held. The pointer's position is
-    /// mirrored from the packets sent, not read back.
+    /// mirrored from the packets sent, not read back. If the guest is not
+    /// reading, the packets are dropped and the next move re-pins first.
     pub fn mouse_to(&mut self, x: i32, y: i32, buttons: u8) -> Result<(), String> {
-        let packets = self.pointer.packets_to(x, y, buttons);
-        self.send_mouse(&packets)
+        self.mouse
+            .move_to(x, y, buttons)
+            .map_err(|e| format!("write mouse packets: {e}"))
     }
 
     /// Drive the pointer into its lower-left clamp so the mirrored position
     /// is exact again, e.g. after AutoCAD reinitializes its mouse driver.
     pub fn mouse_pin(&mut self) -> Result<(), String> {
-        let packets = self.pointer.pin();
-        self.send_mouse(&packets)
+        self.mouse
+            .pin()
+            .map_err(|e| format!("write mouse packets: {e}"))
     }
 
     /// The mirrored device position of the mouse.
     pub fn pointer(&self) -> (i32, i32) {
-        self.pointer.position()
-    }
-
-    fn send_mouse(&mut self, packets: &[[u8; 5]]) -> Result<(), String> {
-        self.mouse
-            .write_all(&packets.concat())
-            .map_err(|e| format!("write mouse packets: {e}"))
+        self.mouse.position()
     }
 
     /// `size` bytes of guest physical memory from `address`.
