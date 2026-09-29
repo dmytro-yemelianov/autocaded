@@ -1,5 +1,7 @@
 //! Development-only oracle for the original AutoCAD.
 
+pub mod cga;
+
 #[cfg(unix)]
 mod qemu;
 #[cfg(unix)]
