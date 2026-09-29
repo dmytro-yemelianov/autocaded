@@ -117,6 +117,127 @@ fn original_array_point_spacings_use_the_delta_between_points() {
 
 #[cfg(unix)]
 #[test]
+fn original_change_supports_layer_and_intersection_point_modes() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() {
+        return;
+    }
+    for (name, inputs, expected) in [
+        (
+            "CHGLYR",
+            &["LINE", "1,1", "2,1", "", "CHANGE", "L", "L", "2"][..],
+            Item::Entity(Entity::OnLayer {
+                layer: 2,
+                entity: Box::new(Entity::Line {
+                    start: Point { x: 1.0, y: 1.0 },
+                    end: Point { x: 2.0, y: 1.0 },
+                }),
+            }),
+        ),
+        (
+            "CHGLINE",
+            &["LINE", "1,1", "2,1", "", "CHANGE", "L", "3,4"][..],
+            Item::Entity(Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Line {
+                    start: Point { x: 1.0, y: 1.0 },
+                    end: Point { x: 3.0, y: 4.0 },
+                }),
+            }),
+        ),
+        (
+            "CHGCIRC",
+            &["CIRCLE", "1,1", "2", "CHANGE", "L", "4,1"][..],
+            Item::Entity(Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Circle {
+                    center: Point { x: 1.0, y: 1.0 },
+                    radius: 3.0,
+                }),
+            }),
+        ),
+    ] {
+        let original = acad_oracle::generate_dwg_in_tree(&disk, name, inputs).unwrap();
+        let expected = [expected];
+        assert_eq!(
+            acad_dwg::parse(&original).unwrap().items,
+            expected,
+            "{name} oracle"
+        );
+        let mut editor = acad_cmd::Editor::default();
+        for input in inputs {
+            editor.submit(input).unwrap();
+        }
+        assert_eq!(editor.drawing().items, expected, "{name} Rust");
+        if acad_oracle::available() {
+            let qemu = acad_oracle::generate_dwg(&disk, name, inputs).unwrap();
+            assert_eq!(qemu, original, "{name}: in-tree original vs QEMU");
+            assert_eq!(
+                acad_dwg::parse(&qemu).unwrap().items,
+                expected,
+                "{name} QEMU"
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn original_change_moves_inserts_and_accepts_a_new_angle() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() {
+        return;
+    }
+    for (name, angle_text, expected_angle) in [("CHGINS", "", 0.0), ("CHGANG", "45", 45.0)] {
+        let mut inputs = vec![
+            "LINE", "0,0", "1,0", "", "BLOCK", "B1", "0,0", "LAST", "INSERT", "B1", "1,1", "2", "",
+            "", "CHANGE", "L", "3,4",
+        ];
+        inputs.push(angle_text);
+        let original = acad_oracle::generate_dwg_in_tree(&disk, name, &inputs).unwrap();
+        let parsed = acad_dwg::parse(&original).unwrap();
+        let insert = |items: &[Item]| {
+            let Item::Entity(Entity::OnLayer { layer: 1, entity }) = items.last().unwrap() else {
+                panic!("expected final INSERT entity");
+            };
+            let Entity::Insert {
+                origin,
+                x_scale,
+                y_scale,
+                rotation_deg,
+                name,
+            } = entity.as_ref()
+            else {
+                panic!("expected final INSERT entity");
+            };
+            assert_eq!(
+                (*origin, *x_scale, *y_scale, name.as_str()),
+                (Point { x: 3.0, y: 4.0 }, 2.0, 2.0, "B1")
+            );
+            assert!((*rotation_deg - expected_angle).abs() < 1e-10);
+        };
+        insert(&parsed.items);
+
+        let mut editor = acad_cmd::Editor::default();
+        for input in &inputs {
+            editor.submit(input).unwrap();
+        }
+        assert_eq!(&editor.drawing().items[..2], &parsed.items[..2]);
+        insert(&editor.drawing().items);
+        if acad_oracle::available() {
+            let qemu = acad_oracle::generate_dwg(&disk, name, &inputs).unwrap();
+            assert_eq!(qemu, original, "{name}: in-tree original vs QEMU");
+            insert(&acad_dwg::parse(&qemu).unwrap().items);
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn original_repeat_round_trips_and_matches_the_rust_command() {
     use acad_model::{Entity, Item, Point};
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

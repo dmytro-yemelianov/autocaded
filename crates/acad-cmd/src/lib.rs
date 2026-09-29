@@ -74,7 +74,9 @@ enum InputState {
     ArrayRowSpacing(Vec<usize>, usize, usize),
     ArrayColumnSpacing(Vec<usize>, usize, usize, ArraySpacingInput),
     ChangeSelection,
+    ChangeIntersection(Vec<usize>),
     ChangeLayer(Vec<usize>),
+    ChangeInsertAngle(Vec<usize>),
     FilletSelection,
     FilletRadius(Vec<usize>),
     BreakSelection,
@@ -202,7 +204,9 @@ impl InputState {
             Self::ArrayRowSpacing(_, _, _) => "ARRAY: row spacing",
             Self::ArrayColumnSpacing(_, _, _, _) => "ARRAY: column spacing",
             Self::ChangeSelection => "CHANGE: entity numbers or ALL",
+            Self::ChangeIntersection(_) => "CHANGE: intersection point or L",
             Self::ChangeLayer(_) => "CHANGE: new layer index",
+            Self::ChangeInsertAngle(_) => "CHANGE: new angle (Enter keeps current)",
             Self::FilletSelection => "FILLET: select two LINE entities",
             Self::FilletRadius(_) => "FILLET: radius",
             Self::BreakSelection => "BREAK: one LINE, ARC or CIRCLE entity",
@@ -843,12 +847,56 @@ impl Editor {
             }
             InputState::ChangeSelection => {
                 let ids = selection(line, selectable_count(&self.drawing))?;
+                self.state = InputState::ChangeIntersection(ids);
+                Ok(Effect::Continue)
+            }
+            InputState::ChangeIntersection(ids) if line.eq_ignore_ascii_case("L") => {
                 self.state = InputState::ChangeLayer(ids);
+                Ok(Effect::Continue)
+            }
+            InputState::ChangeIntersection(ids) => {
+                let selected = selected_item_indexes(&self.drawing, &ids);
+                let base = self
+                    .drawing
+                    .items
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| selected.contains(&(index + 1)))
+                    .find_map(|(_, item)| item_anchor(item))
+                    .ok_or("CHANGE needs one or more entities with a point")?;
+                let point = point_from(line, base)?;
+                self.change_point(&ids, point)?;
+                let selected = selected_item_indexes(&self.drawing, &ids);
+                let has_insert = self.drawing.items.iter().enumerate().any(|(index, item)| {
+                    selected.contains(&(index + 1))
+                        && matches!(item, Item::Entity(entity) if matches!(bare(entity), Entity::Insert { .. }))
+                });
+                self.state = if has_insert {
+                    InputState::ChangeInsertAngle(ids)
+                } else {
+                    InputState::Command
+                };
                 Ok(Effect::Continue)
             }
             InputState::ChangeLayer(ids) => {
                 let layer = layer_index(line)?;
                 self.change_layer(&ids, layer);
+                self.state = InputState::Command;
+                Ok(Effect::Continue)
+            }
+            InputState::ChangeInsertAngle(ids) => {
+                if !line.is_empty() {
+                    let angle = number(line)?;
+                    let selected = selected_item_indexes(&self.drawing, &ids);
+                    for (index, item) in self.drawing.items.iter_mut().enumerate() {
+                        if selected.contains(&(index + 1)) {
+                            if let Item::Entity(entity) = item {
+                                set_insert_angle(entity, angle);
+                            }
+                        }
+                    }
+                    self.refresh_after_edit();
+                }
                 self.state = InputState::Command;
                 Ok(Effect::Continue)
             }
@@ -1356,6 +1404,33 @@ impl Editor {
         self.status = format!("Changed {} entities to layer {layer}", ids.len());
     }
 
+    fn change_point(&mut self, ids: &[usize], point: Point) -> Result<(), String> {
+        let selected = selected_item_indexes(&self.drawing, ids);
+        for (index, item) in self.drawing.items.iter().enumerate() {
+            if selected.contains(&(index + 1)) {
+                let Item::Entity(entity) = item else {
+                    return Err("CHANGE point mode only supports top-level entities".into());
+                };
+                if !can_change_point(entity) {
+                    return Err(
+                        "CHANGE point mode currently supports LINE, CIRCLE and INSERT".into(),
+                    );
+                }
+            }
+        }
+        self.save_undo();
+        for (index, item) in self.drawing.items.iter_mut().enumerate() {
+            if selected.contains(&(index + 1)) {
+                if let Item::Entity(entity) = item {
+                    apply_change_point(entity, point);
+                }
+            }
+        }
+        self.refresh_after_edit();
+        self.status = format!("Changed {} entities at the specified point", ids.len());
+        Ok(())
+    }
+
     fn fillet(&mut self, ids: &[usize], radius: f64) -> Result<(), String> {
         let indexes = selected_item_indexes(&self.drawing, ids);
         let selected: Vec<_> = indexes.into_iter().collect();
@@ -1821,6 +1896,49 @@ fn item_anchor(item: &Item) -> Option<Point> {
     match item {
         Item::Entity(entity) => entity_anchor(entity),
         _ => None,
+    }
+}
+
+fn can_change_point(entity: &Entity) -> bool {
+    matches!(
+        bare(entity),
+        Entity::Line { .. } | Entity::Circle { .. } | Entity::Insert { .. }
+    )
+}
+
+fn apply_change_point(entity: &mut Entity, point: Point) {
+    match entity {
+        Entity::OnLayer { entity, .. } => apply_change_point(entity, point),
+        Entity::Line { start, end } => {
+            let distance = |candidate: Point| {
+                (candidate.x - point.x).powi(2) + (candidate.y - point.y).powi(2)
+            };
+            if distance(*start) <= distance(*end) {
+                *start = point;
+            } else {
+                *end = point;
+            }
+        }
+        Entity::Circle { center, radius } => {
+            *radius = ((center.x - point.x).powi(2) + (center.y - point.y).powi(2)).sqrt();
+        }
+        Entity::Insert { origin, .. } => *origin = point,
+        Entity::Repeat(_)
+        | Entity::Load { .. }
+        | Entity::Shape { .. }
+        | Entity::Arc { .. }
+        | Entity::Text { .. }
+        | Entity::Point { .. }
+        | Entity::Trace { .. }
+        | Entity::Solid { .. } => unreachable!("unsupported CHANGE point entity was validated"),
+    }
+}
+
+fn set_insert_angle(entity: &mut Entity, angle: f64) {
+    match entity {
+        Entity::OnLayer { entity, .. } => set_insert_angle(entity, angle),
+        Entity::Insert { rotation_deg, .. } => *rotation_deg = angle,
+        _ => {}
     }
 }
 
@@ -2962,7 +3080,7 @@ mod tests {
             editor.submit(input).unwrap();
         }
         let before: Vec<_> = editor.drawing().entities().cloned().collect();
-        for input in ["CHANGE", "1", "7"] {
+        for input in ["CHANGE", "1", "L", "7"] {
             editor.submit(input).unwrap();
         }
         let changed: Vec<_> = editor.drawing().entities().cloned().collect();
@@ -2978,6 +3096,35 @@ mod tests {
             before
         );
         assert!(!editor.drawing().header.layers.contains_key(&7));
+    }
+
+    #[test]
+    fn change_point_moves_the_nearest_line_endpoint_and_undo_restores_it() {
+        let mut editor = Editor::default();
+        for input in ["LINE", "1,1", "2,1", "", "CHANGE", "1", "3,4"] {
+            editor.submit(input).unwrap();
+        }
+        assert_eq!(
+            editor.drawing().entities().next().unwrap(),
+            &Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Line {
+                    start: Point { x: 1.0, y: 1.0 },
+                    end: Point { x: 3.0, y: 4.0 },
+                }),
+            }
+        );
+        editor.submit("UNDO").unwrap();
+        assert_eq!(
+            editor.drawing().entities().next().unwrap(),
+            &Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Line {
+                    start: Point { x: 1.0, y: 1.0 },
+                    end: Point { x: 2.0, y: 1.0 },
+                }),
+            }
+        );
     }
 
     #[test]

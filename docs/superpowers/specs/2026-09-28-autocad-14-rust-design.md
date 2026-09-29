@@ -460,10 +460,16 @@ that overflow or generate over 100,000 entities. Angle-to-cover input and
 optional rotation of inserted blocks remain open. One `UNDO` reverses either
 array operation.
 
-`CHANGE` assigns selected top-level entities to an existing or new layer,
-preserves their geometry and other entities, and is reversible with one
-`UNDO`. The command and header-layer update are model-tested; differential
-verification against AutoCAD remains open.
+`CHANGE` asks for selected entities, then an intersection point or `L`. `L`
+opens the new-layer prompt; a point changes a LINE's nearer endpoint or sets
+a CIRCLE's radius through that point. For INSERT, the point sets its origin
+and a following optional angle replaces its rotation. Original DWG probes
+confirm these paths, including assigning layer 2, changing a line from
+`(1,1)–(2,1)` to `(1,1)–(3,4)`, changing a radius-2 circle to radius 3, and
+moving a block insert to `(3,4)` with optional 45° rotation. Rust implements
+these point-mode entity types and the layer path; edits preserve entity order
+and are reversible with one `UNDO`. TEXT point mode and selection by point or
+window remain open.
 
 `FILLET` accepts two top-level `LINE` entities whose segments intersect and a
 positive radius. It uses the nearest endpoint on each line to choose the

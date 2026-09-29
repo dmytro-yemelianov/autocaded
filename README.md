@@ -165,7 +165,8 @@ X/Y scales and rotation, or an opposite corner point to set both scales),
 at a new insertion point, `BREAK` on lines, arcs and circles, rectangular and
 circular `ARRAY`, line-to-line
 `FILLET`,
-`CHANGE` (assign selected entities to a layer), `DIST`, `ID`, point-by-point `AREA`,
+`CHANGE` (move selected LINE/CIRCLE/INSERT geometry or assign it to a layer),
+`DIST`, `ID`, point-by-point `AREA`,
 `ENTITYAREA` for circles, quadrilaterals, and closed line loops (a Rust extension),
 `OOPS` (restore the last ERASE),
 `UNDO`, `BASE`,
