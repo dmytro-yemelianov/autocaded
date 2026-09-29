@@ -1064,7 +1064,7 @@ impl Editor {
     fn create_block(&mut self, name: String, base: Point, ids: &[usize]) {
         let selected = selected_item_indexes(&self.drawing, ids);
         self.save_undo();
-        let mut retained = Vec::with_capacity(self.drawing.items.len() - selected.len() + 1);
+        let mut retained = Vec::with_capacity(self.drawing.items.len() + 1);
         let mut entities = Vec::with_capacity(selected.len());
         for (index, item) in std::mem::take(&mut self.drawing.items)
             .into_iter()
@@ -1074,7 +1074,8 @@ impl Editor {
                 let Item::Entity(entity) = item else {
                     unreachable!("only entities can be selected for BLOCK");
                 };
-                entities.push(entity);
+                entities.push(entity.clone());
+                retained.push(Item::Erased(entity));
             } else {
                 retained.push(item);
             }
@@ -1116,18 +1117,19 @@ impl Editor {
         self.save_undo();
         let selected = selected_item_indexes(&self.drawing, ids);
         let mut erased = Vec::new();
-        let mut retained = Vec::with_capacity(self.drawing.items.len());
-        for (index, item) in std::mem::take(&mut self.drawing.items)
-            .into_iter()
-            .enumerate()
-        {
+        for (index, item) in self.drawing.items.iter_mut().enumerate() {
             if selected.contains(&(index + 1)) {
-                erased.push(ErasedItem { index, item });
-            } else {
-                retained.push(item);
+                let previous = item.clone();
+                let Item::Entity(entity) = previous.clone() else {
+                    unreachable!("only live entities are selectable");
+                };
+                *item = Item::Erased(entity);
+                erased.push(ErasedItem {
+                    index,
+                    item: previous,
+                });
             }
         }
-        self.drawing.items = retained;
         self.last_erased = Some(erased);
         self.refresh_after_edit();
         self.status = format!("Erased {} entities", ids.len());
@@ -1141,8 +1143,15 @@ impl Editor {
         self.save_undo();
         self.last_erased = None;
         for erased_item in &erased {
-            let index = erased_item.index.min(self.drawing.items.len());
-            self.drawing.items.insert(index, erased_item.item.clone());
+            if matches!(
+                self.drawing.items.get(erased_item.index),
+                Some(Item::Erased(_))
+            ) {
+                self.drawing.items[erased_item.index] = erased_item.item.clone();
+            } else {
+                let index = erased_item.index.min(self.drawing.items.len());
+                self.drawing.items.insert(index, erased_item.item.clone());
+            }
         }
         self.refresh_after_edit();
         self.status = format!("Restored {} erased entities", erased.len());
@@ -1165,7 +1174,7 @@ impl Editor {
             .filter_map(|(index, item)| {
                 source_indexes.contains(&(index + 1)).then(|| match item {
                     Item::Entity(entity) => Some(entity.clone()),
-                    Item::Block(_) | Item::Repeat(_) => None,
+                    Item::Block(_) | Item::Repeat(_) | Item::Erased(_) => None,
                 })?
             })
             .collect();
@@ -1288,7 +1297,7 @@ impl Editor {
                 if indexes.contains(&(index + 1)) {
                     match item {
                         Item::Entity(entity) => Some(entity),
-                        Item::Block(_) | Item::Repeat(_) => None,
+                        Item::Block(_) | Item::Repeat(_) | Item::Erased(_) => None,
                     }
                 } else {
                     None
@@ -1345,7 +1354,7 @@ impl Editor {
             match item {
                 Item::Entity(entity) => entity_points(entity, &mut points),
                 Item::Repeat(repeat) => repeat_points(repeat, &mut points),
-                Item::Block(_) => {}
+                Item::Block(_) | Item::Erased(_) => {}
             }
         }
         if points.is_empty() {
@@ -2628,14 +2637,18 @@ mod tests {
         let before = editor.drawing().items.clone();
         editor.submit("ERASE").unwrap();
         editor.submit("1,3").unwrap();
-        assert_eq!(editor.drawing().items.len(), 3);
+        assert_eq!(editor.drawing().items.len(), 5);
+        assert_eq!(editor.drawing().entities().count(), 2);
+        assert!(matches!(editor.drawing().items[0], Item::Erased(_)));
+        assert!(matches!(editor.drawing().items[4], Item::Erased(_)));
 
         editor.submit("OOPS").unwrap();
         assert_eq!(editor.drawing().items, before);
         assert_eq!(editor.status(), "Restored 2 erased entities");
 
         editor.submit("UNDO").unwrap();
-        assert_eq!(editor.drawing().items.len(), 3);
+        assert_eq!(editor.drawing().items.len(), 5);
+        assert_eq!(editor.drawing().entities().count(), 2);
         editor.submit("OOPS").unwrap();
         assert_eq!(editor.drawing().items, before);
     }

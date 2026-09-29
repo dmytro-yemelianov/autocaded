@@ -78,6 +78,9 @@ record's extra word and point-specified distances still need investigation.
 A signed type code marking an
 erased entity (`ADDER`'s own finding) is confirmed the same way: reading the code
 as `i16` makes `ADDER`'s walk land exactly, where reading it unsigned does not.
+Erased records now remain in DWG document order and are omitted from rendering
+and DXF export. QEMU verifies `ERASE L` saves a `-1` LINE record and `OOPS`
+restores its positive type; Rust emits matching record bytes for both.
 
 All 16 `AC1.2` drawings in the corpus have been run through the reader
 (`crates/acad-dwg/tests/corpus_smoke.rs`): **all 16 render**. The pre-existing 11

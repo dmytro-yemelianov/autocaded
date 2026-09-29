@@ -19,6 +19,34 @@ fn corpus(rel: &str) -> Option<Vec<u8>> {
     }
 }
 
+#[test]
+fn adder_preserves_its_seven_erased_records_in_dwg_order() {
+    let Some(bytes) = corpus("Samples/ADDER.DWG") else {
+        return;
+    };
+    let drawing = acad_dwg::parse(&bytes).unwrap();
+    let erased: Vec<_> = drawing
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Erased(entity) => Some(entity),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(erased.len(), 7);
+    assert!(erased.iter().all(|entity| matches!(entity, Entity::OnLayer { entity, .. } if matches!(entity.as_ref(), Entity::Line { .. } | Entity::Insert { .. }))));
+    let rewritten = acad_dwg::write_version(&drawing, acad_dwg::header::Version::Ac12).unwrap();
+    let reopened = acad_dwg::parse(&rewritten).unwrap();
+    assert_eq!(
+        reopened
+            .items
+            .iter()
+            .filter(|item| matches!(item, Item::Erased(_)))
+            .count(),
+        7
+    );
+}
+
 const ENTITY_START: usize = 0x1d8;
 const TYPE_LINE: u16 = 1;
 const TYPE_ARC: u16 = 8;
@@ -136,6 +164,7 @@ fn flatten_dxf_entities(items: &[Item]) -> Vec<Entity> {
             Item::Entity(e) => out.push(e.clone()),
             Item::Block(b) => out.extend(b.entities.iter().cloned()),
             Item::Repeat(r) => out.extend(r.entities.iter().cloned()),
+            Item::Erased(_) => {}
         }
     }
     out

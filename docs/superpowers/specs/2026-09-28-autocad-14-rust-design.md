@@ -175,6 +175,8 @@ nonsensical types 65535 and 65522. The record keeps its full body, which is pres
 `OOPS` restores the last erase. Treating the code as signed and skipping negatives makes
 `ADDER` walk exactly 66 records to `entity_end`, matching its header count; read as unsigned
 the walk dies at record 42. `SUBDIV` has none and is unaffected.
+The current DWG model retains ordinary erased records in place as `Item::Erased`;
+the geometry iterator, renderer, and DXF writer omit them.
 
 **Text height** — an `AC1.2` `TEXT` entity stores the font's full cell height;
 the DXF reports cap height. `.SHP` fonts declare the
@@ -396,10 +398,10 @@ the current view height. Remaining commands and the full AutoCAD menu/command
 behavior are still open.
 
 The command engine also has LIST plus ERASE, MOVE, COPY, ROTATE and SCALE over
-one-based IDs (or `ALL`), with model tests for geometry changes and undo. These
-selection semantics are a usable first editor interface, not yet a verified match
-for AutoCAD's screen-menu selection flow. A trial QEMU script for the original
-left its input line unchanged, so no differential claim is made for these edits.
+one-based IDs (or `ALL`), with model tests for geometry changes and undo.
+QEMU checks the original's `LAST` selection for ERASE, MOVE, and COPY; BLOCK
+and INSERT have further original-command probes below. Point and window
+selection and the screen-menu flow still need differential coverage.
 
 `INSERT` now places an existing block by name, with an insertion point,
 independent X/Y scales, and rotation; blank scale and rotation prompts use
@@ -423,8 +425,8 @@ an insert in the original probe and remains invalid in Rust.
 
 `BLOCK` now creates a named definition from selected top-level entities.
 The original's `LAST` flow was captured with a nonzero base point: it
-uppercases the name, retains the members' drawing coordinates, removes them
-from the top level, and appends the block after unselected entities. The
+uppercases the name, retains the members' drawing coordinates, marks their
+source records erased in place, and appends the block after those records. The
 Rust command reproduces that item list; its AC1.40 save reopens with the same
 items, and the in-tree original's DWG matches QEMU byte for byte. Rust also
 accepts the existing ID/`ALL` selection interface, which remains to be
@@ -432,8 +434,9 @@ compared with the original's point and window selection behavior.
 
 `OOPS` restores the last `ERASE` at the original item positions, including
 around block definitions and `LOAD` records. `UNDO` can reverse an `OOPS` and
-then restore its erased set again. This behavior is model-tested; differential
-verification against AutoCAD remains open.
+then restore its erased set again. QEMU now verifies `ERASE L` and `OOPS` on a
+LINE: the original saves type `-1` after erasure and `+1` after restoration,
+and Rust writes the same entity bytes.
 
 Rectangular `ARRAY` copies a selected set into a row/column grid with signed
 row and column spacing. One `UNDO` reverses the complete operation. The

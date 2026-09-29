@@ -113,6 +113,7 @@ fn original_exports_verify_both_dwg_versions() {
             Item::Entity(e) => std::slice::from_ref(e).iter(),
             Item::Block(b) => b.entities.iter(),
             Item::Repeat(r) => r.entities.iter(),
+            Item::Erased(_) => [].iter(),
         });
         let (mut points, mut traces, mut solids) = (0, 0, 0);
         for e in all_entities {

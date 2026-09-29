@@ -178,6 +178,28 @@ fn encode_block(
     Ok(())
 }
 
+fn encode_erased_entity(
+    out: &mut Vec<u8>,
+    entity: &Entity,
+    count: &mut u32,
+    version: Version,
+) -> Result<(), DwgError> {
+    let mut record = Vec::new();
+    let mut record_count = 0;
+    encode_entity(&mut record, entity, &mut record_count, version)?;
+    if record_count != 1 {
+        return Err(DwgError::WriteValue {
+            field: "erased entity",
+            value: "a grouped entity cannot be encoded as one erased record".into(),
+        });
+    }
+    let kind = i16::from_le_bytes([record[0], record[1]]);
+    record[..2].copy_from_slice(&(-kind).to_le_bytes());
+    out.extend_from_slice(&record);
+    *count += 1;
+    Ok(())
+}
+
 fn encode_repeat(
     out: &mut Vec<u8>,
     repeat: &acad_model::Repeat,
@@ -248,6 +270,7 @@ pub fn encode_version(drawing: &Drawing, version: Version) -> Result<Vec<u8>, Dw
     for item in &drawing.items {
         match item {
             Item::Entity(e) => encode_entity(&mut entities, e, &mut count, version)?,
+            Item::Erased(e) => encode_erased_entity(&mut entities, e, &mut count, version)?,
             Item::Repeat(r) => encode_repeat(&mut entities, r, &mut count, version)?,
             Item::Block(b) => encode_block(
                 &mut entities,

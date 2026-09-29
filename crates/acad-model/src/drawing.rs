@@ -10,6 +10,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub enum Item {
     Entity(Entity),
+    /// An erased record remains in the DWG stream with a negative type code.
+    Erased(Entity),
     Block(Block),
     Repeat(Repeat),
 }
@@ -35,7 +37,7 @@ impl Drawing {
         self.items.iter().flat_map(|i| match i {
             Item::Entity(e) => std::slice::from_ref(e).iter(),
             Item::Repeat(r) => r.entities.iter(),
-            Item::Block(_) => [].iter(),
+            Item::Block(_) | Item::Erased(_) => [].iter(),
         })
     }
     pub fn blocks(&self) -> impl Iterator<Item = &Block> {

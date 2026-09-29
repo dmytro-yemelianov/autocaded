@@ -197,6 +197,7 @@ pub fn write(d: &Drawing) -> Vec<u8> {
                 s.push_str("ENDBLK,1\r\n");
             }
             Item::Entity(e) => entity(&mut s, e),
+            Item::Erased(_) => {}
             Item::Repeat(r) => {
                 s.push_str("REPEAT,1\r\n");
                 for e in &r.entities {

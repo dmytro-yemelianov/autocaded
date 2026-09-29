@@ -456,7 +456,7 @@ pub fn flatten_with_libraries(
     for item in &d.items {
         match item {
             Item::Entity(e) => primitives.extend(walker.entity(e, &mut state, MAX_INSERT_DEPTH)),
-            Item::Block(_) => {}
+            Item::Block(_) | Item::Erased(_) => {}
             Item::Repeat(repeat) => {
                 primitives.extend(walker.repeat(repeat, &mut state, MAX_INSERT_DEPTH));
             }

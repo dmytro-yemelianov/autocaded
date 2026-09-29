@@ -21,7 +21,9 @@
 //! `INSERT` — read as unsigned they are the nonsensical 65535 and 65522).
 //! The record keeps its full body — presumably how `OOPS` restores the last
 //! erase — so the byte walk decodes it exactly like the live version of the
-//! same type and simply discards the result. Confirmed on `ADDER`, the
+//! same type. `read_items` keeps ordinary erased records in place as
+//! `Item::Erased`, while the geometry-only `read_entities` omits them.
+//! Confirmed on `ADDER`, the
 //! corpus's only file with any: reading the sign makes it walk exactly 66
 //! records to `entity_end` (matching its header's `entity_count`, which
 //! counts all 7 erased records too), with all 7 landing on `LINE` or
@@ -205,12 +207,13 @@ fn checked_string(bytes: &[u8], at: usize, index: u32) -> Result<(String, usize)
 
 /// One physical record's payload, once its header and fields are read: a
 /// decoded entity, one of the `BLOCK`/`ENDBLK` delimiters `read_items` groups
-/// by, or nothing (an erased record, or `ENDREP` — see the module doc). Not
+/// by, or nothing (an erased structural record — see the module doc). Not
 /// `pub` — `read_entities` and `read_items` are the crate's two supported
 /// ways to walk the entity stream; nothing outside this module needs a
 /// record-level view.
 enum RecordBody {
     Entity(Entity),
+    ErasedEntity(Entity),
     RepeatStart(Entity),
     RepeatEnd {
         columns: u16,
@@ -223,10 +226,7 @@ enum RecordBody {
         base: Point,
     },
     BlockEnd,
-    /// Consumed correctly for byte alignment, but produces no output:
-    /// either the type code was negative (an erased record — spec §4.2) and
-    /// its otherwise-normal body is simply discarded, or the record is
-    /// `ENDREP`, whose own fields have no evidenced meaning (module doc).
+    /// Structural record consumed for byte alignment without a model item.
     Skip,
 }
 
@@ -474,7 +474,7 @@ fn read_record_body(
     // The type code is a signed i16: a negative value marks an erased
     // record whose magnitude is its real type (spec §4.2, module doc). The
     // record's body is still fully, correctly decoded below — only the
-    // final result is discarded — so a truncated erased record is still
+    // final result is marked erased — so a truncated erased record is still
     // TruncatedEntity, never silently accepted.
     let signed = header.type_code as i16;
     let erased = signed.is_negative();
@@ -563,7 +563,11 @@ fn read_record_body(
     };
 
     if erased {
-        Ok((RecordBody::Skip, next, logical))
+        let body = match body {
+            RecordBody::Entity(entity) => RecordBody::ErasedEntity(entity),
+            _ => RecordBody::Skip,
+        };
+        Ok((body, next, logical))
     } else {
         Ok((body, next, logical))
     }
@@ -673,6 +677,11 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
                     block.entities.push(e);
                 } else {
                     out.push(Item::Entity(e));
+                }
+            }
+            RecordBody::ErasedEntity(e) => {
+                if open.is_empty() && repeat.is_none() {
+                    out.push(Item::Erased(e));
                 }
             }
             RecordBody::RepeatStart(e) => {
@@ -1953,7 +1962,7 @@ mod tests {
     }
 
     #[test]
-    fn read_items_also_skips_erased_records() {
+    fn read_items_retains_erased_records_in_place() {
         let bytes = records(&[
             erase(TYPE_LINE, raw_line(0.0, 0.0, 1.0, 1.0)),
             raw_line(5.0, 5.0, 6.0, 6.0),
@@ -1964,9 +1973,12 @@ mod tests {
             entity_end: bytes.len() as u32,
         };
         let items = read_items(&bytes, &meta).unwrap();
-        assert_eq!(items.len(), 1);
+        assert_eq!(items.len(), 2);
         assert!(
-            matches!(&items[0], Item::Entity(Entity::OnLayer { entity, .. }) if matches!(entity.as_ref(), Entity::Line { .. }))
+            matches!(&items[0], Item::Erased(Entity::OnLayer { entity, .. }) if matches!(entity.as_ref(), Entity::Line { .. }))
+        );
+        assert!(
+            matches!(&items[1], Item::Entity(Entity::OnLayer { entity, .. }) if matches!(entity.as_ref(), Entity::Line { .. }))
         );
     }
 

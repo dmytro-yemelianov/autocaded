@@ -147,7 +147,56 @@ fn original_move_and_copy_use_displacement_before_last_selection() {
 
 #[cfg(unix)]
 #[test]
-fn block_last_moves_the_entity_into_an_uppercase_definition() {
+fn original_erase_marks_the_record_and_oops_restores_it() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        return;
+    }
+    let line = Entity::OnLayer {
+        layer: 1,
+        entity: Box::new(Entity::Line {
+            start: Point { x: 1.0, y: 1.0 },
+            end: Point { x: 2.0, y: 1.0 },
+        }),
+    };
+    for (name, restore) in [("ORCERAS", false), ("ORCOOPS", true)] {
+        let mut input = vec!["LINE", "1,1", "2,1", "", "ERASE", "L"];
+        if restore {
+            input.push("OOPS");
+        }
+        let dwg = acad_oracle::generate_dwg(&disk, name, &input).unwrap();
+        let (_, meta) = acad_dwg::header::parse_header(&dwg).unwrap();
+        assert_eq!(meta.entity_count, 1);
+        let expected = if restore {
+            Item::Entity(line.clone())
+        } else {
+            Item::Erased(line.clone())
+        };
+        assert_eq!(
+            i16::from_le_bytes(dwg[0x202..0x204].try_into().unwrap()),
+            if restore { 1 } else { -1 }
+        );
+        let decoded = acad_dwg::parse(&dwg).unwrap();
+        assert_eq!(decoded.items, [expected.clone()]);
+        let mut editor = acad_cmd::Editor::default();
+        for command in input {
+            editor.submit(command).unwrap();
+        }
+        assert_eq!(editor.drawing().items, [expected]);
+        let rust_dwg = acad_dwg::write(editor.drawing()).unwrap();
+        let (_, rust_meta) = acad_dwg::header::parse_header(&rust_dwg).unwrap();
+        assert_eq!(
+            &rust_dwg[0x202..rust_meta.entity_end as usize],
+            &dwg[0x202..meta.entity_end as usize]
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn block_last_marks_the_source_erased_and_adds_an_uppercase_definition() {
     use acad_model::{Entity, Item, Point};
 
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -160,9 +209,10 @@ fn block_last_moves_the_entity_into_an_uppercase_definition() {
     ];
     let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCBLOCK", &inputs).unwrap();
     let decoded = acad_dwg::parse(&original).unwrap();
-    assert_eq!(decoded.items.len(), 2);
+    assert_eq!(decoded.items.len(), 3);
     assert!(matches!(decoded.items[0], Item::Entity(_)));
-    let Item::Block(block) = &decoded.items[1] else {
+    assert!(matches!(decoded.items[1], Item::Erased(_)));
+    let Item::Block(block) = &decoded.items[2] else {
         panic!("original did not create a block");
     };
     assert_eq!(block.name, "B1");
@@ -203,10 +253,11 @@ fn insert_uses_the_new_block_with_independent_scales_and_rotation() {
     ];
     let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCBINS", &inputs).unwrap();
     let decoded = acad_dwg::parse(&original).unwrap();
-    assert_eq!(decoded.items.len(), 2);
-    assert!(matches!(decoded.items[0], Item::Block(_)));
-    let Item::Entity(Entity::OnLayer { entity, layer: 1 }) = &decoded.items[1] else {
-        panic!("original INSERT was {:?}", decoded.items[1]);
+    assert_eq!(decoded.items.len(), 3);
+    assert!(matches!(decoded.items[0], Item::Erased(_)));
+    assert!(matches!(decoded.items[1], Item::Block(_)));
+    let Item::Entity(Entity::OnLayer { entity, layer: 1 }) = &decoded.items[2] else {
+        panic!("original INSERT was {:?}", decoded.items[2]);
     };
     let Entity::Insert {
         origin,
@@ -216,7 +267,7 @@ fn insert_uses_the_new_block_with_independent_scales_and_rotation() {
         name,
     } = entity.as_ref()
     else {
-        panic!("original INSERT was {:?}", decoded.items[1]);
+        panic!("original INSERT was {:?}", decoded.items[2]);
     };
     assert_eq!(*origin, Point { x: 7.0, y: 8.0 });
     assert_eq!((*x_scale, *y_scale, name.as_str()), (2.0, 3.0, "B1"));
@@ -226,10 +277,11 @@ fn insert_uses_the_new_block_with_independent_scales_and_rotation() {
         rust.submit(input).unwrap();
     }
     assert_eq!(rust.drawing().items[0], decoded.items[0]);
+    assert_eq!(rust.drawing().items[1], decoded.items[1]);
     let Item::Entity(Entity::OnLayer {
         entity: rust_insert,
         layer: 1,
-    }) = &rust.drawing().items[1]
+    }) = &rust.drawing().items[2]
     else {
         panic!("Rust did not create an INSERT");
     };
@@ -274,7 +326,7 @@ fn insert_blank_y_scale_reuses_x_scale_as_the_original_does() {
     ];
     let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCINSDF", &inputs).unwrap();
     let decoded = acad_dwg::parse(&original).unwrap();
-    let Item::Entity(Entity::OnLayer { entity, .. }) = &decoded.items[1] else {
+    let Item::Entity(Entity::OnLayer { entity, .. }) = &decoded.items[2] else {
         panic!("original did not save an INSERT");
     };
     let Entity::Insert {
@@ -316,10 +368,11 @@ fn star_insert_explodes_the_block_at_the_requested_point() {
     ];
     let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCEXPL", &inputs).unwrap();
     let decoded = acad_dwg::parse(&original).unwrap();
-    assert_eq!(decoded.items.len(), 2);
-    assert!(matches!(decoded.items[0], Item::Block(_)));
+    assert_eq!(decoded.items.len(), 3);
+    assert!(matches!(decoded.items[0], Item::Erased(_)));
+    assert!(matches!(decoded.items[1], Item::Block(_)));
     assert!(matches!(
-        decoded.items[1],
+        decoded.items[2],
         Item::Entity(Entity::OnLayer { ref entity, layer: 1 })
             if matches!(entity.as_ref(), Entity::Line {
                 start: Point { x: 8.0, y: 9.0 },
@@ -354,9 +407,10 @@ fn insert_opposite_corner_sets_both_scales_in_the_original() {
     ];
     let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCBOX", &inputs).unwrap();
     let decoded = acad_dwg::parse(&original).unwrap();
-    assert_eq!(decoded.items.len(), 2);
+    assert_eq!(decoded.items.len(), 3);
+    assert!(matches!(decoded.items[0], Item::Erased(_)));
     assert!(matches!(
-        decoded.items[1],
+        decoded.items[2],
         Item::Entity(Entity::OnLayer { ref entity, layer: 1 })
             if matches!(entity.as_ref(), Entity::Insert {
                 origin: Point { x: 3.0, y: 3.0 },
@@ -395,8 +449,9 @@ fn negative_insert_scales_mirror_the_original_block() {
     ];
     let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCNEG", &inputs).unwrap();
     let decoded = acad_dwg::parse(&original).unwrap();
+    assert!(matches!(decoded.items[0], Item::Erased(_)));
     assert!(matches!(
-        decoded.items[1],
+        decoded.items[2],
         Item::Entity(Entity::OnLayer { ref entity, layer: 1 })
             if matches!(entity.as_ref(), Entity::Insert {
                 origin: Point { x: 3.0, y: 3.0 },
