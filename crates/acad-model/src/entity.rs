@@ -9,6 +9,15 @@ use crate::geom::Point;
 /// model just holds the four points.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Entity {
+    /// A rectangular pattern nested in a block definition.
+    Repeat(crate::drawing::Repeat),
+    /// Layer index stored in the entity record header. Wrapping keeps layer
+    /// metadata orthogonal to geometry while preserving source compatibility
+    /// for callers constructing geometry directly (default layer 1).
+    OnLayer {
+        layer: u8,
+        entity: Box<Entity>,
+    },
     /// Load a shape library or select a text font for subsequent records.
     /// Keep this in document order, including inside block definitions.
     Load {

@@ -35,6 +35,17 @@ const TOLERANCE: f64 = 5e-7;
 /// not just aggregate per-kind counts.
 fn kind_and_fields(e: &Entity) -> (&'static str, Vec<f64>, Option<&str>) {
     match e {
+        Entity::Repeat(r) => (
+            "REPEAT",
+            vec![
+                f64::from(r.columns),
+                f64::from(r.rows),
+                r.column_spacing,
+                r.row_spacing,
+            ],
+            None,
+        ),
+        Entity::OnLayer { entity, .. } => kind_and_fields(entity),
         Entity::Load { name } => ("LOAD", vec![], Some(name.as_str())),
         Entity::Shape {
             origin,
@@ -124,6 +135,7 @@ fn flatten_dxf_entities(items: &[Item]) -> Vec<Entity> {
         match item {
             Item::Entity(e) => out.push(e.clone()),
             Item::Block(b) => out.extend(b.entities.iter().cloned()),
+            Item::Repeat(r) => out.extend(r.entities.iter().cloned()),
         }
     }
     out
@@ -138,6 +150,7 @@ fn assert_same_items_order(a: &[Item], b: &[Item]) {
     for (i, (ia, ib)) in a.iter().zip(b.iter()).enumerate() {
         match (ia, ib) {
             (Item::Entity(ea), Item::Entity(eb)) => {
+                assert_eq!(layer_of(ea), layer_of(eb), "item {i}: layer mismatch");
                 assert_entities_match(ea, eb, &format!("item {i}"))
             }
             (Item::Block(ba), Item::Block(bb)) => {
@@ -161,11 +174,19 @@ fn assert_same_items_order(a: &[Item], b: &[Item]) {
                     ba.name
                 );
                 for (j, (ea, eb)) in ba.entities.iter().zip(bb.entities.iter()).enumerate() {
+                    assert_eq!(layer_of(ea), layer_of(eb), "item {i} entity {j}: layer mismatch");
                     assert_entities_match(ea, eb, &format!("item {i} (block \"{}\") entity {j}", ba.name));
                 }
             }
             _ => panic!("item {i}: kind mismatch (Entity vs Block) — DWG's block boundaries don't line up with the DXF's"),
         }
+    }
+}
+
+fn layer_of(e: &Entity) -> u8 {
+    match e {
+        Entity::OnLayer { layer, .. } => *layer,
+        _ => 1,
     }
 }
 
@@ -296,12 +317,12 @@ fn read_items_matches_the_dxfs_document_order_including_block_boundaries() {
     assert_eq!(block_pairs, 6, "SUBDIV holds 6 BLOCK/ENDBLK pairs");
     let text_count = from_dwg
         .iter()
-        .filter(|i| matches!(i, Item::Entity(Entity::Text { .. })))
+        .filter(|i| matches!(i, Item::Entity(Entity::OnLayer { entity, .. }) if matches!(entity.as_ref(), Entity::Text { .. })))
         .count();
     assert_eq!(text_count, 8, "SUBDIV holds 8 TEXT records");
     let insert_count = from_dwg
         .iter()
-        .filter(|i| matches!(i, Item::Entity(Entity::Insert { .. })))
+        .filter(|i| matches!(i, Item::Entity(Entity::OnLayer { entity, .. }) if matches!(entity.as_ref(), Entity::Insert { .. })))
         .count();
     assert_eq!(insert_count, 8, "SUBDIV holds 8 INSERT records");
 
@@ -411,6 +432,27 @@ fn selexol_and_blivet_group_their_nested_blocks() {
                 _ => None,
             })
             .collect();
+        if file == "BLIVET" {
+            assert_eq!(
+                items
+                    .iter()
+                    .filter(|i| matches!(i, Item::Repeat(_)))
+                    .count(),
+                3
+            );
+            assert_eq!(
+                items
+                    .iter()
+                    .filter_map(|i| match i {
+                        Item::Block(b) => Some(b),
+                        _ => None,
+                    })
+                    .flat_map(|b| b.entities.iter())
+                    .filter(|e| matches!(e, Entity::Repeat(_)))
+                    .count(),
+                2
+            );
+        }
         assert_eq!(
             found.as_slice(),
             blocks,

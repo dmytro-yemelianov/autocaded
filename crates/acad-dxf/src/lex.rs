@@ -6,6 +6,9 @@ use crate::error::DxfError;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
     pub keyword: String,
+    /// Entity suffix (layer index); for header records this remains the
+    /// record's instance count.
+    pub suffix: usize,
     pub rows: Vec<String>,
     pub line: usize,
 }
@@ -102,6 +105,7 @@ pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
             }
             out.push(Record {
                 keyword: kw.clone(),
+                suffix: count,
                 line: i + 1,
                 rows: lines[cursor..cursor + per]
                     .iter()

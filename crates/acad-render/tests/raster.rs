@@ -71,6 +71,43 @@ fn background_is_opaque_so_strokes_are_visible_when_composited() {
 }
 
 #[test]
+fn indexed_layer_color_reaches_the_rendered_pixels() {
+    let pm = rasterize(
+        &[Prim::ColoredPolyline {
+            points: vec![Point { x: 3.0, y: 12.0 }, Point { x: 28.0, y: 12.0 }],
+            rgb: [0, 0, 255],
+        }],
+        32,
+        24,
+    );
+    let pixel = pm.pixel(15, 12).unwrap();
+    assert_eq!((pixel.red(), pixel.green()), (0, 0));
+    assert!(pixel.blue() > 0);
+}
+
+#[test]
+fn filled_polygon_colors_its_interior() {
+    let pm = rasterize(
+        &[Prim::FilledPolygon(vec![
+            Point { x: 4.0, y: 4.0 },
+            Point { x: 28.0, y: 4.0 },
+            Point { x: 28.0, y: 28.0 },
+            Point { x: 4.0, y: 28.0 },
+            Point { x: 4.0, y: 4.0 },
+        ])],
+        32,
+        32,
+    );
+    let inside = pm.pixel(16, 16).unwrap();
+    let outside = pm.pixel(1, 1).unwrap();
+    assert_eq!(
+        (inside.red(), inside.green(), inside.blue()),
+        (255, 255, 255)
+    );
+    assert_eq!((outside.red(), outside.green(), outside.blue()), (0, 0, 0));
+}
+
+#[test]
 fn subdiv_renders_a_non_blank_image() {
     let Ok(bytes) = std::fs::read("../../corpus/Samples/SUBDIV.DXF") else {
         eprintln!("skipping: corpus absent (run ./tools/extract-corpus.sh)");

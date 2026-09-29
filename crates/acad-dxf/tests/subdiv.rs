@@ -22,7 +22,13 @@ fn subdiv_parses_with_the_counts_recorded_in_the_spec() {
     let count = |f: fn(&Entity) -> bool| {
         d.entities()
             .chain(d.blocks().flat_map(|b| b.entities.iter()))
-            .filter(|e| f(e))
+            .filter(|e| {
+                let mut e = *e;
+                while let Entity::OnLayer { entity, .. } = e {
+                    e = entity;
+                }
+                f(e)
+            })
             .count()
     };
     assert_eq!(count(|e| matches!(e, Entity::Line { .. })), 133);

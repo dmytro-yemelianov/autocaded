@@ -1,9 +1,79 @@
 use crate::viewport::Viewport;
-use acad_model::{Drawing, Entity, Point};
+use acad_model::{Drawing, Entity, Item, Point, Repeat};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Prim {
     Polyline(Vec<Point>),
+    ColoredPolyline { points: Vec<Point>, rgb: [u8; 3] },
+    FilledPolygon(Vec<Point>),
+    ColoredFilledPolygon { points: Vec<Point>, rgb: [u8; 3] },
+}
+
+fn aci_rgb(index: u8) -> [u8; 3] {
+    match index {
+        // Color 0 is BYBLOCK; use white until block color inheritance is
+        // modeled. Index 7 switches between white and black by background;
+        // this renderer uses a black background.
+        0 | 7 => [255, 255, 255],
+        1 => [255, 0, 0],
+        2 => [255, 255, 0],
+        3 => [0, 255, 0],
+        4 => [0, 255, 255],
+        5 => [0, 0, 255],
+        6 => [255, 0, 255],
+        8 => [128, 128, 128],
+        9 => [192, 192, 192],
+        10..=249 => {
+            // ACI 10..249 is 24 hues in 15-degree steps. Each hue has five
+            // brightness levels, each in full and half saturation.
+            let color = index - 10;
+            let hue = f64::from(color / 10) * 15.0;
+            let value = [255.0, 165.0, 127.0, 76.0, 38.0][usize::from((color % 10) / 2)];
+            let saturation = if color % 2 == 0 { 255.0 } else { 127.0 };
+            let chroma = value * saturation / 255.0;
+            let segment = hue / 60.0;
+            let x = chroma * (1.0 - (segment.rem_euclid(2.0) - 1.0).abs());
+            let (r, g, b) = match segment as u8 {
+                0 => (chroma, x, 0.0),
+                1 => (x, chroma, 0.0),
+                2 => (0.0, chroma, x),
+                3 => (0.0, x, chroma),
+                4 => (x, 0.0, chroma),
+                _ => (chroma, 0.0, x),
+            };
+            let m = value - chroma;
+            [
+                (r + m).floor() as u8,
+                (g + m).floor() as u8,
+                (b + m).floor() as u8,
+            ]
+        }
+        250 => [0, 0, 0],
+        251 => [101, 101, 101],
+        252 => [102, 102, 102],
+        253 => [153, 153, 153],
+        254 => [204, 204, 204],
+        255 => [255, 255, 255],
+    }
+}
+
+fn style(prims: Vec<Prim>, rgb: [u8; 3]) -> Vec<Prim> {
+    if rgb == [255, 255, 255] {
+        return prims;
+    }
+    prims
+        .into_iter()
+        .map(|prim| match prim {
+            Prim::Polyline(points) => Prim::ColoredPolyline { points, rgb },
+            Prim::FilledPolygon(points) => Prim::ColoredFilledPolygon { points, rgb },
+            Prim::ColoredPolyline { points, rgb: old } => {
+                Prim::ColoredPolyline { points, rgb: old }
+            }
+            Prim::ColoredFilledPolygon { points, rgb: old } => {
+                Prim::ColoredFilledPolygon { points, rgb: old }
+            }
+        })
+        .collect()
 }
 
 /// Counter-clockwise sweep from `start` to `end`, in degrees, always positive.
@@ -32,6 +102,34 @@ fn arc_points(c: Point, r: f64, start: f64, sweep: f64, vp: &Viewport) -> Vec<Po
 
 pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
     match e {
+        Entity::Repeat(repeat) => {
+            let base: Vec<Prim> = repeat
+                .entities
+                .iter()
+                .flat_map(|e| flatten_entity(e, vp))
+                .collect();
+            let origin = vp.to_screen(Point { x: 0.0, y: 0.0 });
+            let mut out = Vec::new();
+            for row in 0..repeat.rows {
+                for column in 0..repeat.columns {
+                    let p = vp.to_screen(Point {
+                        x: f64::from(column) * repeat.column_spacing,
+                        y: f64::from(row) * repeat.row_spacing,
+                    });
+                    out.extend(base.iter().cloned().map(|prim| {
+                        shift_prim(
+                            prim,
+                            Point {
+                                x: p.x - origin.x,
+                                y: p.y - origin.y,
+                            },
+                        )
+                    }));
+                }
+            }
+            out
+        }
+        Entity::OnLayer { entity, .. } => flatten_entity(entity, vp),
         Entity::Line { start, end } => vec![Prim::Polyline(vec![
             vp.to_screen(*start),
             vp.to_screen(*end),
@@ -82,8 +180,8 @@ pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
         // outline must visit p1, p2, p4, p3 to trace the quadrilateral
         // rather than a self-crossing bowtie. That ordering is the
         // well-documented AutoCAD SOLID/TRACE convention, applied here
-        // un-verified against this corpus; milestone 1 has no fill, so both
-        // draw as an outline only.
+        // un-verified against this corpus. This low-level helper draws the
+        // outline; the drawing-aware walker also applies the header FILL bit.
         Entity::Trace { p1, p2, p3, p4 } | Entity::Solid { p1, p2, p3, p4 } => {
             vec![Prim::Polyline(vec![
                 vp.to_screen(*p1),
@@ -149,6 +247,29 @@ struct Walker<'a> {
 }
 
 impl Walker<'_> {
+    fn repeat(&mut self, repeat: &Repeat, state: &mut LibraryState, depth: u32) -> Vec<Prim> {
+        let base: Vec<Prim> = repeat
+            .entities
+            .iter()
+            .flat_map(|e| self.entity(e, state, depth))
+            .collect();
+        let origin = self.viewport.to_screen(Point { x: 0.0, y: 0.0 });
+        let mut out = Vec::new();
+        for row in 0..repeat.rows {
+            for column in 0..repeat.columns {
+                let offset = self.viewport.to_screen(Point {
+                    x: f64::from(column) * repeat.column_spacing,
+                    y: f64::from(row) * repeat.row_spacing,
+                });
+                let delta = Point {
+                    x: offset.x - origin.x,
+                    y: offset.y - origin.y,
+                };
+                out.extend(base.iter().cloned().map(|p| shift_prim(p, delta)));
+            }
+        }
+        out
+    }
     fn report(&mut self, message: String) {
         if !self.diagnostics.contains(&message) {
             self.diagnostics.push(message);
@@ -156,6 +277,11 @@ impl Walker<'_> {
     }
     fn entity(&mut self, entity: &Entity, state: &mut LibraryState, depth: u32) -> Vec<Prim> {
         match entity {
+            Entity::Repeat(repeat) => self.repeat(repeat, state, depth),
+            Entity::OnLayer { layer, entity } => {
+                let color_index = self.drawing.header.layers.get(layer).copied().unwrap_or(7);
+                style(self.entity(entity, state, depth), aci_rgb(color_index))
+            }
             Entity::Load { name } => {
                 match self.libraries.get(name) {
                     Some(library) if library.cap_height.is_some() => state.font = name.clone(),
@@ -236,23 +362,48 @@ impl Walker<'_> {
                 let (sin, cos) = rotation_deg.to_radians().sin_cos();
                 let mut out = Vec::new();
                 for inner in &block.entities {
-                    for Prim::Polyline(points) in self.entity(inner, state, depth - 1) {
-                        out.push(Prim::Polyline(
-                            points
-                                .into_iter()
-                                .map(|p| {
-                                    let p = self.viewport.to_world(p);
-                                    let x = (p.x - block.base.x) * x_scale;
-                                    let y = (p.y - block.base.y) * y_scale;
-                                    self.viewport.to_screen(Point {
-                                        x: origin.x + x * cos - y * sin,
-                                        y: origin.y + x * sin + y * cos,
-                                    })
+                    for prim in self.entity(inner, state, depth - 1) {
+                        let (points, filled, color) = match prim {
+                            Prim::Polyline(points) => (points, false, None),
+                            Prim::FilledPolygon(points) => (points, true, None),
+                            Prim::ColoredPolyline { points, rgb } => (points, false, Some(rgb)),
+                            Prim::ColoredFilledPolygon { points, rgb } => (points, true, Some(rgb)),
+                        };
+                        let points = points
+                            .into_iter()
+                            .map(|p| {
+                                let p = self.viewport.to_world(p);
+                                let x = (p.x - block.base.x) * x_scale;
+                                let y = (p.y - block.base.y) * y_scale;
+                                self.viewport.to_screen(Point {
+                                    x: origin.x + x * cos - y * sin,
+                                    y: origin.y + x * sin + y * cos,
                                 })
-                                .collect(),
-                        ));
+                            })
+                            .collect();
+                        out.push(match (filled, color) {
+                            (true, Some(rgb)) => Prim::ColoredFilledPolygon { points, rgb },
+                            (false, Some(rgb)) => Prim::ColoredPolyline { points, rgb },
+                            (true, None) => Prim::FilledPolygon(points),
+                            (false, None) => Prim::Polyline(points),
+                        });
                     }
                 }
+                out
+            }
+            Entity::Trace { p1, p2, p3, p4 } | Entity::Solid { p1, p2, p3, p4 } => {
+                let points = vec![
+                    self.viewport.to_screen(*p1),
+                    self.viewport.to_screen(*p2),
+                    self.viewport.to_screen(*p4),
+                    self.viewport.to_screen(*p3),
+                    self.viewport.to_screen(*p1),
+                ];
+                let mut out = Vec::with_capacity(2);
+                if self.drawing.header.fill {
+                    out.push(Prim::FilledPolygon(points.clone()));
+                }
+                out.push(Prim::Polyline(points));
                 out
             }
             other => flatten_entity(other, self.viewport),
@@ -302,13 +453,31 @@ pub fn flatten_with_libraries(
         shapes: Vec::new(),
     };
     let mut primitives = Vec::new();
-    for e in d.entities() {
-        primitives.extend(walker.entity(e, &mut state, MAX_INSERT_DEPTH));
+    for item in &d.items {
+        match item {
+            Item::Entity(e) => primitives.extend(walker.entity(e, &mut state, MAX_INSERT_DEPTH)),
+            Item::Block(_) => {}
+            Item::Repeat(repeat) => {
+                primitives.extend(walker.repeat(repeat, &mut state, MAX_INSERT_DEPTH));
+            }
+        }
     }
     RenderOutput {
         primitives,
         diagnostics: walker.diagnostics,
     }
+}
+
+fn shift_prim(mut prim: Prim, delta: Point) -> Prim {
+    let points = match &mut prim {
+        Prim::Polyline(p) | Prim::FilledPolygon(p) => p,
+        Prim::ColoredPolyline { points, .. } | Prim::ColoredFilledPolygon { points, .. } => points,
+    };
+    for point in points {
+        point.x += delta.x;
+        point.y += delta.y;
+    }
+    prim
 }
 
 /// Geometry-only compatibility entry point. Use `flatten_with_libraries` to
@@ -370,7 +539,75 @@ mod tests {
             trace_width: 0.0,
             current_layer: 0,
             layers: Default::default(),
+            dwg_header_passthrough: None,
         }
+    }
+
+    #[test]
+    fn repeat_places_each_cell_at_the_original_column_and_row_distances() {
+        let drawing = Drawing {
+            header: test_header(),
+            items: vec![Item::Repeat(acad_model::Repeat {
+                entities: vec![Entity::Line {
+                    start: Point { x: 1.0, y: 1.0 },
+                    end: Point { x: 2.0, y: 1.0 },
+                }],
+                columns: 2,
+                rows: 2,
+                column_spacing: 3.0,
+                row_spacing: 4.0,
+            })],
+        };
+        assert_eq!(
+            flatten(&drawing, &vp()),
+            vec![
+                Prim::Polyline(vec![Point { x: 10.0, y: 90.0 }, Point { x: 20.0, y: 90.0 }]),
+                Prim::Polyline(vec![Point { x: 40.0, y: 90.0 }, Point { x: 50.0, y: 90.0 }]),
+                Prim::Polyline(vec![Point { x: 10.0, y: 50.0 }, Point { x: 20.0, y: 50.0 }]),
+                Prim::Polyline(vec![Point { x: 40.0, y: 50.0 }, Point { x: 50.0, y: 50.0 }]),
+            ]
+        );
+    }
+
+    #[test]
+    fn repeat_inside_an_insert_expands_with_the_block() {
+        let pattern = acad_model::Repeat {
+            entities: vec![Entity::Line {
+                start: Point { x: 1.0, y: 1.0 },
+                end: Point { x: 2.0, y: 1.0 },
+            }],
+            columns: 2,
+            rows: 2,
+            column_spacing: 3.0,
+            row_spacing: 4.0,
+        };
+        let drawing = Drawing {
+            header: test_header(),
+            items: vec![
+                Item::Block(Block {
+                    name: "PATTERN".into(),
+                    base: Point { x: 0.0, y: 0.0 },
+                    entities: vec![Entity::Repeat(pattern)],
+                }),
+                Item::Entity(Entity::Insert {
+                    origin: Point { x: 0.0, y: 0.0 },
+                    x_scale: 1.0,
+                    y_scale: 1.0,
+                    rotation_deg: 0.0,
+                    name: "PATTERN".into(),
+                }),
+            ],
+        };
+        let prims = flatten(&drawing, &vp());
+        assert_eq!(prims.len(), 4);
+        assert_eq!(
+            prims[0],
+            Prim::Polyline(vec![Point { x: 10.0, y: 90.0 }, Point { x: 20.0, y: 90.0 }])
+        );
+        assert_eq!(
+            prims[3],
+            Prim::Polyline(vec![Point { x: 40.0, y: 50.0 }, Point { x: 50.0, y: 50.0 }])
+        );
     }
 
     #[test]
@@ -382,7 +619,9 @@ mod tests {
             },
             &vp(),
         );
-        let Prim::Polyline(pts) = &prims[0];
+        let Prim::Polyline(pts) = &prims[0] else {
+            panic!("expected outline")
+        };
         assert_eq!(pts.len(), 2);
     }
 
@@ -395,7 +634,9 @@ mod tests {
             },
             &vp(),
         );
-        let Prim::Polyline(pts) = &prims[0];
+        let Prim::Polyline(pts) = &prims[0] else {
+            panic!("expected outline")
+        };
         let (first, last) = (pts[0], *pts.last().unwrap());
         assert!((first.x - last.x).abs() < 1e-9 && (first.y - last.y).abs() < 1e-9);
     }
@@ -440,7 +681,10 @@ mod tests {
             &vp(),
         );
         assert!(!prims.is_empty());
-        for Prim::Polyline(pts) in &prims {
+        for prim in &prims {
+            let Prim::Polyline(pts) = prim else {
+                panic!("expected marker stroke")
+            };
             assert!(pts.len() >= 2, "every primitive must be drawable");
             let (a, b) = (pts[0], pts[1]);
             assert!(
@@ -470,7 +714,9 @@ mod tests {
         ] {
             let prims = flatten_entity(&e, &vp());
             assert_eq!(prims.len(), 1);
-            let Prim::Polyline(pts) = &prims[0];
+            let Prim::Polyline(pts) = &prims[0] else {
+                panic!("expected outline")
+            };
             assert_eq!(pts.len(), 5, "4 corners plus closing back to the first");
             let (first, last) = (pts[0], *pts.last().unwrap());
             assert!((first.x - last.x).abs() < 1e-9 && (first.y - last.y).abs() < 1e-9);
@@ -479,6 +725,65 @@ mod tests {
             // p3 (2.5, 30.725) here instead.
             assert!((pts[2].y - vp().to_screen(Point { x: 2.5, y: 30.775 }).y).abs() < 1e-9);
         }
+    }
+
+    #[test]
+    fn fill_setting_adds_a_real_interior_polygon_for_trace() {
+        let mut header = test_header();
+        header.fill = true;
+        let drawing = Drawing {
+            header,
+            items: vec![Item::Entity(Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Trace {
+                    p1: Point { x: 2.0, y: 2.0 },
+                    p2: Point { x: 8.0, y: 2.0 },
+                    p3: Point { x: 2.0, y: 8.0 },
+                    p4: Point { x: 8.0, y: 8.0 },
+                }),
+            })],
+        };
+        let prims = flatten(&drawing, &vp());
+        assert!(matches!(prims.first(), Some(Prim::FilledPolygon(points)) if points.len() == 5));
+        assert!(matches!(prims.get(1), Some(Prim::Polyline(points)) if points.len() == 5));
+        let mut unfilled = drawing;
+        unfilled.header.fill = false;
+        let prims = flatten(&unfilled, &vp());
+        assert_eq!(prims.len(), 1, "FILL OFF must omit the polygon interior");
+        assert!(matches!(prims[0], Prim::Polyline(_)));
+    }
+
+    #[test]
+    fn entity_layer_resolves_through_header_color_table() {
+        let mut header = test_header();
+        header.layers.insert(12, 5);
+        header.layers.insert(64, 64);
+        let drawing = Drawing {
+            header,
+            items: vec![
+                Item::Entity(Entity::OnLayer {
+                    layer: 12,
+                    entity: Box::new(Entity::Line {
+                        start: Point { x: 1.0, y: 1.0 },
+                        end: Point { x: 9.0, y: 9.0 },
+                    }),
+                }),
+                Item::Entity(Entity::OnLayer {
+                    layer: 64,
+                    entity: Box::new(Entity::Line {
+                        start: Point { x: 1.0, y: 9.0 },
+                        end: Point { x: 9.0, y: 1.0 },
+                    }),
+                }),
+            ],
+        };
+        let prims = flatten(&drawing, &vp());
+        assert!(matches!(prims.as_slice(),
+            [
+                Prim::ColoredPolyline { rgb: [0, 0, 255], points: a },
+                Prim::ColoredPolyline { rgb: [95, 127, 0], points: b },
+            ] if a.len() == 2 && b.len() == 2
+        ));
     }
 
     #[test]
@@ -634,7 +939,9 @@ mod tests {
         };
         let prims = flatten(&d, &vp());
         assert_eq!(prims.len(), 1);
-        let Prim::Polyline(pts) = &prims[0];
+        let Prim::Polyline(pts) = &prims[0] else {
+            panic!("expected outline")
+        };
         // Compare in world space, not screen space, so the assertion reads
         // in the drawing's own units and does not depend on the viewport's
         // fit/scale (`to_world` is `to_screen`'s exact inverse, up to f64

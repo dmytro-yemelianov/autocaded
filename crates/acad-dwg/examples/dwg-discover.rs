@@ -22,6 +22,13 @@ const TOLERANCE: f64 = 5e-7;
 /// `end_deg`.
 fn coords(e: &Entity) -> Vec<(&'static str, f64)> {
     match e {
+        Entity::Repeat(r) => vec![
+            ("columns", f64::from(r.columns)),
+            ("rows", f64::from(r.rows)),
+            ("column_spacing", r.column_spacing),
+            ("row_spacing", r.row_spacing),
+        ],
+        Entity::OnLayer { entity, .. } => coords(entity),
         Entity::Load { .. } => vec![],
         Entity::Shape {
             origin,
@@ -139,6 +146,8 @@ fn main() -> ExitCode {
 
 fn entity_name(e: &Entity) -> &'static str {
     match e {
+        Entity::Repeat(_) => "REPEAT",
+        Entity::OnLayer { entity, .. } => entity_name(entity),
         Entity::Load { .. } => "LOAD",
         Entity::Shape { .. } => "SHAPE",
         Entity::Line { .. } => "LINE",

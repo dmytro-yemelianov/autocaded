@@ -9,9 +9,28 @@ fn pt(p: &Point) -> String {
 }
 
 fn entity(out: &mut String, e: &Entity) {
+    let (layer, e) = match e {
+        Entity::OnLayer { layer, entity } => (*layer, entity.as_ref()),
+        _ => (1, e),
+    };
     match e {
+        Entity::Repeat(repeat) => {
+            let _ = write!(out, "REPEAT,{layer}\r\n");
+            for inner in &repeat.entities {
+                entity(out, inner);
+            }
+            let _ = write!(
+                out,
+                "ENDREP,{layer}\r\n{},{},{},{}\r\n",
+                repeat.columns,
+                repeat.rows,
+                f(repeat.column_spacing),
+                f(repeat.row_spacing)
+            );
+        }
+        Entity::OnLayer { .. } => unreachable!("unwrapped above"),
         Entity::Load { name } => {
-            let _ = write!(out, "LOAD,1\r\n{name}\r\n");
+            let _ = write!(out, "LOAD,{layer}\r\n{name}\r\n");
         }
         Entity::Shape {
             origin,
@@ -21,7 +40,7 @@ fn entity(out: &mut String, e: &Entity) {
         } => {
             let _ = write!(
                 out,
-                "SHAPE,1\r\n{},{},{},{}\r\n",
+                "SHAPE,{layer}\r\n{},{},{},{}\r\n",
                 pt(origin),
                 f(*height),
                 f(*rotation_deg),
@@ -29,10 +48,10 @@ fn entity(out: &mut String, e: &Entity) {
             );
         }
         Entity::Line { start, end } => {
-            let _ = write!(out, "LINE,1\r\n{},{}\r\n", pt(start), pt(end));
+            let _ = write!(out, "LINE,{layer}\r\n{},{}\r\n", pt(start), pt(end));
         }
         Entity::Circle { center, radius } => {
-            let _ = write!(out, "CIRCLE,1\r\n{},{}\r\n", pt(center), f(*radius));
+            let _ = write!(out, "CIRCLE,{layer}\r\n{},{}\r\n", pt(center), f(*radius));
         }
         Entity::Arc {
             center,
@@ -42,7 +61,7 @@ fn entity(out: &mut String, e: &Entity) {
         } => {
             let _ = write!(
                 out,
-                "ARC,1\r\n{},{},{},{}\r\n",
+                "ARC,{layer}\r\n{},{},{},{}\r\n",
                 pt(center),
                 f(*radius),
                 f(*start_deg),
@@ -57,7 +76,7 @@ fn entity(out: &mut String, e: &Entity) {
         } => {
             let _ = write!(
                 out,
-                "TEXT,1\r\n{},{},{}\r\n{}\r\n",
+                "TEXT,{layer}\r\n{},{},{}\r\n{}\r\n",
                 pt(origin),
                 f(*height),
                 f(*rotation_deg),
@@ -73,7 +92,7 @@ fn entity(out: &mut String, e: &Entity) {
         } => {
             let _ = write!(
                 out,
-                "INSERT,1\r\n{},{},{},{}\r\n{}\r\n",
+                "INSERT,{layer}\r\n{},{},{},{}\r\n{}\r\n",
                 pt(origin),
                 f(*x_scale),
                 f(*y_scale),
@@ -81,15 +100,16 @@ fn entity(out: &mut String, e: &Entity) {
                 name
             );
         }
-        // Original AutoCAD exports from SELEXOL, BLIVET and FLOW now verify
-        // these layouts (acad-oracle's sample_exports test).
+        // Original AutoCAD exports from SELEXOL, BLIVET and FLOW verify
+        // these entity layouts; command-generated TRACE/SOLID exports also
+        // verify their two coordinate rows byte for byte.
         Entity::Point { origin } => {
-            let _ = write!(out, "POINT,1\r\n{}\r\n", pt(origin));
+            let _ = write!(out, "POINT,{layer}\r\n{}\r\n", pt(origin));
         }
         Entity::Trace { p1, p2, p3, p4 } => {
             let _ = write!(
                 out,
-                "TRACE,1\r\n{},{},{},{}\r\n",
+                "TRACE,{layer}\r\n{},{}\r\n{},{}\r\n",
                 pt(p1),
                 pt(p2),
                 pt(p3),
@@ -99,7 +119,7 @@ fn entity(out: &mut String, e: &Entity) {
         Entity::Solid { p1, p2, p3, p4 } => {
             let _ = write!(
                 out,
-                "SOLID,1\r\n{},{},{},{}\r\n",
+                "SOLID,{layer}\r\n{},{}\r\n{},{}\r\n",
                 pt(p1),
                 pt(p2),
                 pt(p3),
@@ -177,6 +197,20 @@ pub fn write(d: &Drawing) -> Vec<u8> {
                 s.push_str("ENDBLK,1\r\n");
             }
             Item::Entity(e) => entity(&mut s, e),
+            Item::Repeat(r) => {
+                s.push_str("REPEAT,1\r\n");
+                for e in &r.entities {
+                    entity(&mut s, e);
+                }
+                let _ = write!(
+                    s,
+                    "ENDREP,1\r\n{},{},{},{}\r\n",
+                    r.columns,
+                    r.rows,
+                    f(r.column_spacing),
+                    f(r.row_spacing)
+                );
+            }
         }
     }
     let mut bytes = s.into_bytes();

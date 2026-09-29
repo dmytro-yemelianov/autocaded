@@ -14,7 +14,14 @@ pub fn rasterize(prims: &[Prim], width: u32, height: u32) -> Pixmap {
         ..Stroke::default()
     };
 
-    for Prim::Polyline(pts) in prims {
+    for prim in prims {
+        let (pts, fill, rgb) = match prim {
+            Prim::Polyline(pts) => (pts, false, [255, 255, 255]),
+            Prim::ColoredPolyline { points, rgb } => (points, false, *rgb),
+            Prim::FilledPolygon(pts) => (pts, true, [255, 255, 255]),
+            Prim::ColoredFilledPolygon { points, rgb } => (points, true, *rgb),
+        };
+        paint.set_color_rgba8(rgb[0], rgb[1], rgb[2], 255);
         if pts.len() < 2 {
             continue;
         }
@@ -24,7 +31,17 @@ pub fn rasterize(prims: &[Prim], width: u32, height: u32) -> Pixmap {
             pb.line_to(p.x as f32, p.y as f32);
         }
         if let Some(path) = pb.finish() {
-            pm.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
+            if fill {
+                pm.fill_path(
+                    &path,
+                    &paint,
+                    tiny_skia::FillRule::Winding,
+                    Transform::identity(),
+                    None,
+                );
+            } else {
+                pm.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
+            }
         }
     }
     pm

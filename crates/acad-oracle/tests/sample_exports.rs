@@ -1,3 +1,10 @@
+fn bare(mut entity: &acad_model::Entity) -> &acad_model::Entity {
+    while let acad_model::Entity::OnLayer { entity: inner, .. } = entity {
+        entity = inner;
+    }
+    entity
+}
+
 #[cfg(unix)]
 #[test]
 fn original_exports_disc_backup_with_font_loads_in_order() {
@@ -19,20 +26,20 @@ fn original_exports_disc_backup_with_font_loads_in_order() {
         assert_eq!(entities.len(), 14);
         let entities = &entities[2..6];
         assert_eq!(
-            *entities[0],
+            *bare(entities[0]),
             Entity::Load {
                 name: "ROMAN-S".into()
             }
         );
-        assert!(matches!(entities[1], Entity::Insert { name, .. } if name == "SHUTTLE"));
+        assert!(matches!(bare(entities[1]), Entity::Insert { name, .. } if name == "SHUTTLE"));
         assert_eq!(
-            *entities[2],
+            *bare(entities[2]),
             Entity::Load {
                 name: "ITALIC".into()
             }
         );
         assert!(
-            matches!(entities[3], Entity::Text { value, height, .. } if value == "STAR WARS" && *height == 1.0)
+            matches!(bare(entities[3]), Entity::Text { value, height, .. } if value == "STAR WARS" && *height == 1.0)
         );
     }
     assert_eq!(
@@ -105,9 +112,11 @@ fn original_exports_verify_both_dwg_versions() {
         let all_entities = dxf.items.iter().flat_map(|item| match item {
             Item::Entity(e) => std::slice::from_ref(e).iter(),
             Item::Block(b) => b.entities.iter(),
+            Item::Repeat(r) => r.entities.iter(),
         });
         let (mut points, mut traces, mut solids) = (0, 0, 0);
         for e in all_entities {
+            let e = bare(e);
             match e {
                 Entity::Point { .. } => points += 1,
                 Entity::Trace { .. } => traces += 1,
@@ -132,9 +141,9 @@ fn original_exports_verify_both_dwg_versions() {
 fn ordered(mut drawing: acad_model::Drawing) -> acad_model::Drawing {
     drawing.items.sort_by(|a, b| match (a, b) {
         (acad_model::Item::Block(a), acad_model::Item::Block(b)) => a.name.cmp(&b.name),
-        (acad_model::Item::Block(_), acad_model::Item::Entity(_)) => std::cmp::Ordering::Less,
-        (acad_model::Item::Entity(_), acad_model::Item::Block(_)) => std::cmp::Ordering::Greater,
-        (acad_model::Item::Entity(_), acad_model::Item::Entity(_)) => std::cmp::Ordering::Equal,
+        (acad_model::Item::Block(_), _) => std::cmp::Ordering::Less,
+        (_, acad_model::Item::Block(_)) => std::cmp::Ordering::Greater,
+        _ => std::cmp::Ordering::Equal,
     });
     drawing
 }

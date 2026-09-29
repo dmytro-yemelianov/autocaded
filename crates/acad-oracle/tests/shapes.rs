@@ -26,20 +26,29 @@ fn original_creates_shapes_from_a_loaded_library() {
     assert_eq!(
         drawing.items,
         vec![
-            Item::Entity(Entity::Load {
-                name: "B:ES".into()
+            Item::Entity(Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Load {
+                    name: "B:ES".into()
+                })
             }),
-            Item::Entity(Entity::Shape {
-                origin: Point { x: 2.25, y: 3.5 },
-                height: 0.75,
-                rotation_deg: 30.0,
-                number: 129
+            Item::Entity(Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Shape {
+                    origin: Point { x: 2.25, y: 3.5 },
+                    height: 0.75,
+                    rotation_deg: 30.0,
+                    number: 129
+                })
             }),
-            Item::Entity(Entity::Shape {
-                origin: Point { x: 6.5, y: 2.75 },
-                height: 1.25,
-                rotation_deg: 75.0,
-                number: 130
+            Item::Entity(Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Shape {
+                    origin: Point { x: 6.5, y: 2.75 },
+                    height: 1.25,
+                    rotation_deg: 75.0,
+                    number: 130
+                })
             }),
         ]
     );

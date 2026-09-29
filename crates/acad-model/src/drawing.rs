@@ -11,6 +11,17 @@ use crate::{
 pub enum Item {
     Entity(Entity),
     Block(Block),
+    Repeat(Repeat),
+}
+
+/// A rectangular pattern stored as REPEAT/ENDREP in AC1.40.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Repeat {
+    pub entities: Vec<Entity>,
+    pub columns: u16,
+    pub rows: u16,
+    pub column_spacing: f64,
+    pub row_spacing: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -21,9 +32,10 @@ pub struct Drawing {
 
 impl Drawing {
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
-        self.items.iter().filter_map(|i| match i {
-            Item::Entity(e) => Some(e),
-            _ => None,
+        self.items.iter().flat_map(|i| match i {
+            Item::Entity(e) => std::slice::from_ref(e).iter(),
+            Item::Repeat(r) => r.entities.iter(),
+            Item::Block(_) => [].iter(),
         })
     }
     pub fn blocks(&self) -> impl Iterator<Item = &Block> {
@@ -74,6 +86,7 @@ mod tests {
             trace_width: 0.0,
             current_layer: 0,
             layers: Default::default(),
+            dwg_header_passthrough: None,
         }
     }
 

@@ -60,6 +60,7 @@ fn default_header() -> Header {
         trace_width: 0.0,
         current_layer: 0,
         layers: Default::default(),
+        dwg_header_passthrough: None,
     }
 }
 
@@ -68,6 +69,7 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
     let mut header = default_header();
     let mut items: Vec<Item> = Vec::new();
     let mut open_block: Option<Block> = None;
+    let mut open_repeat: Option<(usize, Vec<Entity>)> = None;
 
     for rec in &records {
         let entity = match rec.keyword.as_str() {
@@ -177,12 +179,48 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 }
                 continue;
             }
-            // REPEAT's embedded entity has its own DXF record, unlike the
-            // fused binary DWG record. Preserve that entity and discard the
-            // container markers, as acad-dwg's flat model does.
-            "REPEAT" => continue,
+            "REPEAT" => {
+                if open_repeat.is_some() {
+                    return Err(DxfError::Corrupt { offset: rec.line });
+                }
+                open_repeat = Some((rec.line, Vec::new()));
+                continue;
+            }
             "ENDREP" => {
-                let _ = nums::<4>(rec, 0)?;
+                let values = nums::<4>(rec, 0)?;
+                let (_, entities) = open_repeat
+                    .take()
+                    .ok_or(DxfError::Corrupt { offset: rec.line })?;
+                if entities.is_empty()
+                    || values[0] < 1.0
+                    || values[0] > u16::MAX as f64
+                    || values[0].fract() != 0.0
+                    || values[1] < 1.0
+                    || values[1] > u16::MAX as f64
+                    || values[1].fract() != 0.0
+                {
+                    return Err(DxfError::BadNumber {
+                        row: rec.rows[0].clone(),
+                        line: rec.line,
+                    });
+                }
+                if let Some(block) = open_block.as_mut() {
+                    block.entities.push(Entity::Repeat(acad_model::Repeat {
+                        entities,
+                        columns: values[0] as u16,
+                        rows: values[1] as u16,
+                        column_spacing: values[2],
+                        row_spacing: values[3],
+                    }));
+                } else {
+                    items.push(Item::Repeat(acad_model::Repeat {
+                        entities,
+                        columns: values[0] as u16,
+                        rows: values[1] as u16,
+                        column_spacing: values[2],
+                        row_spacing: values[3],
+                    }));
+                }
                 continue;
             }
             "LINE" => {
@@ -271,9 +309,22 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 })
             }
         };
-        match open_block.as_mut() {
-            Some(b) => b.entities.push(entity),
-            None => items.push(Item::Entity(entity)),
+        if rec.suffix > u8::MAX as usize {
+            return Err(DxfError::BadNumber {
+                row: format!("{},{}", rec.keyword, rec.suffix),
+                line: rec.line,
+            });
+        }
+        let entity = Entity::OnLayer {
+            layer: rec.suffix as u8,
+            entity: Box::new(entity),
+        };
+        if let Some((_, entities)) = open_repeat.as_mut() {
+            entities.push(entity);
+        } else if let Some(b) = open_block.as_mut() {
+            b.entities.push(entity);
+        } else {
+            items.push(Item::Entity(entity));
         }
     }
 
@@ -284,6 +335,9 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
             line,
         });
     }
+    if let Some((line, _)) = open_repeat {
+        return Err(DxfError::Corrupt { offset: line });
+    }
 
     let drawing = Drawing { header, items };
     // Scan entities inside block definitions too, not only top-level ones.
@@ -291,6 +345,10 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
         .entities()
         .chain(drawing.blocks().flat_map(|b| b.entities.iter()))
     {
+        let mut e = e;
+        while let Entity::OnLayer { entity, .. } = e {
+            e = entity;
+        }
         if let Entity::Insert { name, .. } = e {
             if drawing.block(name).is_none() {
                 return Err(DxfError::UndefinedBlock { name: name.clone() });
@@ -338,30 +396,41 @@ mod tests {
         assert_eq!(d.items.len(), 3);
         assert_eq!(
             d.items[0],
-            Item::Entity(Entity::Load {
-                name: "B:ES".into()
+            Item::Entity(Entity::OnLayer {
+                layer: 0,
+                entity: Box::new(Entity::Load {
+                    name: "B:ES".into()
+                })
             })
         );
         assert_eq!(
             d.items[1],
-            Item::Entity(Entity::Shape {
-                origin: Point { x: 2.25, y: 3.5 },
-                height: 0.75,
-                rotation_deg: 30.0,
-                number: 129
+            Item::Entity(Entity::OnLayer {
+                layer: 7,
+                entity: Box::new(Entity::Shape {
+                    origin: Point { x: 2.25, y: 3.5 },
+                    height: 0.75,
+                    rotation_deg: 30.0,
+                    number: 129
+                })
             })
         );
         let block = d.block("B1").unwrap();
         assert_eq!(block.entities.len(), 2);
         assert_eq!(
             block.entities[0],
-            Entity::Load {
-                name: "ITALIC".into()
+            Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Load {
+                    name: "ITALIC".into()
+                })
             }
         );
-        assert!(matches!(&block.entities[1], Entity::Text { value, .. } if value == "A"));
+        assert!(
+            matches!(&block.entities[1], Entity::OnLayer { entity, .. } if matches!(entity.as_ref(), Entity::Text { value, .. } if value == "A"))
+        );
         let written = crate::write(&d);
-        let expected = b"SHAPE,1\r\n2.250000,3.500000,0.750000,30.000000,129\r\n";
+        let expected = b"SHAPE,7\r\n2.250000,3.500000,0.750000,30.000000,129\r\n";
         assert!(written.windows(expected.len()).any(|s| s == expected));
         assert_eq!(parse(&written).unwrap(), d);
     }
@@ -400,36 +469,45 @@ mod tests {
         assert_eq!(es.len(), 4);
         assert_eq!(
             *es[0],
-            Entity::Line {
-                start: Point { x: 8.8, y: 5.7 },
-                end: Point {
-                    x: 19.0,
-                    y: 1.899999
-                }
+            Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Line {
+                    start: Point { x: 8.8, y: 5.7 },
+                    end: Point {
+                        x: 19.0,
+                        y: 1.899999
+                    }
+                })
             }
         );
         assert_eq!(
             *es[2],
-            Entity::Arc {
-                center: Point {
-                    x: 3.037728,
-                    y: 2.906527
-                },
-                radius: 2.339596,
-                start_deg: 78.6041,
-                end_deg: 22.4509
+            Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Arc {
+                    center: Point {
+                        x: 3.037728,
+                        y: 2.906527
+                    },
+                    radius: 2.339596,
+                    start_deg: 78.6041,
+                    end_deg: 22.4509
+                })
             }
         );
         assert_eq!(
             *es[3],
-            Entity::Text {
-                origin: Point {
-                    x: 9.62413,
-                    y: 12.29516
-                },
-                height: 0.34601,
-                rotation_deg: 0.0,
-                value: "A".into()
+            Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Text {
+                    origin: Point {
+                        x: 9.62413,
+                        y: 12.29516
+                    },
+                    height: 0.34601,
+                    rotation_deg: 0.0,
+                    value: "A".into()
+                })
             }
         );
     }
@@ -443,9 +521,13 @@ mod tests {
              INSERT,1\r\n1,1,1,1,0\r\nB1\r\n",
         ))
         .unwrap();
-        assert!(matches!(d.items[0], Item::Entity(Entity::Line { .. })));
+        assert!(
+            matches!(&d.items[0], Item::Entity(Entity::OnLayer { entity, .. }) if matches!(entity.as_ref(), Entity::Line { .. }))
+        );
         assert!(matches!(d.items[1], Item::Block(_)));
-        assert!(matches!(d.items[2], Item::Entity(Entity::Insert { .. })));
+        assert!(
+            matches!(&d.items[2], Item::Entity(Entity::OnLayer { entity, .. }) if matches!(entity.as_ref(), Entity::Insert { .. }))
+        );
     }
 
     #[test]
@@ -552,6 +634,16 @@ mod tests {
         b.push(0x1a);
         let d = parse(&b).expect("Latin-1 text must load");
         assert_eq!(d.entities().count(), 1);
+    }
+
+    #[test]
+    fn entity_layer_suffix_survives_parse_and_write() {
+        let drawing = parse(&with_header("LINE,20\r\n0,0,3,4\r\n")).unwrap();
+        assert!(
+            matches!(drawing.entities().next(), Some(Entity::OnLayer { layer: 20, entity }) if matches!(entity.as_ref(), Entity::Line { .. }))
+        );
+        let roundtrip = parse(&crate::write::write(&drawing)).unwrap();
+        assert_eq!(roundtrip.entities().next(), drawing.entities().next());
     }
 
     #[test]

@@ -25,7 +25,9 @@ fn viewport() -> Viewport {
     )
 }
 fn world(prim: &Prim, vp: &Viewport) -> Vec<Point> {
-    let Prim::Polyline(points) = prim;
+    let Prim::Polyline(points) = prim else {
+        panic!("expected stroke")
+    };
     points.iter().map(|p| vp.to_world(*p)).collect()
 }
 fn near(a: Point, x: f64, y: f64) {

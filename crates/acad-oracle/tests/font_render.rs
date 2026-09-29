@@ -3,6 +3,13 @@
 use acad_model::{Entity, Point};
 use acad_render::{flatten_with_libraries, Libraries, Prim, Viewport};
 
+fn bare(mut entity: &acad_model::Entity) -> &acad_model::Entity {
+    while let acad_model::Entity::OnLayer { entity: inner, .. } = entity {
+        entity = inner;
+    }
+    entity
+}
+
 fn lit(frame: &[u8], x: usize, y: usize) -> bool {
     frame[(y % 2) * 8192 + (y / 2) * 80 + x / 8] & (128 >> (x % 8)) != 0
 }
@@ -33,16 +40,16 @@ fn original_cga_text_and_shape_match_native_strokes() {
     assert_eq!(
         drawing
             .entities()
-            .filter(|e| matches!(e, Entity::Line { .. }))
+            .filter(|e| matches!(bare(e), Entity::Line { .. }))
             .count(),
         4
     );
     assert!(drawing
         .entities()
-        .any(|e| matches!(e, Entity::Text { value, .. } if value == "AA")));
+        .any(|e| matches!(bare(e), Entity::Text { value, .. } if value == "AA")));
     assert!(drawing
         .entities()
-        .any(|e| matches!(e, Entity::Shape { number: 129, .. })));
+        .any(|e| matches!(bare(e), Entity::Shape { number: 129, .. })));
     let eof = probe.dxf.iter().position(|&b| b == 0x1a).unwrap() + 1;
     assert_eq!(acad_dxf::write(&drawing), probe.dxf[..eof]);
 
@@ -92,7 +99,11 @@ fn original_cga_text_and_shape_match_native_strokes() {
         let inside = |p: &Point| p.x >= lo.x && p.x <= hi.x && p.y >= hi.y && p.y <= lo.y;
         let original: Vec<_> = pixels.iter().copied().filter(inside).collect();
         let mut native = Vec::new();
-        for Prim::Polyline(points) in &rendered.primitives {
+        for prim in &rendered.primitives {
+            let points = match prim {
+                Prim::Polyline(points) | Prim::ColoredPolyline { points, .. } => points,
+                Prim::FilledPolygon(_) | Prim::ColoredFilledPolygon { .. } => continue,
+            };
             for pair in points.windows(2) {
                 let a = project(vp.to_world(pair[0]));
                 let b = project(vp.to_world(pair[1]));

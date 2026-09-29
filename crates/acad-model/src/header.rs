@@ -13,7 +13,7 @@ pub struct DwgView {
     pub height: f64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Header {
     pub extents: Extents,
     pub limits: Extents,
@@ -31,4 +31,26 @@ pub struct Header {
     /// the DXF codec's concern, not the model's, so this can grow named
     /// layers and per-layer state without disturbing either codec.
     pub layers: BTreeMap<u8, u8>,
+    /// Original fixed DWG header bytes, retained so the DWG writer can carry
+    /// through fields this model has not identified yet. This is codec
+    /// metadata, not drawing semantics, so it is intentionally omitted from
+    /// `PartialEq`.
+    pub dwg_header_passthrough: Option<Vec<u8>>,
+}
+
+impl PartialEq for Header {
+    fn eq(&self, other: &Self) -> bool {
+        self.extents == other.extents
+            && self.limits == other.limits
+            && self.base == other.base
+            && self.view == other.view
+            && self.snap == other.snap
+            && self.grid == other.grid
+            && self.ortho == other.ortho
+            && self.fill == other.fill
+            && self.text_size == other.text_size
+            && self.trace_width == other.trace_width
+            && self.current_layer == other.current_layer
+            && self.layers == other.layers
+    }
 }

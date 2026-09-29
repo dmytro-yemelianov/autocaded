@@ -9,6 +9,18 @@ pub struct Viewport {
 }
 
 impl Viewport {
+    /// Construct a viewport from the drawing's saved view. `height` is the
+    /// world-space vertical span; the horizontal span follows the canvas
+    /// aspect ratio. Callers should use `fit` when the stored view is invalid.
+    pub fn from_view(center: Point, height: f64, width: u32, pixel_height: u32) -> Self {
+        Self {
+            width,
+            height: pixel_height,
+            scale: pixel_height as f64 / height,
+            offset: center,
+        }
+    }
+
     pub fn fit(e: &Extents, width: u32, height: u32) -> Self {
         // A degenerate box has no extent to fit; fall back to 1:1 so the
         // transform stays finite and the drawing is simply centred.
@@ -104,5 +116,18 @@ mod tests {
         let w = Point { x: 7.25, y: 3.5 };
         let back = vp.to_world(vp.to_screen(w));
         assert!((back.x - w.x).abs() < 1e-9 && (back.y - w.y).abs() < 1e-9);
+    }
+
+    #[test]
+    fn saved_view_uses_its_world_height_and_center() {
+        let vp = Viewport::from_view(Point { x: 7.0, y: 4.0 }, 5.0, 200, 100);
+        assert_eq!(
+            vp.to_screen(Point { x: 7.0, y: 4.0 }),
+            Point { x: 100.0, y: 50.0 }
+        );
+        assert_eq!(
+            vp.to_screen(Point { x: 7.0, y: 6.5 }),
+            Point { x: 100.0, y: 0.0 }
+        );
     }
 }

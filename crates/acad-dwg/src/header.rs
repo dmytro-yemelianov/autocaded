@@ -164,6 +164,7 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
         trace_width: f64_at(bytes, OFF_TRACEWID),
         current_layer: layer as u8,
         layers,
+        dwg_header_passthrough: Some(bytes[..header_min].to_vec()),
     };
     Ok((header, meta_of(bytes, version)))
 }
