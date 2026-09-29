@@ -72,7 +72,7 @@ enum InputState {
     ArrayRows(Vec<usize>),
     ArrayColumns(Vec<usize>, usize),
     ArrayRowSpacing(Vec<usize>, usize, usize),
-    ArrayColumnSpacing(Vec<usize>, usize, usize, f64),
+    ArrayColumnSpacing(Vec<usize>, usize, usize, ArraySpacingInput),
     ChangeSelection,
     ChangeLayer(Vec<usize>),
     FilletSelection,
@@ -112,6 +112,12 @@ enum EditCommand {
 enum RepeatDistanceInput {
     Number,
     Point,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ArraySpacingInput {
+    Number(f64),
+    Point(Point),
 }
 
 impl InputState {
@@ -805,11 +811,32 @@ impl Editor {
                 Ok(Effect::Continue)
             }
             InputState::ArrayRowSpacing(ids, rows, columns) => {
-                self.state = InputState::ArrayColumnSpacing(ids, rows, columns, number(line)?);
+                let row_spacing = match number(line) {
+                    Ok(spacing) => ArraySpacingInput::Number(spacing),
+                    Err(_) => {
+                        let selected = selected_item_indexes(&self.drawing, &ids);
+                        let anchor = self
+                            .drawing
+                            .items
+                            .iter()
+                            .enumerate()
+                            .filter(|(index, _)| selected.contains(&(index + 1)))
+                            .find_map(|(_, item)| item_anchor(item))
+                            .ok_or("ARRAY needs one or more ordinary entities")?;
+                        ArraySpacingInput::Point(point_from(line, anchor)?)
+                    }
+                };
+                self.state = InputState::ArrayColumnSpacing(ids, rows, columns, row_spacing);
                 Ok(Effect::Continue)
             }
-            InputState::ArrayColumnSpacing(ids, rows, columns, row_spacing) => {
-                let column_spacing = number(line)?;
+            InputState::ArrayColumnSpacing(ids, rows, columns, row_input) => {
+                let (row_spacing, column_spacing) = match row_input {
+                    ArraySpacingInput::Number(row_spacing) => (row_spacing, number(line)?),
+                    ArraySpacingInput::Point(first) => {
+                        let second = point_from(line, first)?;
+                        (second.y - first.y, second.x - first.x)
+                    }
+                };
                 self.array(&ids, rows, columns, row_spacing, column_spacing);
                 self.state = InputState::Command;
                 Ok(Effect::Continue)
@@ -1005,16 +1032,19 @@ impl Editor {
                     ),
                     Err(_) => {
                         let next = point_from(line, previous)?;
-                        (next.x - previous.x, next, RepeatDistanceInput::Point)
+                        (0.0, next, RepeatDistanceInput::Point)
                     }
                 };
                 self.state = InputState::RepeatRowSpacing(columns, rows, spacing, next, kind);
                 Ok(Effect::Continue)
             }
             InputState::RepeatRowSpacing(columns, rows, column_spacing, previous, kind) => {
-                let row_spacing = match kind {
-                    RepeatDistanceInput::Number => number(line)?,
-                    RepeatDistanceInput::Point => point_from(line, previous)?.y - previous.y,
+                let (column_spacing, row_spacing) = match kind {
+                    RepeatDistanceInput::Number => (column_spacing, number(line)?),
+                    RepeatDistanceInput::Point => {
+                        let next = point_from(line, previous)?;
+                        (next.x - previous.x, next.y - previous.y)
+                    }
                 };
                 let start = self.repeat_start.ok_or("ENDREP without REPEAT")?;
                 let slice = &self.drawing.items[start..];
@@ -1784,6 +1814,13 @@ fn entity_anchor(entity: &Entity) -> Option<Point> {
         Entity::Trace { p1, .. } | Entity::Solid { p1, .. } => Some(*p1),
         Entity::Insert { origin, .. } => Some(*origin),
         Entity::Load { .. } | Entity::OnLayer { .. } => None,
+    }
+}
+
+fn item_anchor(item: &Item) -> Option<Point> {
+    match item {
+        Item::Entity(entity) => entity_anchor(entity),
+        _ => None,
     }
 }
 

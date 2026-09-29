@@ -79,6 +79,44 @@ fn original_line_accepts_relative_and_polar_points() {
 
 #[cfg(unix)]
 #[test]
+fn original_array_point_spacings_use_the_delta_between_points() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() {
+        return;
+    }
+    // Unequal point deltas make swapping the row and column axes observable.
+    let inputs = [
+        "LINE", "1,1", "2,1", "", "ARRAY", "L", "R", "2", "2", "3,4", "8,6",
+    ];
+    let dwg = acad_oracle::generate_dwg_in_tree(&disk, "ORCAPPT", &inputs).unwrap();
+    let expected: Vec<_> = [(1.0, 1.0), (1.0, 3.0), (6.0, 1.0), (6.0, 3.0)]
+        .into_iter()
+        .map(|(x, y)| {
+            Item::Entity(Entity::OnLayer {
+                layer: 1,
+                entity: Box::new(Entity::Line {
+                    start: Point { x, y },
+                    end: Point { x: x + 1.0, y },
+                }),
+            })
+        })
+        .collect();
+    assert_eq!(acad_dwg::parse(&dwg).unwrap().items, expected);
+    let mut editor = acad_cmd::Editor::default();
+    for input in inputs {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(editor.drawing().items, expected);
+    if acad_oracle::available() {
+        let qemu = acad_oracle::generate_dwg(&disk, "ORCAPPT", &inputs).unwrap();
+        assert_eq!(qemu, dwg);
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn original_repeat_round_trips_and_matches_the_rust_command() {
     use acad_model::{Entity, Item, Point};
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -147,7 +185,7 @@ fn original_repeat_point_distances_use_consecutive_point_deltas() {
         return;
     }
     let inputs = [
-        "REPEAT", "LINE", "1,1", "2,1", "", "ENDREP", "2", "2", "3,4", "5,6",
+        "REPEAT", "LINE", "1,1", "2,1", "", "ENDREP", "2", "2", "3,4", "8,6",
     ];
     let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCRPPT", &inputs).unwrap();
     let expected = Item::Repeat(acad_model::Repeat {
@@ -160,7 +198,7 @@ fn original_repeat_point_distances_use_consecutive_point_deltas() {
         }],
         columns: 2,
         rows: 2,
-        column_spacing: 2.0,
+        column_spacing: 5.0,
         row_spacing: 2.0,
     });
     let parsed = acad_dwg::parse(&original).unwrap();

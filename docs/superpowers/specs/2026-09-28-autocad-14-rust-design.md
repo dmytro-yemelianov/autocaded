@@ -115,10 +115,12 @@ entities inside `REPEAT`. Subsequent original command probes established
 the rectangular pattern's columns, rows and spacing; the model now preserves
 top-level patterns and patterns inside blocks. The original DXFs also establish that an entity
 header suffix (for example, `LINE,20`) is a layer number, not a record count.
-`ENDREP` also accepts points instead of numeric distances. In point mode the
-original uses the X delta from the pattern's first point to the column point,
-then the Y delta from that point to the row point; a generated 2×2 drawing
-matches the Rust model and QEMU. The opening `REPEAT` record's second word is
+`ENDREP` also accepts points instead of numeric distances. In point mode, the
+two entered points define one displacement vector: its X delta is the column
+spacing and its Y delta is the row spacing. A probe using points `(3,4)` and
+`(8,6)` confirms spacings `(5,2)` independently for both `ENDREP` and
+rectangular `ARRAY`; all four expected copies match the original. The opening
+`REPEAT` record's second word is
 1 in one- and two-entity probes and with 3×4 dimensions; its meaning remains
 unknown, so the model discards it and the writer emits 1.
 The AC1.2 and AC1.40 writers emit the model's entity types and blocks. AC1.40
@@ -448,13 +450,15 @@ LINE: the original saves type `-1` after erasure and `+1` after restoration,
 and Rust writes the same entity bytes.
 
 Rectangular `ARRAY` copies a selected set into a row/column grid with signed
-row and column spacing. Circular `ARRAY` asks for a center, angle between
-items, and item count. The original moves each copied entity's anchor around
+row and column spacing. In point mode, the two spacing points define a vector;
+the vector's Y component is row spacing and X component is column spacing.
+Circular `ARRAY` asks for a center, angle between items, and item count. The
+original moves each copied entity's anchor around
 the center while preserving its orientation; a generated line array confirms
 this under the in-tree runner and QEMU. The implementation rejects dimensions
-that overflow or generate over 100,000 entities. Angle-to-cover input, point-
-specified rectangular spacing, and optional rotation of inserted blocks remain
-open. One `UNDO` reverses either array operation.
+that overflow or generate over 100,000 entities. Angle-to-cover input and
+optional rotation of inserted blocks remain open. One `UNDO` reverses either
+array operation.
 
 `CHANGE` assigns selected top-level entities to an existing or new layer,
 preserves their geometry and other entities, and is reversible with one
