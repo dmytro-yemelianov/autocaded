@@ -36,6 +36,8 @@ ARRAY follows the original's rectangular `R` and circular `C` prompts.
 Generated 2×3 rectangular and non-origin circular drawings match the original
 in both the in-tree runner and QEMU, including entity record order and the
 original's orientation-preserving circular copies.
+LINE also accepts relative `@dx,dy` and polar `@distance<angle` points from its
+previous vertex; a generated mixed-coordinate line matches both oracles.
 
 **The §8 decision gate did not pass (1 of 3).** Transpiling the decompiler's AST
 to Rust is therefore *not* adopted: `acad-re` stays an understanding tool and all

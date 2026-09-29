@@ -336,13 +336,15 @@ impl Session {
                 '.' => "dot".to_owned(),
                 '-' => "minus".to_owned(),
                 '*' => "8".to_owned(),
+                '@' => "2".to_owned(),
+                '<' => "comma".to_owned(),
                 ' ' => "spc".to_owned(),
                 ':' => "semicolon".to_owned(),
                 c if c.is_ascii_alphanumeric() => c.to_ascii_lowercase().to_string(),
                 _ => return Err(format!("unsupported oracle input character {ch:?}")),
             };
             let mut keys = Vec::new();
-            if ch.is_ascii_uppercase() || matches!(ch, ':' | '*') {
+            if ch.is_ascii_uppercase() || matches!(ch, ':' | '*' | '@' | '<') {
                 keys.push(json!({"type": "qcode", "data": "shift"}));
             }
             keys.push(json!({"type": "qcode", "data": key}));

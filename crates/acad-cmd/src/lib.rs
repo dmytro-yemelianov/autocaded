@@ -317,7 +317,8 @@ impl Editor {
     }
 
     /// Submit one complete line of keyboard input. Coordinates use AutoCAD's
-    /// `x,y` notation. A `LINE` remains active until an empty line is entered.
+    /// `x,y`, `@dx,dy`, or `@distance<angle` notation where a prior point exists.
+    /// A `LINE` remains active until an empty line is entered.
     pub fn submit(&mut self, input: &str) -> Result<Effect, String> {
         self.status.clear();
         let line = input.trim();
@@ -336,7 +337,7 @@ impl Editor {
                     self.state = InputState::Command;
                     return Ok(Effect::Continue);
                 }
-                let next = point(line)?;
+                let next = point_from(line, previous)?;
                 self.add(Entity::Line {
                     start: previous,
                     end: next,
@@ -370,12 +371,12 @@ impl Editor {
                 Ok(Effect::Continue)
             }
             InputState::ArcMiddle(start) => {
-                let middle = point(line)?;
+                let middle = point_from(line, start)?;
                 self.state = InputState::ArcEnd(start, middle);
                 Ok(Effect::Continue)
             }
             InputState::ArcEnd(start, middle) => {
-                let end = point(line)?;
+                let end = point_from(line, middle)?;
                 let (center, radius, start_deg, end_deg) = three_point_arc(start, middle, end)?;
                 self.add(Entity::Arc {
                     center,
@@ -447,8 +448,8 @@ impl Editor {
                 Ok(Effect::Continue)
             }
             InputState::InsertXScale(name, origin) => {
-                if line.contains(',') {
-                    let opposite = point(line)?;
+                if line.contains(',') || line.starts_with('@') {
+                    let opposite = point_from(line, origin)?;
                     let x_scale = opposite.x - origin.x;
                     let y_scale = opposite.y - origin.y;
                     if x_scale == 0.0 || y_scale == 0.0 {
@@ -563,7 +564,7 @@ impl Editor {
                 Ok(Effect::Continue)
             }
             InputState::LimitsMax(min) => {
-                let max = point(line)?;
+                let max = point_from(line, min)?;
                 if max.x <= min.x || max.y <= min.y {
                     return Err("LIMITS upper-right must exceed lower-left".into());
                 }
@@ -662,7 +663,7 @@ impl Editor {
                 Ok(Effect::Continue)
             }
             InputState::ZoomWindowMax(min) => {
-                let max = point(line)?;
+                let max = point_from(line, min)?;
                 let width = max.x - min.x;
                 let height = max.y - min.y;
                 if !width.is_finite() || !height.is_finite() || width <= 0.0 || height <= 0.0 {
@@ -703,7 +704,7 @@ impl Editor {
                 let delta = if line.is_empty() {
                     first
                 } else {
-                    let second = point(line)?;
+                    let second = point_from(line, first)?;
                     Point {
                         x: second.x - first.x,
                         y: second.y - first.y,
@@ -854,7 +855,7 @@ impl Editor {
                 Ok(Effect::Continue)
             }
             InputState::BreakSecondPoint(ids, first) => {
-                self.break_entity(&ids, first, point(line)?)?;
+                self.break_entity(&ids, first, point_from(line, first)?)?;
                 self.state = InputState::Command;
                 Ok(Effect::Continue)
             }
@@ -863,7 +864,7 @@ impl Editor {
                 Ok(Effect::Continue)
             }
             InputState::DistanceSecondPoint(first) => {
-                let second = point(line)?;
+                let second = point_from(line, first)?;
                 let dx = second.x - first.x;
                 let dy = second.y - first.y;
                 let distance = dx.hypot(dy);
@@ -888,18 +889,18 @@ impl Editor {
                 if line.is_empty() {
                     return self.cancel();
                 }
-                self.state = InputState::SolidThirdPoint(p1, point(line)?);
+                self.state = InputState::SolidThirdPoint(p1, point_from(line, p1)?);
                 Ok(Effect::Continue)
             }
             InputState::SolidThirdPoint(p1, p2) => {
                 if line.is_empty() {
                     return self.cancel();
                 }
-                self.state = InputState::SolidFourthPoint(p1, p2, point(line)?);
+                self.state = InputState::SolidFourthPoint(p1, p2, point_from(line, p2)?);
                 Ok(Effect::Continue)
             }
             InputState::SolidFourthPoint(p1, p2, p3) => {
-                let p4 = point(line)?;
+                let p4 = point_from(line, p3)?;
                 self.add(Entity::Solid { p1, p2, p3, p4 });
                 self.state = InputState::SolidThirdPoint(p3, p4);
                 Ok(Effect::Continue)
@@ -936,8 +937,8 @@ impl Editor {
                     }
                     self.state = InputState::Command;
                 } else {
-                    let next = point(line)?;
                     let previous = points.last().expect("TRACE has a first point");
+                    let next = point_from(line, *previous)?;
                     if next == *previous {
                         return Err("TRACE needs distinct consecutive points".into());
                     }
@@ -962,7 +963,8 @@ impl Editor {
                     self.status = format!("Area = {area:.4}");
                     self.state = InputState::Command;
                 } else {
-                    points.push(point(line)?);
+                    let previous = *points.last().expect("AREA has a first point");
+                    points.push(point_from(line, previous)?);
                     self.state = InputState::AreaNextPoint(points);
                 }
                 Ok(Effect::Continue)
@@ -1002,7 +1004,7 @@ impl Editor {
                         RepeatDistanceInput::Number,
                     ),
                     Err(_) => {
-                        let next = point(line)?;
+                        let next = point_from(line, previous)?;
                         (next.x - previous.x, next, RepeatDistanceInput::Point)
                     }
                 };
@@ -1012,7 +1014,7 @@ impl Editor {
             InputState::RepeatRowSpacing(columns, rows, column_spacing, previous, kind) => {
                 let row_spacing = match kind {
                     RepeatDistanceInput::Number => number(line)?,
-                    RepeatDistanceInput::Point => point(line)?.y - previous.y,
+                    RepeatDistanceInput::Point => point_from(line, previous)?.y - previous.y,
                 };
                 let start = self.repeat_start.ok_or("ENDREP without REPEAT")?;
                 let slice = &self.drawing.items[start..];
@@ -2345,6 +2347,36 @@ fn point(text: &str) -> Result<Point, String> {
         x: number(x.trim())?,
         y: number(y.trim())?,
     })
+}
+
+fn point_from(text: &str, base: Point) -> Result<Point, String> {
+    let Some(relative) = text.strip_prefix('@') else {
+        return point(text);
+    };
+    if let Some((distance, angle)) = relative.split_once('<') {
+        let distance = number(distance.trim())?;
+        let angle = number(angle.trim())?;
+        let (sin, cos) = sin_cos_degrees(angle);
+        return Ok(Point {
+            x: base.x + distance * cos,
+            y: base.y + distance * sin,
+        });
+    }
+    let delta = point(relative)?;
+    Ok(Point {
+        x: base.x + delta.x,
+        y: base.y + delta.y,
+    })
+}
+
+fn sin_cos_degrees(degrees: f64) -> (f64, f64) {
+    match degrees.rem_euclid(360.0) {
+        0.0 => (0.0, 1.0),
+        90.0 => (1.0, 0.0),
+        180.0 => (0.0, -1.0),
+        270.0 => (-1.0, 0.0),
+        _ => degrees.to_radians().sin_cos(),
+    }
 }
 
 fn layer_index(text: &str) -> Result<u8, String> {

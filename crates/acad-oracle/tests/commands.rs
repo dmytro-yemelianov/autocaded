@@ -46,6 +46,39 @@ fn original_creates_circles_with_the_requested_centers_and_radii() {
 
 #[cfg(unix)]
 #[test]
+fn original_line_accepts_relative_and_polar_points() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() {
+        return;
+    }
+    let inputs = ["LINE", "1,1", "@2,0", "@4<90", ""];
+    let dwg = acad_oracle::generate_dwg_in_tree(&disk, "ORCRELPT", &inputs).unwrap();
+    let line = |start, end| {
+        Item::Entity(Entity::OnLayer {
+            layer: 1,
+            entity: Box::new(Entity::Line { start, end }),
+        })
+    };
+    let expected = [
+        line(Point { x: 1.0, y: 1.0 }, Point { x: 3.0, y: 1.0 }),
+        line(Point { x: 3.0, y: 1.0 }, Point { x: 3.0, y: 5.0 }),
+    ];
+    assert_eq!(acad_dwg::parse(&dwg).unwrap().items, expected);
+    let mut editor = acad_cmd::Editor::default();
+    for input in inputs {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(editor.drawing().items, expected);
+    if acad_oracle::available() {
+        let qemu = acad_oracle::generate_dwg(&disk, "ORCRELPT", &inputs).unwrap();
+        assert_eq!(qemu, dwg);
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn original_repeat_round_trips_and_matches_the_rust_command() {
     use acad_model::{Entity, Item, Point};
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

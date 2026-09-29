@@ -397,6 +397,9 @@ each backed by a differential test. The first command engine slice now supports
 LINE, CIRCLE, POINT, three-point ARC, TEXT, UNDO, SAVE, END/QUIT, and numeric
 factor and Previous ZOOM. Its LINE/ARC/TEXT entity output and ZOOM's saved
 view height/Previous behavior are checked against the original under QEMU.
+Subsequent LINE points accept AutoCAD's `@dx,dy` relative and `@distance<angle`
+polar forms; a mixed relative/polar line matches the original under both
+oracle runners.
 The window accepts keyboard input, redraws after edits, and honors the
 drawing's saved view; numeric, Previous, Extents, Window and Center ZOOM modes
 update the saved view; coordinate-based PAN changes its center while keeping
