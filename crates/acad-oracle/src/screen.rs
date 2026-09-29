@@ -120,8 +120,8 @@ mod tests {
             Screen::from_ppm(&ppm(720, 400, |x, y| [(x % 9) as u8 * 10, y as u8, 0])).unwrap();
         let out = screen.to_640x400();
         assert_eq!(out.len(), DISPLAY_WIDTH * DISPLAY_HEIGHT);
-        for x in 0..DISPLAY_WIDTH {
-            assert_eq!(out[x] >> 16, (x % 8) as u32 * 10, "column {x}");
+        for (x, pixel) in out.iter().take(DISPLAY_WIDTH).enumerate() {
+            assert_eq!(*pixel >> 16, (x % 8) as u32 * 10, "column {x}");
         }
         assert_eq!((out[DISPLAY_WIDTH * 399] >> 8) & 0xFF, 399 % 256);
     }
