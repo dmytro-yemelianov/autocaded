@@ -2,7 +2,6 @@
 #[test]
 fn original_creates_circles_with_the_requested_centers_and_radii() {
     use acad_model::{Entity, Item, Point};
-
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
     if !disk.exists() || !acad_oracle::available() {
@@ -142,6 +141,61 @@ fn original_move_and_copy_use_displacement_before_last_selection() {
             editor.submit(line).unwrap();
         }
         assert_eq!(editor.drawing().items, expected, "{command} Rust");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn original_array_creates_a_rectangular_grid() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() {
+        return;
+    }
+    // The original asks for R/C after selection, then rows, columns, row
+    // spacing, and column spacing. It writes the copies in column-major order.
+    let inputs = [
+        "LINE", "0,0", "1,0", "", "ARRAY", "L", "R", "2", "3", "-5", "10",
+    ];
+    let dwg = acad_oracle::generate_dwg_in_tree(&disk, "ORCARRAY", &inputs).unwrap();
+    let parsed = acad_dwg::parse(&dwg).unwrap();
+    let expected: Vec<_> = [
+        (0.0, 0.0),
+        (0.0, -5.0),
+        (10.0, 0.0),
+        (10.0, -5.0),
+        (20.0, 0.0),
+        (20.0, -5.0),
+    ]
+    .into_iter()
+    .map(|(x, y)| {
+        Item::Entity(Entity::OnLayer {
+            layer: 1,
+            entity: Box::new(Entity::Line {
+                start: Point { x, y },
+                end: Point { x: x + 1.0, y },
+            }),
+        })
+    })
+    .collect();
+    assert_eq!(
+        parsed.items, expected,
+        "original ARRAY geometry and record order"
+    );
+    let mut editor = acad_cmd::Editor::default();
+    for input in inputs {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(
+        editor.drawing().items,
+        expected,
+        "Rust ARRAY geometry and record order"
+    );
+    if acad_oracle::available() {
+        let qemu = acad_oracle::generate_dwg(&disk, "ORCARRAY", &inputs).unwrap();
+        assert_eq!(acad_dwg::parse(&qemu).unwrap().items, expected);
+        assert_eq!(dwg, qemu);
     }
 }
 

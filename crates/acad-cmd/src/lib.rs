@@ -65,6 +65,7 @@ enum InputState {
     SecondPoint(EditCommand, Point),
     DisplacedSelection(EditCommand, Point),
     ArraySelection,
+    ArrayMode(Vec<usize>),
     ArrayRows(Vec<usize>),
     ArrayColumns(Vec<usize>, usize),
     ArrayRowSpacing(Vec<usize>, usize, usize),
@@ -177,6 +178,7 @@ impl InputState {
                 unreachable!("only MOVE and COPY use displacement prompts")
             }
             Self::ArraySelection => "ARRAY: entity numbers or ALL",
+            Self::ArrayMode(_) => "ARRAY: rectangular or circular (R/C)",
             Self::ArrayRows(_) => "ARRAY: number of rows",
             Self::ArrayColumns(_, _) => "ARRAY: number of columns",
             Self::ArrayRowSpacing(_, _, _) => "ARRAY: row spacing",
@@ -736,6 +738,13 @@ impl Editor {
             }
             InputState::ArraySelection => {
                 let ids = selection(line, selectable_count(&self.drawing))?;
+                self.state = InputState::ArrayMode(ids);
+                Ok(Effect::Continue)
+            }
+            InputState::ArrayMode(ids) => {
+                if !line.eq_ignore_ascii_case("R") && !line.eq_ignore_ascii_case("RECTANGULAR") {
+                    return Err("ARRAY currently supports rectangular arrays (R)".into());
+                }
                 self.state = InputState::ArrayRows(ids);
                 Ok(Effect::Continue)
             }
@@ -1180,8 +1189,8 @@ impl Editor {
             .collect();
         let copies_count = rows * columns - 1;
         let mut copies = Vec::with_capacity(sources.len().saturating_mul(copies_count));
-        for row in 0..rows {
-            for column in 0..columns {
+        for column in 0..columns {
+            for row in 0..rows {
                 if row == 0 && column == 0 {
                     continue;
                 }
@@ -2710,7 +2719,7 @@ mod tests {
         for input in ["LINE", "0,0", "1,0", ""] {
             editor.submit(input).unwrap();
         }
-        for input in ["ARRAY", "1", "2", "3", "-5", "10"] {
+        for input in ["ARRAY", "1", "R", "2", "3", "-5", "10"] {
             editor.submit(input).unwrap();
         }
         assert_eq!(editor.drawing().entities().count(), 6);
@@ -2726,10 +2735,10 @@ mod tests {
             lines,
             [
                 (Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 }),
-                (Point { x: 10.0, y: 0.0 }, Point { x: 11.0, y: 0.0 }),
-                (Point { x: 20.0, y: 0.0 }, Point { x: 21.0, y: 0.0 }),
                 (Point { x: 0.0, y: -5.0 }, Point { x: 1.0, y: -5.0 }),
+                (Point { x: 10.0, y: 0.0 }, Point { x: 11.0, y: 0.0 }),
                 (Point { x: 10.0, y: -5.0 }, Point { x: 11.0, y: -5.0 }),
+                (Point { x: 20.0, y: 0.0 }, Point { x: 21.0, y: 0.0 }),
                 (Point { x: 20.0, y: -5.0 }, Point { x: 21.0, y: -5.0 }),
             ]
         );
@@ -2741,7 +2750,7 @@ mod tests {
     #[test]
     fn array_rejects_zero_dimensions_and_overflow_before_creating_copies() {
         let mut editor = Editor::default();
-        for input in ["POINT", "2,3", "ARRAY", "ALL"] {
+        for input in ["POINT", "2,3", "ARRAY", "ALL", "R"] {
             editor.submit(input).unwrap();
         }
         assert!(editor.submit("0").is_err());

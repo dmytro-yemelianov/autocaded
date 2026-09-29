@@ -439,10 +439,13 @@ LINE: the original saves type `-1` after erasure and `+1` after restoration,
 and Rust writes the same entity bytes.
 
 Rectangular `ARRAY` copies a selected set into a row/column grid with signed
-row and column spacing. One `UNDO` reverses the complete operation. The
+row and column spacing. After selection it asks for rectangular or circular
+mode; Rust currently supports `R`. The original asks for rows, columns, row
+spacing, then column spacing and writes the copies in column-major order.
+The in-tree runner and QEMU agree on a generated 2×3 example, and the Rust
+item list matches both. One `UNDO` reverses the complete operation. The
 implementation rejects dimensions that overflow or generate over 100,000
-entities. Geometry, signed spacing, undo, and invalid dimensions are
-model-tested; differential verification against AutoCAD remains open.
+entities. Circular mode and point-specified spacing remain open.
 
 `CHANGE` assigns selected top-level entities to an existing or new layer,
 preserves their geometry and other entities, and is reversible with one
