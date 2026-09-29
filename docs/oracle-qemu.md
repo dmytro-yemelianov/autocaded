@@ -64,10 +64,24 @@ image made the original export `MODEFILL,1` followed by `0`.
 The exports establish the DXF shapes of `POINT`, `TRACE`, `SOLID`, `REPEAT`,
 and `ENDREP`. They also expose an earlier lexer error: the number in an
 entity header such as `LINE,20` denotes its layer, not an instance count.
-The model currently discards that per-entity layer; the comparison checks
-geometry and structure, not layer fidelity. `REPEAT` and `ENDREP` markers are
+The model now retains that per-entity layer. `REPEAT` and `ENDREP` markers are
 also discarded after decoding their enclosed entities, so the test does not
 establish the construct's full repeat semantics.
+
+An interactive CGA capture of `DIST`, `(0,0)`, `(3,4)` shows
+`Distance=5.0000` at the command line. A separate capture of `AREA` with
+vertices `(0,0)`, `(4,0)`, `(4,3)`, then Return shows `Area = 6.0000`.
+The latter establishes the original's point-entry flow; selected-entity area
+measurement is exposed as the Rust-only `ENTITYAREA` command.
+`tests/commands.rs` also constructs two adjacent `SOLID` entities through the
+original command loop. The second uses the first solid's last edge as its
+first edge; the test compares all eight file-order corners from the exported
+DXF and DWG with the Rust command loop's result.
+The `TRACE` differential case follows a right-angle centerline with width
+0.5. It checks both mitered quadrilaterals, the saved `TRACEWID` header, and
+the original's two-row DXF layout. The original DWG retains a tiny binary
+rounding difference at one miter coordinate; DXF's six-decimal output is the
+byte comparison used for that case.
 
 ## QEMU 11.0.1 branch workaround
 
@@ -91,10 +105,30 @@ workaround until a QEMU version containing the fix is required and tested.
 LOAD and SHAPE records survive both codecs, and the renderer now interprets
 the supplied SHP libraries. `tests/font_render.rs` captures the original CGA
 memory and compares text/shape strokes; see [font rendering](shp-rendering.md).
-DWG writing remains open. The harness
-requires an external QEMU installation; it is not the spec's in-tree
-8086 core. Editor input uses paced keystrokes; synchronization with visible
-prompts covers the text-mode menus. Visual probes additionally wait for the
+The AC1.40 writer's LINE/CIRCLE/POINT records match bytes emitted by the
+original. Rust-written AC1.40 and AC1.2 drawings open in AutoCAD; SUBDIV's
+AC1.2 rewrite matches the native CGA drawing viewport pixel-for-pixel. DWG
+input carries otherwise-uninterpreted fixed-header bytes through the writer;
+drawings without that source metadata use zero defaults. The harness
+requires an external QEMU installation; the separate in-tree 8086/DOS runner
+now saves empty, LINE, POINT, CIRCLE, ARC, SOLID, and TRACE DWGs matching QEMU
+byte for byte. LINE and ID editor CGA frames match QEMU across all 16 KiB.
+TEXT's computed maximum Y extent differs by one ULP. Retaining precision in
+8087 register arithmetic did not remove it, so its cause remains open.
+Broader commands and complete 8087 precision remain open.
+
+The `BLOCK` plus `LAST` command flow creates a definition whose in-tree DWG
+matches QEMU byte for byte; the Rust command and writer preserve its entity
+list, uppercase name, and nonzero base point.
+INSERT of that local block matches QEMU with explicit unequal scales and
+rotation, with a blank Y scale, and in exploded `*B1` form. The QEMU
+keystroke harness sends `*` as shifted 8.
+An opposite-corner point at the X-scale prompt sets both scales from its
+coordinate differences with the insertion point. The original also accepts
+negative factors for mirroring; Rust now accepts them while rejecting zero.
+
+Editor input uses paced keystrokes; synchronization with visible prompts covers the text-mode menus.
+Visual probes additionally wait for the
 BIOS keyboard queue to drain and CGA memory to stabilize before capturing.
 
 AutoCAD draws its editor into CGA memory at `B800:0000` while QEMU displays

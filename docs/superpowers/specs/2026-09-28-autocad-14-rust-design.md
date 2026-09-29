@@ -49,7 +49,7 @@ All of the following are verified against the artifacts, not assumed.
 |---|---|
 | Packing | None. Entropy 5.86 (`ACAD.EXE`) / 6.69 (`ACAD.OVL`) bits/byte; plaintext strings present. |
 | Toolchain | C, 1982–83. `printf`-family format strings (`%-16s`, `%c%s:`); `Copyright (C) 1982,1983 %s`. |
-| `ACAD.EXE` | MZ, 512 B header, **0 relocation entries**, `CS:IP = 0xFFF0:0x0100` (resolves to image start), `SS:SP = 0x0E15:0x51A0`. Image is 78,340 B; the trailing 508 B of the 78,848 B file are cluster slack. Segment model recovered statically (2026-09-28 spike ②): **`DS = SS = 0x0E15`**, code `0x0000-0xE150` (57,680 B), data `0xE150-0x13204` (20,656 B). Not a bare kernel — it holds the overlay loader *and* a substantial string table at `DS:0x3553-0x5000` (62% non-zero): entity type names, `EREGEN` errors, shape/font parser errors, DWG paging errors, the `A U T O C A D - 8 6` / `1.40` / `03/10/84` banner. |
+| `ACAD.EXE` | MZ, 512 B header, **0 relocation entries**, `CS:IP = 0xFFF0:0x0100` (resolves to image start), `SS:SP = 0x0E15:0x51A0`. The MZ header declares 78,340 B, while the FAT file is 78,848 B. The QEMU DOS run leaves the full final 512-byte page resident; the trailing 508 B include a decimal conversion table that the runtime uses. Segment model recovered statically (2026-09-28 spike ②): **`DS = SS = 0x0E15`**, code `0x0000-0xE150` (57,680 B), resident data `0xE150-0x13200` (20,656 B; the declared load image ends at `0x13004`). Not a bare kernel — it holds the overlay loader *and* a substantial string table at `DS:0x3553-0x5000` (62% non-zero): entity type names, `EREGEN` errors, shape/font parser errors, DWG paging errors, the `A U T O C A D - 8 6` / `1.40` / `03/10/84` banner. |
 | `ACAD.OVL` | **A container with a directory.** `AC1.40` magic at offset 0, the same stamp DWG files carry. `ACAD.EXE` `fread`s the first **211 bytes** into `DS:0x509F` and `strcmp`s the magic. That header is the directory: `u16` at `+11` = code-window size (`0xFD00`, 64,768 B), then **11 entries of 18 bytes** at `+13` (`0xD3 - 13 = 198 = 11 x 18`). Each entry is two regions of `{u16 dest; u16 len; u32 file_offset}` — region 1 into the code window, region 2 into the data window — plus a `u16` entry point at `+0x10`. The 22 regions cover **99.3%** of the file; all 15 gaps are pads to the next `0x80`/`0x100` boundary. The `!root` `!config` `!plot` `!menu` `!end` `!quit` tokens are not the directory — they are C literals in the payload, and `!root` also appears in `ACAD.EXE`'s data; they are plausibly the overlays' names, which is a hypothesis, not established. `!IDD` was a `strings` false positive over `inc sp; inc sp`. *(Corrects the first 2026-09-28 spike, which read the file as a flat image with no directory.)* |
 | Drivers | Separate files per device class: display `DS*.DRV`, digitizer `DG*.DRV`, plotter `PL*.DRV`. A pre-existing device abstraction, each driver 0.5–5 KB. |
 
@@ -78,8 +78,11 @@ doubles from `+0x2A` — `EXTENTS` min/max as 3D points, `LIMITS` min/max as 2D 
 `+0x9A`, `TXTSIZE` at `+0xB4`, `TRACEWID` at `+0xBC`. Entity records begin at a fixed `+0x1D8`,
 constant across all 16 `AC1.2` drawings, and end at the `+0x24` offset. Entity
 order within each block agrees with AutoCAD's exported DXF, but block
-definitions can have a different order. Each record is a `u16` type code, a `u16` whose meaning is not yet known,
-then the type's fields as IEEE doubles — so `LINE` is 36 bytes and `ARC` 44.
+definitions can have a different order. Each record starts with a signed
+`i16` type code and a `u16` layer index, followed by the type's fields as
+IEEE doubles — so `LINE` is 36 bytes and `ARC` 44. The layer word matches
+the entity suffixes in original DXF exports and is retained by the drawing
+model.
 
 Generated QEMU drawings now establish `AC1.40`'s entity start at `0x202`,
 42 bytes later than `AC1.2`. The scalar offsets above are shared. Nondefault
@@ -89,7 +92,7 @@ being 1 in the samples). Patching only SUBDIV's `0xB2` word to 0 in a copied
 disk makes the original export FILL=0, independently confirming the AC1.2
 offset. Current layer is a `u16` at `0xC4`; the layer table is 128 `u16`
 colors at `0xC8`, with 255 denoting an unused slot. The model retains these
-header fields; it still discards each entity's own layer.
+header fields and each entity's layer; DXF writing preserves the entity suffix.
 
 **Block definitions are globally scoped.** In the `AC1.2` corpus, a `BLOCK`
 record can open inside another block's `BLOCK`/`ENDBLK` span. It defines a
@@ -108,10 +111,20 @@ DWG→DXF is not byte-preserving for these files. A later QEMU probe asked
 the original to export `SELEXOL`, `BLIVET`, `FLOW`, `FLOOR`, and `ADDER` to
 DXF. Comparing those fresh exports with the DWG reader now verifies the
 geometry and per-block entity order for `POINT`, `TRACE`, `SOLID`, and
-entities inside `REPEAT`; the repeat markers' full semantics and entity
-layers are not represented in the model. The original DXFs also establish
-that an entity header suffix (for example, `LINE,20`) is a layer number,
-not a record count. These are limits for milestone ④'s write direction.
+entities inside `REPEAT`. Subsequent original command probes established
+the rectangular pattern's columns, rows and spacing; the model now preserves
+top-level patterns and patterns inside blocks. The original DXFs also establish that an entity
+header suffix (for example, `LINE,20`) is a layer number, not a record count.
+The AC1.2 and AC1.40 writers emit the model's entity types and blocks. AC1.40
+output matches original QEMU-generated LINE, CIRCLE, and POINT record bytes
+and opens in the original under QEMU with a CGA drawing viewport within 16
+pixels of the native reference. An AC1.2 rewrite of SUBDIV opens with a
+pixel-identical drawing viewport. The model retains otherwise-uninterpreted
+fixed-header bytes from DWG input and the writer carries them through; their
+individual semantics remain open. A drawing constructed without DWG source
+metadata uses zero values for those fields. The writer serializes the model's
+flat block order, which may differ from the source DWG's original physical
+order.
 
 **The type code is a 1-based index into the entity type table recovered from `ACAD.EXE`**
 (`DS:0x38EE`: `LINE POINT CIRCLE SHAPE REPEAT ENDREP TEXT ARC TRACE LOAD SOLID BLOCK ENDBLK
@@ -302,6 +315,38 @@ speculatively.
 **③ Oracle harness.** 8086 core, scripted input, output capture, first generated
 differential test.
 
+**Oracle implementation status.** QEMU-backed development tests generate DWG,
+DXF, and CGA references from the original executable. The in-tree `Cpu8086`
+provides a 1 MiB real-mode bus and the instruction/8087 subset exercised by
+startup and an empty drawing save. The DOS machine supplies the PSP,
+environment, paragraph allocation, BIOS video subset, keyboard polling,
+interrupt vectors, floppy free-space query, FCB file operations, and DTA.
+
+The MZ header declares 78,340 bytes inside a 78,848-byte FAT file. An aligned
+QEMU debugger trace identified an in-tree loader mismatch: the C runtime's
+`0123456789ABCDEF` conversion table at `DS:508Bh` is in the final 508 bytes,
+beyond the declared MZ length. QEMU has it in memory; the former in-tree
+loader discarded it. With the table absent, identical `sprintf` arguments
+`(1, '-', 1, 106)` produced `00-000000` in-tree instead of QEMU's
+`01-010106`. The resulting mismatch entered a memory-checksum routine at
+`2ABB:5975`; its zero low-three-bit result led to a far copy over the live
+stack. Loading the full final 512-byte page restores the conversion table,
+produces the QEMU string, and avoids that path. The earlier physical-memory
+snapshot differences were real but were not the cause of this divergence.
+
+The runner now handles FCB random write and rename. Single-record FCB random
+reads/writes keep the caller's random-record pointer; block operations advance
+it. This matches the original DOS behavior observed here and documented in
+the MS-DOS FCB reference. The public `generate_dwg_in_tree` runner accepts
+scripted editor lines. Empty, LINE, POINT, CIRCLE, ARC, SOLID, and TRACE
+`AC1.40` DWGs match QEMU byte for byte. TEXT differs only in the computed
+maximum Y extent at header offset `0x4a` by one ULP. The 8087 core now retains
+low bits through register arithmetic and rounds to the control-word precision,
+but this particular mismatch persists; its arithmetic path remains to be traced. The public
+`generate_visual_dwg_in_tree` captures CGA memory before END; LINE and ID
+screens each match QEMU across the entire 16 KiB frame. Broader command coverage,
+full DOS/BIOS services, and complete 8087 precision remain open.
+
 **④ DWG codec.** `AC1.40` then `AC1.2`, verified against `SUBDIV` in both directions and
 against oracle-generated drawings.
 
@@ -334,10 +379,116 @@ the instructions used by all seven supplied libraries, with font changes,
 subshapes, spacing, and placement through nested block transforms. A generated
 CGA-memory test compares Roman AA and an ES resistor against native strokes.
 See `docs/shp-rendering.md` for evidence and limits. Entity layer fidelity,
-repeat semantics, colors/fills, and DWG writing remain open.
+repeat semantics, and colors/fills are implemented. Both DWG writers open in
+the original under QEMU; an AC1.2 SUBDIV rewrite matches its original drawing
+viewport pixel-for-pixel. The meanings of several retained header fields and
+source block-definition physical ordering remain open.
 
 **⑤ Command loop.** Screen menu, command line, entity creation and editing commands,
-each backed by a differential test.
+each backed by a differential test. The first command engine slice now supports
+LINE, CIRCLE, POINT, three-point ARC, TEXT, UNDO, SAVE, END/QUIT, and numeric
+factor and Previous ZOOM. Its LINE/ARC/TEXT entity output and ZOOM's saved
+view height/Previous behavior are checked against the original under QEMU.
+The window accepts keyboard input, redraws after edits, and honors the
+drawing's saved view; numeric, Previous, Extents, Window and Center ZOOM modes
+update the saved view; coordinate-based PAN changes its center while keeping
+the current view height. Remaining commands and the full AutoCAD menu/command
+behavior are still open.
+
+The command engine also has LIST plus ERASE, MOVE, COPY, ROTATE and SCALE over
+one-based IDs (or `ALL`), with model tests for geometry changes and undo. These
+selection semantics are a usable first editor interface, not yet a verified match
+for AutoCAD's screen-menu selection flow. A trial QEMU script for the original
+left its input line unchanged, so no differential claim is made for these edits.
+
+`INSERT` now places an existing block by name, with an insertion point,
+independent X/Y scales, and rotation; blank scale and rotation prompts use
+1/1/0 defaults. Block lookup ignores case and stores the block's canonical
+name, and unknown blocks or zero scales leave the drawing unchanged.
+The locally defined block flow is now compared against the original under
+both in-tree execution and QEMU: explicit scales 2/3 and 30° rotation produce
+the same insertion, allowing for DWG radians-to-degrees rounding. A blank Y
+scale after X=2 becomes 2 in the original, despite `ACAD.HLP` saying its
+default is 1; Rust follows the observed runtime behavior. `INSERT *B1` skips
+the scale and rotation prompts and copies B1's component entities, translating
+them by insertion point minus block base. The Rust result and its saved DWG
+match the original's decoded entities, and the original in-tree DWG matches
+QEMU byte for byte. External drawing-file insertion remains open.
+At the X-scale prompt, an opposite corner point also sets both scales: the
+original saves the coordinate differences from the insertion point as X and Y
+scales, then asks for rotation. A generated `(3,3)` → `(5,6)` example saves
+2/3 in both oracles and the Rust command. Negative numeric X/Y scales are
+accepted by the original and Rust for mirrored inserts; zero does not create
+an insert in the original probe and remains invalid in Rust.
+
+`BLOCK` now creates a named definition from selected top-level entities.
+The original's `LAST` flow was captured with a nonzero base point: it
+uppercases the name, retains the members' drawing coordinates, removes them
+from the top level, and appends the block after unselected entities. The
+Rust command reproduces that item list; its AC1.40 save reopens with the same
+items, and the in-tree original's DWG matches QEMU byte for byte. Rust also
+accepts the existing ID/`ALL` selection interface, which remains to be
+compared with the original's point and window selection behavior.
+
+`OOPS` restores the last `ERASE` at the original item positions, including
+around block definitions and `LOAD` records. `UNDO` can reverse an `OOPS` and
+then restore its erased set again. This behavior is model-tested; differential
+verification against AutoCAD remains open.
+
+Rectangular `ARRAY` copies a selected set into a row/column grid with signed
+row and column spacing. One `UNDO` reverses the complete operation. The
+implementation rejects dimensions that overflow or generate over 100,000
+entities. Geometry, signed spacing, undo, and invalid dimensions are
+model-tested; differential verification against AutoCAD remains open.
+
+`CHANGE` assigns selected top-level entities to an existing or new layer,
+preserves their geometry and other entities, and is reversible with one
+`UNDO`. The command and header-layer update are model-tested; differential
+verification against AutoCAD remains open.
+
+`FILLET` accepts two top-level `LINE` entities whose segments intersect and a
+positive radius. It uses the nearest endpoint on each line to choose the
+corner branch, trims both lines to the tangent points, and adds the circular
+arc on the current layer. Parallel lines, non-line entities, non-intersecting
+segments, and radii that exceed the available segment lengths are rejected
+without mutation. Right-angle geometry, rejection cases, and undo are
+model-tested; differential verification against AutoCAD remains open.
+
+`BREAK` removes the interval between two interior points on a selected line,
+leaving the two ordered remainder segments on the original layer. On a circle,
+it removes the counter-clockwise arc between two circumference points and keeps
+the complementary arc on the original layer. Off-geometry, endpoint, and
+coincident points are rejected. Line, circle and arc splits, layer
+preservation, undo, wraparound angles, and rejection cases are model-tested.
+Oracle comparison remains open.
+
+The QEMU oracle shows `DIST` reporting `Distance=5.0000` for `(0,0)` to
+`(3,4)`. It shows `AREA` accepting polygon vertices `(0,0)`, `(4,0)`,
+`(4,3)`, then a blank line, and reporting `Area = 6.0000`. The Rust command
+loop now follows those input and output formats. `ENTITYAREA` is a separate
+Rust extension for measuring circles, `TRACE`/`SOLID` quadrilaterals, and
+selected closed loops of `LINE` entities; open or unsupported selections
+return an error. Model tests cover the reported values and rejected open loops.
+Further query edge cases remain unverified against the original.
+
+`ID` now accepts a point, reports X and Y to four decimal places, and returns
+to the command prompt without changing the drawing. Its prompt and coordinate
+display were checked on a captured original editor screen after `ID`, `3,4`;
+the in-tree capture of that screen matches QEMU byte for byte. The Rust command
+has a model test for the reported coordinates and unchanged drawing.
+
+`SOLID` takes four points for the first quadrilateral. It then reuses the
+third and fourth points as the first two points of the next quadrilateral,
+accepting another third/fourth pair until a blank line. A two-solid QEMU
+export establishes both the file-order corners and this chaining behavior;
+the Rust command's item list is compared directly against that export.
+
+`TRACE` accepts a width and a chain of centerline points. At a bend it
+miters both sides: the QEMU export of a width-0.5 path `(1,1)` → `(4,1)` →
+`(4,4)` places the shared corners at `(3.75,1.25)` and `(4.25,0.75)`, and
+saves `TRACEWID=0.5`. The Rust command reproduces both trace records and the
+header value. Command-generated DXF establishes that `TRACE` and `SOLID`
+place the four corners on two coordinate rows, which the writer now matches.
 
 ## 9. Testing
 
