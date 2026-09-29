@@ -524,12 +524,14 @@ fn original_opens_and_renders_a_rust_written_dwg() {
     let mut viewport_pixels = 0usize;
     let mut mismatches = 0usize;
     let mut visible = 0usize;
+    let (source, reopened) = (
+        acad_oracle::cga::Frame::new(&probe.cga).unwrap(),
+        acad_oracle::cga::Frame::new(&opened).unwrap(),
+    );
     for y in 10..160 {
         for x in 0..560 {
-            let bit = 128 >> (x % 8);
-            let at = (y % 2) * 8192 + (y / 2) * 80 + x / 8;
-            let expected = probe.cga[at] & bit != 0;
-            let actual = opened[at] & bit != 0;
+            let expected = source.lit(x, y);
+            let actual = reopened.lit(x, y);
             viewport_pixels += 1;
             mismatches += usize::from(expected != actual);
             visible += usize::from(actual);
@@ -564,12 +566,14 @@ fn ac12_writer_matches_the_original_subdiv_viewport_in_autocad() {
     assert_eq!(native.len(), 16384);
     assert_eq!(rewritten.len(), 16384);
     let (mut pixels, mut mismatches) = (0usize, 0usize);
+    let (native, rewritten) = (
+        acad_oracle::cga::Frame::new(&native).unwrap(),
+        acad_oracle::cga::Frame::new(&rewritten).unwrap(),
+    );
     for y in 10..160 {
         for x in 0..560 {
-            let bit = 128 >> (x % 8);
-            let at = (y % 2) * 8192 + (y / 2) * 80 + x / 8;
             pixels += 1;
-            mismatches += usize::from((native[at] & bit != 0) != (rewritten[at] & bit != 0));
+            mismatches += usize::from(native.lit(x, y) != rewritten.lit(x, y));
         }
     }
     assert!(
