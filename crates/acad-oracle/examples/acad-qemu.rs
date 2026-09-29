@@ -364,7 +364,7 @@ impl ApplicationHandler for App {
                 }
                 self.buttons = 0;
                 if let Err(e) = self.send_pointer() {
-                    return self.fail(el, e);
+                    self.fail(el, e);
                 }
             }
             WindowEvent::ModifiersChanged(modifiers) => {
