@@ -77,8 +77,10 @@ by one ULP; its cause is still being traced. See
 exports now independently check `POINT`, `TRACE`, `SOLID`, and the entities
 carried by `REPEAT`/`ENDREP`. The model now keeps rectangular patterns, including
 the two nested in BLIVET blocks; a 2×2 original command probe verifies the
-saved counts, spacing, DXF structure, and rendered positions. The opening
-record's extra word and point-specified distances still need investigation.
+saved counts, spacing, DXF structure, and rendered positions. `ENDREP` now
+accepts point inputs for both distances: the original derives column X and row
+Y spacing from consecutive points, and the generated DWG matches both oracles.
+The opening record's extra word remains under investigation.
 A signed type code marking an
 erased entity (`ADDER`'s own finding) is confirmed the same way: reading the code
 as `i16` makes `ADDER`'s walk land exactly, where reading it unsigned does not.

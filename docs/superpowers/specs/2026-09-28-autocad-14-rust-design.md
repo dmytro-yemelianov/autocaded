@@ -115,6 +115,11 @@ entities inside `REPEAT`. Subsequent original command probes established
 the rectangular pattern's columns, rows and spacing; the model now preserves
 top-level patterns and patterns inside blocks. The original DXFs also establish that an entity
 header suffix (for example, `LINE,20`) is a layer number, not a record count.
+`ENDREP` also accepts points instead of numeric distances. In point mode the
+original uses the X delta from the pattern's first point to the column point,
+then the Y delta from that point to the row point; a generated 2×2 drawing
+matches the Rust model and QEMU. The opening `REPEAT` record's second word
+remains opaque.
 The AC1.2 and AC1.40 writers emit the model's entity types and blocks. AC1.40
 output matches original QEMU-generated LINE, CIRCLE, and POINT record bytes
 and opens in the original under QEMU with a CGA drawing viewport within 16

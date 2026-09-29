@@ -95,8 +95,8 @@ enum InputState {
     AreaSelection,
     RepeatColumns,
     RepeatRows(u16),
-    RepeatColumnSpacing(u16, u16),
-    RepeatRowSpacing(u16, u16, f64),
+    RepeatColumnSpacing(u16, u16, Point),
+    RepeatRowSpacing(u16, u16, f64, Point, RepeatDistanceInput),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,6 +106,12 @@ enum EditCommand {
     Copy,
     Rotate,
     Scale,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RepeatDistanceInput {
+    Number,
+    Point,
 }
 
 impl InputState {
@@ -211,8 +217,8 @@ impl InputState {
             Self::AreaSelection => "ENTITYAREA: entity numbers or ALL",
             Self::RepeatColumns => "ENDREP: columns",
             Self::RepeatRows(_) => "ENDREP: rows",
-            Self::RepeatColumnSpacing(_, _) => "ENDREP: column distance",
-            Self::RepeatRowSpacing(_, _, _) => "ENDREP: row distance",
+            Self::RepeatColumnSpacing(_, _, _) => "ENDREP: column distance",
+            Self::RepeatRowSpacing(_, _, _, _, _) => "ENDREP: row distance",
         }
     }
 }
@@ -974,16 +980,40 @@ impl Editor {
             }
             InputState::RepeatRows(columns) => {
                 let rows = positive_word(line, "rows")?;
-                self.state = InputState::RepeatColumnSpacing(columns, rows);
+                let start = self.repeat_start.ok_or("ENDREP without REPEAT")?;
+                let anchor = self.drawing.items[start..]
+                    .iter()
+                    .find_map(|item| match item {
+                        Item::Entity(entity) => entity_anchor(entity),
+                        _ => None,
+                    })
+                    .ok_or("REPEAT needs one or more ordinary entities")?;
+                self.state = InputState::RepeatColumnSpacing(columns, rows, anchor);
                 Ok(Effect::Continue)
             }
-            InputState::RepeatColumnSpacing(columns, rows) => {
-                let spacing = number(line)?;
-                self.state = InputState::RepeatRowSpacing(columns, rows, spacing);
+            InputState::RepeatColumnSpacing(columns, rows, previous) => {
+                let (spacing, next, kind) = match number(line) {
+                    Ok(spacing) => (
+                        spacing,
+                        Point {
+                            x: previous.x + spacing,
+                            y: previous.y,
+                        },
+                        RepeatDistanceInput::Number,
+                    ),
+                    Err(_) => {
+                        let next = point(line)?;
+                        (next.x - previous.x, next, RepeatDistanceInput::Point)
+                    }
+                };
+                self.state = InputState::RepeatRowSpacing(columns, rows, spacing, next, kind);
                 Ok(Effect::Continue)
             }
-            InputState::RepeatRowSpacing(columns, rows, column_spacing) => {
-                let row_spacing = number(line)?;
+            InputState::RepeatRowSpacing(columns, rows, column_spacing, previous, kind) => {
+                let row_spacing = match kind {
+                    RepeatDistanceInput::Number => number(line)?,
+                    RepeatDistanceInput::Point => point(line)?.y - previous.y,
+                };
                 let start = self.repeat_start.ok_or("ENDREP without REPEAT")?;
                 let slice = &self.drawing.items[start..];
                 if slice.is_empty() || slice.iter().any(|i| !matches!(i, Item::Entity(_))) {

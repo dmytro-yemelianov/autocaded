@@ -98,6 +98,46 @@ fn original_repeat_round_trips_and_matches_the_rust_command() {
 
 #[cfg(unix)]
 #[test]
+fn original_repeat_point_distances_use_consecutive_point_deltas() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() {
+        return;
+    }
+    let inputs = [
+        "REPEAT", "LINE", "1,1", "2,1", "", "ENDREP", "2", "2", "3,4", "5,6",
+    ];
+    let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCRPPT", &inputs).unwrap();
+    let expected = Item::Repeat(acad_model::Repeat {
+        entities: vec![Entity::OnLayer {
+            layer: 1,
+            entity: Box::new(Entity::Line {
+                start: Point { x: 1.0, y: 1.0 },
+                end: Point { x: 2.0, y: 1.0 },
+            }),
+        }],
+        columns: 2,
+        rows: 2,
+        column_spacing: 2.0,
+        row_spacing: 2.0,
+    });
+    let parsed = acad_dwg::parse(&original).unwrap();
+    assert_eq!(parsed.items, [expected.clone()]);
+    assert_eq!(acad_dwg::write(&parsed).unwrap(), original);
+    let mut editor = acad_cmd::Editor::default();
+    for input in inputs {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(editor.drawing().items, [expected]);
+    if acad_oracle::available() {
+        let qemu = acad_oracle::generate_dwg(&disk, "ORCRPPT", &inputs).unwrap();
+        assert_eq!(qemu, original);
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn original_move_and_copy_use_displacement_before_last_selection() {
     use acad_model::{Entity, Item, Point};
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -71,9 +71,10 @@
 //! two-entity command probes round trip through this writer byte for byte.
 //! `read_items` preserves top-level groups as `Item::Repeat` and groups
 //! inside blocks as `Entity::Repeat`; the renderer places every copy. The
-//! opening record's second word is still opaque and not preserved by the
-//! model; point-specified distances and edit operations on a whole group
-//! need separate command probes.
+//! original's point-specified ENDREP distances use consecutive point deltas
+//! and are stored in the model as ordinary scalar spacings. The opening
+//! record's second word is still opaque and not preserved by the model; edit
+//! operations on a whole group need separate command probes.
 //!
 //! `ARC`, `TEXT` and `INSERT` each carry an angle field stored in radians;
 //! they are converted to degrees here because `acad_model` documents them in
