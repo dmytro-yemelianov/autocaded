@@ -80,8 +80,12 @@ signatures.
 - Frame loop at about 15 Hz:
   - read video memory, update `ModeTracker`;
   - graphics: draw the decoded frame, each scanline doubled;
-  - text: take a screendump (720×400) and drop the ninth column of every
-    9-pixel character cell, giving 640×400.
+  - text: render the 80×25 page from video memory with the BIOS 8×8 font
+    (`F000:FA6E`, upper half via INT 1Fh), each scanline doubled.
+    *Amended during implementation:* QEMU's screendump was the original
+    choice, but after `END` AutoCAD's CGA CRTC table leaves QEMU's VGA
+    drawing 8-line cells, so its text picture is garbled. The screendump
+    API remains in `Session` for tests.
 - Keyboard: winit `KeyCode` → QEMU qcode through an explicit table (letters,
   digits, punctuation, Enter, Backspace, Tab, Escape, arrows, Home/End,
   PgUp/PgDn, Ins/Del, F1–F10, Shift, Ctrl, Alt). Key-up is forwarded;

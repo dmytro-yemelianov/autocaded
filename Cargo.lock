@@ -67,6 +67,8 @@ dependencies = [
  "acad-model",
  "acad-render",
  "serde_json",
+ "softbuffer",
+ "winit",
 ]
 
 [[package]]

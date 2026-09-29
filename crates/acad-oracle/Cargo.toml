@@ -13,3 +13,5 @@ acad-dxf = { path = "../acad-dxf" }
 acad-dwg = { path = "../acad-dwg" }
 acad-model = { path = "../acad-model" }
 acad-render = { path = "../acad-render" }
+winit = "0.30"
+softbuffer = "0.4"
