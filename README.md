@@ -32,8 +32,10 @@ Rust model tests only for ROTATE and SCALE. MOVE and COPY now follow the
 original displacement, optional second point, then selection prompt order;
 QEMU checks both commands with `L` (Last), including both ways to enter a
 displacement.
-Rectangular ARRAY now follows the original's `R` mode prompt and column-major
-record order; a generated 2×3 drawing matches the original in both oracles.
+ARRAY follows the original's rectangular `R` and circular `C` prompts.
+Generated 2×3 rectangular and non-origin circular drawings match the original
+in both the in-tree runner and QEMU, including entity record order and the
+original's orientation-preserving circular copies.
 
 **The §8 decision gate did not pass (1 of 3).** Transpiling the decompiler's AST
 to Rust is therefore *not* adopted: `acad-re` stays an understanding tool and all
@@ -155,7 +157,8 @@ The current command loop accepts `LINE`, `CIRCLE`, `POINT`, `SOLID`, `TRACE`, th
 `INSERT` for existing blocks (insertion point, optional independent
 X/Y scales and rotation, or an opposite corner point to set both scales),
 `INSERT *name` to copy a block's component entities
-at a new insertion point, `BREAK` on lines, arcs and circles, rectangular `ARRAY`, line-to-line
+at a new insertion point, `BREAK` on lines, arcs and circles, rectangular and
+circular `ARRAY`, line-to-line
 `FILLET`,
 `CHANGE` (assign selected entities to a layer), `DIST`, `ID`, point-by-point `AREA`,
 `ENTITYAREA` for circles, quadrilaterals, and closed line loops (a Rust extension),

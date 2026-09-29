@@ -201,6 +201,52 @@ fn original_array_creates_a_rectangular_grid() {
 
 #[cfg(unix)]
 #[test]
+fn original_circular_array_rotates_copies_around_its_center() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() {
+        return;
+    }
+    // Non-origin center and unequal input coordinates discriminate rotation
+    // about the requested center from rotation about the world origin.
+    let inputs = [
+        "LINE", "5,3", "6,3", "", "ARRAY", "L", "C", "4,3", "90", "4",
+    ];
+    let dwg = acad_oracle::generate_dwg_in_tree(&disk, "ORCARRC", &inputs).unwrap();
+    let expected: Vec<_> = [
+        ((5.0, 3.0), (6.0, 3.0)),
+        ((4.0, 4.0), (5.0, 4.0)),
+        ((3.0, 3.0), (4.0, 3.0)),
+        ((4.0, 2.0), (5.0, 2.0)),
+    ]
+    .into_iter()
+    .map(|((x1, y1), (x2, y2))| {
+        Item::Entity(Entity::OnLayer {
+            layer: 1,
+            entity: Box::new(Entity::Line {
+                start: Point { x: x1, y: y1 },
+                end: Point { x: x2, y: y2 },
+            }),
+        })
+    })
+    .collect();
+    assert_eq!(acad_dwg::parse(&dwg).unwrap().items, expected);
+    let mut editor = acad_cmd::Editor::default();
+    for input in inputs {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(editor.drawing().items, expected);
+    editor.submit("UNDO").unwrap();
+    assert_eq!(editor.drawing().items, [expected[0].clone()]);
+    if acad_oracle::available() {
+        let qemu = acad_oracle::generate_dwg(&disk, "ORCARRC", &inputs).unwrap();
+        assert_eq!(qemu, dwg);
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn original_erase_marks_the_record_and_oops_restores_it() {
     use acad_model::{Entity, Item, Point};
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

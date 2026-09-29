@@ -66,6 +66,9 @@ enum InputState {
     DisplacedSelection(EditCommand, Point),
     ArraySelection,
     ArrayMode(Vec<usize>),
+    ArrayCircularCenter(Vec<usize>),
+    ArrayCircularAngle(Vec<usize>, Point),
+    ArrayCircularItems(Vec<usize>, Point, f64),
     ArrayRows(Vec<usize>),
     ArrayColumns(Vec<usize>, usize),
     ArrayRowSpacing(Vec<usize>, usize, usize),
@@ -179,6 +182,9 @@ impl InputState {
             }
             Self::ArraySelection => "ARRAY: entity numbers or ALL",
             Self::ArrayMode(_) => "ARRAY: rectangular or circular (R/C)",
+            Self::ArrayCircularCenter(_) => "ARRAY: center point",
+            Self::ArrayCircularAngle(_, _) => "ARRAY: angle between items",
+            Self::ArrayCircularItems(_, _, _) => "ARRAY: number of items",
             Self::ArrayRows(_) => "ARRAY: number of rows",
             Self::ArrayColumns(_, _) => "ARRAY: number of columns",
             Self::ArrayRowSpacing(_, _, _) => "ARRAY: row spacing",
@@ -742,10 +748,35 @@ impl Editor {
                 Ok(Effect::Continue)
             }
             InputState::ArrayMode(ids) => {
-                if !line.eq_ignore_ascii_case("R") && !line.eq_ignore_ascii_case("RECTANGULAR") {
-                    return Err("ARRAY currently supports rectangular arrays (R)".into());
+                if line.eq_ignore_ascii_case("R") || line.eq_ignore_ascii_case("RECTANGULAR") {
+                    self.state = InputState::ArrayRows(ids);
+                } else if line.eq_ignore_ascii_case("C") || line.eq_ignore_ascii_case("CIRCULAR") {
+                    self.state = InputState::ArrayCircularCenter(ids);
+                } else {
+                    return Err("array mode must be rectangular (R) or circular (C)".into());
                 }
-                self.state = InputState::ArrayRows(ids);
+                Ok(Effect::Continue)
+            }
+            InputState::ArrayCircularCenter(ids) => {
+                self.state = InputState::ArrayCircularAngle(ids, point(line)?);
+                Ok(Effect::Continue)
+            }
+            InputState::ArrayCircularAngle(ids, center) => {
+                self.state = InputState::ArrayCircularItems(ids, center, number(line)?);
+                Ok(Effect::Continue)
+            }
+            InputState::ArrayCircularItems(ids, center, angle) => {
+                let count = positive_count(line, "array item count")?;
+                if !(angle * count.saturating_sub(1) as f64).is_finite() {
+                    return Err("circular array angle is too large".into());
+                }
+                if count.saturating_mul(ids.len()) > MAX_ARRAY_ENTITIES {
+                    return Err(format!(
+                        "array exceeds the {MAX_ARRAY_ENTITIES}-entity implementation limit"
+                    ));
+                }
+                self.circular_array(&ids, center, angle, count);
+                self.state = InputState::Command;
                 Ok(Effect::Continue)
             }
             InputState::ArrayRows(ids) => {
@@ -1211,6 +1242,44 @@ impl Editor {
         self.status = format!("Created {rows}x{columns} array with {copy_count} copies");
     }
 
+    fn circular_array(&mut self, ids: &[usize], center: Point, angle: f64, count: usize) {
+        let source_indexes = selected_item_indexes(&self.drawing, ids);
+        let sources: Vec<Entity> = self
+            .drawing
+            .items
+            .iter()
+            .enumerate()
+            .filter_map(|(index, item)| {
+                source_indexes.contains(&(index + 1)).then(|| match item {
+                    Item::Entity(entity) => Some(entity.clone()),
+                    Item::Block(_) | Item::Repeat(_) | Item::Erased(_) => None,
+                })?
+            })
+            .collect();
+        let mut copies = Vec::with_capacity(sources.len().saturating_mul(count.saturating_sub(1)));
+        for item in 1..count {
+            let degrees = angle * item as f64;
+            for source in &sources {
+                let Some(anchor) = entity_anchor(source) else {
+                    continue;
+                };
+                let target = rotate_point(anchor, center, degrees);
+                let delta = Point {
+                    x: target.x - anchor.x,
+                    y: target.y - anchor.y,
+                };
+                let mut entity = source.clone();
+                transform_entity(&mut entity, Transform::Translate(delta));
+                copies.push(Item::Entity(entity));
+            }
+        }
+        self.save_undo();
+        let copy_count = copies.len();
+        self.drawing.items.extend(copies);
+        self.refresh_after_edit();
+        self.status = format!("Created circular array with {copy_count} copies");
+    }
+
     fn change_layer(&mut self, ids: &[usize], layer: u8) {
         self.save_undo();
         let selected = selected_item_indexes(&self.drawing, ids);
@@ -1670,6 +1739,31 @@ fn bare(mut entity: &Entity) -> &Entity {
         entity = inner;
     }
     entity
+}
+
+fn entity_anchor(entity: &Entity) -> Option<Point> {
+    match bare(entity) {
+        Entity::Repeat(repeat) => repeat.entities.first().and_then(entity_anchor),
+        Entity::Line { start, .. } => Some(*start),
+        Entity::Circle { center, .. } | Entity::Arc { center, .. } => Some(*center),
+        Entity::Point { origin } | Entity::Text { origin, .. } | Entity::Shape { origin, .. } => {
+            Some(*origin)
+        }
+        Entity::Trace { p1, .. } | Entity::Solid { p1, .. } => Some(*p1),
+        Entity::Insert { origin, .. } => Some(*origin),
+        Entity::Load { .. } | Entity::OnLayer { .. } => None,
+    }
+}
+
+fn rotate_point(point: Point, base: Point, degrees: f64) -> Point {
+    let angle = degrees.to_radians();
+    let (sin, cos) = angle.sin_cos();
+    let x = point.x - base.x;
+    let y = point.y - base.y;
+    Point {
+        x: base.x + x * cos - y * sin,
+        y: base.y + x * sin + y * cos,
+    }
 }
 
 fn trace_quads(points: &[Point], width: f64) -> Result<Vec<Entity>, String> {
