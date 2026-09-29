@@ -127,10 +127,11 @@ Snap (`^B`).
 
 - QEMU attaches COM1 to a Unix socket in the session directory
   (`-chardev socket,…,server=on,wait=off -serial chardev:mouse`).
-- `Session::mouse(dx, dy, buttons)` sends one packet;
-  `Session::mouse_to(x, y, buttons)` walks there with packets whose deltas are
-  chosen by mirroring the driver's arithmetic, so the host always knows the
-  guest's position.
+- `Session::mouse_to(x, y, buttons)` walks there with packets whose deltas
+  are chosen by mirroring the driver's arithmetic, so the host always knows
+  the guest's position. `Session::mouse_pin()` drives the pointer into the
+  lower-left clamp, making the mirror exact again after AutoCAD
+  reinitializes its driver.
 - The runner maps the host cursor's position in the 640×400 picture to device
   units with the inverse of the screen mapping, and sends `mouse_to` whenever
   the cursor moves or a button changes. The crosshair follows the host cursor
