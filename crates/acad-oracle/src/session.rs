@@ -22,6 +22,7 @@ pub struct Session {
     child: Child,
     reader: BufReader<UnixStream>,
     writer: UnixStream,
+    mouse: crate::mouse::Link<UnixStream>,
     dir: PathBuf,
     _serial: MutexGuard<'static, ()>,
 }
@@ -102,6 +103,7 @@ impl Session {
         b: Option<&Path>,
     ) -> Result<Self, String> {
         let socket = dir.join("qmp.sock");
+        let mouse_socket = dir.join("mouse.sock");
         let mut command = Command::new("qemu-system-i386");
         command.args(["-machine", "isapc", "-m", "16"]);
         // QEMU 11.0.1's chained TCG blocks can fail to truncate EIP after
@@ -109,6 +111,14 @@ impl Session {
         // chaining keeps AutoCAD's overlay calls inside their code segment.
         // See docs/oracle-qemu.md for the trace and upstream fix.
         command.args(["-d", "nochain"]);
+        // ACAD.CFG puts the Mouse Systems mouse (DGMS) on COM1 (3F8h, IRQ4).
+        command
+            .arg("-chardev")
+            .arg(format!(
+                "socket,id=mouse,path={},server=on,wait=off",
+                mouse_socket.display()
+            ))
+            .args(["-serial", "chardev:mouse"]);
         command
             .arg("-drive")
             .arg(format!("file={},if=floppy,index=0,format=raw", a.display()));
@@ -179,10 +189,24 @@ impl Session {
                 return Err(format!("clone QMP socket: {e}"));
             }
         };
+        // Non-blocking: when AutoCAD's driver stops reading, a full socket
+        // must drop mouse packets rather than freeze the caller.
+        let mouse = match UnixStream::connect(&mouse_socket)
+            .and_then(|mouse| mouse.set_nonblocking(true).map(|()| mouse))
+        {
+            Ok(mouse) => crate::mouse::Link::new(mouse),
+            Err(e) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = fs::remove_dir_all(&dir);
+                return Err(format!("connect mouse socket: {e}"));
+            }
+        };
         let mut session = Self {
             child,
             reader: BufReader::new(stream),
             writer,
+            mouse,
             dir,
             _serial: serial,
         };
@@ -215,6 +239,29 @@ impl Session {
             }]}
         }))
         .map(drop)
+    }
+
+    /// Move the COM1 mouse to device position `(x, y)` (`0..=20480`, see
+    /// `crate::mouse`) with `buttons` held. The pointer's position is
+    /// mirrored from the packets sent, not read back. If the guest is not
+    /// reading, the packets are dropped and the next move re-pins first.
+    pub fn mouse_to(&mut self, x: i32, y: i32, buttons: u8) -> Result<(), String> {
+        self.mouse
+            .move_to(x, y, buttons)
+            .map_err(|e| format!("write mouse packets: {e}"))
+    }
+
+    /// Drive the pointer into its lower-left clamp so the mirrored position
+    /// is exact again, e.g. after AutoCAD reinitializes its mouse driver.
+    pub fn mouse_pin(&mut self) -> Result<(), String> {
+        self.mouse
+            .pin()
+            .map_err(|e| format!("write mouse packets: {e}"))
+    }
+
+    /// The mirrored device position of the mouse.
+    pub fn pointer(&self) -> (i32, i32) {
+        self.mouse.position()
     }
 
     /// `size` bytes of guest physical memory from `address`.

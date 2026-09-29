@@ -117,8 +117,16 @@ the 16 KiB at `B8000h` about 15 times a second, decides from its contents
 whether the guest is in text or graphics mode (`acad_oracle::cga::detect`),
 and renders it as a CGA would: 80×25 cells using the BIOS's 8×8 font at
 `F000:FA6E`, or the 640×200 bitmap with its status line, screen menu, and
-prompt area. The text cursor is not drawn. The mouse is not connected yet;
-the configured `DGMS` driver expects a Mouse Systems serial mouse.
+prompt area. The text cursor is not drawn.
+
+The configured `DGMS` driver reads a Mouse Systems serial mouse on COM1,
+which QEMU attaches to a socket in the session directory. The runner mirrors
+the driver's position arithmetic (deltas of ±2 count 10 units, larger ones
+60, clamped to `0..=20480`) and moves the pointer to the device position
+under the host cursor, using the crosshair mapping measured in the spec
+(`column = round(x × 639 / 20480)`, `row = 180 − floor(y × 191 / 20480)`).
+It re-pins the pointer at the lower-left clamp whenever the editor starts.
+Left picks, middle is Return, and right toggles Snap, as `ACAD.MNU` assigns.
 
 ## Remaining limits
 

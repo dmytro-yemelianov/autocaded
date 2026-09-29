@@ -6,6 +6,7 @@ pub mod dos_loader;
 pub mod dos_machine;
 mod fat12;
 pub mod in_tree;
+pub mod mouse;
 pub mod mz_loader;
 pub mod screen;
 pub use in_tree::{generate_dwg_in_tree, generate_visual_dwg_in_tree, InTreeVisualProbe};

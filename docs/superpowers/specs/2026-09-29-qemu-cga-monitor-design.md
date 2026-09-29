@@ -94,15 +94,49 @@ signatures.
 - Exit: closing the window shuts QEMU down; if QEMU exits first, the
   runner reports its exit status and closes the window.
 
-### 4. Mouse (next increment)
+### 4. Mouse
 
-The configuration selects `DGMS`, a Mouse Systems serial mouse. Its driver
-reads the UART directly (`2F8h` appears in `DGMS.DRV`). The runner will
-attach a QEMU serial port to a Unix socket and encode window motion and
-buttons as Mouse Systems five-byte packets: `0x80 | ~buttons` (left bit 2,
-middle bit 1, right bit 0, active low), then signed `dx1, dy1, dx2, dy2`
-with positive y upward. Before implementation, the driver's port selection
-and line settings are confirmed from `DGMS.DRV` and a QEMU trial.
+*Amended after investigation (disassembly of `DGMS.DRV` and QEMU trials).*
+
+**Driver facts.** The configuration selects `DGMS`, a Mouse Systems serial
+mouse, on the port stored in `ACAD.CFG`: `3F8h` (COM1, IRQ4, vector `0Ch`).
+`2F8h` in the driver is only the COM2 alternative. The driver installs an
+IRQ handler, unmasks the IRQ, writes `08h` (OUT2) to the modem control
+register and `01h` (receive interrupt) to the interrupt enable register. It
+never programs the baud rate or line format, so under QEMU any byte on the
+serial chardev reaches it.
+
+Its parser treats any byte with `(b & 0xF8) == 0x80` as a packet start, even
+mid-packet. The low three bits are buttons, active low: bit 2 left, bit 1
+middle, bit 0 right. The next four bytes are signed deltas `dx1, dy1, dx2,
+dy2`, positive y upward. Each delta `d` moves an absolute position by
+`d × 10` when `|d| ≤ 2` and `d × 60` otherwise, clamped to `0..=20480` per
+axis. The position starts at `(0, 0)`. Deltas must stay out of `-128..=-121`,
+whose bytes would read as packet starts; the host uses `-120..=127`.
+
+**Screen mapping** (measured from the crosshair over 43 positions):
+`column = round(x × 639 / 20480)` exactly, and
+`row = 180 − floor(y × 191 / 20480)` within one row. The crosshair is drawn
+only in the drawing area, while AutoCAD waits for a point; positions right of
+column 568 point at the screen menu, and rows below 168 at the prompt area.
+
+**Buttons** follow `ACAD.MNU`: left picks, middle is Return, right toggles
+Snap (`^B`).
+
+**Design.**
+
+- QEMU attaches COM1 to a Unix socket in the session directory
+  (`-chardev socket,…,server=on,wait=off -serial chardev:mouse`).
+- `Session::mouse_to(x, y, buttons)` walks there with packets whose deltas
+  are chosen by mirroring the driver's arithmetic, so the host always knows
+  the guest's position. `Session::mouse_pin()` drives the pointer into the
+  lower-left clamp, making the mirror exact again after AutoCAD
+  reinitializes its driver.
+- The runner maps the host cursor's position in the 640×400 picture to device
+  units with the inverse of the screen mapping, and sends `mouse_to` whenever
+  the cursor moves or a button changes. The crosshair follows the host cursor
+  without grabbing it. Left, middle and right host buttons are the mouse's
+  own three buttons.
 
 ## Error handling
 
