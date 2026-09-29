@@ -61,6 +61,9 @@ enum InputState {
     EditSelection(EditCommand),
     EditBase(EditCommand, Vec<usize>),
     EditValue(EditCommand, Vec<usize>, Point),
+    Displacement(EditCommand),
+    SecondPoint(EditCommand, Point),
+    DisplacedSelection(EditCommand, Point),
     ArraySelection,
     ArrayRows(Vec<usize>),
     ArrayColumns(Vec<usize>, usize),
@@ -143,20 +146,36 @@ impl InputState {
             Self::ZoomWindowMax(_) => "ZOOM WINDOW: upper-right",
             Self::PanCenter => "PAN: new view center x,y",
             Self::EditSelection(EditCommand::Erase) => "ERASE: entity numbers or ALL",
-            Self::EditSelection(EditCommand::Move) => "MOVE: entity numbers or ALL",
-            Self::EditSelection(EditCommand::Copy) => "COPY: entity numbers or ALL",
+            Self::EditSelection(EditCommand::Move | EditCommand::Copy) => {
+                unreachable!("MOVE and COPY select after displacement")
+            }
             Self::EditSelection(EditCommand::Rotate) => "ROTATE: entity numbers or ALL",
             Self::EditSelection(EditCommand::Scale) => "SCALE: entity numbers or ALL",
-            Self::EditBase(EditCommand::Move, _) => "MOVE: base point x,y",
-            Self::EditBase(EditCommand::Copy, _) => "COPY: base point x,y",
+            Self::EditBase(EditCommand::Move | EditCommand::Copy, _) => {
+                unreachable!("MOVE and COPY use displacement prompts")
+            }
             Self::EditBase(EditCommand::Rotate, _) => "ROTATE: base point x,y",
             Self::EditBase(EditCommand::Scale, _) => "SCALE: base point x,y",
             Self::EditBase(EditCommand::Erase, _) => "ERASE: selection",
             Self::EditValue(EditCommand::Rotate, _, _) => "ROTATE: angle in degrees",
             Self::EditValue(EditCommand::Scale, _, _) => "SCALE: factor (>0)",
-            Self::EditValue(EditCommand::Move, _, _) => "MOVE: second point x,y",
-            Self::EditValue(EditCommand::Copy, _, _) => "COPY: second point x,y",
+            Self::EditValue(EditCommand::Move | EditCommand::Copy, _, _) => {
+                unreachable!("MOVE and COPY use displacement prompts")
+            }
             Self::EditValue(_, _, _) => "edit: value",
+            Self::Displacement(EditCommand::Move) => "MOVE: displacement or first point x,y",
+            Self::Displacement(EditCommand::Copy) => "COPY: displacement or first point x,y",
+            Self::SecondPoint(EditCommand::Move, _) => {
+                "MOVE: second point (Enter for displacement)"
+            }
+            Self::SecondPoint(EditCommand::Copy, _) => {
+                "COPY: second point (Enter for displacement)"
+            }
+            Self::DisplacedSelection(EditCommand::Move, _) => "MOVE: select objects, ALL or LAST",
+            Self::DisplacedSelection(EditCommand::Copy, _) => "COPY: select objects, ALL or LAST",
+            Self::Displacement(_) | Self::SecondPoint(_, _) | Self::DisplacedSelection(_, _) => {
+                unreachable!("only MOVE and COPY use displacement prompts")
+            }
             Self::ArraySelection => "ARRAY: entity numbers or ALL",
             Self::ArrayRows(_) => "ARRAY: number of rows",
             Self::ArrayColumns(_, _) => "ARRAY: number of columns",
@@ -658,7 +677,35 @@ impl Editor {
                     self.state = InputState::Command;
                     return Ok(Effect::Continue);
                 }
+                debug_assert!(matches!(command, EditCommand::Rotate | EditCommand::Scale));
                 self.state = InputState::EditBase(command, ids);
+                Ok(Effect::Continue)
+            }
+            InputState::Displacement(command) => {
+                self.state = InputState::SecondPoint(command, point(line)?);
+                Ok(Effect::Continue)
+            }
+            InputState::SecondPoint(command, first) => {
+                let delta = if line.is_empty() {
+                    first
+                } else {
+                    let second = point(line)?;
+                    Point {
+                        x: second.x - first.x,
+                        y: second.y - first.y,
+                    }
+                };
+                self.state = InputState::DisplacedSelection(command, delta);
+                Ok(Effect::Continue)
+            }
+            InputState::DisplacedSelection(command, delta) => {
+                let ids = selection(line, selectable_count(&self.drawing))?;
+                self.transform(
+                    &ids,
+                    Transform::Translate(delta),
+                    command == EditCommand::Copy,
+                );
+                self.state = InputState::Command;
                 Ok(Effect::Continue)
             }
             InputState::EditBase(command, ids) => {
@@ -668,11 +715,7 @@ impl Editor {
             InputState::EditValue(command, ids, base) => {
                 let transform = match command {
                     EditCommand::Move | EditCommand::Copy => {
-                        let second = point(line)?;
-                        Transform::Translate(Point {
-                            x: second.x - base.x,
-                            y: second.y - base.y,
-                        })
+                        unreachable!("MOVE and COPY use displacement prompts")
                     }
                     EditCommand::Rotate => Transform::Rotate {
                         base,
@@ -966,8 +1009,8 @@ impl Editor {
                 self.status = list_entities(&self.drawing);
             }
             "ERASE" | "E" => self.state = InputState::EditSelection(EditCommand::Erase),
-            "MOVE" | "M" => self.state = InputState::EditSelection(EditCommand::Move),
-            "COPY" | "CO" => self.state = InputState::EditSelection(EditCommand::Copy),
+            "MOVE" | "M" => self.state = InputState::Displacement(EditCommand::Move),
+            "COPY" | "CO" => self.state = InputState::Displacement(EditCommand::Copy),
             "ROTATE" | "RO" => self.state = InputState::EditSelection(EditCommand::Rotate),
             "SCALE" | "SC" => self.state = InputState::EditSelection(EditCommand::Scale),
             "ARRAY" | "AR" => self.state = InputState::ArraySelection,
@@ -1411,6 +1454,13 @@ fn selection(input: &str, count: usize) -> Result<Vec<usize>, String> {
             return Err("there are no selectable entities".into());
         }
         return Ok((1..=count).collect());
+    }
+    if input.eq_ignore_ascii_case("LAST") || input.eq_ignore_ascii_case("L") {
+        return if count == 0 {
+            Err("there are no selectable entities".into())
+        } else {
+            Ok(vec![count])
+        };
     }
     let mut ids = BTreeSet::new();
     for part in input.split(',') {
@@ -2596,7 +2646,7 @@ mod tests {
         for input in ["LINE", "1,0", "2,0", ""] {
             editor.submit(input).unwrap();
         }
-        for input in ["MOVE", "1", "0,0", "1,2"] {
+        for input in ["MOVE", "0,0", "1,2", "1"] {
             editor.submit(input).unwrap();
         }
         assert_eq!(
@@ -2606,7 +2656,7 @@ mod tests {
                 end: Point { x: 3.0, y: 2.0 },
             }
         );
-        for input in ["COPY", "1", "0,0", "-1,0"] {
+        for input in ["COPY", "0,0", "-1,0", "1"] {
             editor.submit(input).unwrap();
         }
         assert_eq!(editor.drawing().entities().count(), 2);
@@ -3180,7 +3230,7 @@ mod tests {
         }
         let view = editor.drawing().header.view;
         let limits = editor.drawing().header.limits;
-        for input in ["MOVE", "ALL", "0,0", "1,0"] {
+        for input in ["MOVE", "0,0", "1,0", "ALL"] {
             editor.submit(input).unwrap();
         }
         assert_eq!(editor.drawing().header.view, view);

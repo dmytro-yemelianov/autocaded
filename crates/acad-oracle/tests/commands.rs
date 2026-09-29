@@ -99,6 +99,54 @@ fn original_repeat_round_trips_and_matches_the_rust_command() {
 
 #[cfg(unix)]
 #[test]
+fn original_move_and_copy_use_displacement_before_last_selection() {
+    use acad_model::{Entity, Item, Point};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        return;
+    }
+    let original_line = Item::Entity(Entity::OnLayer {
+        layer: 1,
+        entity: Box::new(Entity::Line {
+            start: Point { x: 1.0, y: 1.0 },
+            end: Point { x: 2.0, y: 1.0 },
+        }),
+    });
+    let moved_line = Item::Entity(Entity::OnLayer {
+        layer: 1,
+        entity: Box::new(Entity::Line {
+            start: Point { x: 4.0, y: 5.0 },
+            end: Point { x: 5.0, y: 5.0 },
+        }),
+    });
+    for (name, command, first, second) in [
+        ("ORCMOVE", "MOVE", "3,4", ""),
+        ("ORCCOPY", "COPY", "3,4", ""),
+        ("ORCMOV2", "MOVE", "1,1", "4,5"),
+    ] {
+        let input = ["LINE", "1,1", "2,1", "", command, first, second, "L"];
+        let dwg = acad_oracle::generate_dwg(&disk, name, &input).unwrap();
+        let expected = if command == "COPY" {
+            vec![original_line.clone(), moved_line.clone()]
+        } else {
+            vec![moved_line.clone()]
+        };
+        assert_eq!(
+            acad_dwg::parse(&dwg).unwrap().items,
+            expected,
+            "{command} original"
+        );
+        let mut editor = acad_cmd::Editor::default();
+        for line in input {
+            editor.submit(line).unwrap();
+        }
+        assert_eq!(editor.drawing().items, expected, "{command} Rust");
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn block_last_moves_the_entity_into_an_uppercase_definition() {
     use acad_model::{Entity, Item, Point};
 

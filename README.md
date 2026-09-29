@@ -26,10 +26,12 @@ Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/sup
 with geometry creation and basic editing. The current editor supports LINE, CIRCLE,
 POINT, ARC, TEXT, ID, BLOCK, INSERT, LIST, ERASE, MOVE, COPY, ROTATE, SCALE, UNDO, drawing settings,
 ZOOM, PAN, SAVE, and END/QUIT. Editing selection uses the IDs reported by LIST or
-`ALL`; MOVE and COPY use base and destination points. The basic geometry creation
+`ALL`; MOVE and COPY accept a displacement or base and destination points. The basic geometry creation
 and view commands have QEMU oracle coverage. The new edit transforms currently have
-Rust model tests only: the original editor's selection prompts still need to be
-driven correctly before these operations can be compared against AutoCAD.
+Rust model tests only for ROTATE and SCALE. MOVE and COPY now follow the
+original displacement, optional second point, then selection prompt order;
+QEMU checks both commands with `L` (Last), including both ways to enter a
+displacement.
 
 **The §8 decision gate did not pass (1 of 3).** Transpiling the decompiler's AST
 to Rust is therefore *not* adopted: `acad-re` stays an understanding tool and all
