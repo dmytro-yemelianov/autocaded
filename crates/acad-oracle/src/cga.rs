@@ -106,6 +106,61 @@ impl Default for ModeTracker {
     }
 }
 
+/// 8×8 glyphs for all 256 codes, eight rows each, high bit leftmost.
+pub struct Font(Vec<u8>);
+
+impl Font {
+    /// The PC BIOS keeps glyphs 0–127 at `F000:FA6E`; INT 1Fh points to
+    /// 128–255 when a table is installed. Missing upper glyphs are blank.
+    pub fn new(low: &[u8], high: Option<&[u8]>) -> Result<Self, String> {
+        let mut glyphs = vec![0; 2048];
+        for (half, table) in [(0, Some(low)), (1024, high)] {
+            let Some(table) = table else { continue };
+            if table.len() != 1024 {
+                return Err(format!("font half is {} bytes, expected 1024", table.len()));
+            }
+            glyphs[half..half + 1024].copy_from_slice(table);
+        }
+        Ok(Self(glyphs))
+    }
+
+    pub fn glyph(&self, code: u8) -> [u8; 8] {
+        let at = usize::from(code) * 8;
+        self.0[at..at + 8].try_into().expect("eight rows")
+    }
+}
+
+/// The CGA's sixteen RGBI colours as `0x00RRGGBB`.
+const PALETTE: [u32; 16] = [
+    0x00_0000, 0x00_00AA, 0x00_AA00, 0x00_AAAA, 0xAA_0000, 0xAA_00AA, 0xAA_5500, 0xAA_AAAA,
+    0x55_5555, 0x55_55FF, 0x55_FF55, 0x55_FFFF, 0xFF_5555, 0xFF_55FF, 0xFF_FF55, 0xFF_FFFF,
+];
+
+/// Render an 80×25 text page as a CGA would: 8×8 cells giving 640×200,
+/// each scanline shown twice. Bit 7 of an attribute (blink) is ignored.
+/// QEMU's own text rendering cannot be used: AutoCAD restores text mode
+/// with CGA CRTC values, which leave QEMU's VGA drawing 8-line cells.
+pub fn text_rgb_640x400(memory: &[u8], font: &Font) -> Result<Vec<u32>, String> {
+    let page = memory
+        .get(..TEXT_CELLS * 2)
+        .ok_or_else(|| format!("text page is {} bytes, expected 4000", memory.len()))?;
+    let mut out = Vec::with_capacity(DISPLAY_WIDTH * DISPLAY_HEIGHT);
+    for y in 0..DISPLAY_HEIGHT {
+        let (row, line) = (y / 16, y / 2 % 8);
+        for x in 0..DISPLAY_WIDTH {
+            let cell = &page[(row * 80 + x / 8) * 2..][..2];
+            let lit = font.glyph(cell[0])[line] & (0x80 >> (x % 8)) != 0;
+            let colour = if lit {
+                cell[1] & 0x0F
+            } else {
+                cell[1] >> 4 & 0x07
+            };
+            out.push(PALETTE[usize::from(colour)]);
+        }
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,6 +243,40 @@ mod tests {
     #[test]
     fn short_memory_is_undecided() {
         assert_eq!(detect(&[0x20, 0x07]), None);
+    }
+
+    fn font_with_a() -> Font {
+        let mut low = vec![0; 1024];
+        low[usize::from(b'A') * 8] = 0x80; // top-left pixel only
+        Font::new(&low, None).unwrap()
+    }
+
+    #[test]
+    fn font_takes_upper_half_when_installed() {
+        let low = vec![1; 1024];
+        assert_eq!(Font::new(&low, None).unwrap().glyph(200), [0; 8]);
+        let high = vec![2; 1024];
+        let font = Font::new(&low, Some(&high)).unwrap();
+        assert_eq!((font.glyph(127), font.glyph(128)), ([1; 8], [2; 8]));
+        assert!(Font::new(&low[..10], None).is_err());
+    }
+
+    #[test]
+    fn text_cells_render_with_cga_colours_and_double_scan() {
+        let font = font_with_a();
+        let mut memory = text_page(|_| b' ', 0x07);
+        memory[0] = b'A';
+        memory[81 * 2] = b'A'; // row 1, column 1
+        memory[81 * 2 + 1] = 0x9E; // blink bit, blue background, yellow text
+        let rgb = text_rgb_640x400(&memory, &font).unwrap();
+        assert_eq!(rgb.len(), DISPLAY_WIDTH * DISPLAY_HEIGHT);
+        assert_eq!(
+            (rgb[0], rgb[640], rgb[1], rgb[1280]),
+            (0xAA_AAAA, 0xAA_AAAA, 0, 0)
+        );
+        let at = |x: usize, y: usize| rgb[y * DISPLAY_WIDTH + x];
+        assert_eq!((at(8, 16), at(9, 16)), (0xFF_FF55, 0x00_00AA));
+        assert!(text_rgb_640x400(&memory[..100], &font).is_err());
     }
 
     #[test]

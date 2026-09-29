@@ -199,14 +199,34 @@ impl Session {
         .map(drop)
     }
 
-    /// The 16 KiB CGA region at `B8000h`.
-    pub fn video_memory(&mut self) -> Result<Vec<u8>, String> {
-        let dump = self.dir.join("video.bin");
+    /// `size` bytes of guest physical memory from `address`.
+    pub fn read_memory(&mut self, address: u32, size: usize) -> Result<Vec<u8>, String> {
+        let dump = self.dir.join("memory.bin");
         self.command(json!({
             "execute": "pmemsave",
-            "arguments": {"val": 0xb8000, "size": crate::cga::VIDEO_BYTES, "filename": dump}
+            "arguments": {"val": address, "size": size, "filename": dump}
         }))?;
-        fs::read(dump).map_err(|e| format!("read video memory: {e}"))
+        fs::read(dump).map_err(|e| format!("read guest memory: {e}"))
+    }
+
+    /// The 16 KiB CGA region at `B8000h`.
+    pub fn video_memory(&mut self) -> Result<Vec<u8>, String> {
+        self.read_memory(0xb8000, crate::cga::VIDEO_BYTES)
+    }
+
+    /// The BIOS's copy of the CGA character ROM: glyphs 0–127 at
+    /// `F000:FA6E`, and 128–255 wherever INT 1Fh points, if anywhere.
+    pub fn bios_font(&mut self) -> Result<crate::cga::Font, String> {
+        let low = self.read_memory(0xffa6e, 1024)?;
+        let vector = self.read_memory(0x1f * 4, 4)?;
+        let offset = u32::from(u16::from_le_bytes([vector[0], vector[1]]));
+        let segment = u32::from(u16::from_le_bytes([vector[2], vector[3]]));
+        let high = if segment == 0 && offset == 0 {
+            None
+        } else {
+            Some(self.read_memory(segment * 16 + offset, 1024)?)
+        };
+        crate::cga::Font::new(&low, high.as_deref())
     }
 
     /// QEMU's rendering of its own adapter. Correct in text mode only.

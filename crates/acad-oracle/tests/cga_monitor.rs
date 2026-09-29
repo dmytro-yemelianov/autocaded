@@ -22,6 +22,12 @@ fn monitor_follows_text_menu_graphics_editor_and_back() {
     assert_eq!(detect(&vm.video_memory().unwrap()), Some(Mode::Text));
     let menu = vm.screendump().unwrap();
     assert_eq!((menu.width, menu.height), (720, 400));
+    // The BIOS copy of the CGA character ROM, used for text-mode frames.
+    let font = vm.bios_font().unwrap();
+    assert_eq!(
+        font.glyph(b'A'),
+        [0x30, 0x78, 0xCC, 0xCC, 0xFC, 0xCC, 0xCC, 0x00]
+    );
 
     // Select "New drawing" through input-send-event, the runner's key path.
     for qcode in ["1", "ret"] {
