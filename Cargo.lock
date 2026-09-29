@@ -70,6 +70,7 @@ version = "0.1.0"
 name = "acad-oracle"
 version = "0.1.0"
 dependencies = [
+ "acad-cmd",
  "acad-dwg",
  "acad-dxf",
  "acad-model",

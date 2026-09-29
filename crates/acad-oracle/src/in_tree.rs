@@ -1,0 +1,171 @@
+//! Run the original executable with the in-tree 8086 and DOS services.
+
+use crate::{
+    dos_machine::{DosMachine, DosRunError},
+    fat12::fat12_file,
+    mz_loader::MzExecutable,
+};
+use std::fs;
+use std::path::Path;
+
+const SYSTEM_FILES: &[&str] = &[
+    "IBMBIO.COM",
+    "IBMDOS.COM",
+    "COMMAND.COM",
+    "ACAD.OVL",
+    "ACAD.CFG",
+    "ACAD.HLP",
+    "ACAD.MNU",
+    "ACAD.PAT",
+    "TXT.SHP",
+    "README.DOC",
+    "AUTOEXEC.BAT",
+    "ACAD.BAK",
+];
+const STARTUP_INSTRUCTIONS: usize = 10_000_000;
+const SCRIPT_CHUNK_INSTRUCTIONS: usize = 1_000_000;
+const MAX_SCRIPT_CHUNKS: usize = 40;
+
+/// Original DWG bytes and the editor's CGA frame before END.
+pub struct InTreeVisualProbe {
+    pub dwg: Vec<u8>,
+    pub cga: Vec<u8>,
+}
+
+/// Script a new AutoCAD 1.4 drawing and return the original's DWG bytes.
+/// The input disk is read only. The runner currently supports the System
+/// floppy's root files and the DOS/BIOS calls exercised by tested commands.
+pub fn generate_dwg_in_tree(
+    system_disk: &Path,
+    name: &str,
+    editor_lines: &[&str],
+) -> Result<Vec<u8>, String> {
+    run_in_tree(system_disk, name, editor_lines, false).map(|(dwg, _)| dwg)
+}
+
+/// Capture the original's 16 KiB CGA display after the scripted commands,
+/// then save the drawing. The input disk is read only.
+pub fn generate_visual_dwg_in_tree(
+    system_disk: &Path,
+    name: &str,
+    editor_lines: &[&str],
+) -> Result<InTreeVisualProbe, String> {
+    let (dwg, cga) = run_in_tree(system_disk, name, editor_lines, true)?;
+    Ok(InTreeVisualProbe {
+        dwg,
+        cga: cga.expect("capture requested"),
+    })
+}
+
+fn run_in_tree(
+    system_disk: &Path,
+    name: &str,
+    editor_lines: &[&str],
+    capture: bool,
+) -> Result<(Vec<u8>, Option<Vec<u8>>), String> {
+    if name.is_empty()
+        || name.len() > 8
+        || !name
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
+    {
+        return Err("drawing name must be 1–8 uppercase ASCII letters or digits".into());
+    }
+    if editor_lines
+        .iter()
+        .any(|line| !line.is_ascii() || line.bytes().any(|byte| byte == b'\r' || byte == b'\n'))
+    {
+        return Err("editor lines must be single-line ASCII".into());
+    }
+    let disk = fs::read(system_disk)
+        .map_err(|error| format!("read {}: {error}", system_disk.display()))?;
+    let drawing_name = format!("{name}.DWG");
+    if fat12_file(&disk, &drawing_name).is_ok() {
+        return Err(format!(
+            "{drawing_name} already exists on the System floppy"
+        ));
+    }
+    let executable = fat12_file(&disk, "ACAD.EXE")?;
+    let mz = MzExecutable::parse(&executable).map_err(|error| error.to_string())?;
+    let files = SYSTEM_FILES
+        .iter()
+        .map(|name| fat12_file(&disk, name).map(|bytes| (*name, bytes)))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut machine = DosMachine::load_with_files(
+        &mz,
+        0x1000,
+        0xA000,
+        b"",
+        files.iter().map(|(name, bytes)| (*name, bytes.as_slice())),
+    )
+    .map_err(|error| error.to_string())?;
+    match machine.run(STARTUP_INSTRUCTIONS) {
+        Err(DosRunError::StepLimit(_)) if machine.console_polls() > 0 => {}
+        other => return Err(format!("AutoCAD did not reach the menu: {other:?}")),
+    }
+
+    let mut script = format!("1\r{name}\r").into_bytes();
+    for line in editor_lines {
+        script.extend_from_slice(line.as_bytes());
+        script.push(b'\r');
+    }
+    if !capture {
+        script.extend_from_slice(b"END\r");
+    }
+    machine.push_input(script);
+    let cga = if capture {
+        let mut previous = Vec::new();
+        let mut stable = 0;
+        let mut captured = None;
+        for _ in 0..MAX_SCRIPT_CHUNKS {
+            match machine.run(SCRIPT_CHUNK_INSTRUCTIONS) {
+                Err(DosRunError::StepLimit(_)) => {}
+                other => return Err(format!("AutoCAD stopped before CGA capture: {other:?}")),
+            }
+            if machine.pending_input() != 0 {
+                stable = 0;
+                continue;
+            }
+            let frame = machine.cga_memory();
+            stable = if frame == previous { stable + 1 } else { 0 };
+            if stable >= 2 {
+                captured = Some(frame);
+                break;
+            }
+            previous = frame;
+        }
+        let frame = captured.ok_or("AutoCAD editor CGA frame did not stabilize")?;
+        machine.push_input(b"END\r".iter().copied());
+        Some(frame)
+    } else {
+        None
+    };
+    for _ in 0..MAX_SCRIPT_CHUNKS {
+        match machine.run(SCRIPT_CHUNK_INSTRUCTIONS) {
+            Err(DosRunError::StepLimit(_)) => {}
+            other => {
+                return Err(format!(
+                    "AutoCAD stopped before saving {drawing_name}: {other:?}"
+                ))
+            }
+        }
+        if let Some(drawing) = machine.file(&drawing_name) {
+            return Ok((drawing.to_vec(), cga));
+        }
+    }
+    Err(format!(
+        "AutoCAD did not save {drawing_name} within the instruction limit"
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalid_input_is_rejected_before_disk_access() {
+        let missing = Path::new("/missing-System.img");
+        assert!(generate_dwg_in_tree(missing, "TOO-LONG-NAME", &[]).is_err());
+        assert!(generate_dwg_in_tree(missing, "VALID", &["LINE\nEND"]).is_err());
+    }
+}

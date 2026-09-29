@@ -13,3 +13,4 @@ acad-dxf = { path = "../acad-dxf" }
 acad-dwg = { path = "../acad-dwg" }
 acad-model = { path = "../acad-model" }
 acad-render = { path = "../acad-render" }
+acad-cmd = { path = "../acad-cmd" }
