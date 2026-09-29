@@ -11,3 +11,8 @@ acad-model = { path = "crates/acad-model" }
 acad-dxf = { path = "crates/acad-dxf" }
 acad-dwg = { path = "crates/acad-dwg" }
 acad-render = { path = "crates/acad-render" }
+
+# The interactive QEMU runner scales fullscreen frames per poll; unoptimized
+# builds take most of a frame interval to do it.
+[profile.dev.package.acad-oracle]
+opt-level = 2

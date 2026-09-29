@@ -61,3 +61,23 @@ fn monitor_follows_text_menu_graphics_editor_and_back() {
     vm.shutdown().unwrap();
     assert!(vm.exit_status().is_some());
 }
+
+#[test]
+fn qemu_startup_failure_is_reported_at_once_with_its_reason() {
+    if !acad_oracle::available() {
+        eprintln!("skipping oracle: qemu-system-i386 absent");
+        return;
+    }
+    let missing = Path::new("/tmp/acad-oracle-missing-floppy.img");
+    let start = std::time::Instant::now();
+    let error = match Session::boot_in_place(missing, None) {
+        Ok(_) => panic!("booted a missing floppy"),
+        Err(error) => error,
+    };
+    assert!(
+        start.elapsed() < Duration::from_secs(10),
+        "took {:?}",
+        start.elapsed()
+    );
+    assert!(error.contains("acad-oracle-missing-floppy.img"), "{error}");
+}

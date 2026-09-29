@@ -176,28 +176,32 @@ impl HeldKeys {
 
 /// Integer-scale the 640×400 picture into a `width`×`height` buffer,
 /// centred, with black around it; windows smaller than the picture clip it.
-fn blit(picture: &[u32], width: usize, height: usize) -> Vec<u32> {
+/// Each source row is scaled once and then copied row by row.
+fn blit(picture: &[u32], out: &mut [u32], width: usize, height: usize) {
     let scale = (width / DISPLAY_WIDTH).min(height / DISPLAY_HEIGHT).max(1);
     let left = width.saturating_sub(DISPLAY_WIDTH * scale) / 2;
     let top = height.saturating_sub(DISPLAY_HEIGHT * scale) / 2;
-    let mut out = vec![0; width * height];
-    for y in 0..height {
-        let Some(sy) = y.checked_sub(top).map(|v| v / scale) else {
+    let visible = width.min(left + DISPLAY_WIDTH * scale);
+    let blank = vec![0; width];
+    let mut row = vec![0; width];
+    let mut built = None;
+    for (y, target) in out.chunks_exact_mut(width).take(height).enumerate() {
+        let sy = y.checked_sub(top).map(|v| v / scale);
+        let Some(sy) = sy.filter(|&sy| sy < DISPLAY_HEIGHT) else {
+            target.copy_from_slice(&blank);
             continue;
         };
-        if sy >= DISPLAY_HEIGHT {
-            continue;
-        }
-        for x in 0..width {
-            let Some(sx) = x.checked_sub(left).map(|v| v / scale) else {
-                continue;
-            };
-            if sx < DISPLAY_WIDTH {
-                out[y * width + x] = picture[sy * DISPLAY_WIDTH + sx];
+        if built != Some(sy) {
+            let source = &picture[sy * DISPLAY_WIDTH..][..DISPLAY_WIDTH];
+            let mut x = left;
+            while x < visible {
+                row[x] = source[(x - left) / scale];
+                x += 1;
             }
+            built = Some(sy);
         }
+        target.copy_from_slice(&row);
     }
-    out
 }
 
 /// Working copies of System (drive A) and Samples (drive B) under `work`,
@@ -288,6 +292,16 @@ impl ApplicationHandler for App {
         el.set_control_flow(ControlFlow::WaitUntil(self.next_frame));
     }
 
+    /// Also reached by the macOS app menu's Quit (Cmd+Q), where AppKit ends
+    /// the process without returning from the event loop.
+    fn exiting(&mut self, _: &ActiveEventLoop) {
+        if !std::mem::replace(&mut self.closing, true) {
+            if let Err(e) = self.session.shutdown() {
+                eprintln!("acad-qemu: shutdown: {e}");
+            }
+        }
+    }
+
     fn window_event(&mut self, el: &ActiveEventLoop, _: WindowId, event: WindowEvent) {
         match event {
             WindowEvent::CloseRequested => {
@@ -342,9 +356,13 @@ impl ApplicationHandler for App {
                     return;
                 };
                 surface.resize(w, h).unwrap();
-                let image = blit(&self.picture, size.width as usize, size.height as usize);
                 let mut buffer = surface.buffer_mut().unwrap();
-                buffer.copy_from_slice(&image);
+                blit(
+                    &self.picture,
+                    &mut buffer,
+                    size.width as usize,
+                    size.height as usize,
+                );
                 buffer.present().unwrap();
             }
             _ => {}
@@ -375,6 +393,13 @@ fn main() {
     let [system, samples] =
         working_disks(&corpus, &root.join("target/acad-qemu"), fresh).unwrap_or_else(|e| fail(&e));
     let session = Session::boot_in_place(&system, Some(&samples)).unwrap_or_else(|e| fail(&e));
+    let event_loop = match EventLoop::new() {
+        Ok(event_loop) => event_loop,
+        Err(e) => {
+            drop(session);
+            fail(&e.to_string());
+        }
+    };
     let mut app = App {
         session,
         tracker: ModeTracker::new(),
@@ -386,11 +411,12 @@ fn main() {
         outcome: Ok(()),
         closing: false,
     };
-    let event_loop = EventLoop::new().unwrap_or_else(|e| fail(&e.to_string()));
-    event_loop
-        .run_app(&mut app)
-        .unwrap_or_else(|e| fail(&e.to_string()));
-    if let Err(e) = app.outcome {
+    let run = event_loop.run_app(&mut app).map_err(|e| e.to_string());
+    let outcome = run.and(std::mem::replace(&mut app.outcome, Ok(())));
+    // Dropping the session stops QEMU; `fail` exits without running
+    // destructors and would leave it running on the working disks.
+    drop(app);
+    if let Err(e) = outcome {
         fail(&e);
     }
 }
@@ -470,9 +496,15 @@ mod tests {
         (1..=(DISPLAY_WIDTH * DISPLAY_HEIGHT) as u32).collect()
     }
 
+    fn blitted(w: usize, h: usize) -> Vec<u32> {
+        let mut out = vec![0xDEAD; w * h];
+        blit(&picture(), &mut out, w, h);
+        out
+    }
+
     #[test]
     fn blit_scales_by_whole_pixels() {
-        let out = blit(&picture(), 1280, 800);
+        let out = blitted(1280, 800);
         assert_eq!((out[0], out[1], out[2]), (1, 1, 2));
         assert_eq!(out[1280], 1);
         assert_eq!(out[2 * 1280], 641);
@@ -480,20 +512,35 @@ mod tests {
 
     #[test]
     fn blit_centres_leftover_space() {
-        let out = blit(&picture(), 1300, 800);
+        let out = blitted(1300, 800);
         assert_eq!((out[9], out[10], out[11], out[12]), (0, 1, 1, 2));
     }
 
     #[test]
     fn blit_clips_small_and_odd_windows() {
         for (w, h) in [(300, 200), (1, 1), (641, 399)] {
-            let out = blit(&picture(), w, h);
+            let out = blitted(w, h);
             assert_eq!(out.len(), w * h);
             assert_eq!(out[0], 1);
             if w > 1 {
                 assert_eq!(out[1], 2);
             }
         }
+    }
+
+    #[test]
+    fn fullscreen_blit_fits_well_inside_a_frame() {
+        // 14-inch MacBook Pro fullscreen, physical pixels. The frame
+        // interval is 66 ms and the event loop also forwards keys.
+        let (w, h) = (3024, 1964);
+        let picture = picture();
+        let mut out = vec![0; w * h];
+        blit(&picture, &mut out, w, h); // fault in the buffer, as a reused one is
+        let start = Instant::now();
+        blit(&picture, &mut out, w, h);
+        let elapsed = start.elapsed();
+        assert!(elapsed < Duration::from_millis(25), "blit took {elapsed:?}");
+        assert_eq!(out[(h / 2) * w + w / 2], picture[200 * DISPLAY_WIDTH + 320]);
     }
 
     #[test]

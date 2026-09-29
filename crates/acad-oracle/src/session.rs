@@ -117,12 +117,20 @@ impl Session {
                 .arg("-drive")
                 .arg(format!("file={},if=floppy,index=1,format=raw", b.display()));
         }
+        let log = dir.join("qemu.log");
+        let stderr = match fs::File::create(&log) {
+            Ok(file) => file,
+            Err(e) => {
+                let _ = fs::remove_dir_all(&dir);
+                return Err(format!("create {}: {e}", log.display()));
+            }
+        };
         let mut child = match command
             .args(["-boot", "a", "-display", "none", "-no-reboot"])
             .arg("-qmp")
             .arg(format!("unix:{},server=on,wait=off", socket.display()))
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stderr(stderr)
             .spawn()
         {
             Ok(child) => child,
@@ -133,6 +141,16 @@ impl Session {
         };
         let start = Instant::now();
         let stream = loop {
+            // A rejected image or option ends QEMU before it listens;
+            // report its own message instead of waiting out the timeout.
+            if let Ok(Some(status)) = child.try_wait() {
+                let reason = fs::read_to_string(&log).unwrap_or_default();
+                let _ = fs::remove_dir_all(&dir);
+                return Err(format!(
+                    "qemu-system-i386 exited during startup ({status}): {}",
+                    reason.trim()
+                ));
+            }
             match UnixStream::connect(&socket) {
                 Ok(stream) => break stream,
                 Err(_) if start.elapsed() < BOOT_TIMEOUT => {
