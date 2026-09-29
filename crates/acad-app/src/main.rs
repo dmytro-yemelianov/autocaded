@@ -1,8 +1,9 @@
 use acad_render::{flatten_with_libraries, rasterize, Libraries, Viewport};
 use std::{num::NonZeroU32, rc::Rc};
+use winit::keyboard::{Key, NamedKey};
 use winit::{
     application::ApplicationHandler,
-    event::WindowEvent,
+    event::{ElementState, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop},
     window::{Window, WindowId},
 };
@@ -12,16 +13,19 @@ use winit::{
 type WindowState = (Rc<Window>, softbuffer::Surface<Rc<Window>, Rc<Window>>);
 
 struct App {
-    drawing: acad_model::Drawing,
+    editor: acad_cmd::Editor,
     libraries: Libraries,
     reported: std::collections::BTreeSet<String>,
     state: Option<WindowState>,
+    input: String,
+    status: String,
 }
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, el: &ActiveEventLoop) {
         let attrs = Window::default_attributes().with_title("AutoCAD 1.4");
         let window = Rc::new(el.create_window(attrs).unwrap());
+        window.set_title("AutoCAD 1.4 — Command");
         let context = softbuffer::Context::new(window.clone()).unwrap();
         let surface = softbuffer::Surface::new(&context, window.clone()).unwrap();
         self.state = Some((window, surface));
@@ -33,6 +37,45 @@ impl ApplicationHandler for App {
         };
         match event {
             WindowEvent::CloseRequested => el.exit(),
+            WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
+                match &event.logical_key {
+                    Key::Named(NamedKey::Enter) => {
+                        let input = std::mem::take(&mut self.input);
+                        self.status.clear();
+                        match self.editor.submit(&input) {
+                            Ok(acad_cmd::Effect::Continue) => {
+                                self.status = self.editor.status().to_owned();
+                            }
+                            Ok(acad_cmd::Effect::Quit) => el.exit(),
+                            Ok(acad_cmd::Effect::Save(path)) => {
+                                self.status = match save_drawing(&path, self.editor.drawing()) {
+                                    Ok(()) => format!("Saved {path}"),
+                                    Err(e) => format!("Save failed: {e}"),
+                                };
+                            }
+                            Err(e) => self.status = e,
+                        }
+                    }
+                    Key::Named(NamedKey::Backspace) => {
+                        self.input.pop();
+                    }
+                    Key::Named(NamedKey::Escape) => {
+                        self.input.clear();
+                    }
+                    Key::Character(text) if !text.chars().any(char::is_control) => {
+                        self.input.push_str(text);
+                    }
+                    _ => {}
+                }
+                let title = format!(
+                    "AutoCAD 1.4 — {} {} {}",
+                    self.editor.prompt(),
+                    self.input,
+                    self.status
+                );
+                window.set_title(&title);
+                window.request_redraw();
+            }
             WindowEvent::RedrawRequested => {
                 let size = window.inner_size();
                 let (Some(w), Some(h)) =
@@ -41,8 +84,14 @@ impl ApplicationHandler for App {
                     return;
                 };
                 surface.resize(w, h).unwrap();
-                let vp = Viewport::fit(&self.drawing.header.limits, size.width, size.height);
-                let rendered = flatten_with_libraries(&self.drawing, &vp, &self.libraries);
+                let drawing = self.editor.drawing();
+                let view = drawing.header.view;
+                let vp = if view.height.is_finite() && view.height > 0.0 {
+                    Viewport::from_view(view.center, view.height, size.width, size.height)
+                } else {
+                    Viewport::fit(&drawing.header.limits, size.width, size.height)
+                };
+                let rendered = flatten_with_libraries(drawing, &vp, &self.libraries);
                 for diagnostic in rendered.diagnostics {
                     if self.reported.insert(diagnostic.clone()) {
                         eprintln!("render: {diagnostic}");
@@ -60,6 +109,19 @@ impl ApplicationHandler for App {
             _ => {}
         }
     }
+}
+
+fn save_drawing(path: &str, drawing: &acad_model::Drawing) -> Result<(), String> {
+    let path_ref = std::path::Path::new(path);
+    let bytes = if path_ref
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("dxf"))
+    {
+        acad_dxf::write(drawing)
+    } else {
+        acad_dwg::write(drawing).map_err(|e| e.to_string())?
+    };
+    std::fs::write(path_ref, bytes).map_err(|e| e.to_string())
 }
 
 /// Report a diagnostic and exit. A bad file is a normal outcome for a tool
@@ -104,10 +166,12 @@ fn main() {
     );
     let el = EventLoop::new().unwrap();
     el.run_app(&mut App {
-        drawing,
+        editor: acad_cmd::Editor::new(drawing),
         libraries,
         reported: Default::default(),
         state: None,
+        input: String::new(),
+        status: String::new(),
     })
     .unwrap();
 }

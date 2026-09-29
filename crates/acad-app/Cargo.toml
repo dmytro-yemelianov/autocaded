@@ -11,6 +11,7 @@ path = "src/main.rs"
 [dependencies]
 acad-dwg.workspace = true
 acad-dxf.workspace = true
+acad-cmd = { path = "../acad-cmd" }
 acad-model.workspace = true
 acad-render.workspace = true
 winit = "0.30"
