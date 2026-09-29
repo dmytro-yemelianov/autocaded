@@ -7,6 +7,7 @@
 use acad_oracle::cga::{
     text_rgb_640x400, Font, Frame, Mode, ModeTracker, DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
+use acad_oracle::mouse::{device_for_pixel, LEFT, MIDDLE, RIGHT};
 use acad_oracle::session::Session;
 use std::fs;
 use std::num::NonZeroU32;
@@ -15,7 +16,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
-use winit::event::{ElementState, WindowEvent};
+use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Window, WindowId};
@@ -174,13 +175,38 @@ impl HeldKeys {
     }
 }
 
+/// Where `blit` draws the picture in a `width`×`height` window: its integer
+/// scale and the left and top offsets of its first pixel.
+fn layout(width: usize, height: usize) -> (usize, usize, usize) {
+    let scale = (width / DISPLAY_WIDTH).min(height / DISPLAY_HEIGHT).max(1);
+    let left = width.saturating_sub(DISPLAY_WIDTH * scale) / 2;
+    let top = height.saturating_sub(DISPLAY_HEIGHT * scale) / 2;
+    (scale, left, top)
+}
+
+/// The 640×400 picture pixel under window position `(x, y)`, or `None` over
+/// the border or outside the window.
+fn picture_point(width: usize, height: usize, x: f64, y: f64) -> Option<(usize, usize)> {
+    let (scale, left, top) = layout(width, height);
+    if x < left as f64 || y < top as f64 {
+        return None;
+    }
+    let px = (x as usize - left) / scale;
+    let py = (y as usize - top) / scale;
+    (px < DISPLAY_WIDTH && py < DISPLAY_HEIGHT).then_some((px, py))
+}
+
+/// AutoCAD (re)initializes its mouse driver when it enters the editor, so
+/// the pointer is re-pinned on every switch into graphics mode.
+fn entered_graphics(previous: Mode, now: Mode) -> bool {
+    previous == Mode::Text && now == Mode::Graphics
+}
+
 /// Integer-scale the 640×400 picture into a `width`×`height` buffer,
 /// centred, with black around it; windows smaller than the picture clip it.
 /// Each source row is scaled once and then copied row by row.
 fn blit(picture: &[u32], out: &mut [u32], width: usize, height: usize) {
-    let scale = (width / DISPLAY_WIDTH).min(height / DISPLAY_HEIGHT).max(1);
-    let left = width.saturating_sub(DISPLAY_WIDTH * scale) / 2;
-    let top = height.saturating_sub(DISPLAY_HEIGHT * scale) / 2;
+    let (scale, left, top) = layout(width, height);
     let visible = width.min(left + DISPLAY_WIDTH * scale);
     let blank = vec![0; width];
     let mut row = vec![0; width];
@@ -228,6 +254,9 @@ struct App {
     tracker: ModeTracker,
     font: Option<Font>,
     held: HeldKeys,
+    mode: Mode,
+    pointer: Option<(i32, i32)>,
+    buttons: u8,
     picture: Vec<u32>,
     state: Option<WindowState>,
     next_frame: Instant,
@@ -241,7 +270,15 @@ impl App {
             return Err(format!("QEMU exited: {status}"));
         }
         let memory = self.session.video_memory()?;
-        self.picture = match self.tracker.update(&memory) {
+        let mode = self.tracker.update(&memory);
+        if entered_graphics(self.mode, mode) {
+            self.session.mouse_pin()?;
+            if let Some((x, y)) = self.pointer {
+                self.session.mouse_to(x, y, self.buttons)?;
+            }
+        }
+        self.mode = mode;
+        self.picture = match mode {
             Mode::Graphics => Frame::new(&memory)?.to_rgb_640x400(),
             Mode::Text => {
                 if self.font.is_none() {
@@ -251,6 +288,14 @@ impl App {
             }
         };
         Ok(())
+    }
+
+    /// Send the host pointer to the guest mouse; only the editor has one.
+    fn send_pointer(&mut self) -> Result<(), String> {
+        match (self.mode, self.pointer) {
+            (Mode::Graphics, Some((x, y))) => self.session.mouse_to(x, y, self.buttons),
+            _ => Ok(()),
+        }
     }
 
     fn fail(&mut self, el: &ActiveEventLoop, error: String) {
@@ -317,6 +362,10 @@ impl ApplicationHandler for App {
                         return self.fail(el, e);
                     }
                 }
+                self.buttons = 0;
+                if let Err(e) = self.send_pointer() {
+                    return self.fail(el, e);
+                }
             }
             WindowEvent::ModifiersChanged(modifiers) => {
                 let state = modifiers.state();
@@ -343,6 +392,40 @@ impl ApplicationHandler for App {
                         eprintln!("acad-qemu: unmapped key {code:?}");
                     }
                     None => {}
+                }
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                let Some((window, _)) = &self.state else {
+                    return;
+                };
+                let size = window.inner_size();
+                let point = picture_point(
+                    size.width as usize,
+                    size.height as usize,
+                    position.x,
+                    position.y,
+                );
+                if let Some((px, py)) = point {
+                    self.pointer = Some(device_for_pixel(px, py / 2));
+                    if let Err(e) = self.send_pointer() {
+                        self.fail(el, e);
+                    }
+                }
+            }
+            WindowEvent::MouseInput { state, button, .. } => {
+                let bit = match button {
+                    MouseButton::Left => LEFT,
+                    MouseButton::Middle => MIDDLE,
+                    MouseButton::Right => RIGHT,
+                    _ => return,
+                };
+                if state == ElementState::Pressed {
+                    self.buttons |= bit;
+                } else {
+                    self.buttons &= !bit;
+                }
+                if let Err(e) = self.send_pointer() {
+                    self.fail(el, e);
                 }
             }
             WindowEvent::RedrawRequested => {
@@ -405,6 +488,9 @@ fn main() {
         tracker: ModeTracker::new(),
         font: None,
         held: HeldKeys::default(),
+        mode: Mode::Text,
+        pointer: None,
+        buttons: 0,
         picture: vec![0; DISPLAY_WIDTH * DISPLAY_HEIGHT],
         state: None,
         next_frame: Instant::now(),
@@ -424,6 +510,31 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn picture_point_inverts_the_blit_layout() {
+        // 1300×800 draws the picture at scale 2 from x = 10.
+        assert_eq!(picture_point(1300, 800, 10.0, 0.0), Some((0, 0)));
+        assert_eq!(picture_point(1300, 800, 13.9, 3.0), Some((1, 1)));
+        assert_eq!(picture_point(1300, 800, 1289.0, 799.0), Some((639, 399)));
+        assert_eq!(picture_point(640, 400, 320.5, 200.5), Some((320, 200)));
+    }
+
+    #[test]
+    fn picture_point_ignores_the_border() {
+        assert_eq!(picture_point(1300, 800, 9.0, 100.0), None);
+        assert_eq!(picture_point(1300, 800, 1290.0, 100.0), None);
+        assert_eq!(picture_point(1300, 800, -5.0, 100.0), None);
+        assert_eq!(picture_point(640, 400, 100.0, 400.0), None);
+    }
+
+    #[test]
+    fn entering_graphics_triggers_a_pin_only_on_the_transition() {
+        assert!(entered_graphics(Mode::Text, Mode::Graphics));
+        assert!(!entered_graphics(Mode::Graphics, Mode::Graphics));
+        assert!(!entered_graphics(Mode::Graphics, Mode::Text));
+        assert!(!entered_graphics(Mode::Text, Mode::Text));
+    }
 
     const REQUIRED: &[KeyCode] = &[
         KeyCode::KeyA,
