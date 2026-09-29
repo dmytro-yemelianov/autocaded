@@ -100,6 +100,26 @@ tests pass with the workaround; removing it made the circle test time out
 after the original aborted. No AutoCAD binary bytes are changed. Keep the
 workaround until a QEMU version containing the fix is required and tested.
 
+## Interactive runner
+
+`cargo run -p acad-oracle --example acad-qemu` boots the original with
+System in drive A and Samples in drive B and shows it in a window. The disks
+are working copies in `target/acad-qemu/`, so drawings survive between runs;
+`--fresh` recopies them from the corpus. Keys are forwarded as QMP key
+events. Guest Shift, Ctrl, and Alt also follow the host's modifier flags,
+and numpad digits type digits. Unmapped host keys are reported on stderr.
+
+QEMU's own display cannot show the editor: `DSIBMSS` programs the CGA mode
+register at `3D8h`, which QEMU's VGA ignores. It cannot be trusted for text
+either: after `END`, AutoCAD restores text mode with CGA CRTC values, which
+leave QEMU's VGA drawing 8-line character cells. The runner therefore reads
+the 16 KiB at `B8000h` about 15 times a second, decides from its contents
+whether the guest is in text or graphics mode (`acad_oracle::cga::detect`),
+and renders it as a CGA would: 80×25 cells using the BIOS's 8×8 font at
+`F000:FA6E`, or the 640×200 bitmap with its status line, screen menu, and
+prompt area. The text cursor is not drawn. The mouse is not connected yet;
+the configured `DGMS` driver expects a Mouse Systems serial mouse.
+
 ## Remaining limits
 
 LOAD and SHAPE records survive both codecs, and the renderer now interprets

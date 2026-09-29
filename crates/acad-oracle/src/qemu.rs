@@ -1,19 +1,13 @@
 use crate::fat12::fat12_file;
-use serde_json::{json, Value};
+use crate::session::{Session, BOOT_TIMEOUT, EDIT_TIMEOUT};
 use std::fs;
-use std::io::{BufRead, BufReader, Write};
-use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, MutexGuard};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 static NEXT_RUN: AtomicU64 = AtomicU64::new(0);
-static QEMU_LOCK: Mutex<()> = Mutex::new(());
-const BOOT_TIMEOUT: Duration = Duration::from_secs(30);
-const EDIT_TIMEOUT: Duration = Duration::from_secs(20);
 
 pub fn available() -> bool {
     Command::new("qemu-system-i386")
@@ -59,7 +53,7 @@ fn export(
     }) {
         return Err("sample names must be 1–8 uppercase ASCII letters or digits".into());
     }
-    let mut vm = Vm::boot(
+    let mut vm = Session::boot_disposable(
         system_disk,
         Some(samples_disk),
         if backups { names } else { &[] },
@@ -77,7 +71,7 @@ fn export(
         }
     }
     vm.shutdown()?;
-    let image = fs::read(vm.dir.join("samples.img"))
+    let image = fs::read(vm.dir().join("samples.img"))
         .map_err(|e| format!("read copied Samples floppy: {e}"))?;
     names
         .iter()
@@ -190,7 +184,7 @@ pub fn open_drawing(
         return Err(error);
     }
     let result = (|| -> Result<Vec<u8>, String> {
-        let mut vm = Vm::boot(system_disk, Some(&samples), &[])?;
+        let mut vm = Session::boot_disposable(system_disk, Some(&samples), &[])?;
         vm.wait_for_text("Enter selection:", BOOT_TIMEOUT)?;
         vm.type_line("2")?;
         vm.wait_for_text("Enter NAME of drawing:", BOOT_TIMEOUT)?;
@@ -221,7 +215,7 @@ fn run(
     {
         return Err("drawing name must be 1–8 uppercase ASCII letters or digits".into());
     }
-    let mut vm = Vm::boot(system_disk, samples_disk, &[])?;
+    let mut vm = Session::boot_disposable(system_disk, samples_disk, &[])?;
     vm.wait_for_text("Enter selection:", BOOT_TIMEOUT)?;
     vm.type_line("1")?;
     vm.wait_for_text("Enter NAME of drawing:", BOOT_TIMEOUT)
@@ -249,7 +243,8 @@ fn run(
         vm.wait_for_text("Drawing interchange file complete.", EDIT_TIMEOUT)?;
     }
     vm.shutdown()?;
-    let image = fs::read(vm.image_path()).map_err(|e| format!("read copied floppy: {e}"))?;
+    let image =
+        fs::read(vm.dir().join("system.img")).map_err(|e| format!("read copied floppy: {e}"))?;
     let dwg = fat12_file(&image, &format!("{name}.DWG"))?;
     let dxf = if export_dxf {
         Some(fat12_file(&image, &format!("{name}.DXF"))?)
@@ -259,300 +254,9 @@ fn run(
     Ok((dwg, dxf))
 }
 
-struct Vm {
-    child: Child,
-    reader: BufReader<UnixStream>,
-    writer: UnixStream,
-    dir: PathBuf,
-    _serial: MutexGuard<'static, ()>,
-}
-
-impl Vm {
-    fn boot(source: &Path, samples: Option<&Path>, backups: &[&str]) -> Result<Self, String> {
-        // Concurrent guests can starve AutoCAD's keyboard and display loop,
-        // causing a stable but incomplete CGA frame to be captured.
-        let serial = QEMU_LOCK
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let dir = loop {
-            let candidate = PathBuf::from(format!(
-                "/tmp/acad-oracle-{}-{}",
-                std::process::id(),
-                NEXT_RUN.fetch_add(1, Ordering::Relaxed)
-            ));
-            match fs::create_dir(&candidate) {
-                Ok(()) => break candidate,
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(e) => return Err(format!("create {}: {e}", candidate.display())),
-            }
-        };
-        let image = dir.join("system.img");
-        if let Err(e) = fs::copy(source, &image) {
-            let _ = fs::remove_dir_all(&dir);
-            return Err(format!("copy {}: {e}", source.display()));
-        }
-        if let Some(samples) = samples {
-            if let Err(e) = fs::copy(samples, dir.join("samples.img")) {
-                let _ = fs::remove_dir_all(&dir);
-                return Err(format!("copy {}: {e}", samples.display()));
-            }
-            if !backups.is_empty() {
-                let path = dir.join("samples.img");
-                let prepared = (|| -> Result<(), String> {
-                    let mut bytes = fs::read(&path).map_err(|e| e.to_string())?;
-                    for name in backups {
-                        promote_backup(&mut bytes, name)?;
-                    }
-                    fs::write(&path, bytes).map_err(|e| e.to_string())
-                })();
-                if let Err(e) = prepared {
-                    let _ = fs::remove_dir_all(&dir);
-                    return Err(e);
-                }
-            }
-        }
-        let socket = dir.join("qmp.sock");
-        let mut command = Command::new("qemu-system-i386");
-        command.args(["-machine", "isapc", "-m", "16"]);
-        // QEMU 11.0.1's chained TCG blocks can fail to truncate EIP after
-        // a wrapping 16-bit near call (observed during CIRCLE). Disabling
-        // chaining keeps AutoCAD's overlay calls inside their code segment.
-        // See docs/oracle-qemu.md for the trace and upstream fix.
-        command.args(["-d", "nochain"]);
-        command.arg("-drive").arg(format!(
-            "file={},if=floppy,index=0,format=raw",
-            image.display()
-        ));
-        if samples.is_some() {
-            command.arg("-drive").arg(format!(
-                "file={},if=floppy,index=1,format=raw",
-                dir.join("samples.img").display()
-            ));
-        }
-        let mut child = match command
-            .args(["-boot", "a", "-display", "none", "-no-reboot"])
-            .arg("-qmp")
-            .arg(format!("unix:{},server=on,wait=off", socket.display()))
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-        {
-            Ok(child) => child,
-            Err(e) => {
-                let _ = fs::remove_dir_all(&dir);
-                return Err(format!("start qemu-system-i386: {e}"));
-            }
-        };
-        let start = Instant::now();
-        let stream = loop {
-            match UnixStream::connect(&socket) {
-                Ok(stream) => break stream,
-                Err(_) if start.elapsed() < BOOT_TIMEOUT => {
-                    thread::sleep(Duration::from_millis(25));
-                }
-                Err(e) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    let _ = fs::remove_dir_all(&dir);
-                    return Err(format!("connect QMP socket: {e}"));
-                }
-            }
-        };
-        if let Err(e) = stream.set_read_timeout(Some(Duration::from_secs(5))) {
-            let _ = child.kill();
-            let _ = child.wait();
-            let _ = fs::remove_dir_all(&dir);
-            return Err(format!("QMP read timeout: {e}"));
-        }
-        let writer = match stream.try_clone() {
-            Ok(writer) => writer,
-            Err(e) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                let _ = fs::remove_dir_all(&dir);
-                return Err(format!("clone QMP socket: {e}"));
-            }
-        };
-        let mut vm = Self {
-            child,
-            reader: BufReader::new(stream),
-            writer,
-            dir,
-            _serial: serial,
-        };
-        let mut greeting = String::new();
-        vm.reader
-            .read_line(&mut greeting)
-            .map_err(|e| format!("read QMP greeting: {e}"))?;
-        if !greeting.contains("\"QMP\"") {
-            return Err(format!("unexpected QMP greeting: {greeting}"));
-        }
-        vm.command(json!({"execute": "qmp_capabilities"}))?;
-        Ok(vm)
-    }
-
-    fn image_path(&self) -> PathBuf {
-        self.dir.join("system.img")
-    }
-
-    fn command(&mut self, command: Value) -> Result<Value, String> {
-        self.writer
-            .write_all(format!("{command}\n").as_bytes())
-            .map_err(|e| format!("write QMP command: {e}"))?;
-        loop {
-            let mut line = String::new();
-            self.reader
-                .read_line(&mut line)
-                .map_err(|e| format!("read QMP response: {e}"))?;
-            if line.is_empty() {
-                return Err("QMP connection closed".into());
-            }
-            let reply: Value =
-                serde_json::from_str(&line).map_err(|e| format!("parse QMP response: {e}"))?;
-            if let Some(error) = reply.get("error") {
-                return Err(format!("QMP error: {error}"));
-            }
-            if let Some(value) = reply.get("return") {
-                return Ok(value.clone());
-            }
-        }
-    }
-
-    fn type_line(&mut self, line: &str) -> Result<(), String> {
-        for ch in line.chars().chain(std::iter::once('\n')) {
-            let key = match ch {
-                '\n' => "ret".to_owned(),
-                ',' => "comma".to_owned(),
-                '.' => "dot".to_owned(),
-                '-' => "minus".to_owned(),
-                '*' => "8".to_owned(),
-                ' ' => "spc".to_owned(),
-                ':' => "semicolon".to_owned(),
-                c if c.is_ascii_alphanumeric() => c.to_ascii_lowercase().to_string(),
-                _ => return Err(format!("unsupported oracle input character {ch:?}")),
-            };
-            let mut keys = Vec::new();
-            if ch.is_ascii_uppercase() || matches!(ch, ':' | '*') {
-                keys.push(json!({"type": "qcode", "data": "shift"}));
-            }
-            keys.push(json!({"type": "qcode", "data": key}));
-            self.command(json!({
-                "execute": "send-key",
-                "arguments": {
-                    "keys": keys,
-                    "hold-time": 70
-                }
-            }))?;
-            thread::sleep(Duration::from_millis(150));
-        }
-        Ok(())
-    }
-
-    fn text_screen(&mut self) -> Result<String, String> {
-        let dump = self.dir.join("text.bin");
-        self.command(json!({
-            "execute": "pmemsave",
-            "arguments": {"val": 0xb8000, "size": 4000, "filename": dump}
-        }))?;
-        let bytes = fs::read(dump).map_err(|e| format!("read video RAM: {e}"))?;
-        let mut text = String::new();
-        for row in bytes.chunks_exact(160) {
-            for pair in row.chunks_exact(2) {
-                let c = pair[0];
-                text.push(if (32..127).contains(&c) {
-                    c as char
-                } else {
-                    ' '
-                });
-            }
-            text.push('\n');
-        }
-        Ok(text)
-    }
-
-    fn capture_editor(&mut self) -> Result<Vec<u8>, String> {
-        let start = Instant::now();
-        let mut previous = Vec::new();
-        let mut stable = 0;
-        while start.elapsed() < EDIT_TIMEOUT {
-            thread::sleep(Duration::from_millis(200));
-            // BIOS keyboard head/tail must agree: loading a floppy library
-            // can leave several already-typed commands waiting in the queue.
-            let keyboard = self.dir.join("keyboard.bin");
-            self.command(json!({"execute": "pmemsave", "arguments": {"val": 0x41a, "size": 4, "filename": keyboard}}))?;
-            let queue = fs::read(keyboard).map_err(|e| e.to_string())?;
-            if queue.len() != 4 || queue[..2] != queue[2..] {
-                stable = 0;
-                continue;
-            }
-            let dump = self.dir.join("cga.bin");
-            self.command(json!({"execute": "pmemsave", "arguments": {"val": 0xb8000, "size": 16384, "filename": dump}}))?;
-            let frame = fs::read(dump).map_err(|e| e.to_string())?;
-            if frame == previous {
-                stable += 1;
-            } else {
-                stable = 0;
-            }
-            if stable >= 3 {
-                return Ok(frame);
-            }
-            previous = frame;
-        }
-        Err("timed out waiting for editor keyboard drain and stable CGA frame".into())
-    }
-
-    fn wait_for_text(&mut self, needle: &str, timeout: Duration) -> Result<(), String> {
-        let start = Instant::now();
-        while start.elapsed() < timeout {
-            if self.text_screen()?.contains(needle) {
-                return Ok(());
-            }
-            thread::sleep(Duration::from_millis(100));
-        }
-        let screen = self.text_screen()?;
-        let visible = screen
-            .lines()
-            .map(str::trim)
-            .filter(|line| !line.is_empty())
-            .take(25)
-            .collect::<Vec<_>>()
-            .join(" | ");
-        Err(format!(
-            "timed out waiting for {needle:?} on the DOS text screen: {visible}"
-        ))
-    }
-
-    fn wait_until_text_gone(&mut self, needle: &str, timeout: Duration) -> Result<(), String> {
-        let start = Instant::now();
-        while start.elapsed() < timeout {
-            if !self.text_screen()?.contains(needle) {
-                return Ok(());
-            }
-            thread::sleep(Duration::from_millis(100));
-        }
-        Err(format!("timed out leaving {needle:?}"))
-    }
-
-    fn shutdown(&mut self) -> Result<(), String> {
-        self.command(json!({"execute": "quit"}))?;
-        self.child
-            .wait()
-            .map_err(|e| format!("wait for QEMU: {e}"))?;
-        Ok(())
-    }
-}
-
-impl Drop for Vm {
-    fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-        let _ = fs::remove_dir_all(&self.dir);
-    }
-}
-
 /// Change only the directory extension; the backup's cluster chain and
 /// drawing bytes are left intact. Names have been validated by `export`.
-fn promote_backup(image: &mut [u8], name: &str) -> Result<(), String> {
+pub(crate) fn promote_backup(image: &mut [u8], name: &str) -> Result<(), String> {
     // Validate the source and its FAT chain before reading boot fields.
     fat12_file(image, &format!("{name}.BAK"))?;
     let word = |at| u16::from_le_bytes([image[at], image[at + 1]]) as usize;

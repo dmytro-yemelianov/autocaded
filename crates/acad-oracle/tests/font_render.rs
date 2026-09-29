@@ -10,10 +10,6 @@ fn bare(mut entity: &acad_model::Entity) -> &acad_model::Entity {
     entity
 }
 
-fn lit(frame: &[u8], x: usize, y: usize) -> bool {
-    frame[(y % 2) * 8192 + (y / 2) * 80 + x / 8] & (128 >> (x % 8)) != 0
-}
-
 #[test]
 fn original_cga_text_and_shape_match_native_strokes() {
     let corpus = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus");
@@ -35,6 +31,7 @@ fn original_cga_text_and_shape_match_native_strokes() {
     )
     .unwrap();
     assert_eq!(probe.cga.len(), 16384);
+    let frame = acad_oracle::cga::Frame::new(&probe.cga).unwrap();
     let drawing = acad_dwg::parse(&probe.dwg).unwrap();
     assert_eq!(drawing.entities().count(), 7);
     assert_eq!(
@@ -60,7 +57,7 @@ fn original_cga_text_and_shape_match_native_strokes() {
     let mut pixels = Vec::new();
     for y in 10..160 {
         for x in 10..550 {
-            if lit(&probe.cga, x, y) {
+            if frame.lit(x, y) {
                 pixels.push(Point {
                     x: x as f64,
                     y: y as f64,
