@@ -22,6 +22,8 @@ pub struct Session {
     child: Child,
     reader: BufReader<UnixStream>,
     writer: UnixStream,
+    mouse: UnixStream,
+    pointer: crate::mouse::Tracker,
     dir: PathBuf,
     _serial: MutexGuard<'static, ()>,
 }
@@ -102,6 +104,7 @@ impl Session {
         b: Option<&Path>,
     ) -> Result<Self, String> {
         let socket = dir.join("qmp.sock");
+        let mouse_socket = dir.join("mouse.sock");
         let mut command = Command::new("qemu-system-i386");
         command.args(["-machine", "isapc", "-m", "16"]);
         // QEMU 11.0.1's chained TCG blocks can fail to truncate EIP after
@@ -109,6 +112,14 @@ impl Session {
         // chaining keeps AutoCAD's overlay calls inside their code segment.
         // See docs/oracle-qemu.md for the trace and upstream fix.
         command.args(["-d", "nochain"]);
+        // ACAD.CFG puts the Mouse Systems mouse (DGMS) on COM1 (3F8h, IRQ4).
+        command
+            .arg("-chardev")
+            .arg(format!(
+                "socket,id=mouse,path={},server=on,wait=off",
+                mouse_socket.display()
+            ))
+            .args(["-serial", "chardev:mouse"]);
         command
             .arg("-drive")
             .arg(format!("file={},if=floppy,index=0,format=raw", a.display()));
@@ -179,10 +190,21 @@ impl Session {
                 return Err(format!("clone QMP socket: {e}"));
             }
         };
+        let mouse = match UnixStream::connect(&mouse_socket) {
+            Ok(mouse) => mouse,
+            Err(e) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = fs::remove_dir_all(&dir);
+                return Err(format!("connect mouse socket: {e}"));
+            }
+        };
         let mut session = Self {
             child,
             reader: BufReader::new(stream),
             writer,
+            mouse,
+            pointer: crate::mouse::Tracker::new(),
             dir,
             _serial: serial,
         };
@@ -215,6 +237,32 @@ impl Session {
             }]}
         }))
         .map(drop)
+    }
+
+    /// Move the COM1 mouse to device position `(x, y)` (`0..=20480`, see
+    /// `crate::mouse`) with `buttons` held. The pointer's position is
+    /// mirrored from the packets sent, not read back.
+    pub fn mouse_to(&mut self, x: i32, y: i32, buttons: u8) -> Result<(), String> {
+        let packets = self.pointer.packets_to(x, y, buttons);
+        self.send_mouse(&packets)
+    }
+
+    /// Drive the pointer into its lower-left clamp so the mirrored position
+    /// is exact again, e.g. after AutoCAD reinitializes its mouse driver.
+    pub fn mouse_pin(&mut self) -> Result<(), String> {
+        let packets = self.pointer.pin();
+        self.send_mouse(&packets)
+    }
+
+    /// The mirrored device position of the mouse.
+    pub fn pointer(&self) -> (i32, i32) {
+        self.pointer.position()
+    }
+
+    fn send_mouse(&mut self, packets: &[[u8; 5]]) -> Result<(), String> {
+        self.mouse
+            .write_all(&packets.concat())
+            .map_err(|e| format!("write mouse packets: {e}"))
     }
 
     /// `size` bytes of guest physical memory from `address`.
