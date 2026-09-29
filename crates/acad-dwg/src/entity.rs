@@ -73,8 +73,10 @@
 //! inside blocks as `Entity::Repeat`; the renderer places every copy. The
 //! original's point-specified ENDREP distances use consecutive point deltas
 //! and are stored in the model as ordinary scalar spacings. The opening
-//! record's second word is still opaque and not preserved by the model; edit
-//! operations on a whole group need separate command probes.
+//! second word is 1 in probes with one or two nested entities and different
+//! dimensions, but its meaning is unknown and the model doesn't preserve
+//! arbitrary input values. Edit operations on a whole group need separate
+//! command probes.
 //!
 //! `ARC`, `TEXT` and `INSERT` each carry an angle field stored in radians;
 //! they are converted to degrees here because `acad_model` documents them in
@@ -520,13 +522,14 @@ fn read_record_body(
         }
         TYPE_ENDBLK => (RecordBody::BlockEnd, pos + 4, 1),
         TYPE_REPEAT => {
-            // header(4) + [nested_type, repeat_count] as two u16s (4) + the
+            // header(4) + [nested_type, opaque_word] as two u16s (4) + the
             // nested type's own fields, with no separate 4-byte header of
             // its own — REPEAT's header stands in for it (module doc).
-            // The opening word after nested_type is still opaque. The
-            // closing ENDREP fields carry the proven pattern dimensions.
+            // The opening word after nested_type is 1 in command-generated
+            // probes, but its meaning is still unknown. ENDREP carries the
+            // proven pattern dimensions.
             let nested_type = checked_u16(bytes, pos + 4, index)?;
-            let _repeat_count = checked_u16(bytes, pos + 6, index)?;
+            let _opaque_word = checked_u16(bytes, pos + 6, index)?;
             let (entity, next) =
                 read_entity_fields(bytes, nested_type, pos, pos + 8, index, version)?;
             let layer = u8::try_from(header.layer).map_err(|_| DwgError::InvalidEntityLayer {
@@ -962,15 +965,14 @@ mod tests {
 
     /// A `REPEAT` record wrapping a nested `LINE` — no separate 4-byte
     /// header for the nested entity, since `REPEAT`'s own header and `u16`
-    /// pair stand in for it (module doc). `repeat_count` is written but this
-    /// crate never reads it back out; it exists so tests can show it doesn't
-    /// affect decoding.
-    fn raw_repeat_line(repeat_count: u16, x1: f64, y1: f64, x2: f64, y2: f64) -> Vec<u8> {
+    /// pair stand in for it (module doc). The unknown second word is exposed
+    /// so tests can set it independently from the nested entity.
+    fn raw_repeat_line(opaque_word: u16, x1: f64, y1: f64, x2: f64, y2: f64) -> Vec<u8> {
         let mut r = Vec::new();
         r.extend_from_slice(&TYPE_REPEAT.to_le_bytes());
         r.extend_from_slice(&0u16.to_le_bytes());
         r.extend_from_slice(&TYPE_LINE.to_le_bytes());
-        r.extend_from_slice(&repeat_count.to_le_bytes());
+        r.extend_from_slice(&opaque_word.to_le_bytes());
         for v in [x1, y1, x2, y2] {
             r.extend_from_slice(&v.to_le_bytes());
         }

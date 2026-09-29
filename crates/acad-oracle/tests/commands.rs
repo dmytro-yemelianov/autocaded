@@ -94,6 +94,14 @@ fn original_repeat_round_trips_and_matches_the_rust_command() {
     };
     assert_eq!(multi_repeat.entities.len(), 2);
     assert_eq!(acad_dwg::write(&multi_parsed).unwrap(), multi_dwg);
+
+    let varied = [
+        "REPEAT", "LINE", "1,1", "2,1", "", "ENDREP", "3", "4", "3", "4",
+    ];
+    let varied_dwg = acad_oracle::generate_dwg_in_tree(&disk, "ORCREP3", &varied).unwrap();
+    assert_eq!(&varied_dwg[0x208..0x20a], &[1, 0]);
+    let varied_parsed = acad_dwg::parse(&varied_dwg).unwrap();
+    assert_eq!(acad_dwg::write(&varied_parsed).unwrap(), varied_dwg);
 }
 
 #[cfg(unix)]

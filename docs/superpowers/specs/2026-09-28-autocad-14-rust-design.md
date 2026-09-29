@@ -118,8 +118,9 @@ header suffix (for example, `LINE,20`) is a layer number, not a record count.
 `ENDREP` also accepts points instead of numeric distances. In point mode the
 original uses the X delta from the pattern's first point to the column point,
 then the Y delta from that point to the row point; a generated 2×2 drawing
-matches the Rust model and QEMU. The opening `REPEAT` record's second word
-remains opaque.
+matches the Rust model and QEMU. The opening `REPEAT` record's second word is
+1 in one- and two-entity probes and with 3×4 dimensions; its meaning remains
+unknown, so the model discards it and the writer emits 1.
 The AC1.2 and AC1.40 writers emit the model's entity types and blocks. AC1.40
 output matches original QEMU-generated LINE, CIRCLE, and POINT record bytes
 and opens in the original under QEMU with a CGA drawing viewport within 16
