@@ -1,3 +1,5 @@
+//! Parsing and formatting helpers for command-line numeric and point input.
+
 use acad_model::{Point, UnitFormat, Units};
 
 pub(crate) fn positive_count(input: &str, name: &str) -> Result<usize, String> {

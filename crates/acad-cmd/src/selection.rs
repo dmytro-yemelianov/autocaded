@@ -1,3 +1,5 @@
+//! Selection and picking helpers: window selection, selection-set parsing, and pick distance.
+
 use acad_model::{Drawing, Entity, Item, Point};
 use std::collections::BTreeSet;
 

@@ -1,3 +1,5 @@
+//! Input-state machine: `InputState`, `EditCommand`, and the transform kinds the editor tracks between prompts.
+
 use acad_model::Point;
 
 #[derive(Debug, Clone, Copy)]

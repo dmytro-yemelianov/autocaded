@@ -1,3 +1,5 @@
+//! Entity mutation and query helpers: transforms, library-name resolution, and change-point logic.
+
 use crate::input_state::Transform;
 use acad_model::{Entity, Item, Point};
 use std::collections::BTreeSet;
