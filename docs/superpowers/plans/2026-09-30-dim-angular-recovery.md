@@ -38,7 +38,7 @@
 - Consumes: `acad_oracle::session::Session::boot_in_place(a: &Path, b: Option<&Path>) -> Result<Self, String>`, `Session::type_line(&mut self, line: &str) -> Result<(), String>`, `Session::text_screen(&mut self) -> Result<String, String>`, `Session::wait_for_text(&mut self, needle: &str, timeout: Duration) -> Result<(), String>`, `Session::shutdown(&mut self) -> Result<(), String>` (all already defined in `crates/acad-oracle/src/session.rs`).
 - Produces: printed stdout observations only — this task produces recorded findings (written into this plan file's Task 2 placeholder section below, by hand, after running it), not new library code other than the example binary itself.
 
-- [ ] **Step 1: Write the recovery example**
+- [x] **Step 1: Write the recovery example**
 
 Create `crates/acad-oracle/examples/dim-angular-recovery.rs`:
 
@@ -106,22 +106,34 @@ fn main() {
 }
 ```
 
-- [ ] **Step 2: Run it and capture the transcript**
+- [x] **Step 2: Run it and capture the transcript**
 
 Run: `cargo run -p acad-oracle --example dim-angular-recovery 2>&1 | tee /tmp/dim-angular-recovery.log`
 
 Expected: either the tool self-skips with `skipping: extracted System.img or qemu-system-i386 absent` (if this machine lacks the corpus/QEMU — acceptable, it means this task's Step 3 cannot be completed on this machine and must be handed to one that has them), or it prints one `--- after typing ... ---` block per probed input showing the native screen's text content at each step.
 
-- [ ] **Step 3: Record the findings in this plan file**
+- [x] **Step 3: Record the findings in this plan file**
 
-Read `/tmp/dim-angular-recovery.log` and replace this bullet list with the actual observed facts (do not guess or paraphrase from memory of other AutoCAD versions — only write what the transcript shows):
-- The exact prompt text shown immediately after typing `A` at the `DIM: first extension line origin or (ABCT)` prompt.
-- The exact sequence of further prompts (how many points, what each prompt string says) until the angular dimension is either produced or the editor reports an error.
-- Whether a blank line at any point aborts back to command input (matching the linear flow's convention) or behaves differently.
-- Whether lowercase `a` is accepted identically to `A`.
-- If the probe input sequence in Step 1 turned out to be wrong for the real prompt sequence (e.g. it expected 3 points but the native wants 2, or a radius/angle value instead of a third point), edit the example's `probe_inputs` array and re-run Steps 1-2 until a complete angular dimension is successfully produced end to end, then record the working sequence.
+**The originally planned live screen-probing approach did not work** (see the ledger's Task 1 Ruling): `Session::text_screen()` only decodes a genuine full-screen 80x25 text page and returns byte-identical garbage once inside AutoCAD's drawing editor, which uses a graphics/mixed-mode screen. The recovery tool was rewritten to use this codebase's own proven blind-sequence-in/decoded-DWG-out technique (`acad_oracle::generate_pair`, the same method `original_dim_exports_primitive_geometry_matched_by_rust` already uses for linear DIM) instead of reading the live screen.
 
-- [ ] **Step 4: Commit the recovery tool and findings**
+**What was actually observed**, from 6 candidate input sequences run against the real AutoCAD 1.4 oracle (all starting from two reference lines, `0,0`-`5,0` and `0,0`-`0,5`, then `DIM`, `A`):
+
+| Sequence after `DIM`, `A` | Result |
+|---|---|
+| `""` (immediate blank) | Succeeds cleanly, returns to the drawing menu; **no new entity is added** — only the 2 reference lines exist afterward. |
+| `"0,0"`, `""` | **Hangs** — `generate_pair` times out (60s) waiting for the session to return to the "Current drawing:" menu screen. |
+| `"0,0"`, `"5,0"`, `""` | Hangs, same timeout. |
+| `"0,0"`, `"5,0"`, `"0,0"`, `""` | Hangs, same timeout. |
+| `"0,0"`, `"5,0"`, `"0,0"`, `"0,5"`, `"3,3"`, `""` | Hangs, same timeout. |
+| `"1,0"`, `"0,1"`, `"3,3"`, `""` | Hangs, same timeout. |
+
+**Interpretation** (this is inference from the pattern above, not a directly-read fact — flagged as such): `A` is very likely recognized as a real sub-mode (not silently rejected — if it were, a bare `""` afterward should have been "swallowed" by whatever `A`'s error left behind rather than cleanly closing the drawing), and that sub-mode expects a specific, currently-unknown number and shape of further inputs before it can cleanly terminate. Every guessed shape tried (1 point, 2 points, 3 points, 4 points + text, or a 2-point-pick-plus-location variant) left the session mid-prompt when the test harness tried to close the drawing, hence the timeout — meaning every one of these guesses was wrong (too few inputs, or the wrong kind of input, e.g. maybe it wants a keyword or a different coordinate convention, not bare `x,y` points).
+
+**What was NOT recovered**: the exact prompt text, the exact number of points/inputs the native `A` sub-mode requires, and therefore the output geometry it produces. Lowercase `a` was not re-tested with this method (the finding from the original garbled screen-probe run is discarded as unreliable, since that whole run's readings were uninterpretable garbage).
+
+**Recommended next step** (for whoever picks up Tasks 2+): blind bisection has diminishing returns past this point — each further guess costs a full QEMU boot (~30-60s) and narrows very little. The next productive step is almost certainly to reuse the CGA graphics-mode decoder already built for the interactive `acad-qemu` example (`acad_oracle::cga::{Mode, ModeTracker, Frame, ...}`, see `crates/acad-oracle/examples/acad-qemu.rs`) to actually read AutoCAD's live status-line prompt text while single-stepping through `DIM`, `A`, one input at a time — either by a human driving that interactive window directly, or by teaching a new recovery tool to decode frames with that same machinery instead of the plain-text-only `Session::text_screen()`. This is a larger task than this plan's Task 1 scoped for (it requires graphics-mode text extraction, not just blind sequence probing), so it is out of this plan's scope and should be its own follow-up plan.
+
+- [x] **Step 4: Commit the recovery tool and findings**
 
 ```bash
 git add crates/acad-oracle/examples/dim-angular-recovery.rs docs/superpowers/plans/2026-09-30-dim-angular-recovery.md
