@@ -30,14 +30,24 @@ fn save_png(frame: &Frame, path: &Path) {
     pixmap.save_png(path).expect("write png");
 }
 
-/// Boot a fresh drawing, type `editor_lines`, then capture the stabilized
-/// CGA framebuffer — independent of whether the drawing can later be
-/// closed cleanly, unlike `acad_oracle::generate_pair`/`generate_visual_pair`,
-/// which only return their capture on a fully successful run (including
-/// `END` and the return to the drawing menu). A candidate whose guessed
-/// input shape leaves AutoCAD mid-prompt is exactly the case this tool
-/// needs to see, not one it can afford to fail on.
-fn capture_stuck_frame(disk: &Path, name: &str, editor_lines: &[&str]) -> Result<Vec<u8>, String> {
+/// Boot a fresh drawing, then type `editor_lines` one at a time, capturing
+/// and saving a numbered PNG of the stabilized CGA framebuffer after
+/// *each* line — not once at the end. The previous revision of this tool
+/// captured only after the whole sequence, which left 5 of 6 candidates
+/// showing an identical frozen screen; that is far more consistent with a
+/// capture taken before AutoCAD finished reacting to an early line than
+/// with 5 different guesses coincidentally producing byte-identical
+/// screens. Capturing after each line makes any such race visible instead
+/// of silently absorbed into one end-of-sequence snapshot, and this still
+/// works independent of whether the session can later close cleanly —
+/// unlike `acad_oracle::generate_pair`/`generate_visual_pair`, which only
+/// return their capture on a fully successful run (including `END` and
+/// the return to the drawing menu).
+fn capture_each_step(
+    disk: &Path,
+    name: &str,
+    editor_lines: &[&str],
+) -> Result<Vec<Vec<u8>>, String> {
     let mut vm = Session::boot_disposable(disk, None, &[])?;
     vm.wait_for_text("Enter selection:", Duration::from_secs(60))?;
     vm.type_line("1")?;
@@ -45,12 +55,13 @@ fn capture_stuck_frame(disk: &Path, name: &str, editor_lines: &[&str]) -> Result
     vm.type_line(name)?;
     vm.wait_until_text_gone("Enter NAME of drawing:", Duration::from_secs(60))?;
     std::thread::sleep(Duration::from_millis(500));
+    let mut frames = Vec::with_capacity(editor_lines.len());
     for line in editor_lines {
         vm.type_line(line)?;
+        frames.push(vm.capture_editor()?);
     }
-    let cga = vm.capture_editor()?;
     vm.shutdown().ok();
-    Ok(cga)
+    Ok(frames)
 }
 
 fn main() {
@@ -61,64 +72,42 @@ fn main() {
         return;
     }
 
-    // Same 6 candidates the blind generate_pair bisection already tried
-    // (see the plan's recorded findings table), now captured visually
-    // instead of only by whether the session could close cleanly.
-    let candidates: [(&str, &[&str]); 6] = [
-        (
-            "DIMANG1",
-            &[
-                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "5,0",
-                "0,0", "0,5", "3,3", "",
-            ],
-        ),
-        (
-            "DIMANG2",
-            &[
-                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "1,0", "0,1",
-                "3,3", "",
-            ],
-        ),
-        (
-            "DIMANG3",
-            &[
-                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "",
-            ],
-        ),
-        (
-            "DIMANG4",
-            &[
-                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "",
-            ],
-        ),
-        (
-            "DIMANG5",
-            &[
-                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "5,0", "",
-            ],
-        ),
-        (
-            "DIMANG6",
-            &[
-                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "5,0",
-                "0,0", "",
-            ],
-        ),
+    // DIMANG1's full 5-point guess from the prior revision, now captured
+    // after every individual line instead of once at the end, to see
+    // exactly where (if anywhere) the screen stops changing.
+    let name = "DIMSTEP";
+    let inputs: &[&str] = &[
+        "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "5,0", "0,0", "0,5",
+        "3,3", "",
     ];
 
-    for (name, inputs) in candidates {
-        println!("=== candidate {name}: {inputs:?} ===");
-        match capture_stuck_frame(&disk, name, inputs) {
-            Ok(cga) => match Frame::new(&cga) {
-                Ok(frame) => {
-                    let path = std::env::temp_dir().join(format!("dim-angular-{name}.png"));
-                    save_png(&frame, &path);
-                    println!("  wrote {}", path.display());
+    println!("=== {name}: {inputs:?} ===");
+    match capture_each_step(&disk, name, inputs) {
+        Ok(frames) => {
+            for (step, cga) in frames.iter().enumerate() {
+                match Frame::new(cga) {
+                    Ok(frame) => {
+                        let label = if inputs[step].is_empty() {
+                            "blank".to_owned()
+                        } else {
+                            inputs[step].replace([',', ' '], "_")
+                        };
+                        let path = std::env::temp_dir()
+                            .join(format!("dim-angular-{name}-{step:02}-{label}.png"));
+                        save_png(&frame, &path);
+                        println!(
+                            "  step {step:02} ({:?}): wrote {}",
+                            inputs[step],
+                            path.display()
+                        );
+                    }
+                    Err(error) => println!(
+                        "  step {step:02} ({:?}): frame decode failed: {error}",
+                        inputs[step]
+                    ),
                 }
-                Err(error) => println!("  frame decode failed: {error}"),
-            },
-            Err(error) => println!("  capture failed: {error}"),
+            }
         }
-        println!();
+        Err(error) => println!("  capture failed: {error}"),
     }
 }
