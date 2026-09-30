@@ -1053,3 +1053,30 @@ pub(crate) fn three_point_arc(
     }
     Ok((center, radius, start, end))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Editor;
+
+    #[test]
+    fn mouse_points_enter_line_vertices_through_the_command_state_machine() {
+        let mut editor = Editor::default();
+        assert!(!editor.accepts_mouse_point());
+        editor.submit("LINE").unwrap();
+        assert!(editor.accepts_mouse_point());
+        editor
+            .submit_mouse_point(Point { x: 1.25, y: -2.5 })
+            .unwrap();
+        editor.submit_mouse_point(Point { x: 8.0, y: 4.0 }).unwrap();
+        editor.submit("").unwrap();
+
+        let entities = editor.drawing.entities().collect::<Vec<_>>();
+        assert_eq!(entities.len(), 1);
+        let (start, end) = line_points(entities[0]).unwrap();
+        assert_eq!(start, Point { x: 1.25, y: -2.5 });
+        assert_eq!(end, Point { x: 8.0, y: 4.0 });
+        assert!(!editor.accepts_mouse_point());
+        assert!(editor.submit_mouse_point(Point { x: 0.0, y: 0.0 }).is_err());
+    }
+}

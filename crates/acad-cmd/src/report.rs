@@ -122,3 +122,38 @@ pub(crate) fn database_listing(drawing: &Drawing) -> String {
     }
     lines.join("\n")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Editor, Effect};
+
+    #[test]
+    fn question_mark_and_help_share_the_observed_command_query_flow() {
+        let mut editor = Editor::default();
+        let source = editor.drawing().clone();
+
+        editor.submit("?").unwrap();
+        assert_eq!(editor.prompt(), "Command name (RETURN for list)");
+        let Effect::Report(list) = editor.submit("").unwrap() else {
+            panic!("blank ? query should display the command list");
+        };
+        assert!(list.contains("Command List"));
+        assert!(list.contains("LINE"));
+        assert!(list.contains("WBLOCK"));
+        assert_eq!(editor.prompt(), "Command");
+
+        editor.submit("HELP").unwrap();
+        assert_eq!(editor.prompt(), "Command name (RETURN for list)");
+        let Effect::Report(line) = editor.submit("LINE").unwrap() else {
+            panic!("HELP LINE should display command help");
+        };
+        assert_eq!(line, LINE_HELP);
+        assert_eq!(editor.status(), "Help for LINE");
+        assert_eq!(editor.drawing(), &source);
+
+        editor.submit("HELP").unwrap();
+        assert!(editor.submit("CIRCLE").is_err());
+        assert_eq!(editor.prompt(), "Command name (RETURN for list)");
+    }
+}
