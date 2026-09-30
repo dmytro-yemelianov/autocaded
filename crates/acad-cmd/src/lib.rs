@@ -23,7 +23,7 @@ use parse::{
     color_index, format_measurement, layer_index, number, parse_mode, parse_toggle, point,
     point_from, positive_count, positive_word,
 };
-use report::{database_listing, hatch_pattern_report, help_report, list_entities, HATCH_PATTERNS};
+use report::{database_listing, hatch_pattern_report, help_report, list_entities};
 use selection::{
     entities_in_window, entity_pick_distance, selectable_count, selected_item_indexes, selection,
 };
@@ -33,6 +33,32 @@ use std::collections::{BTreeMap, BTreeSet};
 use report::LINE_HELP;
 
 pub(crate) const MAX_ARRAY_ENTITIES: usize = 100_000;
+
+pub(crate) const HATCH_PATTERNS: &[(&str, &str)] = &[
+    ("EARTH", "Earth or ground (subterranean)"),
+    ("ESCHER", "Escher pattern"),
+    ("FLEX", "Flexible material"),
+    ("GRASS", "Grass area"),
+    ("GRATE", "Grated area"),
+    ("HEX", "Hexagons"),
+    ("HONEY", "Honeycomb pattern"),
+    ("HOUND", "Houndstooth check"),
+    ("INSUL", "Insulation material"),
+    ("LINE", "Parallel horizontal lines"),
+    ("MUDST", "Mud and sand"),
+    ("NET", "Horizontal / vertical grid"),
+    ("NET3", "Network pattern 0-60-120"),
+    ("PLAST", "Plastic material"),
+    ("PLASTI", "Plastic material"),
+    ("SACNCR", "Concrete"),
+    ("SQUARE", "Small aligned squares"),
+    ("STARS", "Star of David"),
+    ("STEEL", "Steel material"),
+    ("SWAMP", "Swampy area"),
+    ("TRANS", "Heat transfer material"),
+    ("TRIANG", "Equilateral triangles"),
+    ("ZIGZAG", "Staircase effect"),
+];
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Effect {

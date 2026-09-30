@@ -1,6 +1,7 @@
 //! Text reports for HELP, LIST, and DBLIST.
 
 use crate::entity_ops::bare;
+use crate::HATCH_PATTERNS;
 use acad_model::{Drawing, Entity, Item};
 
 const COMMAND_LIST: &str = "\
@@ -21,32 +22,6 @@ DBLIST      HATCH       OOPS        SHAPE       ?
 Point Entry: Absolute: x,y; Relative: @dx,dy; Distance, angle: @d<a
 Object selection: L = Last object; W = Within window
 Command repeat: press space or RETURN.\n";
-
-pub(crate) const HATCH_PATTERNS: &[(&str, &str)] = &[
-    ("EARTH", "Earth or ground (subterranean)"),
-    ("ESCHER", "Escher pattern"),
-    ("FLEX", "Flexible material"),
-    ("GRASS", "Grass area"),
-    ("GRATE", "Grated area"),
-    ("HEX", "Hexagons"),
-    ("HONEY", "Honeycomb pattern"),
-    ("HOUND", "Houndstooth check"),
-    ("INSUL", "Insulation material"),
-    ("LINE", "Parallel horizontal lines"),
-    ("MUDST", "Mud and sand"),
-    ("NET", "Horizontal / vertical grid"),
-    ("NET3", "Network pattern 0-60-120"),
-    ("PLAST", "Plastic material"),
-    ("PLASTI", "Plastic material"),
-    ("SACNCR", "Concrete"),
-    ("SQUARE", "Small aligned squares"),
-    ("STARS", "Star of David"),
-    ("STEEL", "Steel material"),
-    ("SWAMP", "Swampy area"),
-    ("TRANS", "Heat transfer material"),
-    ("TRIANG", "Equilateral triangles"),
-    ("ZIGZAG", "Staircase effect"),
-];
 
 pub(crate) const LINE_HELP: &str = "\
 The  LINE  command allows you to draw straight lines.
