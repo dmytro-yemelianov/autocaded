@@ -46,6 +46,835 @@ fn original_creates_circles_with_the_requested_centers_and_radii() {
 
 #[cfg(unix)]
 #[test]
+fn original_dim_exports_primitive_geometry_matched_by_rust() {
+    use acad_model::{Entity, Item};
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    for (name, inputs) in [
+        ("DIMSHORT", ["DIM", "1,1", "5,1", "3,2", ""]),
+        ("DIMLONG", ["DIM", "0,0", "0,4", "3,4", ""]),
+    ] {
+        let (dwg, _) = acad_oracle::generate_pair(&disk, name, &inputs).unwrap();
+        let native = acad_dwg::parse(&dwg).unwrap();
+        let mut rust = acad_cmd::Editor::default();
+        for input in inputs {
+            rust.submit(input).unwrap();
+        }
+        assert_eq!(rust.drawing().items.len(), native.items.len(), "{name}");
+        for (index, (actual, expected)) in
+            rust.drawing().items.iter().zip(&native.items).enumerate()
+        {
+            let (
+                Item::Entity(Entity::OnLayer { entity: actual, .. }),
+                Item::Entity(Entity::OnLayer {
+                    entity: expected, ..
+                }),
+            ) = (actual, expected)
+            else {
+                panic!("{name} item {index}: unexpected item types {actual:?} vs {expected:?}");
+            };
+            let close = |a: f64, b: f64, tolerance: f64| {
+                assert!(
+                    (a - b).abs() <= tolerance,
+                    "{name} item {index}: {a} != {b}"
+                );
+            };
+            match (actual.as_ref(), expected.as_ref()) {
+                (Entity::Line { start: a, end: b }, Entity::Line { start: c, end: d }) => {
+                    close(a.x, c.x, 1e-6);
+                    close(a.y, c.y, 1e-6);
+                    close(b.x, d.x, 1e-6);
+                    close(b.y, d.y, 1e-6);
+                }
+                (
+                    Entity::Solid {
+                        p1: a,
+                        p2: b,
+                        p3: c,
+                        p4: d,
+                    },
+                    Entity::Solid {
+                        p1: e,
+                        p2: f,
+                        p3: g,
+                        p4: h,
+                    },
+                ) => {
+                    for (actual, expected) in [(a, e), (b, f), (c, g), (d, h)] {
+                        close(actual.x, expected.x, 2e-6);
+                        close(actual.y, expected.y, 2e-6);
+                    }
+                }
+                (
+                    Entity::Text {
+                        origin: a,
+                        height: ah,
+                        value: av,
+                        ..
+                    },
+                    Entity::Text {
+                        origin: b,
+                        height: bh,
+                        value: bv,
+                        ..
+                    },
+                ) => {
+                    close(a.x, b.x, 0.003);
+                    close(a.y, b.y, 0.003);
+                    close(*ah, *bh, 1e-6);
+                    assert_eq!(av, bv, "{name} dimension text");
+                }
+                (actual, expected) => {
+                    panic!("{name} item {index}: Rust entity {actual:?} != native {expected:?}")
+                }
+            }
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn original_wblock_star_writes_only_live_geometry_and_reachable_blocks() {
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let setup = [
+        "LINE",
+        "0,0",
+        "1,0",
+        "",
+        "BLOCK",
+        "USED",
+        "0,0",
+        "LAST",
+        "LINE",
+        "2,0",
+        "3,0",
+        "",
+        "BLOCK",
+        "UNUSED",
+        "2,0",
+        "LAST",
+        "INSERT",
+        "USED",
+        "5,5",
+        "",
+        "",
+        "",
+        "LINE",
+        "4,0",
+        "5,0",
+        "",
+        "BLOCK",
+        "ERASEDONLY",
+        "4,0",
+        "LAST",
+        "INSERT",
+        "ERASEDONLY",
+        "7,7",
+        "",
+        "",
+        "",
+        "ERASE",
+        "LAST",
+    ];
+    let mut commands = setup.to_vec();
+    commands.extend(["WBLOCK", "WBOUT", "*"]);
+    let (source_bytes, original_bytes) =
+        acad_oracle::generate_wblock(&disk, "WBSOURCE", "WBOUT", &commands).unwrap();
+    let original = acad_dwg::parse(&original_bytes).unwrap();
+    assert!(original.items.iter().any(|item| matches!(
+        item,
+        acad_model::Item::Block(block) if block.name.eq_ignore_ascii_case("USED")
+    )));
+    assert!(!original.items.iter().any(|item| matches!(
+        item,
+        acad_model::Item::Block(block) if block.name.eq_ignore_ascii_case("UNUSED")
+    )));
+    assert!(!original.items.iter().any(|item| matches!(
+        item,
+        acad_model::Item::Block(block) if block.name.eq_ignore_ascii_case("ERASEDONLY")
+    )));
+    assert!(!original
+        .items
+        .iter()
+        .any(|item| matches!(item, acad_model::Item::Erased(_))));
+
+    let source = acad_dwg::parse(&source_bytes).unwrap();
+    let mut rust = acad_cmd::Editor::new(source);
+    rust.submit("WBLOCK").unwrap();
+    rust.submit("WBOUT").unwrap();
+    let effect = rust.submit("*").unwrap();
+    let acad_cmd::Effect::SaveDrawing(path, snapshot) = effect else {
+        panic!("WBLOCK should return a separate snapshot for writing");
+    };
+    assert_eq!(path, "WBOUT.DWG");
+    assert_eq!(original.items, snapshot.items);
+    assert_eq!(
+        original.header, snapshot.header,
+        "WBLOCK header differs from the source editor header"
+    );
+    let round_trip = acad_dwg::parse(&acad_dwg::write(&snapshot).unwrap()).unwrap();
+    assert_eq!(round_trip, *snapshot);
+}
+
+#[cfg(unix)]
+#[test]
+fn original_wblock_named_block_exports_its_contents_and_insertion_base() {
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let setup = ["LINE", "2,3", "8,7", "", "BLOCK", "MARK", "1,2", "LAST"];
+    let mut commands = setup.to_vec();
+    commands.extend(["WBLOCK", "WBNAMED", "MARK"]);
+    let (source_bytes, original_bytes) =
+        acad_oracle::generate_wblock(&disk, "WBSRC2", "WBNAMED", &commands).unwrap();
+    let original = acad_dwg::parse(&original_bytes).unwrap();
+    let mut rust = acad_cmd::Editor::new(acad_dwg::parse(&source_bytes).unwrap());
+    rust.submit("WBLOCK").unwrap();
+    rust.submit("WBNAMED").unwrap();
+    let effect = rust.submit("MARK").unwrap();
+    let acad_cmd::Effect::SaveDrawing(path, snapshot) = effect else {
+        panic!("named WBLOCK should return a separate drawing snapshot");
+    };
+    assert_eq!(path, "WBNAMED.DWG");
+    assert_eq!(original.items, snapshot.items);
+    assert_eq!(original.header.base, snapshot.header.base);
+    assert_eq!(
+        acad_dwg::parse(&acad_dwg::write(&snapshot).unwrap()).unwrap(),
+        *snapshot
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn original_wblock_blank_block_name_exports_the_selected_entities() {
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let setup = ["LINE", "0,0", "1,0", ""];
+    let mut commands = setup.to_vec();
+    commands.extend(["WBLOCK", "WBSELEC", "", "1,2", "L"]);
+    let (_, original_bytes) =
+        acad_oracle::generate_wblock(&disk, "WBSRC3", "WBSELEC", &commands).unwrap();
+    let original = acad_dwg::parse(&original_bytes).unwrap();
+    let mut rust = acad_cmd::Editor::default();
+    for input in ["LINE", "0,0", "1,0", ""] {
+        rust.submit(input).unwrap();
+    }
+    rust.submit("WBLOCK").unwrap();
+    rust.submit("WBSELEC").unwrap();
+    rust.submit("").unwrap();
+    assert_eq!(rust.prompt(), "WBLOCK: insertion base point");
+    rust.submit("1,2").unwrap();
+    assert_eq!(rust.prompt(), "WBLOCK: entity numbers, ALL, or LAST");
+    let effect = rust.submit("1").unwrap();
+    let acad_cmd::Effect::SaveDrawing(path, snapshot) = effect else {
+        panic!("selected WBLOCK should return a separate drawing snapshot");
+    };
+    assert_eq!(path, "WBSELEC.DWG");
+    assert_eq!(original.items, snapshot.items);
+    assert_eq!(original.header.base, snapshot.header.base);
+    assert_eq!(
+        acad_dwg::parse(&acad_dwg::write(&snapshot).unwrap()).unwrap(),
+        *snapshot
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn original_dblist_switches_to_text_and_reports_database_entities() {
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let probe = acad_oracle::generate_visual_pair(
+        &disk,
+        None,
+        "DBLST1",
+        &["LINE", "2,3", "8,3", "", "DBLIST"],
+    )
+    .unwrap();
+    assert_eq!(
+        acad_oracle::cga::detect(&probe.cga),
+        Some(acad_oracle::cga::Mode::Text),
+        "DBLIST should present its report in text mode"
+    );
+    let text: String = probe.cga[..4000]
+        .chunks_exact(2)
+        .map(|cell| char::from(cell[0]))
+        .collect();
+    assert!(
+        text.contains("LINE"),
+        "DBLIST text page did not name the entity: {text:?}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn original_question_mark_and_help_share_the_command_help_flow() {
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let list = acad_oracle::generate_visual_pair(&disk, None, "HELPLIST", &["?", ""]).unwrap();
+    assert_eq!(
+        acad_oracle::cga::detect(&list.cga),
+        Some(acad_oracle::cga::Mode::Text)
+    );
+    let text: String = list.cga[..4000]
+        .chunks_exact(2)
+        .map(|cell| char::from(cell[0]))
+        .collect();
+    assert!(text.contains("Command List"));
+    assert!(text.contains("WBLOCK"));
+
+    let line =
+        acad_oracle::generate_visual_pair(&disk, None, "HELPLINE", &["HELP", "LINE"]).unwrap();
+    assert_eq!(
+        acad_oracle::cga::detect(&line.cga),
+        Some(acad_oracle::cga::Mode::Text)
+    );
+    let text: String = line.cga[..4000]
+        .chunks_exact(2)
+        .map(|cell| char::from(cell[0]))
+        .collect();
+    assert!(text.contains("The  LINE  command allows you to draw straight lines."));
+}
+
+#[cfg(unix)]
+#[test]
+fn original_hatch_question_lists_native_patterns() {
+    use acad_oracle::session::Session;
+    use std::time::Duration;
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let mut vm = Session::boot_disposable(&disk, None, &[]).unwrap();
+    let timeout = Duration::from_secs(30);
+    vm.wait_for_text("Enter selection:", timeout).unwrap();
+    vm.type_line("1").unwrap();
+    vm.wait_for_text("Enter NAME of drawing:", timeout).unwrap();
+    vm.type_line("HATHELP").unwrap();
+    vm.wait_until_text_gone("Enter NAME of drawing:", timeout)
+        .unwrap();
+    vm.type_line("HATCH").unwrap();
+    vm.capture_editor().unwrap();
+    vm.type_line("?").unwrap();
+    vm.wait_for_text("ZIGZAG", timeout).unwrap();
+    let text = vm.text_screen().unwrap();
+    assert!(text.contains("EARTH"));
+    assert!(text.contains("LINE            - Parallel horizontal lines"));
+    assert!(text.contains("ZIGZAG          - Staircase effect"));
+    vm.wait_for_text("Command:", timeout).unwrap();
+    vm.type_line("END").unwrap();
+    vm.wait_for_text("Enter selection:", timeout).unwrap();
+    vm.shutdown().unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn original_hatch_line_window_matches_generated_block_geometry() {
+    use acad_model::{Entity, Item};
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    for (name, scale, angle) in [("HATCHWIN", "", ""), ("HATCHROT", "2", "30")] {
+        let inputs = [
+            "LINE", "1,1", "5,1", "5,5", "1,5", "1,1", "", "HATCH", "LINE", scale, angle, "W",
+            "0,0", "6,6",
+        ];
+        let (dwg, _) = acad_oracle::generate_pair(&disk, name, &inputs).unwrap();
+        let native = acad_dwg::parse(&dwg).unwrap();
+        let mut rust = acad_cmd::Editor::default();
+        for input in inputs {
+            rust.submit(input).unwrap();
+        }
+        let rust_items = &rust.drawing().items;
+        assert_eq!(rust_items.len(), native.items.len(), "{name} item count");
+        assert_eq!(&rust_items[..4], &native.items[..4], "{name} boundary");
+        let (Item::Block(rust_block), Item::Block(native_block)) =
+            (&rust_items[4], &native.items[4])
+        else {
+            panic!("{name}: expected hatch block at item 5");
+        };
+        assert_eq!(rust_block.name, native_block.name, "{name} block name");
+        assert_eq!(rust_block.base, native_block.base, "{name} block base");
+        assert_eq!(
+            rust_block.entities.len(),
+            native_block.entities.len(),
+            "{name} clipped line count"
+        );
+        for (index, (rust_entity, native_entity)) in rust_block
+            .entities
+            .iter()
+            .zip(&native_block.entities)
+            .enumerate()
+        {
+            let (
+                Entity::OnLayer {
+                    layer: rust_layer,
+                    entity: rust_line,
+                },
+                Entity::OnLayer {
+                    layer: native_layer,
+                    entity: native_line,
+                },
+            ) = (rust_entity, native_entity)
+            else {
+                panic!("{name} hatch line {index}: unexpected entity wrapper");
+            };
+            assert_eq!(rust_layer, native_layer, "{name} line {index} layer");
+            let (Entity::Line { start: rs, end: re }, Entity::Line { start: ns, end: ne }) =
+                (rust_line.as_ref(), native_line.as_ref())
+            else {
+                panic!("{name} hatch line {index}: expected LINE");
+            };
+            for (actual, expected) in [(rs.x, ns.x), (rs.y, ns.y), (re.x, ne.x), (re.y, ne.y)] {
+                assert!(
+                    (actual - expected).abs() <= 1e-12,
+                    "{name} hatch line {index}: {actual} != {expected}"
+                );
+            }
+        }
+        assert_eq!(rust_items[5], native.items[5], "{name} pattern INSERT");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn original_hatch_line_window_clips_to_a_circle() {
+    use acad_model::{Entity, Item};
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let inputs = [
+        "CIRCLE", "3,3", "2", "HATCH", "LINE", "", "", "W", "0,0", "6,6",
+    ];
+    let (dwg, _) = acad_oracle::generate_pair(&disk, "HATCHCIR", &inputs).unwrap();
+    let native = acad_dwg::parse(&dwg).unwrap();
+    let mut rust = acad_cmd::Editor::default();
+    for input in inputs {
+        rust.submit(input).unwrap();
+    }
+
+    assert_eq!(rust.drawing().items.len(), native.items.len());
+    assert_eq!(&rust.drawing().items[..1], &native.items[..1]);
+    let (Item::Block(rust_block), Item::Block(native_block)) =
+        (&rust.drawing().items[1], &native.items[1])
+    else {
+        panic!("expected circle hatch block");
+    };
+    assert_eq!(rust_block.name, native_block.name);
+    assert_eq!(rust_block.entities.len(), native_block.entities.len());
+    for (index, (rust_entity, native_entity)) in rust_block
+        .entities
+        .iter()
+        .zip(&native_block.entities)
+        .enumerate()
+    {
+        let (
+            Entity::OnLayer {
+                layer: rust_layer,
+                entity: rust_line,
+            },
+            Entity::OnLayer {
+                layer: native_layer,
+                entity: native_line,
+            },
+        ) = (rust_entity, native_entity)
+        else {
+            panic!("circle hatch line {index}: unexpected entity wrapper");
+        };
+        assert_eq!(rust_layer, native_layer);
+        let (Entity::Line { start: rs, end: re }, Entity::Line { start: ns, end: ne }) =
+            (rust_line.as_ref(), native_line.as_ref())
+        else {
+            panic!("circle hatch line {index}: expected LINE");
+        };
+        for (actual, expected) in [(rs.x, ns.x), (rs.y, ns.y), (re.x, ne.x), (re.y, ne.y)] {
+            assert!(
+                (actual - expected).abs() <= 1e-12,
+                "circle hatch line {index}: {actual} != {expected}"
+            );
+        }
+    }
+    assert_eq!(
+        rust.drawing().items[2],
+        native.items[2],
+        "circle pattern INSERT"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn original_hatch_line_window_clips_a_semicircle_and_chord() {
+    use acad_model::{Entity, Item};
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let inputs = [
+        "ARC", "5,3", "3,5", "1,3", "LINE", "1,3", "5,3", "", "HATCH", "LINE", "", "", "W", "0,0",
+        "6,6",
+    ];
+    let (dwg, _) = acad_oracle::generate_pair(&disk, "HATCHARC", &inputs).unwrap();
+    let native = acad_dwg::parse(&dwg).unwrap();
+    let mut rust = acad_cmd::Editor::default();
+    for input in inputs {
+        rust.submit(input).unwrap();
+    }
+
+    fn hatch_lines(items: &[Item]) -> Vec<(f64, f64, f64, f64)> {
+        let mut lines: Vec<_> = items
+            .iter()
+            .find_map(|item| match item {
+                Item::Block(block) if block.name.starts_with("*X") => Some(block),
+                _ => None,
+            })
+            .expect("hatch block")
+            .entities
+            .iter()
+            .map(|entity| {
+                let Entity::OnLayer { entity, .. } = entity else {
+                    panic!("expected layer wrapper")
+                };
+                let Entity::Line { start, end } = entity.as_ref() else {
+                    panic!("expected hatch LINE")
+                };
+                (start.x, start.y, end.x, end.y)
+            })
+            .collect();
+        lines.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.total_cmp(&b.0)));
+        lines
+    }
+    let actual = hatch_lines(&rust.drawing().items);
+    let expected = hatch_lines(&native.items);
+    assert_eq!(actual.len(), 16, "native semicircle probe has 16 lines");
+    assert_eq!(actual.len(), expected.len());
+    for (index, (actual, expected)) in actual.iter().zip(&expected).enumerate() {
+        for (actual, expected) in [
+            (actual.0, expected.0),
+            (actual.1, expected.1),
+            (actual.2, expected.2),
+            (actual.3, expected.3),
+        ] {
+            assert!(
+                (actual - expected).abs() <= 1e-12,
+                "arc hatch line {index}: {actual} != {expected}"
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn original_hatch_line_window_keeps_inner_loop_unfilled() {
+    use acad_model::{Entity, Item};
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let inputs = [
+        "LINE", "1,1", "5,1", "5,5", "1,5", "1,1", "", "LINE", "2,2", "4,2", "4,4", "2,4", "2,2",
+        "", "HATCH", "LINE", "", "", "W", "0,0", "6,6",
+    ];
+    let (dwg, _) = acad_oracle::generate_pair(&disk, "HATCHHO", &inputs).unwrap();
+    let native = acad_dwg::parse(&dwg).unwrap();
+    let mut rust = acad_cmd::Editor::default();
+    for input in inputs {
+        rust.submit(input).unwrap();
+    }
+
+    assert_eq!(&rust.drawing().items[..8], &native.items[..8]);
+    fn hatch_block(items: &[Item]) -> &acad_model::Block {
+        items
+            .iter()
+            .find_map(|item| match item {
+                Item::Block(block) if block.name.starts_with("*X") => Some(block),
+                _ => None,
+            })
+            .expect("hatch block")
+    }
+    let actual = hatch_block(&rust.drawing().items);
+    let expected = hatch_block(&native.items);
+    let line_coordinates = |block: &acad_model::Block| {
+        let mut lines: Vec<_> = block
+            .entities
+            .iter()
+            .filter_map(|entity| {
+                let Entity::OnLayer { entity, .. } = entity else {
+                    return None;
+                };
+                let Entity::Line { start, end } = entity.as_ref() else {
+                    return None;
+                };
+                Some((start.x, start.y, end.x, end.y))
+            })
+            .collect();
+        lines.sort_by(|a, b| {
+            a.0.total_cmp(&b.0)
+                .then(a.1.total_cmp(&b.1))
+                .then(a.2.total_cmp(&b.2))
+                .then(a.3.total_cmp(&b.3))
+        });
+        lines
+    };
+    let actual = line_coordinates(actual);
+    let expected = line_coordinates(expected);
+    assert_eq!(actual.len(), expected.len());
+    for (index, (actual, expected)) in actual.iter().zip(&expected).enumerate() {
+        for (actual, expected) in [
+            (actual.0, expected.0),
+            (actual.1, expected.1),
+            (actual.2, expected.2),
+            (actual.3, expected.3),
+        ] {
+            assert!(
+                (actual - expected).abs() <= 1e-12,
+                "inner-loop hatch line {index}: {actual} != {expected}"
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn original_files_enters_the_file_utility_menu() {
+    use acad_oracle::session::Session;
+    use std::time::Duration;
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let mut vm = Session::boot_disposable(&disk, None, &[]).unwrap();
+    let timeout = Duration::from_secs(30);
+    vm.wait_for_text("Enter selection:", timeout).unwrap();
+    vm.type_line("1").unwrap();
+    vm.wait_for_text("Enter NAME of drawing:", timeout).unwrap();
+    vm.type_line("FILEMENU").unwrap();
+    vm.wait_until_text_gone("Enter NAME of drawing:", timeout)
+        .unwrap();
+    vm.type_line("FILES").unwrap();
+    vm.wait_for_text("File Utility Menu", timeout).unwrap();
+    vm.wait_for_text("List Drawing files", timeout).unwrap();
+    vm.wait_for_text("Rename files", timeout).unwrap();
+    let text = vm.text_screen().unwrap();
+    assert!(text.contains("List Drawing files"));
+    assert!(text.contains("Rename files"));
+    vm.shutdown().unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn redraw_and_regen_are_display_only_commands_in_the_original() {
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let commands = ["LINE", "2,3", "8,3", "", "STATUS", "REDRAW", "REGEN"];
+    let (_, dxf) = acad_oracle::generate_pair(&disk, "REDRAW", &commands).unwrap();
+    let original = acad_dxf::parse(&dxf).unwrap();
+    let mut editor = acad_cmd::Editor::new(acad_model::Drawing {
+        header: original.header.clone(),
+        items: Vec::new(),
+    });
+    for command in commands {
+        editor.submit(command).unwrap();
+    }
+    assert_eq!(editor.drawing().items, original.items);
+    assert_eq!(
+        original.entities().count(),
+        1,
+        "display refresh commands must not add or remove entities"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn original_resolution_aliases_update_the_shared_snap_header_state() {
+    use acad_model::Mode;
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let original = acad_dwg::parse(
+        &acad_oracle::generate_dwg(&disk, "RESOLVE", &["RES", "2.5", "RESOLUTION", "OFF"]).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        original.header.snap,
+        Mode {
+            on: false,
+            spacing: 2.5
+        }
+    );
+
+    let mut rust = acad_cmd::Editor::default();
+    for input in ["RES", "2.5", "RESOLUTION", "OFF"] {
+        rust.submit(input).unwrap();
+    }
+    assert_eq!(rust.drawing().header.snap, original.header.snap);
+}
+
+#[cfg(unix)]
+#[test]
+fn original_units_decimal_precision_is_persisted_in_the_ac140_header() {
+    use acad_model::{UnitFormat, Units};
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let original = acad_dwg::parse(
+        &acad_oracle::generate_dwg(&disk, "UNITDEC", &["UNITS", "2", "3"]).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        original.header.units,
+        Units {
+            format: UnitFormat::Decimal,
+            precision: 3
+        }
+    );
+
+    let mut rust = acad_cmd::Editor::default();
+    for input in ["UNITS", "2", "3"] {
+        rust.submit(input).unwrap();
+    }
+    assert_eq!(rust.drawing().header.units, original.header.units);
+}
+
+#[cfg(unix)]
+#[test]
+fn original_axis_persists_header_settings_and_changes_the_cga_display() {
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    let off =
+        acad_oracle::generate_visual_pair(disk.as_path(), None, "AXIS", &["AXIS", "OFF"]).unwrap();
+    let on =
+        acad_oracle::generate_visual_pair(disk.as_path(), None, "AXIS", &["AXIS", "ON"]).unwrap();
+    let dwg_differences = off
+        .dwg
+        .iter()
+        .zip(&on.dwg)
+        .enumerate()
+        .filter_map(|(at, (a, b))| (a != b).then_some(at))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        dwg_differences,
+        [0x1e0],
+        "AXIS ON changes only its DWG flag"
+    );
+    let off_drawing = acad_dwg::parse(&off.dwg).unwrap();
+    let on_drawing = acad_dwg::parse(&on.dwg).unwrap();
+    assert!(!off_drawing.header.axis.on);
+    assert_eq!(
+        on_drawing.header.axis,
+        acad_model::Mode {
+            on: true,
+            spacing: 0.0
+        }
+    );
+    assert_eq!(acad_dwg::write(&on_drawing).unwrap(), on.dwg);
+    assert_eq!(
+        off.dxf, on.dxf,
+        "AXIS display mode does not change drawing data"
+    );
+    assert_ne!(
+        off.cga, on.cga,
+        "AXIS ON and OFF must produce distinct display frames"
+    );
+
+    let spacing = acad_oracle::generate_dwg(disk.as_path(), "AXIS", &["AXIS", "5"]).unwrap();
+    let snap_multiple = acad_oracle::generate_dwg(disk.as_path(), "AXIS", &["AXIS", "5X"]).unwrap();
+    assert_eq!(
+        spacing, snap_multiple,
+        "default SNAP spacing is one drawing unit"
+    );
+    assert_eq!(spacing[0x1e0], 1, "numeric spacing enables AXIS");
+    assert_eq!(
+        f64::from_le_bytes(spacing[0x1e2..0x1ea].try_into().unwrap()),
+        5.0,
+        "numeric and SNAP-relative spacing are stored at 0x1e2"
+    );
+    let spaced_drawing = acad_dwg::parse(&spacing).unwrap();
+    assert_eq!(
+        spaced_drawing.header.axis,
+        acad_model::Mode {
+            on: true,
+            spacing: 5.0
+        }
+    );
+    assert_eq!(acad_dwg::write(&spaced_drawing).unwrap(), spacing);
+}
+
+#[cfg(unix)]
+#[test]
 fn original_line_accepts_relative_and_polar_points() {
     use acad_model::{Entity, Item, Point};
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

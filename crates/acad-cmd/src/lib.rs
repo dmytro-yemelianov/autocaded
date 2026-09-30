@@ -1,13 +1,15 @@
 //! Interactive command state machine for the 1983 editor.
-use acad_model::{Drawing, Entity, Extents, Header, Item, Point};
+use acad_model::{Block, Drawing, Entity, Extents, Header, Item, Point, UnitFormat, Units};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_ARRAY_ENTITIES: usize = 100_000;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Effect {
     Continue,
     Save(String),
+    SaveDrawing(String, Box<Drawing>),
+    Report(String),
     Quit,
 }
 
@@ -29,6 +31,11 @@ enum InputState {
     ArcStart,
     ArcMiddle(Point),
     ArcEnd(Point, Point),
+    LoadLibrary,
+    ShapeName,
+    ShapeOrigin(u16),
+    ShapeHeight(u16, Point),
+    ShapeRotation(u16, Point, f64),
     TextOrigin,
     TextHeight(Point),
     TextRotation(Point, f64),
@@ -41,8 +48,18 @@ enum InputState {
     BlockName,
     BlockBase(String),
     BlockSelection(String, Point),
+    WblockPath,
+    WblockName(String),
+    WblockBase(String),
+    WblockSelection(String, Point),
+    HelpCommand,
+    MenuFile,
+    Delay,
+    UnitsFormat,
+    UnitsPrecision(UnitFormat),
     SavePath,
     Base,
+    Axis,
     Snap,
     Grid,
     Ortho,
@@ -99,6 +116,17 @@ enum InputState {
     RepeatRows(u16),
     RepeatColumnSpacing(u16, u16, Point),
     RepeatRowSpacing(u16, u16, f64, Point, RepeatDistanceInput),
+    DimFirstExtension,
+    DimIntersection(Point),
+    DimSecondExtension(Point, Point),
+    DimText(Point, Point, Point),
+    HatchPattern,
+    HatchScale(String),
+    HatchAngle(String, f64),
+    HatchSelection(String, f64, f64),
+    HatchWindowFirst(String, f64, f64),
+    HatchWindowSecond(String, f64, f64, Point),
+    SketchIncrement,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -134,6 +162,11 @@ impl InputState {
             Self::ArcStart => "ARC: start point",
             Self::ArcMiddle(_) => "ARC: second point",
             Self::ArcEnd(_, _) => "ARC: end point",
+            Self::LoadLibrary => "LOAD: library name",
+            Self::ShapeName => "SHAPE: shape name",
+            Self::ShapeOrigin(_) => "SHAPE: insertion point",
+            Self::ShapeHeight(_, _) => "SHAPE: height",
+            Self::ShapeRotation(_, _, _) => "SHAPE: rotation angle",
             Self::TextOrigin => "TEXT: start point",
             Self::TextHeight(_) => "TEXT: height",
             Self::TextRotation(_, _) => "TEXT: rotation angle",
@@ -146,8 +179,21 @@ impl InputState {
             Self::BlockName => "BLOCK: block name",
             Self::BlockBase(_) => "BLOCK: insertion base point",
             Self::BlockSelection(_, _) => "BLOCK: entity numbers, ALL or LAST",
+            Self::WblockPath => "WBLOCK: output file name",
+            Self::WblockName(_) => "WBLOCK: block name (* for entire drawing)",
+            Self::WblockBase(_) => "WBLOCK: insertion base point",
+            Self::WblockSelection(_, _) => "WBLOCK: entity numbers, ALL, or LAST",
+            Self::HelpCommand => "Command name (RETURN for list)",
+            Self::MenuFile => "File name",
+            Self::Delay => "DELAY: duration",
+            Self::UnitsFormat => "UNITS: choice, 1 to 4",
+            Self::UnitsPrecision(UnitFormat::Architectural) => {
+                "UNITS: denominator (1, 2, 4, 8, 16, 32, or 64)"
+            }
+            Self::UnitsPrecision(_) => "UNITS: digits to right of decimal point (0 to 8)",
             Self::SavePath => "SAVE: output file",
             Self::Base => "BASE: x,y",
+            Self::Axis => "AXIS: ON, OFF, or tick spacing (X for snap multiples)",
             Self::Snap => "SNAP: spacing",
             Self::Grid => "GRID: spacing",
             Self::Ortho => "ORTHO: ON or OFF",
@@ -229,6 +275,17 @@ impl InputState {
             Self::RepeatRows(_) => "ENDREP: rows",
             Self::RepeatColumnSpacing(_, _, _) => "ENDREP: column distance",
             Self::RepeatRowSpacing(_, _, _, _, _) => "ENDREP: row distance",
+            Self::DimFirstExtension => "DIM: first extension line origin or (ABCT)",
+            Self::DimIntersection(_) => "DIM: dimension line intersection",
+            Self::DimSecondExtension(_, _) => "DIM: second extension line origin",
+            Self::DimText(_, _, _) => "DIM: dimension text",
+            Self::HatchPattern => "HATCH: pattern (name,style / U / ?)",
+            Self::HatchScale(_) => "HATCH: scale for pattern {1}",
+            Self::HatchAngle(_, _) => "HATCH: angle for pattern {0}",
+            Self::HatchSelection(_, _, _) => "HATCH: select objects on Window or Last",
+            Self::HatchWindowFirst(_, _, _) => "HATCH: lower left corner",
+            Self::HatchWindowSecond(_, _, _, _) => "HATCH: upper right corner",
+            Self::SketchIncrement => "SKETCH: record increment",
         }
     }
 }
@@ -243,12 +300,15 @@ pub struct Editor {
     undo: Vec<UndoSnapshot>,
     last_erased: Option<Vec<ErasedItem>>,
     repeat_start: Option<usize>,
+    shape_libraries: BTreeMap<String, BTreeMap<String, u16>>,
+    active_shape_library: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 struct UndoSnapshot {
     drawing: Drawing,
     last_erased: Option<Vec<ErasedItem>>,
+    active_shape_library: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -279,18 +339,26 @@ impl Default for Editor {
                     center: Point { x: 0.0, y: 0.0 },
                     height: 20.0,
                 },
+                axis: acad_model::Mode {
+                    on: false,
+                    spacing: 0.0,
+                },
                 snap: acad_model::Mode {
                     on: false,
                     spacing: 1.0,
                 },
                 grid: acad_model::Mode {
                     on: false,
-                    spacing: 1.0,
+                    spacing: 0.0,
                 },
                 ortho: false,
                 fill: true,
-                text_size: 1.0,
-                trace_width: 0.25,
+                text_size: 0.2,
+                trace_width: 0.05,
+                units: Units {
+                    format: UnitFormat::Decimal,
+                    precision: 4,
+                },
                 current_layer: 1,
                 layers: BTreeMap::from([(0, 0), (1, 15)]),
                 dwg_header_passthrough: None,
@@ -302,6 +370,10 @@ impl Default for Editor {
 
 impl Editor {
     pub fn new(drawing: Drawing) -> Self {
+        let active_shape_library = drawing.items.iter().rev().find_map(|item| match item {
+            Item::Entity(entity) => load_library_name(entity),
+            _ => None,
+        });
         Self {
             drawing,
             state: InputState::Command,
@@ -310,12 +382,36 @@ impl Editor {
             undo: Vec::new(),
             last_erased: None,
             repeat_start: None,
+            shape_libraries: BTreeMap::new(),
+            active_shape_library,
         }
+    }
+
+    /// Register available SHP libraries supplied by the application layer.
+    /// Command processing remains independent of the font-file parser.
+    pub fn register_shape_library(
+        &mut self,
+        name: &str,
+        shapes: impl IntoIterator<Item = (String, u16)>,
+    ) {
+        self.shape_libraries.insert(
+            normalize_library_name(name),
+            shapes
+                .into_iter()
+                .map(|(name, number)| (name.to_ascii_uppercase(), number))
+                .collect(),
+        );
+    }
+
+    /// Whether the next command input supplies a LOAD library name.
+    pub fn awaiting_shape_library_name(&self) -> bool {
+        matches!(self.state, InputState::LoadLibrary)
     }
 
     pub fn drawing(&self) -> &Drawing {
         &self.drawing
     }
+
     pub fn drawing_mut(&mut self) -> &mut Drawing {
         &mut self.drawing
     }
@@ -324,6 +420,129 @@ impl Editor {
     }
     pub fn status(&self) -> &str {
         &self.status
+    }
+
+    /// World-space spacing of the edge ruler ticks, if enabled. A zero DWG
+    /// spacing uses the current SNAP interval for native display.
+    pub fn axis_spacing(&self) -> Option<f64> {
+        self.drawing.header.axis.on.then(|| {
+            let spacing = self.drawing.header.axis.spacing;
+            if spacing > 0.0 && spacing.is_finite() {
+                spacing
+            } else {
+                self.drawing.header.snap.spacing.max(f64::EPSILON)
+            }
+        })
+    }
+
+    /// Cancel the active command and any unfinished REPEAT grouping.
+    pub fn cancel_command(&mut self) -> Result<Effect, String> {
+        self.state = InputState::Command;
+        self.repeat_start = None;
+        self.status.clear();
+        Ok(Effect::Continue)
+    }
+
+    /// Whether the current prompt accepts a world-space point from a mouse click.
+    pub fn accepts_mouse_point(&self) -> bool {
+        matches!(
+            self.state,
+            InputState::LineStart
+                | InputState::LineNext(_)
+                | InputState::CircleCenter
+                | InputState::Point
+                | InputState::ArcStart
+                | InputState::ArcMiddle(_)
+                | InputState::ArcEnd(_, _)
+                | InputState::ShapeOrigin(_)
+                | InputState::TextOrigin
+                | InputState::InsertOrigin(_, _)
+                | InputState::InsertXScale(_, _)
+                | InputState::BlockBase(_)
+                | InputState::Base
+                | InputState::LimitsMin
+                | InputState::LimitsMax(_)
+                | InputState::ZoomCenter
+                | InputState::ZoomWindowMin
+                | InputState::ZoomWindowMax(_)
+                | InputState::PanCenter
+                | InputState::EditBase(_, _)
+                | InputState::Displacement(_)
+                | InputState::SecondPoint(_, _)
+                | InputState::ArrayCircularCenter(_)
+                | InputState::ArrayColumnSpacing(_, _, _, _)
+                | InputState::ChangeIntersection(_)
+                | InputState::BreakFirstPoint(_)
+                | InputState::BreakSecondPoint(_, _)
+                | InputState::DistanceFirstPoint
+                | InputState::DistanceSecondPoint(_)
+                | InputState::IdPoint
+                | InputState::SolidFirstPoint
+                | InputState::SolidSecondPoint(_)
+                | InputState::SolidThirdPoint(_, _)
+                | InputState::SolidFourthPoint(_, _, _)
+                | InputState::TraceStart(_)
+                | InputState::TraceNext(_, _)
+                | InputState::AreaFirstPoint
+                | InputState::AreaNextPoint(_)
+                | InputState::RepeatColumnSpacing(_, _, _)
+                | InputState::RepeatRowSpacing(_, _, _, _, RepeatDistanceInput::Point)
+                | InputState::DimFirstExtension
+                | InputState::DimIntersection(_)
+                | InputState::DimSecondExtension(_, _)
+                | InputState::HatchWindowFirst(_, _, _)
+                | InputState::HatchWindowSecond(_, _, _, _)
+        )
+    }
+
+    /// Submit a mouse-selected point through the same state machine as typed coordinates.
+    pub fn submit_mouse_point(&mut self, point: Point) -> Result<Effect, String> {
+        if !self.accepts_mouse_point() {
+            return Err("current prompt does not accept a point".into());
+        }
+        self.submit(&format!("{},{}", point.x, point.y))
+    }
+
+    /// Whether the current prompt accepts mouse picks of selectable entities.
+    pub fn accepts_mouse_selection(&self) -> bool {
+        matches!(
+            self.state,
+            InputState::BlockSelection(_, _)
+                | InputState::EditSelection(_)
+                | InputState::DisplacedSelection(_, _)
+                | InputState::ArraySelection
+                | InputState::ChangeSelection
+                | InputState::FilletSelection
+                | InputState::BreakSelection
+                | InputState::AreaSelection
+                | InputState::HatchSelection(_, _, _)
+        )
+    }
+
+    /// Return the one-based selectable entity number nearest a world-space point.
+    pub fn pick_entity_at(&self, point: Point, tolerance: f64) -> Option<usize> {
+        if !tolerance.is_finite() || tolerance < 0.0 {
+            return None;
+        }
+        let mut selectable_id = 0;
+        let mut nearest: Option<(usize, f64)> = None;
+        for item in &self.drawing.items {
+            let Item::Entity(entity) = item else {
+                continue;
+            };
+            if matches!(bare(entity), Entity::Load { .. }) {
+                continue;
+            }
+            selectable_id += 1;
+            if let Some(distance) = entity_pick_distance(point, entity) {
+                if distance <= tolerance
+                    && nearest.is_none_or(|(_, nearest_distance)| distance < nearest_distance)
+                {
+                    nearest = Some((selectable_id, distance));
+                }
+            }
+        }
+        nearest.map(|(id, _)| id)
     }
 
     /// Submit one complete line of keyboard input. Coordinates use AutoCAD's
@@ -393,6 +612,59 @@ impl Editor {
                     radius,
                     start_deg,
                     end_deg,
+                });
+                self.state = InputState::Command;
+                Ok(Effect::Continue)
+            }
+            InputState::LoadLibrary => {
+                if line.is_empty() {
+                    return Err("shape library name cannot be empty".into());
+                }
+                let library = normalize_library_name(line);
+                if !self.shape_libraries.contains_key(&library) {
+                    return Err(format!("shape library is not available: {line}"));
+                }
+                self.add(Entity::Load {
+                    name: line.to_owned(),
+                });
+                self.active_shape_library = Some(library);
+                self.state = InputState::Command;
+                Ok(Effect::Continue)
+            }
+            InputState::ShapeName => {
+                let Some(library) = self.active_shape_library.as_ref() else {
+                    return Err("SHAPE requires a library loaded with LOAD".into());
+                };
+                let Some(number) = self
+                    .shape_libraries
+                    .get(library)
+                    .and_then(|shapes| shapes.get(&line.to_ascii_uppercase()))
+                    .copied()
+                else {
+                    return Err(format!("unknown shape name: {line}"));
+                };
+                self.state = InputState::ShapeOrigin(number);
+                Ok(Effect::Continue)
+            }
+            InputState::ShapeOrigin(shape_id) => {
+                self.state = InputState::ShapeHeight(shape_id, point(line)?);
+                Ok(Effect::Continue)
+            }
+            InputState::ShapeHeight(shape_id, origin) => {
+                let height = number(line)?;
+                if height <= 0.0 {
+                    return Err("shape height must be positive".into());
+                }
+                self.state = InputState::ShapeRotation(shape_id, origin, height);
+                Ok(Effect::Continue)
+            }
+            InputState::ShapeRotation(shape_id, origin, height) => {
+                let rotation_deg = number(line)?;
+                self.add(Entity::Shape {
+                    origin,
+                    height,
+                    rotation_deg,
+                    number: shape_id,
                 });
                 self.state = InputState::Command;
                 Ok(Effect::Continue)
@@ -538,8 +810,261 @@ impl Editor {
                 self.state = InputState::Command;
                 Ok(Effect::Save(line.to_owned()))
             }
+            InputState::WblockPath => {
+                if line.trim().is_empty() {
+                    return Err("WBLOCK output file name cannot be empty".into());
+                }
+                let path = std::path::Path::new(line.trim());
+                if path
+                    .extension()
+                    .is_some_and(|ext| !ext.eq_ignore_ascii_case("dwg"))
+                {
+                    return Err("WBLOCK output must be a DWG file".into());
+                }
+                let mut path = path.to_path_buf();
+                if path.extension().is_none() {
+                    path.set_extension("DWG");
+                }
+                self.state = InputState::WblockName(path.to_string_lossy().into_owned());
+                Ok(Effect::Continue)
+            }
+            InputState::WblockName(path) => {
+                if line.trim().is_empty() {
+                    self.state = InputState::WblockBase(path);
+                    return Ok(Effect::Continue);
+                }
+                let drawing = if line.trim() == "*" {
+                    self.wblock_entire_drawing()
+                } else {
+                    self.wblock_named_block(line.trim())?
+                };
+                self.state = InputState::Command;
+                Ok(Effect::SaveDrawing(path, Box::new(drawing)))
+            }
+            InputState::WblockBase(path) => {
+                self.state = InputState::WblockSelection(path, point(line)?);
+                Ok(Effect::Continue)
+            }
+            InputState::WblockSelection(path, base) => {
+                let ids = selection(line, selectable_count(&self.drawing))?;
+                let drawing = self.wblock_selected_entities(&ids, base);
+                self.state = InputState::Command;
+                Ok(Effect::SaveDrawing(path, Box::new(drawing)))
+            }
+            InputState::HelpCommand => {
+                let report = help_report(line)?;
+                self.status = if line.trim().is_empty() {
+                    "Command list".into()
+                } else {
+                    format!("Help for {}", line.trim().to_ascii_uppercase())
+                };
+                self.state = InputState::Command;
+                Ok(Effect::Report(report))
+            }
+            InputState::MenuFile => {
+                if line.trim().is_empty() {
+                    return self.cancel();
+                }
+                self.status = format!("MENU file {} selected", line.trim());
+                self.state = InputState::Command;
+                Ok(Effect::Continue)
+            }
+            InputState::DimFirstExtension => {
+                self.state = InputState::DimIntersection(point(line)?);
+                Ok(Effect::Continue)
+            }
+            InputState::DimIntersection(first) => {
+                self.state = InputState::DimSecondExtension(first, point_from(line, first)?);
+                Ok(Effect::Continue)
+            }
+            InputState::DimSecondExtension(first, intersection) => {
+                self.state = InputState::DimText(first, intersection, point_from(line, first)?);
+                Ok(Effect::Continue)
+            }
+            InputState::DimText(first, intersection, second) => {
+                let text = if line.trim().is_empty() {
+                    None
+                } else {
+                    Some(line.trim())
+                };
+                let entities = dimension_geometry(
+                    first,
+                    intersection,
+                    second,
+                    text,
+                    self.drawing.header.text_size,
+                    self.drawing.header.units,
+                )?;
+                self.save_undo();
+                for entity in entities {
+                    self.drawing.items.push(Item::Entity(Entity::OnLayer {
+                        layer: self.drawing.header.current_layer,
+                        entity: Box::new(entity),
+                    }));
+                }
+                self.state = InputState::Command;
+                self.refresh_after_edit();
+                Ok(Effect::Continue)
+            }
+            InputState::HatchPattern => {
+                let pattern = line.trim().to_ascii_uppercase();
+                if pattern == "?" {
+                    self.state = InputState::Command;
+                    self.status = "HATCH pattern list".into();
+                    return Ok(Effect::Report(hatch_pattern_report()));
+                }
+                if !HATCH_PATTERNS.iter().any(|(name, _)| *name == pattern) {
+                    self.state = InputState::Command;
+                    return Err(format!("unknown HATCH pattern: {pattern}"));
+                }
+                self.state = InputState::HatchScale(pattern);
+                Ok(Effect::Continue)
+            }
+            InputState::HatchScale(pattern) => {
+                let scale = if line.trim().is_empty() {
+                    1.0
+                } else {
+                    number(line)?
+                };
+                if !scale.is_finite() || scale <= 0.0 {
+                    return Err("HATCH pattern scale must be positive and finite".into());
+                }
+                self.state = InputState::HatchAngle(pattern, scale);
+                Ok(Effect::Continue)
+            }
+            InputState::HatchAngle(pattern, scale) => {
+                let angle = if line.trim().is_empty() {
+                    0.0
+                } else {
+                    number(line)?
+                };
+                if !angle.is_finite() {
+                    return Err("HATCH pattern angle must be finite".into());
+                }
+                self.state = InputState::HatchSelection(pattern, scale, angle);
+                Ok(Effect::Continue)
+            }
+            InputState::HatchSelection(_, _, _) => {
+                let InputState::HatchSelection(pattern, scale, angle) = self.state.clone() else {
+                    unreachable!()
+                };
+                if line.trim().eq_ignore_ascii_case("W")
+                    || line.trim().eq_ignore_ascii_case("WINDOW")
+                {
+                    self.state = InputState::HatchWindowFirst(pattern, scale, angle);
+                    return Ok(Effect::Continue);
+                }
+                let ids = selection(line, selectable_count(&self.drawing))?;
+                self.add_hatch(&pattern, scale, angle, &ids)?;
+                self.state = InputState::Command;
+                self.refresh_after_edit();
+                Ok(Effect::Continue)
+            }
+            InputState::HatchWindowFirst(pattern, scale, angle) => {
+                self.state = InputState::HatchWindowSecond(pattern, scale, angle, point(line)?);
+                Ok(Effect::Continue)
+            }
+            InputState::HatchWindowSecond(pattern, scale, angle, first) => {
+                let second = point(line)?;
+                let ids = entities_in_window(&self.drawing, first, second);
+                if ids.is_empty() {
+                    return Err("HATCH window selected no boundary objects".into());
+                }
+                self.add_hatch(&pattern, scale, angle, &ids)?;
+                self.state = InputState::Command;
+                self.refresh_after_edit();
+                Ok(Effect::Continue)
+            }
+            InputState::SketchIncrement => {
+                let increment = number(line)?;
+                if increment <= 0.0 || !increment.is_finite() {
+                    return Err("SKETCH record increment must be positive".into());
+                }
+                self.state = InputState::Command;
+                Err("SKETCH requires a digitizer input device after the record increment".into())
+            }
+            InputState::Delay => {
+                let duration = number(line)?;
+                if duration < 0.0 || !duration.is_finite() {
+                    return Err("DELAY duration must be non-negative".into());
+                }
+                // The native command only affects command-script pacing. The
+                // interactive editor has no queued script executor, so a
+                // validated duration deliberately leaves the drawing intact.
+                self.state = InputState::Command;
+                Ok(Effect::Continue)
+            }
+            InputState::UnitsFormat => {
+                let format = if line.is_empty() {
+                    self.drawing.header.units.format
+                } else {
+                    match line.trim() {
+                        "1" => UnitFormat::Scientific,
+                        "2" => UnitFormat::Decimal,
+                        "3" => UnitFormat::Engineering,
+                        "4" => UnitFormat::Architectural,
+                        _ => return Err("UNITS choice must be 1, 2, 3, or 4".into()),
+                    }
+                };
+                self.state = InputState::UnitsPrecision(format);
+                Ok(Effect::Continue)
+            }
+            InputState::UnitsPrecision(format) => {
+                let precision = if line.is_empty() {
+                    self.drawing.header.units.precision
+                } else {
+                    line.trim()
+                        .parse::<u16>()
+                        .map_err(|_| "UNITS precision must be a whole number")?
+                };
+                match format {
+                    UnitFormat::Architectural
+                        if !matches!(precision, 1 | 2 | 4 | 8 | 16 | 32 | 64) =>
+                    {
+                        return Err("UNITS denominator must be 1, 2, 4, 8, 16, 32, or 64".into());
+                    }
+                    UnitFormat::Architectural => {}
+                    _ if precision > 8 => {
+                        return Err("UNITS precision must be from 0 to 8".into());
+                    }
+                    _ => {}
+                }
+                let units = Units { format, precision };
+                if self.drawing.header.units != units {
+                    self.save_undo();
+                    self.drawing.header.units = units;
+                }
+                self.state = InputState::Command;
+                Ok(Effect::Continue)
+            }
             InputState::Base => {
                 self.drawing.header.base = point(line)?;
+                self.state = InputState::Command;
+                Ok(Effect::Continue)
+            }
+            InputState::Axis => {
+                match line.to_ascii_uppercase().as_str() {
+                    "OFF" | "NO" => self.drawing.header.axis.on = false,
+                    "ON" | "YES" => self.drawing.header.axis.on = true,
+                    _ => {
+                        let uppercase = line.to_ascii_uppercase();
+                        let (spacing_text, snap_multiple) = match uppercase.strip_suffix('X') {
+                            Some(number) => (number.trim(), true),
+                            None => (line, false),
+                        };
+                        let spacing = number(spacing_text)?
+                            * if snap_multiple {
+                                self.drawing.header.snap.spacing
+                            } else {
+                                1.0
+                            };
+                        if spacing <= 0.0 || !spacing.is_finite() {
+                            return Err("axis tick spacing must be positive".into());
+                        }
+                        self.drawing.header.axis.on = true;
+                        self.drawing.header.axis.spacing = spacing;
+                    }
+                }
                 self.state = InputState::Command;
                 Ok(Effect::Continue)
             }
@@ -943,13 +1468,20 @@ impl Editor {
                 let dx = second.x - first.x;
                 let dy = second.y - first.y;
                 let distance = dx.hypot(dy);
-                self.status = format!("Distance={distance:.4}");
+                self.status = format!(
+                    "Distance={}",
+                    format_measurement(distance, self.drawing.header.units)
+                );
                 self.state = InputState::Command;
                 Ok(Effect::Continue)
             }
             InputState::IdPoint => {
                 let location = point(line)?;
-                self.status = format!("X = {:.4}    Y = {:.4}", location.x, location.y);
+                self.status = format!(
+                    "X = {}    Y = {}",
+                    format_measurement(location.x, self.drawing.header.units),
+                    format_measurement(location.y, self.drawing.header.units)
+                );
                 self.state = InputState::Command;
                 Ok(Effect::Continue)
             }
@@ -1130,9 +1662,12 @@ impl Editor {
             "CIRCLE" | "C" => self.state = InputState::CircleCenter,
             "POINT" | "PO" => self.state = InputState::Point,
             "ARC" | "A" => self.state = InputState::ArcStart,
+            "LOAD" => self.state = InputState::LoadLibrary,
+            "SHAPE" => self.state = InputState::ShapeName,
             "TEXT" | "T" => self.state = InputState::TextOrigin,
             "INSERT" | "I" => self.state = InputState::InsertName,
             "BLOCK" => self.state = InputState::BlockName,
+            "WBLOCK" => self.state = InputState::WblockPath,
             "REPEAT" => {
                 if self.repeat_start.is_some() {
                     return Err("REPEAT is already open".into());
@@ -1146,7 +1681,16 @@ impl Editor {
                 self.state = InputState::RepeatColumns;
             }
             "BASE" => self.state = InputState::Base,
-            "SNAP" => self.state = InputState::Snap,
+            "AXIS" => self.state = InputState::Axis,
+            "SNAP" | "RES" | "RESOLUTION" => self.state = InputState::Snap,
+            "DIM" => self.state = InputState::DimFirstExtension,
+            "HATCH" => self.state = InputState::HatchPattern,
+            "SKETCH" => self.state = InputState::SketchIncrement,
+            "DELAY" => self.state = InputState::Delay,
+            // RESUME is meaningful only when the command-script executor has
+            // been interrupted. There is no script queue in this editor.
+            "RESUME" => {}
+            "UNITS" => self.state = InputState::UnitsFormat,
             "GRID" => self.state = InputState::Grid,
             "ORTHO" => self.state = InputState::Ortho,
             "FILL" => self.state = InputState::Fill,
@@ -1158,6 +1702,21 @@ impl Editor {
             "LIST" => {
                 self.status = list_entities(&self.drawing);
             }
+            "DBLIST" => {
+                let report = database_listing(&self.drawing);
+                self.status = "DBLIST report".into();
+                return Ok(Effect::Report(report));
+            }
+            "?" | "HELP" => self.state = InputState::HelpCommand,
+            "MENU" => self.state = InputState::MenuFile,
+            "FILES" => {
+                self.status = "File Utility Menu".into();
+                return Ok(Effect::Report(FILE_UTILITY_MENU.into()));
+            }
+            // STATUS, REDRAW and REGEN do not edit the drawing model. The
+            // native window already redraws and regenerates each requested
+            // frame, so no separate model operation is needed here.
+            "STATUS" | "REDRAW" | "REGEN" => {}
             "ERASE" | "E" => self.state = InputState::EditSelection(EditCommand::Erase),
             "MOVE" | "M" => self.state = InputState::Displacement(EditCommand::Move),
             "COPY" | "CO" => self.state = InputState::Displacement(EditCommand::Copy),
@@ -1177,6 +1736,7 @@ impl Editor {
                 if let Some(previous) = self.undo.pop() {
                     self.drawing = previous.drawing;
                     self.last_erased = previous.last_erased;
+                    self.active_shape_library = previous.active_shape_library;
                 }
             }
             "OOPS" => self.oops(),
@@ -1238,6 +1798,85 @@ impl Editor {
         self.drawing.items = retained;
         self.refresh_after_edit();
         self.status = format!("Created block {name}");
+    }
+
+    fn wblock_entire_drawing(&self) -> Drawing {
+        let mut referenced = BTreeSet::new();
+        for item in &self.drawing.items {
+            match item {
+                Item::Entity(entity) => collect_insert_names(entity, &mut referenced),
+                Item::Repeat(repeat) => {
+                    for entity in &repeat.entities {
+                        collect_insert_names(entity, &mut referenced);
+                    }
+                }
+                Item::Block(_) | Item::Erased(_) => {}
+            }
+        }
+
+        // A referenced block can itself insert other blocks. Follow that
+        // closure so WBLOCK * keeps the complete block graph while dropping
+        // definitions no entity in the drawing can reach.
+        loop {
+            let before = referenced.len();
+            for block in self.drawing.blocks() {
+                if referenced.contains(&block.name.to_ascii_uppercase()) {
+                    for entity in &block.entities {
+                        collect_insert_names(entity, &mut referenced);
+                    }
+                }
+            }
+            if referenced.len() == before {
+                break;
+            }
+        }
+
+        let items = self
+            .drawing
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Block(block) if referenced.contains(&block.name.to_ascii_uppercase()) => {
+                    Some(Item::Block(block.clone()))
+                }
+                Item::Block(_) | Item::Erased(_) => None,
+                Item::Entity(entity) => Some(Item::Entity(entity.clone())),
+                Item::Repeat(repeat) => Some(Item::Repeat(repeat.clone())),
+            })
+            .collect();
+        Drawing {
+            header: self.drawing.header.clone(),
+            items,
+        }
+    }
+
+    fn wblock_named_block(&self, name: &str) -> Result<Drawing, String> {
+        let block = self
+            .drawing
+            .blocks()
+            .find(|block| block.name.eq_ignore_ascii_case(name))
+            .ok_or_else(|| format!("WBLOCK block not found: {name}"))?;
+        let mut header = self.drawing.header.clone();
+        header.base = block.base;
+        Ok(Drawing {
+            header,
+            items: block.entities.iter().cloned().map(Item::Entity).collect(),
+        })
+    }
+
+    fn wblock_selected_entities(&self, ids: &[usize], base: Point) -> Drawing {
+        let selected = selected_item_indexes(&self.drawing, ids);
+        let mut header = self.drawing.header.clone();
+        header.base = base;
+        let items = self
+            .drawing
+            .items
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| selected.contains(&(index + 1)))
+            .map(|(_, item)| item.clone())
+            .collect();
+        Drawing { header, items }
     }
 
     fn explode_block(&mut self, name: &str, origin: Point) -> Result<(), String> {
@@ -1524,10 +2163,64 @@ impl Editor {
         Ok(())
     }
 
+    fn add_hatch(
+        &mut self,
+        pattern: &str,
+        scale: f64,
+        angle_deg: f64,
+        ids: &[usize],
+    ) -> Result<(), String> {
+        if pattern != "LINE" {
+            return Err(format!(
+                "HATCH pattern {pattern} is listed but its geometry is not implemented"
+            ));
+        }
+        let lines = hatch_line_geometry(&self.drawing, ids, scale, angle_deg)?;
+        if lines.is_empty() {
+            return Err("HATCH boundary produced no pattern lines".into());
+        }
+        let mut suffix = 1usize;
+        let name = loop {
+            let candidate = format!("*X{suffix}");
+            if self
+                .drawing
+                .blocks()
+                .all(|block| !block.name.eq_ignore_ascii_case(&candidate))
+            {
+                break candidate;
+            }
+            suffix += 1;
+        };
+        self.save_undo();
+        self.drawing.items.push(Item::Block(Block {
+            name: name.clone(),
+            base: Point { x: 0.0, y: 0.0 },
+            entities: lines
+                .into_iter()
+                .map(|entity| Entity::OnLayer {
+                    layer: 127,
+                    entity: Box::new(entity),
+                })
+                .collect(),
+        }));
+        self.drawing.items.push(Item::Entity(Entity::OnLayer {
+            layer: self.drawing.header.current_layer,
+            entity: Box::new(Entity::Insert {
+                origin: Point { x: 0.0, y: 0.0 },
+                x_scale: 1.0,
+                y_scale: 1.0,
+                rotation_deg: 0.0,
+                name,
+            }),
+        }));
+        Ok(())
+    }
+
     fn save_undo(&mut self) {
         self.undo.push(UndoSnapshot {
             drawing: self.drawing.clone(),
             last_erased: self.last_erased.clone(),
+            active_shape_library: self.active_shape_library.clone(),
         });
     }
 
@@ -1619,6 +2312,622 @@ impl Editor {
             };
         }
     }
+}
+
+const COMMAND_LIST: &str = "\
+Command List
+
+ARC         DELAY       HELP        ORTHO       SKETCH
+AREA        DIM         ID          PAN         SNAP
+ARRAY       DIST        INSERT      PLOT        SOLID
+AXIS        END         LAYER       POINT       STATUS
+BASE        ENDREP      LIMITS      QPLOT       TABLET
+BLOCK       ERASE       LINE        QUIT        TEXT
+BREAK       FILES       LIST        REDRAW      TRACE
+CHANGE      FILL        LOAD        REGEN       UNITS
+CIRCLE      FILLET      MENU        REPEAT      WBLOCK
+COPY        GRID        MOVE        RESUME      ZOOM
+DBLIST      HATCH       OOPS        SHAPE       ?
+
+Point Entry: Absolute: x,y; Relative: @dx,dy; Distance, angle: @d<a
+Object selection: L = Last object; W = Within window
+Command repeat: press space or RETURN.\n";
+
+const FILE_UTILITY_MENU: &str = "\
+File Utility Menu
+
+0. Exit File Utility Menu
+1. List Drawing files
+2. List Menu files
+3. List Shape files
+4. List Pattern files
+5. List User specified files
+6. Delete files
+7. Rename files\n";
+
+fn help_report(input: &str) -> Result<String, String> {
+    let command = input.trim().to_ascii_uppercase();
+    if command.is_empty() {
+        return Ok(COMMAND_LIST.into());
+    }
+    if command == "LINE" {
+        return Ok(LINE_HELP.into());
+    }
+    Err(format!("help text for {command} has not been recovered"))
+}
+
+const HATCH_PATTERNS: &[(&str, &str)] = &[
+    ("EARTH", "Earth or ground (subterranean)"),
+    ("ESCHER", "Escher pattern"),
+    ("FLEX", "Flexible material"),
+    ("GRASS", "Grass area"),
+    ("GRATE", "Grated area"),
+    ("HEX", "Hexagons"),
+    ("HONEY", "Honeycomb pattern"),
+    ("HOUND", "Houndstooth check"),
+    ("INSUL", "Insulation material"),
+    ("LINE", "Parallel horizontal lines"),
+    ("MUDST", "Mud and sand"),
+    ("NET", "Horizontal / vertical grid"),
+    ("NET3", "Network pattern 0-60-120"),
+    ("PLAST", "Plastic material"),
+    ("PLASTI", "Plastic material"),
+    ("SACNCR", "Concrete"),
+    ("SQUARE", "Small aligned squares"),
+    ("STARS", "Star of David"),
+    ("STEEL", "Steel material"),
+    ("SWAMP", "Swampy area"),
+    ("TRANS", "Heat transfer material"),
+    ("TRIANG", "Equilateral triangles"),
+    ("ZIGZAG", "Staircase effect"),
+];
+
+fn hatch_pattern_report() -> String {
+    HATCH_PATTERNS
+        .iter()
+        .map(|(name, description)| format!("{name:<15} - {description}\n"))
+        .collect()
+}
+
+fn entities_in_window(drawing: &Drawing, first: Point, second: Point) -> Vec<usize> {
+    let min = Point {
+        x: first.x.min(second.x),
+        y: first.y.min(second.y),
+    };
+    let max = Point {
+        x: first.x.max(second.x),
+        y: first.y.max(second.y),
+    };
+    let mut ids = Vec::new();
+    let mut selectable_id = 0;
+    for item in &drawing.items {
+        let Item::Entity(entity) = item else {
+            continue;
+        };
+        if matches!(bare(entity), Entity::Load { .. }) {
+            continue;
+        }
+        selectable_id += 1;
+        let Some(points) = selection_extents_points(entity) else {
+            continue;
+        };
+        if points.iter().all(|point| {
+            point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y
+        }) {
+            ids.push(selectable_id);
+        }
+    }
+    ids
+}
+
+fn selection_extents_points(entity: &Entity) -> Option<Vec<Point>> {
+    Some(match bare(entity) {
+        Entity::Line { start, end } => vec![*start, *end],
+        Entity::Circle { center, radius } | Entity::Arc { center, radius, .. } => vec![
+            Point {
+                x: center.x - radius,
+                y: center.y - radius,
+            },
+            Point {
+                x: center.x + radius,
+                y: center.y + radius,
+            },
+        ],
+        Entity::Point { origin } | Entity::Text { origin, .. } | Entity::Shape { origin, .. } => {
+            vec![*origin]
+        }
+        Entity::Trace { p1, p2, p3, p4 } | Entity::Solid { p1, p2, p3, p4 } => {
+            vec![*p1, *p2, *p3, *p4]
+        }
+        Entity::Repeat(repeat) => repeat
+            .entities
+            .iter()
+            .filter_map(selection_extents_points)
+            .flatten()
+            .collect(),
+        Entity::Insert { .. } | Entity::Load { .. } | Entity::OnLayer { .. } => return None,
+    })
+}
+
+#[derive(Clone, Copy)]
+enum HatchEdge {
+    Line(Point, Point),
+    Arc {
+        center: Point,
+        radius: f64,
+        start_deg: f64,
+        end_deg: f64,
+    },
+}
+
+fn hatch_sweep_deg(start: f64, end: f64) -> f64 {
+    let sweep = (end - start).rem_euclid(360.0);
+    if sweep == 0.0 {
+        360.0
+    } else {
+        sweep
+    }
+}
+
+fn hatch_line_geometry(
+    drawing: &Drawing,
+    ids: &[usize],
+    scale: f64,
+    angle_deg: f64,
+) -> Result<Vec<Entity>, String> {
+    let selected: BTreeSet<_> = ids.iter().copied().collect();
+    let mut edges = Vec::new();
+    let mut circles = Vec::new();
+    let mut selectable_id = 0;
+    for item in &drawing.items {
+        let Item::Entity(entity) = item else {
+            continue;
+        };
+        if matches!(bare(entity), Entity::Load { .. }) {
+            continue;
+        }
+        selectable_id += 1;
+        if !selected.contains(&selectable_id) {
+            continue;
+        }
+        match bare(entity) {
+            Entity::Line { start, end } => edges.push(HatchEdge::Line(*start, *end)),
+            Entity::Arc {
+                center,
+                radius,
+                start_deg,
+                end_deg,
+            } if *radius > 0.0 => {
+                edges.push(HatchEdge::Arc {
+                    center: *center,
+                    radius: *radius,
+                    start_deg: *start_deg,
+                    end_deg: *end_deg,
+                });
+            }
+            Entity::Circle { center, radius } if *radius > 0.0 => {
+                circles.push((*center, *radius));
+            }
+            _ => {
+                return Err(
+                    "HATCH LINE supports closed LINE/ARC loops and CIRCLE boundaries".into(),
+                )
+            }
+        }
+    }
+    if edges.is_empty() && circles.is_empty() {
+        return Err("HATCH needs at least one selected boundary object".into());
+    }
+
+    let close = |a: Point, b: Point| (a.x - b.x).abs() <= 1e-8 && (a.y - b.y).abs() <= 1e-8;
+    let edge_ends = |edge: HatchEdge| -> (Point, Point) {
+        match edge {
+            HatchEdge::Line(a, b) => (a, b),
+            HatchEdge::Arc {
+                center,
+                radius,
+                start_deg,
+                end_deg,
+            } => {
+                let point = |angle: f64| {
+                    let angle = angle.to_radians();
+                    Point {
+                        x: center.x + radius * angle.cos(),
+                        y: center.y + radius * angle.sin(),
+                    }
+                };
+                (point(start_deg), point(end_deg))
+            }
+        }
+    };
+    let mut unused = vec![true; edges.len()];
+    let mut loops = Vec::<Vec<HatchEdge>>::new();
+    while let Some(first_edge) = unused.iter().position(|is_unused| *is_unused) {
+        unused[first_edge] = false;
+        let (start, next) = edge_ends(edges[first_edge]);
+        let mut loop_edges = vec![edges[first_edge]];
+        let mut current = next;
+        while !close(current, start) {
+            let candidates: Vec<_> = edges
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| unused[*index])
+                .filter_map(|(index, edge)| {
+                    let (a, b) = edge_ends(*edge);
+                    if close(a, current) {
+                        Some((index, b, false))
+                    } else if close(b, current) {
+                        Some((index, a, true))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if candidates.len() != 1 {
+                return Err("HATCH boundary lines must form closed, unbranched loops".into());
+            }
+            let (edge, point, reverse) = candidates[0];
+            unused[edge] = false;
+            let _ = reverse; // Topology is undirected; retain the arc's CCW geometry.
+            loop_edges.push(edges[edge]);
+            current = point;
+            if loop_edges.len() > edges.len() {
+                return Err("HATCH boundary loop did not close".into());
+            }
+        }
+        if loop_edges.len() < 2 {
+            return Err("HATCH boundary loop needs at least two edges".into());
+        }
+        loops.push(loop_edges);
+    }
+
+    let spacing = 0.125 * scale;
+    if !spacing.is_finite() || spacing <= 0.0 {
+        return Err("HATCH line spacing is outside the supported range".into());
+    }
+    let radians = angle_deg.to_radians();
+    let direction = Point {
+        x: radians.cos(),
+        y: radians.sin(),
+    };
+    let normal = Point {
+        x: -direction.y,
+        y: direction.x,
+    };
+    let project = |point: Point, axis: Point| point.x * axis.x + point.y * axis.y;
+    let edge_projection_extrema = |edge: HatchEdge| -> (f64, f64) {
+        let (a, b) = edge_ends(edge);
+        let mut values = vec![project(a, normal), project(b, normal)];
+        if let HatchEdge::Arc {
+            center,
+            radius,
+            start_deg,
+            end_deg,
+        } = edge
+        {
+            let sweep = hatch_sweep_deg(start_deg, end_deg);
+            let normal_angle = normal.y.atan2(normal.x).to_degrees();
+            for angle in [normal_angle, normal_angle + 180.0] {
+                if (angle - start_deg).rem_euclid(360.0) <= sweep + 1e-10 {
+                    let radians = angle.to_radians();
+                    values.push(project(
+                        Point {
+                            x: center.x + radius * radians.cos(),
+                            y: center.y + radius * radians.sin(),
+                        },
+                        normal,
+                    ));
+                }
+            }
+        }
+        (
+            values.iter().copied().fold(f64::INFINITY, f64::min),
+            values.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+        )
+    };
+    let edge_extrema: Vec<_> = loops
+        .iter()
+        .flatten()
+        .map(|edge| edge_projection_extrema(*edge))
+        .collect();
+    let line_min = edge_extrema
+        .iter()
+        .map(|(min, _)| *min)
+        .fold(f64::INFINITY, f64::min);
+    let line_max = edge_extrema
+        .iter()
+        .map(|(_, max)| *max)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let circle_min = circles
+        .iter()
+        .map(|(center, radius)| project(*center, normal) - radius)
+        .fold(f64::INFINITY, f64::min);
+    let circle_max = circles
+        .iter()
+        .map(|(center, radius)| project(*center, normal) + radius)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let min = line_min.min(circle_min);
+    let max = line_max.max(circle_max);
+    let center = (min + max) / 2.0;
+    let center_index = (center / spacing).round() as i64;
+    let first_index = if center_index as f64 * spacing >= max {
+        ((max - 1e-10) / spacing).floor() as i64
+    } else if center_index as f64 * spacing < min {
+        (min / spacing).ceil() as i64
+    } else {
+        center_index
+    };
+    let count = ((max - min) / spacing).ceil().max(0.0) as usize;
+    if count > MAX_ARRAY_ENTITIES {
+        return Err(format!(
+            "HATCH would create {count} lines; limit is {MAX_ARRAY_ENTITIES}"
+        ));
+    }
+    let mut offsets = Vec::with_capacity(count);
+    for (direction, mut index) in [(1_i64, first_index), (-1_i64, first_index - 1)] {
+        while {
+            let offset = index as f64 * spacing;
+            offset >= min - 1e-10 && offset < max - 1e-10
+        } {
+            offsets.push(index as f64 * spacing);
+            index += direction;
+        }
+    }
+    let mut lines = Vec::with_capacity(count);
+    for offset in offsets {
+        let mut intersections = Vec::new();
+        for edge in loops.iter().flatten() {
+            match *edge {
+                HatchEdge::Line(a, b) => {
+                    let da = project(a, normal);
+                    let db = project(b, normal);
+                    if (da <= offset && offset < db) || (db <= offset && offset < da) {
+                        let fraction = (offset - da) / (db - da);
+                        let crossing = Point {
+                            x: a.x + (b.x - a.x) * fraction,
+                            y: a.y + (b.y - a.y) * fraction,
+                        };
+                        intersections.push(project(crossing, direction));
+                    }
+                }
+                HatchEdge::Arc {
+                    center,
+                    radius,
+                    start_deg,
+                    end_deg,
+                } => {
+                    let center_offset = project(center, normal);
+                    let delta = offset - center_offset;
+                    if delta.abs() < radius {
+                        let half_chord = (radius * radius - delta * delta).sqrt();
+                        let center_along = project(center, direction);
+                        for along in [center_along - half_chord, center_along + half_chord] {
+                            let point = Point {
+                                x: direction.x * along + normal.x * offset,
+                                y: direction.y * along + normal.y * offset,
+                            };
+                            let angle = (point.y - center.y)
+                                .atan2(point.x - center.x)
+                                .to_degrees()
+                                .rem_euclid(360.0);
+                            if (angle - start_deg).rem_euclid(360.0)
+                                <= hatch_sweep_deg(start_deg, end_deg) + 1e-9
+                            {
+                                intersections.push(along);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        for (center, radius) in &circles {
+            let center_offset = project(*center, normal);
+            let delta = offset - center_offset;
+            if delta.abs() < *radius {
+                let half_chord = (radius * radius - delta * delta).sqrt();
+                let center_along = project(*center, direction);
+                intersections.push(center_along - half_chord);
+                intersections.push(center_along + half_chord);
+            }
+        }
+        intersections.sort_by(f64::total_cmp);
+        intersections.dedup_by(|a, b| (*a - *b).abs() <= 1e-9);
+        for pair in intersections.chunks_exact(2) {
+            let point = |along: f64| Point {
+                x: direction.x * along + normal.x * offset,
+                y: direction.y * along + normal.y * offset,
+            };
+            lines.push(Entity::Line {
+                start: point(pair[0]),
+                end: point(pair[1]),
+            });
+        }
+    }
+    Ok(lines)
+}
+
+const LINE_HELP: &str = "\
+The  LINE  command allows you to draw straight lines.
+
+Format:     LINE  From point:  <point>
+            To point:  <point>
+            To point:  <point>
+            To point:  RETURN to end line sequence
+
+You can continue the previous line or arc by responding to the
+\"From point:\" prompt with a space or RETURN.  If you are drawing
+a sequence of lines which will become a closed polygon, you may
+reply to the \"to point\" prompt with \"C\" to draw the last segment
+(close the polygon).
+
+Lines may be constrained to horizontal or vertical by the ORTHO command.
+
+Reference:  Section 3.1 of User Guide.\n";
+
+fn dimension_geometry(
+    first: Point,
+    intersection: Point,
+    second: Point,
+    text: Option<&str>,
+    configured_text_size: f64,
+    units: Units,
+) -> Result<Vec<Entity>, String> {
+    let dx = intersection.x - first.x;
+    let dy = intersection.y - first.y;
+    let baseline = dx.hypot(dy);
+    if !baseline.is_finite() || baseline == 0.0 {
+        return Err("DIM extension line points must be distinct".into());
+    }
+    let along_extension = Point {
+        x: dx / baseline,
+        y: dy / baseline,
+    };
+    let normal = Point {
+        x: along_extension.y,
+        y: -along_extension.x,
+    };
+    let offset = (second.x - intersection.x) * normal.x + (second.y - intersection.y) * normal.y;
+    if !offset.is_finite() || offset == 0.0 {
+        return Err("DIM extension lines must not be collinear".into());
+    }
+    let dimension_length = offset.abs();
+    let dimension_direction = Point {
+        x: normal.x * offset.signum(),
+        y: normal.y * offset.signum(),
+    };
+    let dimension_end = Point {
+        x: intersection.x + normal.x * offset,
+        y: intersection.y + normal.y * offset,
+    };
+    let dimension_mid = Point {
+        x: (intersection.x + dimension_end.x) / 2.0,
+        y: (intersection.y + dimension_end.y) / 2.0,
+    };
+
+    const ARROW: f64 = 9.0 / 64.0;
+    const ARROW_HALF_WIDTH: f64 = 3.0 / 128.0;
+    let text_height = ((configured_text_size * 135.0).round() / 128.0).max(1.0 / 128.0);
+    let dimension_text = text
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .unwrap_or_else(|| format_measurement(dimension_length, units));
+    // Native simplex numeric advances observed in QEMU are 52/63 cap heights,
+    // with the narrow "1" glyph 40/63. This controls the dimension-line gap;
+    // the TEXT record remains the portable glyph data.
+    let text_width = dimension_text
+        .chars()
+        .map(|character| {
+            text_height
+                * if character == '1' {
+                    40.0 / 63.0
+                } else {
+                    52.0 / 63.0
+                }
+        })
+        .sum::<f64>();
+    let line_fits = dimension_length > text_width + 4.0 * ARROW;
+    let snap = |value: f64| (value * 128.0).round() / 128.0;
+    let snap_point = |point: Point| Point {
+        x: snap(point.x),
+        y: snap(point.y),
+    };
+    let point_along = |origin: Point, direction: Point, distance: f64| Point {
+        x: origin.x + direction.x * distance,
+        y: origin.y + direction.y * distance,
+    };
+    let mut entities = Vec::with_capacity(7);
+
+    entities.push(Entity::Line {
+        start: first,
+        end: snap_point(point_along(intersection, along_extension, ARROW)),
+    });
+    entities.push(Entity::Line {
+        start: second,
+        end: snap_point(point_along(dimension_end, along_extension, ARROW)),
+    });
+
+    let arrow_base_start;
+    let arrow_base_end;
+    if line_fits {
+        arrow_base_start = point_along(intersection, dimension_direction, ARROW);
+        arrow_base_end = point_along(dimension_end, dimension_direction, -ARROW);
+        let gap_half = text_width / 2.0 + ARROW;
+        let left_text_edge = point_along(dimension_mid, dimension_direction, -gap_half);
+        let right_text_edge = point_along(dimension_mid, dimension_direction, gap_half);
+        if dimension_length > text_width + 4.0 * ARROW {
+            entities.push(Entity::Line {
+                start: snap_point(arrow_base_start),
+                end: left_text_edge,
+            });
+            entities.push(Entity::Line {
+                start: snap_point(arrow_base_end),
+                end: right_text_edge,
+            });
+        }
+    } else {
+        arrow_base_start = point_along(intersection, dimension_direction, -ARROW);
+        arrow_base_end = point_along(dimension_end, dimension_direction, ARROW);
+        entities.push(Entity::Line {
+            start: snap_point(arrow_base_end),
+            end: snap_point(point_along(dimension_end, dimension_direction, 2.0 * ARROW)),
+        });
+        entities.push(Entity::Line {
+            start: snap_point(arrow_base_start),
+            end: snap_point(point_along(intersection, dimension_direction, -2.0 * ARROW)),
+        });
+    }
+
+    let arrow_tips = if line_fits {
+        [
+            (intersection, arrow_base_start),
+            (dimension_end, arrow_base_end),
+        ]
+    } else {
+        [
+            (dimension_end, arrow_base_end),
+            (intersection, arrow_base_start),
+        ]
+    };
+    for (tip, base) in arrow_tips {
+        let side = Point {
+            x: dimension_direction.y,
+            y: -dimension_direction.x,
+        };
+        let edge_a = snap_point(Point {
+            x: base.x + side.x * ARROW_HALF_WIDTH,
+            y: base.y + side.y * ARROW_HALF_WIDTH,
+        });
+        let edge_b = snap_point(Point {
+            x: base.x - side.x * ARROW_HALF_WIDTH,
+            y: base.y - side.y * ARROW_HALF_WIDTH,
+        });
+        let tip = snap_point(tip);
+        entities.push(Entity::Solid {
+            p1: edge_a,
+            p2: edge_b,
+            p3: tip,
+            p4: tip,
+        });
+    }
+
+    let text_origin = if line_fits {
+        Point {
+            x: dimension_mid.x - text_width / 2.0,
+            y: dimension_mid.y - text_height / 2.0,
+        }
+    } else {
+        Point {
+            x: dimension_mid.x - text_width / 2.0,
+            y: dimension_end.y + 2.0 * text_height,
+        }
+    };
+    entities.push(Entity::Text {
+        origin: text_origin,
+        height: text_height,
+        rotation_deg: 0.0,
+        value: dimension_text,
+    });
+    Ok(entities)
 }
 
 fn repeat_points(repeat: &acad_model::Repeat, out: &mut Vec<Point>) {
@@ -1735,6 +3044,65 @@ fn selected_item_indexes(drawing: &Drawing, ids: &[usize]) -> BTreeSet<usize> {
         .collect()
 }
 
+fn entity_pick_distance(point: Point, entity: &Entity) -> Option<f64> {
+    let distance = |a: Point, b: Point| (a.x - b.x).hypot(a.y - b.y);
+    let segment_distance = |start: Point, end: Point| {
+        let dx = end.x - start.x;
+        let dy = end.y - start.y;
+        let length_squared = dx * dx + dy * dy;
+        if length_squared == 0.0 {
+            return distance(point, start);
+        }
+        let along = (((point.x - start.x) * dx + (point.y - start.y) * dy) / length_squared)
+            .clamp(0.0, 1.0);
+        distance(
+            point,
+            Point {
+                x: start.x + along * dx,
+                y: start.y + along * dy,
+            },
+        )
+    };
+    match bare(entity) {
+        Entity::Line { start, end } => Some(segment_distance(*start, *end)),
+        Entity::Circle { center, radius } => Some((distance(point, *center) - radius).abs()),
+        Entity::Arc {
+            center,
+            radius,
+            start_deg,
+            end_deg,
+        } => {
+            let radial = distance(point, *center);
+            let angle = (point.y - center.y)
+                .atan2(point.x - center.x)
+                .to_degrees()
+                .rem_euclid(360.0);
+            let sweep = end_deg - start_deg;
+            let offset = (angle - start_deg).rem_euclid(360.0);
+            if sweep.abs() >= 360.0 || offset <= sweep.rem_euclid(360.0) {
+                Some((radial - radius).abs())
+            } else {
+                let endpoint = |degrees: f64| Point {
+                    x: center.x + radius * degrees.to_radians().cos(),
+                    y: center.y + radius * degrees.to_radians().sin(),
+                };
+                Some(distance(point, endpoint(*start_deg)).min(distance(point, endpoint(*end_deg))))
+            }
+        }
+        Entity::Point { origin }
+        | Entity::Text { origin, .. }
+        | Entity::Shape { origin, .. }
+        | Entity::Insert { origin, .. } => Some(distance(point, *origin)),
+        Entity::Trace { p1, p2, p3, p4 } | Entity::Solid { p1, p2, p3, p4 } => Some(
+            [(*p1, *p2), (*p2, *p3), (*p3, *p4), (*p4, *p1)]
+                .into_iter()
+                .map(|(start, end)| segment_distance(start, end))
+                .fold(f64::INFINITY, f64::min),
+        ),
+        Entity::Repeat(_) | Entity::Load { .. } | Entity::OnLayer { .. } => None,
+    }
+}
+
 fn list_entities(drawing: &Drawing) -> String {
     let mut lines = Vec::new();
     for (index, entity) in drawing
@@ -1761,6 +3129,56 @@ fn list_entities(drawing: &Drawing) -> String {
         "No entities".into()
     } else {
         lines.join(", ")
+    }
+}
+
+fn database_listing(drawing: &Drawing) -> String {
+    fn append_entity(lines: &mut Vec<String>, count: &mut usize, entity: &Entity) {
+        *count += 1;
+        lines.push(format!("Entity {}: {:#?}", count, bare(entity)));
+    }
+
+    let mut lines = vec!["Drawing database".to_owned()];
+    let mut count = 0;
+    for item in &drawing.items {
+        match item {
+            Item::Entity(entity) => append_entity(&mut lines, &mut count, entity),
+            Item::Erased(_) => {}
+            Item::Block(block) => {
+                lines.push(format!("Block {} base {:?}", block.name, block.base));
+                for entity in &block.entities {
+                    append_entity(&mut lines, &mut count, entity);
+                }
+            }
+            Item::Repeat(repeat) => {
+                lines.push(format!(
+                    "Repeat {} columns × {} rows",
+                    repeat.columns, repeat.rows
+                ));
+                for entity in &repeat.entities {
+                    append_entity(&mut lines, &mut count, entity);
+                }
+            }
+        }
+    }
+    if count == 0 {
+        lines.push("No entities".into());
+    }
+    lines.join("\n")
+}
+
+fn collect_insert_names(entity: &Entity, names: &mut BTreeSet<String>) {
+    match entity {
+        Entity::OnLayer { entity, .. } => collect_insert_names(entity, names),
+        Entity::Insert { name, .. } => {
+            names.insert(name.to_ascii_uppercase());
+        }
+        Entity::Repeat(repeat) => {
+            for entity in &repeat.entities {
+                collect_insert_names(entity, names);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -1876,6 +3294,23 @@ fn bare(mut entity: &Entity) -> &Entity {
         entity = inner;
     }
     entity
+}
+
+fn normalize_library_name(name: &str) -> String {
+    let leaf = name
+        .trim()
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(name)
+        .to_ascii_uppercase();
+    leaf.strip_suffix(".SHP").unwrap_or(&leaf).to_owned()
+}
+
+fn load_library_name(entity: &Entity) -> Option<String> {
+    match bare(entity) {
+        Entity::Load { name } => Some(normalize_library_name(name)),
+        _ => None,
+    }
 }
 
 fn entity_anchor(entity: &Entity) -> Option<Point> {
@@ -2401,44 +3836,18 @@ fn fillet_geometry(
         return Err("FILLET requires the line segments to intersect".into());
     }
     let vertex = add(first.0, scale(first_direction, along_first));
-    let first_to_start = sub(first.0, vertex);
-    let first_to_end = sub(first.1, vertex);
-    let second_to_start = sub(second.0, vertex);
-    let second_to_end = sub(second.1, vertex);
-    let first_start_is_near = length(first_to_start) <= length(first_to_end);
-    let second_start_is_near = length(second_to_start) <= length(second_to_end);
-    let first_near_ray = if first_start_is_near {
-        first_to_start
-    } else {
-        first_to_end
-    };
-    let first_ray = if length(first_near_ray) <= 1e-12 {
-        if first_start_is_near {
-            first_to_end
-        } else {
-            first_to_start
-        }
-    } else {
-        first_near_ray
-    };
-    let second_near_ray = if second_start_is_near {
-        second_to_start
-    } else {
-        second_to_end
-    };
-    let second_ray = if length(second_near_ray) <= 1e-12 {
-        if second_start_is_near {
-            second_to_end
-        } else {
-            second_to_start
-        }
-    } else {
-        second_near_ray
-    };
-    let first_available = length(first_ray);
-    let second_available = length(second_ray);
-    let first_unit = scale(first_ray, 1.0 / first_available);
-    let second_unit = scale(second_ray, 1.0 / second_available);
+    // AutoCAD chooses the first line's forward ray and the second line's
+    // backward ray for this selection order. The picked lines retain those
+    // endpoint sides; trim the opposite endpoints to the tangent points.
+    let first_ray = first_direction;
+    let second_ray = scale(second_direction, -1.0);
+    let first_available = length(sub(first.1, vertex));
+    let second_available = length(sub(second.0, vertex));
+    if first_available <= 1e-12 || second_available <= 1e-12 {
+        return Err("FILLET has no room on the selected line rays".into());
+    }
+    let first_unit = scale(first_ray, 1.0 / length(first_ray));
+    let second_unit = scale(second_ray, 1.0 / length(second_ray));
     let dot = (first_unit.x * second_unit.x + first_unit.y * second_unit.y).clamp(-1.0, 1.0);
     let angle = dot.acos();
     if angle <= 1e-10 || (std::f64::consts::PI - angle) <= 1e-10 {
@@ -2471,16 +3880,9 @@ fn fillet_geometry(
     } else {
         (degrees(first_tangent), degrees(second_tangent))
     };
-    let replace_near_endpoint = |line: (Point, Point), near_start: bool, tangent: Point| {
-        if near_start {
-            (tangent, line.1)
-        } else {
-            (line.0, tangent)
-        }
-    };
     Ok(FilletGeometry {
-        first: replace_near_endpoint(first, first_start_is_near, first_tangent),
-        second: replace_near_endpoint(second, second_start_is_near, second_tangent),
+        first: (first_tangent, first.1),
+        second: (second.0, second_tangent),
         center,
         start_deg: start_angle,
         end_deg: end_angle,
@@ -2490,8 +3892,83 @@ fn fillet_geometry(
 fn number(text: &str) -> Result<f64, String> {
     text.parse::<f64>()
         .ok()
+        .or_else(|| parse_feet_inches(text))
         .filter(|x| x.is_finite())
         .ok_or_else(|| format!("invalid number: {text}"))
+}
+
+/// Parse AutoCAD's Engineering/Architectural distance syntax as inches. This
+/// is deliberately accepted alongside decimal syntax; the active `UNITS`
+/// selection controls display, while legacy drawings and scripts commonly
+/// contain a mixture of numeric spellings.
+fn parse_feet_inches(text: &str) -> Option<f64> {
+    let (feet, inches) = text.trim().strip_suffix('"')?.split_once('\'')?;
+    let feet = feet.trim().parse::<f64>().ok()?;
+    let inches = inches.trim().trim_start_matches('-').trim();
+    let inches = if let Some((whole, fraction)) = inches.split_once(char::is_whitespace) {
+        whole.trim().parse::<f64>().ok()? + parse_fraction(fraction.trim())?
+    } else if inches.contains('/') {
+        parse_fraction(inches)?
+    } else {
+        inches.parse::<f64>().ok()?
+    };
+    let sign = if feet.is_sign_negative() { -1.0 } else { 1.0 };
+    Some(sign * (feet.abs() * 12.0 + inches))
+}
+
+fn parse_fraction(text: &str) -> Option<f64> {
+    let (numerator, denominator) = text.split_once('/')?;
+    let numerator = numerator.trim().parse::<f64>().ok()?;
+    let denominator = denominator.trim().parse::<f64>().ok()?;
+    (denominator != 0.0).then_some(numerator / denominator)
+}
+
+fn format_measurement(value: f64, units: Units) -> String {
+    match units.format {
+        UnitFormat::Scientific => format!("{:.*E}", usize::from(units.precision), value),
+        UnitFormat::Decimal => format!("{:.*}", usize::from(units.precision), value),
+        UnitFormat::Engineering => format_feet_inches(value, units.precision, None),
+        UnitFormat::Architectural => format_feet_inches(value, 0, Some(units.precision)),
+    }
+}
+
+fn format_feet_inches(value: f64, decimals: u16, denominator: Option<u16>) -> String {
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let magnitude = value.abs();
+    let feet = (magnitude / 12.0).floor() as u64;
+    let inches = magnitude - feet as f64 * 12.0;
+    match denominator {
+        None => format!("{sign}{feet}'-{inches:.*}\"", usize::from(decimals)),
+        Some(denominator) => {
+            let scaled = (inches * f64::from(denominator)).round() as u64;
+            let whole = scaled / u64::from(denominator);
+            let numerator = scaled % u64::from(denominator);
+            if numerator == 0 {
+                format!("{sign}{feet}'-{whole}\"")
+            } else if whole == 0 {
+                let divisor = gcd(numerator, u64::from(denominator));
+                format!(
+                    "{sign}{feet}'-{}/{}\"",
+                    numerator / divisor,
+                    u64::from(denominator) / divisor
+                )
+            } else {
+                let divisor = gcd(numerator, u64::from(denominator));
+                format!(
+                    "{sign}{feet}'-{whole} {}/{}\"",
+                    numerator / divisor,
+                    u64::from(denominator) / divisor
+                )
+            }
+        }
+    }
+}
+
+fn gcd(mut left: u64, mut right: u64) -> u64 {
+    while right != 0 {
+        (left, right) = (right, left % right);
+    }
+    left
 }
 
 fn point(text: &str) -> Result<Point, String> {
@@ -2640,6 +4117,109 @@ mod tests {
     }
 
     #[test]
+    fn axis_is_a_display_setting_with_snap_relative_spacing() {
+        let mut editor = Editor::default();
+        assert_eq!(editor.axis_spacing(), None);
+        editor.submit("SNAP").unwrap();
+        editor.submit("0.5").unwrap();
+        editor.submit("AXIS").unwrap();
+        assert_eq!(
+            editor.prompt(),
+            "AXIS: ON, OFF, or tick spacing (X for snap multiples)"
+        );
+        editor.submit("5x").unwrap();
+        assert_eq!(editor.axis_spacing(), Some(2.5));
+
+        editor.submit("SNAP").unwrap();
+        editor.submit("2").unwrap();
+        editor.submit("AXIS").unwrap();
+        editor.submit("ON").unwrap();
+        assert_eq!(
+            editor.axis_spacing(),
+            Some(2.5),
+            "ON retains explicit spacing"
+        );
+        editor.submit("AXIS").unwrap();
+        editor.submit("OFF").unwrap();
+        assert_eq!(editor.axis_spacing(), None);
+        editor.submit("AXIS").unwrap();
+        editor.submit("ON").unwrap();
+        assert_eq!(
+            editor.axis_spacing(),
+            Some(2.5),
+            "OFF preserves explicit spacing"
+        );
+
+        let mut fresh = Editor::default();
+        fresh.submit("SNAP").unwrap();
+        fresh.submit("2").unwrap();
+        fresh.submit("AXIS").unwrap();
+        fresh.submit("ON").unwrap();
+        assert_eq!(fresh.drawing().header.axis.spacing, 0.0);
+        assert_eq!(
+            fresh.axis_spacing(),
+            Some(2.0),
+            "zero means use SNAP spacing"
+        );
+    }
+
+    #[test]
+    fn axis_spacing_must_be_positive_and_finite() {
+        let mut editor = Editor::default();
+        editor.submit("AXIS").unwrap();
+        for invalid in ["0", "-1", "NaN", "inf"] {
+            assert!(editor.submit(invalid).is_err(), "accepted {invalid}");
+            assert_eq!(editor.axis_spacing(), None);
+        }
+    }
+
+    #[test]
+    fn mouse_points_enter_line_vertices_through_the_command_state_machine() {
+        let mut editor = Editor::default();
+        assert!(!editor.accepts_mouse_point());
+        editor.submit("LINE").unwrap();
+        assert!(editor.accepts_mouse_point());
+        editor
+            .submit_mouse_point(Point { x: 1.25, y: -2.5 })
+            .unwrap();
+        editor.submit_mouse_point(Point { x: 8.0, y: 4.0 }).unwrap();
+        editor.submit("").unwrap();
+
+        let entities = editor.drawing.entities().collect::<Vec<_>>();
+        assert_eq!(entities.len(), 1);
+        let (start, end) = line_points(entities[0]).unwrap();
+        assert_eq!(start, Point { x: 1.25, y: -2.5 });
+        assert_eq!(end, Point { x: 8.0, y: 4.0 });
+        assert!(!editor.accepts_mouse_point());
+        assert!(editor.submit_mouse_point(Point { x: 0.0, y: 0.0 }).is_err());
+    }
+
+    #[test]
+    fn mouse_entity_picks_use_selectable_numbers_and_screen_tolerance() {
+        let mut editor = Editor::default();
+        for input in ["LINE", "0,0", "10,0", "", "CIRCLE", "5,5", "1", "ERASE"] {
+            editor.submit(input).unwrap();
+        }
+
+        assert!(editor.accepts_mouse_selection());
+        assert_eq!(
+            editor.pick_entity_at(Point { x: 4.0, y: 0.4 }, 0.5),
+            Some(1),
+            "the LINE can be picked within the pixel-derived tolerance"
+        );
+        assert_eq!(
+            editor.pick_entity_at(Point { x: 6.0, y: 5.1 }, 0.2),
+            Some(2),
+            "a CIRCLE is picked by distance to its circumference"
+        );
+        assert_eq!(editor.pick_entity_at(Point { x: 5.0, y: 5.0 }, 0.2), None);
+        assert_eq!(
+            editor.pick_entity_at(Point { x: 4.0, y: 0.4 }, f64::NAN),
+            None
+        );
+    }
+
+    #[test]
     fn circle_and_point_use_current_layer_and_report_effects() {
         let mut editor = Editor::default();
         editor.submit("POINT").unwrap();
@@ -2657,6 +4237,90 @@ mod tests {
             Effect::Save("sample.dwg".into())
         );
         assert_eq!(editor.submit("END").unwrap(), Effect::Quit);
+    }
+
+    #[test]
+    fn load_and_shape_create_the_original_named_shape_records() {
+        let mut editor = Editor::default();
+        editor.register_shape_library("B:ES.SHP", [("RES".into(), 129), ("CAP".into(), 130)]);
+        for input in ["LOAD", "B:ES", "SHAPE"] {
+            editor.submit(input).unwrap();
+        }
+        assert!(editor.submit("MISSING").is_err());
+        editor.submit("RES").unwrap();
+        assert!(editor.accepts_mouse_point());
+        for input in [
+            "2.25,3.5", "0.75", "30", "SHAPE", "CAP", "6.5,2.75", "1.25", "75",
+        ] {
+            editor.submit(input).unwrap();
+        }
+        assert_eq!(
+            editor.drawing().items,
+            vec![
+                Item::Entity(Entity::OnLayer {
+                    layer: 1,
+                    entity: Box::new(Entity::Load {
+                        name: "B:ES".into()
+                    }),
+                }),
+                Item::Entity(Entity::OnLayer {
+                    layer: 1,
+                    entity: Box::new(Entity::Shape {
+                        origin: Point { x: 2.25, y: 3.5 },
+                        height: 0.75,
+                        rotation_deg: 30.0,
+                        number: 129,
+                    }),
+                }),
+                Item::Entity(Entity::OnLayer {
+                    layer: 1,
+                    entity: Box::new(Entity::Shape {
+                        origin: Point { x: 6.5, y: 2.75 },
+                        height: 1.25,
+                        rotation_deg: 75.0,
+                        number: 130,
+                    }),
+                }),
+            ]
+        );
+        for _ in 0..3 {
+            editor.submit("UNDO").unwrap();
+        }
+        assert!(editor.drawing().items.is_empty());
+        editor.submit("SHAPE").unwrap();
+        assert!(editor.submit("RES").is_err());
+    }
+
+    #[test]
+    fn redraw_and_regen_leave_drawing_data_unchanged() {
+        let mut editor = Editor::default();
+        for input in ["LINE", "2,3", "8,3", ""] {
+            editor.submit(input).unwrap();
+        }
+        let original = editor.drawing().clone();
+        for command in ["STATUS", "REDRAW", "REGEN"] {
+            assert_eq!(editor.submit(command).unwrap(), Effect::Continue);
+            assert_eq!(editor.prompt(), "Command");
+            assert_eq!(editor.drawing(), &original);
+        }
+    }
+
+    #[test]
+    fn cancel_command_returns_to_command_prompt_and_closes_repeat_grouping() {
+        let mut editor = Editor::default();
+        editor.submit("LINE").unwrap();
+        editor.submit("2,3").unwrap();
+        assert_eq!(editor.prompt(), "LINE: next point (Enter to finish)");
+        editor.cancel_command().unwrap();
+        assert_eq!(editor.prompt(), "Command");
+
+        editor.submit("REPEAT").unwrap();
+        editor.submit("POINT").unwrap();
+        editor.submit("4,5").unwrap();
+        assert_eq!(editor.drawing().entities().count(), 1);
+        editor.cancel_command().unwrap();
+        assert_eq!(editor.prompt(), "Command");
+        assert!(editor.submit("REPEAT").is_ok());
     }
 
     #[test]
@@ -2935,6 +4599,244 @@ mod tests {
     }
 
     #[test]
+    fn dblist_reports_live_top_level_block_and_repeat_entities_without_editing() {
+        let mut editor = Editor::default();
+        editor.drawing_mut().items = vec![
+            Item::Entity(Entity::Line {
+                start: Point { x: 1.0, y: 2.0 },
+                end: Point { x: 3.0, y: 4.0 },
+            }),
+            Item::Erased(Entity::Point {
+                origin: Point { x: 9.0, y: 9.0 },
+            }),
+            Item::Block(acad_model::Block {
+                name: "B1".into(),
+                base: Point { x: 0.0, y: 0.0 },
+                entities: vec![Entity::Circle {
+                    center: Point { x: 5.0, y: 6.0 },
+                    radius: 2.0,
+                }],
+            }),
+            Item::Repeat(acad_model::Repeat {
+                entities: vec![Entity::Point {
+                    origin: Point { x: 7.0, y: 8.0 },
+                }],
+                columns: 2,
+                rows: 1,
+                column_spacing: 10.0,
+                row_spacing: 0.0,
+            }),
+        ];
+        let source = editor.drawing().clone();
+
+        let Effect::Report(report) = editor.submit("DBLIST").unwrap() else {
+            panic!("DBLIST should return a read-only report");
+        };
+
+        assert!(report.contains("Entity 1: Line"));
+        assert!(report.contains("Entity 2: Circle"));
+        assert!(report.contains("Entity 3: Point"));
+        assert!(report.contains("Block B1"));
+        assert!(report.contains("Repeat 2 columns × 1 rows"));
+        assert!(!report.contains("9.0"), "erased record leaked into DBLIST");
+        assert_eq!(editor.drawing(), &source, "DBLIST must be read-only");
+        assert_eq!(editor.prompt(), "Command");
+    }
+
+    #[test]
+    fn question_mark_and_help_share_the_observed_command_query_flow() {
+        let mut editor = Editor::default();
+        let source = editor.drawing().clone();
+
+        editor.submit("?").unwrap();
+        assert_eq!(editor.prompt(), "Command name (RETURN for list)");
+        let Effect::Report(list) = editor.submit("").unwrap() else {
+            panic!("blank ? query should display the command list");
+        };
+        assert!(list.contains("Command List"));
+        assert!(list.contains("LINE"));
+        assert!(list.contains("WBLOCK"));
+        assert_eq!(editor.prompt(), "Command");
+
+        editor.submit("HELP").unwrap();
+        assert_eq!(editor.prompt(), "Command name (RETURN for list)");
+        let Effect::Report(line) = editor.submit("LINE").unwrap() else {
+            panic!("HELP LINE should display command help");
+        };
+        assert_eq!(line, LINE_HELP);
+        assert_eq!(editor.status(), "Help for LINE");
+        assert_eq!(editor.drawing(), &source);
+
+        editor.submit("HELP").unwrap();
+        assert!(editor.submit("CIRCLE").is_err());
+        assert_eq!(editor.prompt(), "Command name (RETURN for list)");
+    }
+
+    #[test]
+    fn menu_filename_can_be_cancelled_and_files_displays_the_utility_menu() {
+        let mut editor = Editor::default();
+        editor.submit("MENU").unwrap();
+        assert_eq!(editor.prompt(), "File name");
+        editor.submit("").unwrap();
+        assert_eq!(editor.prompt(), "Command");
+
+        let Effect::Report(menu) = editor.submit("FILES").unwrap() else {
+            panic!("FILES should display its utility menu");
+        };
+        assert!(menu.contains("File Utility Menu"));
+        assert!(menu.contains("List Drawing files"));
+        assert!(menu.contains("Rename files"));
+        assert_eq!(editor.status(), "File Utility Menu");
+    }
+
+    #[test]
+    fn dim_creates_dimension_geometry_after_the_observed_point_prompt_sequence() {
+        let mut editor = Editor::default();
+        let before = editor.drawing().clone();
+        for (input, prompt) in [
+            ("DIM", "DIM: first extension line origin or (ABCT)"),
+            ("1,1", "DIM: dimension line intersection"),
+            ("5,1", "DIM: second extension line origin"),
+            ("3,2", "DIM: dimension text"),
+        ] {
+            editor.submit(input).unwrap();
+            assert_eq!(editor.prompt(), prompt);
+        }
+        editor.submit("").unwrap();
+        assert_eq!(editor.prompt(), "Command");
+        assert_ne!(editor.drawing(), &before);
+        assert_eq!(editor.drawing().items.len(), 7);
+        let entities = editor
+            .drawing()
+            .items
+            .iter()
+            .map(|item| match item {
+                Item::Entity(Entity::OnLayer { entity, .. }) => entity.as_ref(),
+                other => panic!("unexpected DIM output: {other:?}"),
+            })
+            .collect::<Vec<_>>();
+        assert!(matches!(entities[0], Entity::Line { start, end }
+            if *start == Point { x: 1.0, y: 1.0 }
+                && *end == Point { x: 5.140625, y: 1.0 }));
+        assert!(matches!(entities[1], Entity::Line { start, end }
+            if *start == Point { x: 3.0, y: 2.0 }
+                && *end == Point { x: 5.140625, y: 2.0 }));
+        assert!(matches!(entities[4], Entity::Solid { p3, p4, .. }
+            if *p3 == Point { x: 5.0, y: 2.0 } && *p4 == *p3));
+        assert!(matches!(entities[6], Entity::Text { value, height, .. }
+            if value == "1.0000" && *height == 0.2109375));
+    }
+
+    #[test]
+    fn hatch_lists_patterns_and_creates_clipped_line_pattern_blocks() {
+        let mut editor = Editor::default();
+        editor.submit("HATCH").unwrap();
+        assert_eq!(editor.prompt(), "HATCH: pattern (name,style / U / ?)");
+        let Effect::Report(patterns) = editor.submit("?").unwrap() else {
+            panic!("HATCH ? should show its pattern list");
+        };
+        assert!(patterns.contains("LINE            - Parallel horizontal lines"));
+        assert!(patterns.contains("ZIGZAG          - Staircase effect"));
+        assert_eq!(editor.prompt(), "Command");
+
+        editor.submit("HATCH").unwrap();
+        assert!(editor
+            .submit("ANSI31")
+            .unwrap_err()
+            .contains("unknown HATCH pattern"));
+        assert_eq!(editor.prompt(), "Command");
+
+        for input in ["LINE", "1,1", "5,1", "5,5", "1,5", "1,1", ""] {
+            editor.submit(input).unwrap();
+        }
+
+        editor.submit("HATCH").unwrap();
+        editor.submit("LINE").unwrap();
+        assert_eq!(editor.prompt(), "HATCH: scale for pattern {1}");
+        editor.submit("").unwrap();
+        assert_eq!(editor.prompt(), "HATCH: angle for pattern {0}");
+        editor.submit("").unwrap();
+        assert_eq!(editor.prompt(), "HATCH: select objects on Window or Last");
+        assert!(editor.accepts_mouse_selection());
+        editor.submit("W").unwrap();
+        assert_eq!(editor.prompt(), "HATCH: lower left corner");
+        assert!(editor.accepts_mouse_point());
+        editor.submit("0,0").unwrap();
+        assert_eq!(editor.prompt(), "HATCH: upper right corner");
+        editor.submit("6,6").unwrap();
+        assert_eq!(editor.prompt(), "Command");
+        let Item::Block(hatch) = &editor.drawing().items[4] else {
+            panic!("HATCH should store its clipped pattern in a block");
+        };
+        assert_eq!(hatch.name, "*X1");
+        assert_eq!(hatch.entities.len(), 32);
+        let Entity::OnLayer { layer: 127, entity } = &hatch.entities[0] else {
+            panic!("pattern strokes use layer 127");
+        };
+        assert!(matches!(entity.as_ref(), Entity::Line { start, end }
+            if *start == Point { x: 1.0, y: 3.0 } && *end == Point { x: 5.0, y: 3.0 }));
+        assert!(
+            matches!(&editor.drawing().items[5], Item::Entity(Entity::OnLayer {
+            layer: 1,
+            entity,
+        }) if matches!(entity.as_ref(), Entity::Insert { name, .. } if name == "*X1"))
+        );
+
+        editor.drawing_mut().items.clear();
+        editor.submit("SKETCH").unwrap();
+        assert_eq!(editor.prompt(), "SKETCH: record increment");
+        assert!(editor.submit("0").unwrap_err().contains("must be positive"));
+        assert_eq!(editor.prompt(), "SKETCH: record increment");
+        assert!(editor
+            .submit("0.5")
+            .unwrap_err()
+            .contains("digitizer input device"));
+        assert_eq!(editor.prompt(), "Command");
+        assert!(editor.drawing().items.is_empty());
+    }
+
+    #[test]
+    fn hatch_rejects_an_open_boundary_without_adding_pattern_geometry() {
+        let mut editor = Editor::default();
+        for input in [
+            "LINE", "1,1", "5,1", "5,5", "1,5", "", "HATCH", "LINE", "", "", "W", "0,0",
+        ] {
+            editor.submit(input).unwrap();
+        }
+        let before = editor.drawing().items.clone();
+        assert!(editor
+            .submit("6,6")
+            .unwrap_err()
+            .contains("closed, unbranched loops"));
+        assert_eq!(editor.drawing().items, before);
+        assert_eq!(editor.prompt(), "HATCH: upper right corner");
+    }
+
+    #[test]
+    fn hatch_line_pattern_clips_circle_chords_without_emitting_tangents() {
+        let mut editor = Editor::default();
+        for input in [
+            "CIRCLE", "3,3", "2", "HATCH", "LINE", "", "", "W", "0,0", "6,6",
+        ] {
+            editor.submit(input).unwrap();
+        }
+        let Item::Block(hatch) = &editor.drawing().items[1] else {
+            panic!("HATCH should store circle chords in a block");
+        };
+        assert_eq!(hatch.entities.len(), 31);
+        assert!(matches!(&hatch.entities[0], Entity::OnLayer {
+            layer: 127,
+            entity,
+        } if matches!(entity.as_ref(), Entity::Line { start, end }
+            if start.x == 1.0 && start.y == 3.0 && end.x == 5.0 && end.y == 3.0)));
+        assert!(matches!(&hatch.entities[1], Entity::OnLayer {
+            layer: 127,
+            entity,
+        } if matches!(entity.as_ref(), Entity::Line { start, end }
+            if start.y == 3.125 && end.y == 3.125 && start.x > 1.0 && end.x < 5.0)));
+    }
+
+    #[test]
     fn oops_restores_the_last_erased_items_in_place_and_undo_reverses_it() {
         let mut editor = Editor::default();
         editor.drawing_mut().items = vec![
@@ -3140,13 +5042,13 @@ mod tests {
             panic!("expected layered line");
         };
         assert!(
-            matches!(entity.as_ref(), Entity::Line { start: Point { x, y: 0.0 }, end: Point { x: 5.0, y: 0.0 } } if (*x + 1.0).abs() < 1e-10)
+            matches!(entity.as_ref(), Entity::Line { start: Point { x, y: 0.0 }, end: Point { x: 5.0, y: 0.0 } } if (*x - 1.0).abs() < 1e-10)
         );
         let Entity::OnLayer { entity, .. } = entities.next().unwrap() else {
             panic!("expected layered line");
         };
         assert!(
-            matches!(entity.as_ref(), Entity::Line { start: Point { x: 0.0, y, }, end: Point { x: 0.0, y: 5.0 } } if (*y + 1.0).abs() < 1e-10)
+            matches!(entity.as_ref(), Entity::Line { start: Point { x: 0.0, y: -5.0 }, end: Point { x: 0.0, y, } } if (*y + 1.0).abs() < 1e-10)
         );
         let Entity::OnLayer { entity, .. } = entities.next().unwrap() else {
             panic!("expected layered arc");
@@ -3160,11 +5062,11 @@ mod tests {
         else {
             panic!("expected fillet arc");
         };
-        assert!((center.x + 1.0).abs() < 1e-10);
+        assert!((center.x - 1.0).abs() < 1e-10);
         assert!((center.y + 1.0).abs() < 1e-10);
         assert_eq!(*radius, 1.0);
-        assert!(start_deg.abs() < 1e-10, "start={start_deg}");
-        assert!((end_deg - 90.0).abs() < 1e-10, "end={end_deg}");
+        assert!((start_deg - 90.0).abs() < 1e-10, "start={start_deg}");
+        assert!((end_deg - 180.0).abs() < 1e-10, "end={end_deg}");
         assert_eq!(editor.status(), "Filleted two lines");
 
         drop(entities);
@@ -3561,6 +5463,188 @@ mod tests {
         assert!(editor.submit("ALL").is_err());
         assert_eq!(editor.drawing().items, original);
         assert_eq!(editor.prompt(), "ENTITYAREA: entity numbers or ALL");
+    }
+
+    #[test]
+    fn wblock_star_exports_live_entities_and_reachable_blocks_without_changing_source() {
+        let mut editor = Editor::default();
+        for input in [
+            "LINE",
+            "0,0",
+            "1,0",
+            "",
+            "BLOCK",
+            "USED",
+            "0,0",
+            "LAST",
+            "LINE",
+            "2,0",
+            "3,0",
+            "",
+            "BLOCK",
+            "UNUSED",
+            "2,0",
+            "LAST",
+            "INSERT",
+            "USED",
+            "5,5",
+            "",
+            "",
+            "",
+            "",
+            "LINE",
+            "4,0",
+            "5,0",
+            "",
+            "BLOCK",
+            "ERASEDONLY",
+            "4,0",
+            "LAST",
+            "INSERT",
+            "ERASEDONLY",
+            "7,7",
+            "",
+            "",
+            "",
+            "ERASE",
+            "LAST",
+        ] {
+            editor.submit(input).unwrap();
+        }
+        let source = editor.drawing().clone();
+        editor.submit("WBLOCK").unwrap();
+        assert_eq!(editor.prompt(), "WBLOCK: output file name");
+        editor.submit("whole").unwrap();
+        assert_eq!(editor.prompt(), "WBLOCK: block name (* for entire drawing)");
+        let effect = editor.submit("*").unwrap();
+        let Effect::SaveDrawing(path, exported) = effect else {
+            panic!("expected WBLOCK to return a separate drawing snapshot");
+        };
+        assert_eq!(path, "whole.DWG");
+        assert_eq!(editor.drawing(), &source, "WBLOCK must not edit the source");
+        assert_eq!(exported.header, source.header);
+        assert_eq!(
+            exported.items,
+            vec![
+                Item::Block(acad_model::Block {
+                    name: "USED".into(),
+                    base: Point { x: 0.0, y: 0.0 },
+                    entities: vec![Entity::OnLayer {
+                        layer: 1,
+                        entity: Box::new(Entity::Line {
+                            start: Point { x: 0.0, y: 0.0 },
+                            end: Point { x: 1.0, y: 0.0 },
+                        }),
+                    }],
+                }),
+                Item::Entity(Entity::OnLayer {
+                    layer: 1,
+                    entity: Box::new(Entity::Insert {
+                        origin: Point { x: 5.0, y: 5.0 },
+                        x_scale: 1.0,
+                        y_scale: 1.0,
+                        rotation_deg: 0.0,
+                        name: "USED".into(),
+                    }),
+                }),
+            ]
+        );
+    }
+
+    #[test]
+    fn wblock_blank_block_name_exports_only_selected_entities_and_base_point() {
+        let mut editor = Editor::default();
+        for input in ["LINE", "0,0", "1,0", "", "LINE", "2,0", "3,0", ""] {
+            editor.submit(input).unwrap();
+        }
+        let source = editor.drawing().clone();
+        for (input, prompt) in [
+            ("WBLOCK", "WBLOCK: output file name"),
+            ("selected", "WBLOCK: block name (* for entire drawing)"),
+            ("", "WBLOCK: insertion base point"),
+            ("1,2", "WBLOCK: entity numbers, ALL, or LAST"),
+        ] {
+            editor.submit(input).unwrap();
+            assert_eq!(editor.prompt(), prompt);
+        }
+        let effect = editor.submit("2").unwrap();
+        let Effect::SaveDrawing(path, drawing) = effect else {
+            panic!("selected WBLOCK should return a separate drawing snapshot");
+        };
+        assert_eq!(path, "selected.DWG");
+        assert_eq!(drawing.header.base, Point { x: 1.0, y: 2.0 });
+        assert_eq!(drawing.items, vec![source.items[1].clone()]);
+        assert_eq!(editor.drawing(), &source, "WBLOCK must not edit the source");
+    }
+
+    #[test]
+    fn resolution_aliases_share_snap_state_and_delay_and_resume_do_not_edit() {
+        let mut editor = Editor::default();
+        editor.submit("RES").unwrap();
+        assert_eq!(editor.prompt(), "SNAP: spacing");
+        editor.submit("2.5").unwrap();
+        assert_eq!(
+            editor.drawing().header.snap,
+            acad_model::Mode {
+                on: true,
+                spacing: 2.5
+            }
+        );
+        editor.submit("RESOLUTION").unwrap();
+        editor.submit("OFF").unwrap();
+        assert_eq!(
+            editor.drawing().header.snap,
+            acad_model::Mode {
+                on: false,
+                spacing: 2.5
+            }
+        );
+        let before = editor.drawing().clone();
+        editor.submit("DELAY").unwrap();
+        assert_eq!(editor.prompt(), "DELAY: duration");
+        editor.submit("0").unwrap();
+        editor.submit("RESUME").unwrap();
+        assert_eq!(editor.drawing(), &before);
+        assert_eq!(editor.prompt(), "Command");
+    }
+
+    #[test]
+    fn units_persists_the_native_choice_and_validates_its_precision() {
+        let mut editor = Editor::default();
+        editor.submit("UNITS").unwrap();
+        assert_eq!(editor.prompt(), "UNITS: choice, 1 to 4");
+        editor.submit("4").unwrap();
+        assert_eq!(
+            editor.prompt(),
+            "UNITS: denominator (1, 2, 4, 8, 16, 32, or 64)"
+        );
+        editor.submit("16").unwrap();
+        assert_eq!(
+            editor.drawing().header.units,
+            Units {
+                format: UnitFormat::Architectural,
+                precision: 16
+            }
+        );
+        for input in ["DIST", "0,0", "1'-3 1/2\",0"] {
+            editor.submit(input).unwrap();
+        }
+        assert_eq!(editor.status(), "Distance=1'-3 1/2\"");
+        editor.submit("UNITS").unwrap();
+        editor.submit("2").unwrap();
+        assert!(editor.submit("9").is_err());
+        assert_eq!(
+            editor.prompt(),
+            "UNITS: digits to right of decimal point (0 to 8)"
+        );
+        editor.submit("3").unwrap();
+        assert_eq!(
+            editor.drawing().header.units,
+            Units {
+                format: UnitFormat::Decimal,
+                precision: 3
+            }
+        );
     }
 
     fn layer_of(entity: &Entity) -> u8 {

@@ -18,13 +18,13 @@ fn error(message: impl Into<String>) -> ShapeError {
     ShapeError(message.into())
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct Definition {
     name: String,
     code: Vec<i16>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Library {
     definitions: BTreeMap<u16, Definition>,
     pub cap_height: Option<f64>,
@@ -50,6 +50,11 @@ fn number(token: &str) -> Result<i16, ShapeError> {
 impl Library {
     pub fn contains(&self, number: u16) -> bool {
         self.definitions.contains_key(&number)
+    }
+    pub fn named_shapes(&self) -> impl Iterator<Item = (&str, u16)> + '_ {
+        self.definitions
+            .iter()
+            .map(|(&number, definition)| (definition.name.as_str(), number))
     }
     pub fn numbers(&self) -> impl Iterator<Item = u16> + '_ {
         self.definitions.keys().copied()
@@ -172,6 +177,15 @@ mod tests {
     use super::*;
     fn p(x: f64, y: f64) -> Point {
         Point { x, y }
+    }
+
+    #[test]
+    fn library_exposes_names_for_shape_command_lookup() {
+        let library = Library::parse(b"*129,1,RES\n0;\n*130,1,CAP\n0;\n").unwrap();
+        assert_eq!(
+            library.named_shapes().collect::<Vec<_>>(),
+            vec![("RES", 129), ("CAP", 130)]
+        );
     }
 
     #[test]

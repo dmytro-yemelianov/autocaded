@@ -10,16 +10,12 @@ fn original_creates_shapes_from_a_loaded_library() {
         eprintln!("skipping oracle: extracted floppy images or qemu-system-i386 absent");
         return;
     }
-    let (dwg, dxf) = acad_oracle::generate_pair_with_samples(
-        &system,
-        &samples,
-        "ORCSHAPE",
-        &[
-            "LOAD", "B:ES", "SHAPE", "RES", "2.25,3.5", "0.75", "30", "SHAPE", "CAP", "6.5,2.75",
-            "1.25", "75",
-        ],
-    )
-    .unwrap();
+    let commands = [
+        "LOAD", "B:ES", "SHAPE", "RES", "2.25,3.5", "0.75", "30", "SHAPE", "CAP", "6.5,2.75",
+        "1.25", "75",
+    ];
+    let (dwg, dxf) =
+        acad_oracle::generate_pair_with_samples(&system, &samples, "ORCSHAPE", &commands).unwrap();
     let drawing = acad_dxf::parse(&dxf).unwrap();
     // IDs come from ES.SHP's definition headers; geometry comes from the
     // commands above, independently of either codec.
@@ -52,6 +48,12 @@ fn original_creates_shapes_from_a_loaded_library() {
             }),
         ]
     );
+    let mut editor = acad_cmd::Editor::default();
+    editor.register_shape_library("B:ES.SHP", [("RES".into(), 129), ("CAP".into(), 130)]);
+    for command in commands {
+        editor.submit(command).unwrap();
+    }
+    assert_eq!(editor.drawing().items, drawing.items);
     let end = dxf.iter().position(|&b| b == 0x1a).unwrap() + 1;
     assert_eq!(acad_dxf::write(&drawing), dxf[..end]);
     assert_eq!(acad_dxf::write(&acad_dwg::parse(&dwg).unwrap()), dxf[..end]);

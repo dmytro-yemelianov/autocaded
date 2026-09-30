@@ -13,6 +13,7 @@ corpus/*
 
 # Generated RE pipeline output: reproducible from the corpus, not history
 /build
+/formal/.lake
 
 # Python bytecode from the PyGhidra scripts
 __pycache__/

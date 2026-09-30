@@ -228,6 +228,14 @@ impl Session {
         &self.dir
     }
 
+    /// Read a file from the disposable System floppy after the guest has
+    /// finished writing it. Useful for interactive sessions driven by mouse.
+    pub fn read_system_file(&self, filename: &str) -> Result<Vec<u8>, String> {
+        let image = fs::read(self.dir.join("system.img"))
+            .map_err(|e| format!("read copied System floppy: {e}"))?;
+        crate::fat12::fat12_file(&image, filename)
+    }
+
     /// Press or release one key. Repeated presses produce repeated make
     /// codes, as a real keyboard's typematic repeat does.
     pub fn key(&mut self, qcode: &str, down: bool) -> Result<(), String> {
@@ -336,6 +344,7 @@ impl Session {
                 '.' => "dot".to_owned(),
                 '-' => "minus".to_owned(),
                 '*' => "8".to_owned(),
+                '?' => "slash".to_owned(),
                 '@' => "2".to_owned(),
                 '<' => "comma".to_owned(),
                 ' ' => "spc".to_owned(),
@@ -344,7 +353,7 @@ impl Session {
                 _ => return Err(format!("unsupported oracle input character {ch:?}")),
             };
             let mut keys = Vec::new();
-            if ch.is_ascii_uppercase() || matches!(ch, ':' | '*' | '@' | '<') {
+            if ch.is_ascii_uppercase() || matches!(ch, ':' | '*' | '?' | '@' | '<') {
                 keys.push(json!({"type": "qcode", "data": "shift"}));
             }
             keys.push(json!({"type": "qcode", "data": key}));

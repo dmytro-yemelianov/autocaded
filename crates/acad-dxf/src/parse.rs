@@ -2,7 +2,9 @@ use crate::{
     error::DxfError,
     lex::{lex, Record},
 };
-use acad_model::{Block, Drawing, DwgView, Entity, Extents, Header, Item, Mode, Point};
+use acad_model::{
+    Block, Drawing, DwgView, Entity, Extents, Header, Item, Mode, Point, UnitFormat, Units,
+};
 
 /// The 1983 LAYERC record is a fixed 8x16 grid; 255 marks an unused slot.
 pub(crate) const LAYER_SLOTS: usize = 128;
@@ -46,6 +48,10 @@ fn default_header() -> Header {
             center: Point { x: 0.0, y: 0.0 },
             height: 0.0,
         },
+        axis: Mode {
+            on: false,
+            spacing: 0.0,
+        },
         snap: Mode {
             on: false,
             spacing: 0.0,
@@ -58,6 +64,10 @@ fn default_header() -> Header {
         fill: false,
         text_size: 0.0,
         trace_width: 0.0,
+        units: Units {
+            format: UnitFormat::Decimal,
+            precision: 4,
+        },
         current_layer: 0,
         layers: Default::default(),
         dwg_header_passthrough: None,

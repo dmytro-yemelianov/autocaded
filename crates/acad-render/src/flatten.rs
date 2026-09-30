@@ -525,6 +525,10 @@ mod tests {
                 center: Point { x: 0.0, y: 0.0 },
                 height: 0.0,
             },
+            axis: Mode {
+                on: false,
+                spacing: 0.0,
+            },
             snap: Mode {
                 on: false,
                 spacing: 0.0,
@@ -537,6 +541,10 @@ mod tests {
             fill: false,
             text_size: 0.0,
             trace_width: 0.0,
+            units: acad_model::Units {
+                format: acad_model::UnitFormat::Decimal,
+                precision: 4,
+            },
             current_layer: 0,
             layers: Default::default(),
             dwg_header_passthrough: None,

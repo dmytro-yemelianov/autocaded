@@ -1,6 +1,6 @@
 use crate::DwgError;
 use acad_model::{
-    header::{DwgView, Header, Mode},
+    header::{DwgView, Header, Mode, UnitFormat, Units},
     Extents, Point,
 };
 use std::collections::BTreeMap;
@@ -26,6 +26,10 @@ const OFF_TXTSIZE: usize = 0xb4;
 const OFF_TRACEWID: usize = 0xbc;
 const OFF_CURRENT_LAYER: usize = 0xc4;
 const OFF_LAYERS: usize = 0xc8;
+const OFF_AXIS_FLAG: usize = 0x1e0;
+const OFF_AXIS_SPACING: usize = 0x1e2;
+const OFF_UNITS_FORMAT: usize = 0x1d8;
+const OFF_UNITS_PRECISION: usize = 0x1da;
 const LAYER_SLOTS: usize = 128;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,6 +154,17 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
             },
             height: f64_at(bytes, OFF_VIEW_HEIGHT),
         },
+        axis: if version == Version::Ac140 {
+            Mode {
+                on: u16_at(bytes, OFF_AXIS_FLAG) != 0,
+                spacing: f64_at(bytes, OFF_AXIS_SPACING),
+            }
+        } else {
+            Mode {
+                on: false,
+                spacing: 0.0,
+            }
+        },
         snap: Mode {
             on: u16_at(bytes, OFF_SNAP_FLAG) != 0,
             spacing: f64_at(bytes, OFF_SNAP),
@@ -162,6 +177,17 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
         fill: u16_at(bytes, OFF_FILL) != 0,
         text_size: f64_at(bytes, OFF_TXTSIZE),
         trace_width: f64_at(bytes, OFF_TRACEWID),
+        units: if version == Version::Ac140 {
+            Units {
+                format: UnitFormat::from_disk(u16_at(bytes, OFF_UNITS_FORMAT)),
+                precision: u16_at(bytes, OFF_UNITS_PRECISION),
+            }
+        } else {
+            Units {
+                format: UnitFormat::Decimal,
+                precision: 4,
+            }
+        },
         current_layer: layer as u8,
         layers,
         dwg_header_passthrough: Some(bytes[..header_min].to_vec()),
@@ -318,6 +344,22 @@ mod tests {
         );
         assert_eq!(header.text_size, 0.2);
         assert_eq!(header.trace_width, 0.05);
+    }
+
+    #[test]
+    fn reads_ac140_units_format_and_precision() {
+        let mut h = header_bytes();
+        h[..7].copy_from_slice(b"AC1.40\0");
+        h[OFF_UNITS_FORMAT..OFF_UNITS_FORMAT + 2].copy_from_slice(&4u16.to_le_bytes());
+        h[OFF_UNITS_PRECISION..OFF_UNITS_PRECISION + 2].copy_from_slice(&16u16.to_le_bytes());
+        let (header, _) = parse_header(&h).unwrap();
+        assert_eq!(
+            header.units,
+            Units {
+                format: UnitFormat::Architectural,
+                precision: 16
+            }
+        );
     }
 
     #[test]

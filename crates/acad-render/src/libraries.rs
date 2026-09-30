@@ -42,6 +42,15 @@ impl Libraries {
         })
     }
 
+    /// The available SHP libraries and their canonical lookup names. Drive
+    /// aliases such as `B:ES` and their basename `ES` may refer to the same
+    /// library.
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &Library)> {
+        self.entries
+            .iter()
+            .map(|(name, library)| (name.as_str(), library))
+    }
+
     /// Search in priority order. First definition of a basename wins, so
     /// an explicit directory takes precedence over a fallback directory.
     /// Extracted System/Samples directories also supply A:/B: aliases.

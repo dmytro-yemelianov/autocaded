@@ -1,7 +1,7 @@
 # Reimplementing AutoCAD 1.4 in Rust — Design
 
 Date: 2026-09-28
-Status: approved design, pre-planning
+Status: approved; implementation in progress
 
 ## 1. Intent
 
@@ -19,9 +19,18 @@ extended entity model) without discarding the verified-compatible core. Conseque
 1983 policy is confined to `acad-cmd` and the codecs; `acad-model` is designed to grow.
 
 **Success criteria.**
-- Every drawing in the 1.4 sample corpus loads and renders.
-- Drawings authored in Rust load correctly in the original under emulation.
-- Each implemented command is backed by a differential test against `ACAD.EXE`.
+- Every drawing in the AutoCAD 1.4 sample corpus loads and renders in the native app.
+- The native app supports creating, editing, and saving 2D drawings through
+  keyboard commands and mouse-based point placement and selection, and every
+  software-only 2D command in the recovered 57-command table is implemented
+  with its user-visible behavior covered, not merely recognized by name.
+- Drawings authored or edited in Rust load correctly in the original under
+  emulation, and every in-scope command has differential coverage against
+  `ACAD.EXE` under QEMU for its observable prompts, resulting drawing data, and
+  saved file behavior where applicable.
+- Every recovered command excluded for hardware or scope reasons is explicitly
+  classified. Plotter and digitizer hardware, AutoCAD 2.x, 3D, ADS, and later
+  releases are outside this project goal.
 
 ## 2. Scope
 
@@ -103,6 +112,12 @@ definitions; the greatest observed definition nesting depth is 2. The reader
 uses a stack to match delimiters, but `acad-model::Block` needs no recursive
 block structure. The corpus does not establish whether a 1983 writer emitted
 such nesting deliberately or these files acquired it through later editing.
+
+The 800×800 raster check measures 40,006 lit pixels for `SELEXOL` and 39,403
+for `BLIVET`; `ORGATE`, the smallest of the 16 AC1.2 drawings, measures 2,466.
+The corpus test's 500-pixel floor is a nonblank guard, not proof by itself
+that nested inserts expanded correctly; recursive expansion also has direct
+transform-composition tests in `acad-render`.
 
 The 1983 DXF parser rejects a nested `BLOCK`, and the DXF writer emits each
 block from the flat `items` list in closure order. Writing either drawing as
@@ -208,8 +223,22 @@ the literal bytes each menu item sends, not corruption).
 `ACAD.MNU` gives the screen menu verbatim: `LINE ARC CIRCLE TEXT INSERT MOVE COPY CHANGE
 FILLET ERASE OOPS BREAK REDRAW POINT TRACE SOLID ARRAY HATCH SKETCH DIM ZOOM LIST DIST
 AREA STATUS TABLET FILES PLOT LIMITS GRID`, plus `SNAP`/`ORTHO` toggles and `ZOOM`
-sub-options (`All`, `Win`, `Pre`). The full command set is a superset and is to be
-recovered from `ACAD.OVL` in milestone ②.
+sub-options (`All`, `Win`, `Pre`). The recovered dispatcher table contains these 57
+names in positional order:
+
+```
+LINE POINT CIRCLE SHAPE REPEAT ENDREP TEXT ARC TRACE LOAD SOLID LIST INSERT BASE
+ORTHO LAYER GRID LIMITS ID RES RESOLUTION ZOOM PAN MOVE ERASE MENU REDRAW STATUS
+REGEN DBLIST DIST CHANGE END QUIT ? AREA OOPS TABLET PLOT DELAY RESUME COPY BLOCK
+DIM QPLOT SNAP FILL HELP UNITS ARRAY WBLOCK AXIS HATCH FILLET BREAK SKETCH FILES
+```
+
+`TABLET`, `PLOT`, and `QPLOT` depend on digitizer or plotter hardware and are
+excluded from the native implementation goal. The other 54 commands are
+in-scope; the native editor currently recognizes 42 of them. Recognition does
+not count as completion: each command still needs its observable prompts,
+drawing effects, and file behavior (where applicable) implemented and
+differentially checked against the original under QEMU.
 
 ### 4.4 Corpus integrity
 
@@ -413,6 +442,60 @@ one-based IDs (or `ALL`), with model tests for geometry changes and undo.
 QEMU checks the original's `LAST` selection for ERASE, MOVE, and COPY; BLOCK
 and INSERT have further original-command probes below. Point and window
 selection and the screen-menu flow still need differential coverage.
+
+The native editor also implements `AXIS` ruler ticks. `ON` uses the current
+snap interval for native display when no explicit interval exists; `OFF` hides
+ticks; a positive interval accepts an `X` suffix for snap-relative spacing.
+The original stores the enabled flag at AC1.40 DWG offset `0x1e0` and the
+spacing as an f64 at `0x1e2`. ON/OFF CGA frames differ; numeric `5` and `5X`
+produce identical saved DWGs with the default SNAP spacing. The 1983 DXF header
+has no AXIS record, so DXF export omits it. The native renderer draws edge ticks
+from the current view transform and decimates intervals below eight screen
+pixels.
+
+`RES` and `RESOLUTION` share the SNAP-resolution state: a positive value
+enables snapping at that interval and `OFF` preserves the interval while
+disabling it. `UNITS` stores the native menu format (Scientific, Decimal,
+Engineering, or Architectural) and its precision in the AC1.40 header at
+`0x1d8` and `0x1da`; a QEMU DWG probe verifies Decimal precision `3` changes
+only the latter field from its default `4`. `DELAY` and `RESUME` are
+command-script controls and leave a drawing unchanged in the interactive
+editor. `formal/AutoCAD/Units.lean` records these data-level invariants.
+
+`WBLOCK` exports whole drawings (`*`), named blocks, and selected entities to a
+separate DWG snapshot. Whole-drawing block definitions are reduced to the
+transitive closure of INSERT references; erased entities and unreferenced
+blocks are omitted. QEMU checks all three forms, including the blank-name path's
+insertion-base-before-selection prompt order. Each exported DWG is parsed and
+compared with the native snapshot, then checked through the native writer's
+parse/write round trip. `formal/AutoCAD/Wblock.lean` gives the prompt and
+snapshot behavior an executable Lean specification; it describes observed
+behavior and does not claim to recover the original command implementation.
+
+`DBLIST` returns live entity details in drawing order, including block and
+repeat contents, while omitting erased records. Lean and Rust checks cover this
+read-only data traversal. QEMU confirms that the original switches to text mode
+and includes a `LINE` record. The native app writes its report to the launching
+terminal; the original's complete field layout and paging behavior are not yet
+matched.
+
+The remaining recognized command slice has explicit limits. `?` displays the
+recovered command list, and QEMU confirms `HELP LINE`'s text page; other named
+help pages have not been recovered. `FILES` enters the native File Utility Menu,
+but its file operations are not implemented. `MENU` prompts for a file name but
+does not parse a menu file. DIM writes primitive LINE, SOLID, and TEXT entities
+for the observed linear dimension cases; there is no dedicated dimension
+record. Native QEMU exports for a short external-arrow case and a longer
+split-line case are compared against Rust with coordinate tolerances. Other DIM
+modes remain open. HATCH lists the captured pattern names, then asks for pattern,
+scale, angle, and boundary objects. For the LINE pattern, QEMU exports show
+window-selected closed LINE/ARC boundaries and circles become an anonymous `*Xn`
+block of clipped layer-127 LINEs, inserted on the current layer. Rust matches
+the native default square, scale-2 / 30-degree square, circle, nested-hole,
+and semicircle-plus-chord exports. Other listed patterns remain open. SKETCH accepts only a
+record increment before requiring a digitizer.
+These prompt contracts are recorded in `formal/AutoCAD/Geometry.lean` and
+`formal/AutoCAD/HelpFiles.lean`; they are not claims of complete command support.
 
 `INSERT` now places an existing block by name, with an insertion point,
 independent X/Y scales, and rotation; blank scale and rotation prompts use

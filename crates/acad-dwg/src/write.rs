@@ -325,6 +325,12 @@ pub fn encode_version(drawing: &Drawing, version: Version) -> Result<Vec<u8>, Dw
     put_u16(&mut out, 0xae, h.ortho as u16);
     put_u16(&mut out, 0xb2, h.fill as u16);
     put_u16(&mut out, 0xc4, h.current_layer as u16);
+    if version == Version::Ac140 {
+        put_u16(&mut out, 0x1d8, h.units.format.disk_value());
+        put_u16(&mut out, 0x1da, h.units.precision);
+        put_u16(&mut out, 0x1e0, h.axis.on as u16);
+        put_f64_at(&mut out, 0x1e2, h.axis.spacing);
+    }
     for slot in 0..128 {
         put_u16(&mut out, 0xc8 + slot * 2, 255);
     }
@@ -362,6 +368,10 @@ mod tests {
                     center: Point { x: 3.0, y: 4.0 },
                     height: 10.0,
                 },
+                axis: acad_model::Mode {
+                    on: false,
+                    spacing: 0.0,
+                },
                 snap: acad_model::Mode {
                     on: true,
                     spacing: 0.5,
@@ -374,6 +384,10 @@ mod tests {
                 fill: true,
                 text_size: 0.2,
                 trace_width: 0.1,
+                units: acad_model::Units {
+                    format: acad_model::UnitFormat::Decimal,
+                    precision: 4,
+                },
                 current_layer: 2,
                 layers: [(1, 7), (2, 64)].into_iter().collect(),
                 dwg_header_passthrough: None,
@@ -404,6 +418,14 @@ mod tests {
         let decoded = crate::parse(&bytes).unwrap();
         assert_eq!(decoded, d);
         assert_eq!(u16::from_le_bytes(bytes[0x28..0x2a].try_into().unwrap()), 4);
+        assert_eq!(
+            u16::from_le_bytes(bytes[0x1d8..0x1da].try_into().unwrap()),
+            2
+        );
+        assert_eq!(
+            u16::from_le_bytes(bytes[0x1da..0x1dc].try_into().unwrap()),
+            4
+        );
         let end = u32::from_le_bytes(bytes[0x24..0x28].try_into().unwrap()) as usize;
         assert!(end < bytes.len());
         assert!(bytes[end..].iter().all(|&b| b == 0));
@@ -436,6 +458,10 @@ mod tests {
                     center: Point { x: 5.0, y: 5.0 },
                     height: 10.0,
                 },
+                axis: acad_model::Mode {
+                    on: false,
+                    spacing: 0.0,
+                },
                 snap: acad_model::Mode {
                     on: false,
                     spacing: 1.0,
@@ -448,6 +474,10 @@ mod tests {
                 fill: true,
                 text_size: 1.0,
                 trace_width: 0.25,
+                units: acad_model::Units {
+                    format: acad_model::UnitFormat::Decimal,
+                    precision: 4,
+                },
                 current_layer: 1,
                 layers: Default::default(),
                 dwg_header_passthrough: None,

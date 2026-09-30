@@ -99,6 +99,50 @@ pub fn generate_pair(
     Ok((dwg, dxf.expect("export requested")))
 }
 
+/// Run a command sequence in a new drawing that uses WBLOCK, then return the
+/// source and external DWGs AutoCAD wrote to its disposable System floppy.
+pub fn generate_wblock(
+    system_disk: &Path,
+    source_name: &str,
+    output_name: &str,
+    editor_lines: &[&str],
+) -> Result<(Vec<u8>, Vec<u8>), String> {
+    for (label, name) in [("source", source_name), ("WBLOCK output", output_name)] {
+        if name.is_empty()
+            || name.len() > 8
+            || !name
+                .bytes()
+                .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+        {
+            return Err(format!(
+                "{label} name must be 1–8 uppercase ASCII letters or digits"
+            ));
+        }
+    }
+    if source_name == output_name {
+        return Err("source and WBLOCK output names must differ".into());
+    }
+    let mut vm = Session::boot_disposable(system_disk, None, &[])?;
+    vm.wait_for_text("Enter selection:", BOOT_TIMEOUT)?;
+    vm.type_line("1")?;
+    vm.wait_for_text("Enter NAME of drawing:", BOOT_TIMEOUT)?;
+    vm.type_line(source_name)?;
+    vm.wait_until_text_gone("Enter NAME of drawing:", BOOT_TIMEOUT)?;
+    thread::sleep(Duration::from_millis(500));
+    for line in editor_lines {
+        vm.type_line(line)?;
+        vm.capture_editor()?;
+    }
+    vm.type_line("END")?;
+    vm.wait_for_text("Enter selection:", EDIT_TIMEOUT)?;
+    vm.shutdown()?;
+    let image = fs::read(vm.dir().join("system.img"))
+        .map_err(|e| format!("read copied floppy after WBLOCK: {e}"))?;
+    let source = fat12_file(&image, &format!("{source_name}.DWG"))?;
+    let output = fat12_file(&image, &format!("{output_name}.DWG"))?;
+    Ok((source, output))
+}
+
 /// Generate a drawing with the copied Samples floppy available in drive B,
 /// for commands such as `LOAD B:ES` that need external shape definitions.
 pub fn generate_pair_with_samples(

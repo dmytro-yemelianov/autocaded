@@ -1,7 +1,8 @@
 # autorust
 
-Rebuilding **AutoCAD 1.4** (1983, MS-DOS) as a native Rust application: the same
-commands, the same drawing semantics, the same files, in a modern window.
+Rebuilding **AutoCAD 1.4** (1983, MS-DOS) as a native Rust application for the
+original 2D drafting workflow: commands, drawing semantics, and files in a modern
+window.
 
 The original is the oracle. "Is this command right?" is answered by differential
 test against the real `ACAD.EXE`, not by judgement. 1983 policy is confined to
@@ -11,6 +12,17 @@ discarding the verified-compatible core.
 
 Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md)
 
+## Finish line
+
+The project is complete when the native app can open and render every drawing
+in the AutoCAD 1.4 sample corpus; create, edit, and save supported 2D drawings
+with keyboard commands and mouse-based point placement and selection; and
+exchange those drawings with the original under QEMU. Every software-only 2D
+command in the recovered 57-command table must be implemented and
+differentially checked against the original. Plotter and digitizer hardware
+commands, AutoCAD 2.x, 3D, ADS, and later releases remain outside this goal;
+each recovered command outside the scope must be explicitly classified.
+
 ## State
 
 | | Milestone | |
@@ -19,19 +31,29 @@ Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/sup
 | ② | Ghidra overlay loader, dual AST export, `acad-re` | **done** |
 | ③ | Oracle harness | in progress: partial 8086/DOS/BIOS core; in-tree empty, LINE, POINT, CIRCLE, ARC, SOLID, and TRACE DWGs match QEMU byte for byte, as does a LINE CGA frame |
 | ④ | DWG codec — `AC1.40`, then `AC1.2` | all 21 corpus drawings read; both writers open in the original; SUBDIV's AC1.2 viewport matches pixel-for-pixel |
-| ⑤ | Command loop | 32 of 57 recovered command names recognized; prompt, selection, and differential coverage remain incomplete |
+| ⑤ | Command loop | All 54 in-scope recovered command names are recognized; full behavior and differential coverage remain |
 
 `SUBDIV.DXF` round-trips byte-identically and renders. The full 1983 command set
 — 57 commands — has been recovered from `ACAD.OVL`; implementation has started
 with geometry creation and basic editing. The current editor supports LINE, CIRCLE,
-POINT, ARC, TEXT, ID, BLOCK, INSERT, LIST, ERASE, MOVE, COPY, ROTATE, SCALE, UNDO, drawing settings,
-ZOOM, PAN, SAVE, and END/QUIT. Editing selection uses the IDs reported by LIST or
+POINT, ARC, TEXT, LOAD, SHAPE, ID, BLOCK, INSERT, LIST, DBLIST, STATUS, REDRAW, REGEN, ERASE, MOVE,
+COPY, ROTATE, SCALE, UNDO, AXIS, drawing settings, ZOOM, PAN, SAVE, and END/QUIT.
+Editing selection uses the IDs reported by LIST or
 `ALL`; MOVE and COPY accept a displacement or base and destination points. The basic geometry creation
-and view commands have QEMU oracle coverage. The new edit transforms currently have
+and view commands have QEMU oracle coverage. STATUS, REDRAW and REGEN do not alter
+drawing data; QEMU confirms that the original accepts them. The new edit transforms currently have
 Rust model tests only for ROTATE and SCALE. MOVE and COPY now follow the
 original displacement, optional second point, then selection prompt order;
 QEMU checks both commands with `L` (Last), including both ways to enter a
 displacement.
+LOAD and SHAPE use names from the available SHP libraries; LOAD also accepts an
+SHP file path and makes that library available for drawing and rendering. The
+RES and CAP example matches the original's exported drawing records under QEMU.
+The native window now displays a crosshair, routes clicks through point prompts,
+maps entity clicks to the editor's one-based selection IDs, and highlights picked
+entities in yellow while a selection prompt is active. Escape cancels the current
+command. The entity picker uses the current view transform; point placement and
+LINE/CIRCLE picking have direct tests.
 ARRAY follows the original's rectangular `R` and circular `C` prompts.
 Generated 2×3 rectangular and non-origin circular drawings match the original
 in both the in-tree runner and QEMU, including entity record order and the
@@ -43,6 +65,56 @@ previous vertex; a generated mixed-coordinate line matches both oracles.
 to Rust is therefore *not* adopted: `acad-re` stays an understanding tool and all
 shipped Rust is hand-written. The measurements behind that are in
 [`docs/re-pipeline.md`](docs/re-pipeline.md).
+
+The executable Lean behavioral specification is in [`formal/`](formal/). It
+models WBLOCK's observed whole-drawing, named-block, and selected-entity flows
+as a contract for Rust, not as a recovered source-level AutoCAD model. Run it
+with `cd formal && lake build`.
+
+`DBLIST` reports live entity details, including block and repeat contents, and
+leaves the drawing unchanged. The original QEMU check confirms it switches to
+text mode and shows a `LINE` record. The native app prints the report to its
+launching terminal; matching the original's complete text layout and paging
+remains open.
+
+The newly recognized command slice has different levels of coverage. `?` shows
+the recovered command list; `HELP LINE` returns the captured native help page,
+while other named help pages remain unrecovered. `FILES` enters the File Utility
+Menu, but its list/delete/rename operations are not implemented. `MENU` prompts
+for a file name but does not yet parse menu files. `RES` and `RESOLUTION` share
+SNAP state, and `UNITS` stores its format and precision in AC1.40 DWG. `DELAY`
+validates an interval but has no script queue to delay; `RESUME` is a no-op
+without one. `DIM` writes LINE, SOLID, and TEXT primitives for the observed
+linear dimension flow. HATCH reports the captured pattern list and follows the
+observed pattern/scale/angle/object-selection prompts. The `LINE` hatch pattern
+clips against selected closed LINE/ARC loops and circles, and is verified
+against the original for default settings, scale 2 / angle 30°, circle,
+nested-hole, and semicircle-plus-chord boundaries; other listed patterns
+remain open. `SKETCH` stops after its
+increment because it needs a digitizer.
+QEMU currently checks the command list/help page,
+FILES menu entry, shared resolution state, and persisted Decimal precision.
+
+The recovered table contains 57 names. `TABLET`, `PLOT`, and `QPLOT` require
+digitizer or plotter hardware and are excluded; all other 54 names are now
+recognized by the native editor. Recognition is only a progress count: several
+commands still have prompt shells or partial behavior, and each command needs
+its observable prompts, effects, and file behavior (where applicable) verified
+against AutoCAD under QEMU before this milestone is complete.
+
+AXIS accepts ON/OFF or a positive tick interval; an `X` suffix multiplies the
+current SNAP spacing. It draws ruler ticks at the graphics-window edges and is
+stored in AC1.40 DWG headers at `0x1e0` (enabled) and `0x1e2` (spacing).
+QEMU confirms the original's ON/OFF CGA difference, the exact flag and spacing
+bytes, and identical DWG output from numeric versus SNAP-relative spacing.
+The 1983 DXF header has no AXIS record, so DXF export omits this setting.
+
+`WBLOCK` supports whole-drawing (`*`), named-block, and selected-entity exports.
+It writes a separate DWG snapshot; whole-drawing export keeps live entities and
+transitively referenced block definitions while omitting erased records and
+unreferenced blocks. All three forms are compared with AutoCAD output under
+QEMU and checked through the native DWG writer's parse/write round trip. The
+prompt and snapshot contract is also executable in Lean under [`formal/`](formal/).
 
 ④'s read direction runs before ③, out of spec order, because `SUBDIV.DWG` and
 `SUBDIV.DXF` are the same drawing in both formats — ground truth that needs no
@@ -127,10 +199,12 @@ translate/scale/rotate transform with the one enclosing it, with a depth cap
 (ours, not a recovered 1983 constant — the corpus never nests past depth 2)
 against a self-referencing `INSERT`.
 
-The render smoke test lights 40,006 pixels for `SELEXOL` and 35,699 for
-`BLIVET` on an 800×800 canvas. Their newly exported DXFs independently
-check the decoded entity geometry. They do not verify every pixel or the
-renderer's transform composition.
+The 800×800 corpus render check measures 40,006 lit pixels for `SELEXOL` and
+39,403 for `BLIVET`; `ORGATE`, the smallest of the 16 AC1.2 drawings, measures
+2,466. The 500-pixel floor is a broad nonblank guard, not proof by itself that
+nested inserts expanded correctly; recursive expansion also has direct
+transform-composition tests in `acad-render`. Their newly exported DXFs
+independently check decoded entity geometry, but not every rendered pixel.
 
 `acad-app` opens either format, dispatching on the file's own magic bytes rather
 than its extension, so a `.BAK` file — four corpus drawings have one — is
@@ -198,8 +272,9 @@ without it.
 | `acad-re` | **Dev only.** `ACAD.OVL` container codec, typed Ghidra AST, call graph, command recovery, gate metrics. Nothing shipped depends on it. |
 | `acad-oracle` | **Dev only.** Partial 8086 real-mode core, MZ loader, DOS/BIOS services, and QEMU probe for the original. QEMU comparisons require the extracted floppies. |
 
-Still to come, per spec §5: broader command coverage and remaining precision work in the
-in-tree oracle, then the remaining command/menu behavior.
+Still to come, per spec §5: implement and differentially verify the remaining
+command behavior, complete the in-tree oracle, and finish menu and hardware
+boundaries.
 
 ## The corpus
 
