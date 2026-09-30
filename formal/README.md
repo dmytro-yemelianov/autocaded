@@ -25,8 +25,11 @@ text-mode switch and presence of a LINE record; full output formatting and
 pagination remain open.
 
 `AutoCAD.HelpFiles` models the observed command-list/help prompt, the exact
-captured LINE help page, MENU cancellation flow, and FILES menu entry. Other
-named help pages, menu-file parsing, and filesystem operations remain open.
+captured LINE help page, MENU cancellation flow, and FILES menu entry. Rust
+parses `.MNU` labels and preserves macro bytes, but menu rendering and click
+dispatch remain open. Rust implements FILES listing, deletion, and rename
+against mapped host directories; the Lean model does not specify their
+filesystem semantics. Other named help pages remain open.
 
 `AutoCAD.Geometry` records the observed states for `DIM`, `HATCH`, and
 `SKETCH`. DIM takes first extension origin, dimension-line intersection,

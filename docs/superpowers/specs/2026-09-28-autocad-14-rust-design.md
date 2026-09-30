@@ -482,8 +482,10 @@ matched.
 The remaining recognized command slice has explicit limits. `?` displays the
 recovered command list, and QEMU confirms `HELP LINE`'s text page; other named
 help pages have not been recovered. `FILES` enters the native File Utility Menu,
-but its file operations are not implemented. `MENU` prompts for a file name but
-does not parse a menu file. DIM writes primitive LINE, SOLID, and TEXT entities
+and Rust handles its list, wildcard, delete, and rename operations against
+mapped host directories. QEMU verifies native delete/rename on a disposable
+Samples floppy. `MENU` prompts for a file name; Rust parses `.MNU` labels and retains exact macro bytes, but screen-menu
+rendering and click dispatch remain open. DIM writes primitive LINE, SOLID, and TEXT entities
 for the observed linear dimension cases; there is no dedicated dimension
 record. Native QEMU exports for a short external-arrow case and a longer
 split-line case are compared against Rust with coordinate tolerances. Other DIM

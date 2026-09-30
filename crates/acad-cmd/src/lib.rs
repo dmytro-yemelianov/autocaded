@@ -1,4 +1,6 @@
 //! Interactive command state machine for the 1983 editor.
+pub mod menu;
+
 use acad_model::{Block, Drawing, Entity, Extents, Header, Item, Point, UnitFormat, Units};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -9,8 +11,26 @@ pub enum Effect {
     Continue,
     Save(String),
     SaveDrawing(String, Box<Drawing>),
+    LoadMenu(String),
+    Files(FilesRequest),
     Report(String),
     Quit,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilesFilter {
+    Drawings,
+    Menus,
+    Shapes,
+    Patterns,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FilesRequest {
+    ListDrive { filter: FilesFilter, drive: char },
+    ListSpecification(String),
+    Delete(String),
+    Rename { source: String, destination: String },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -54,6 +74,12 @@ enum InputState {
     WblockSelection(String, Point),
     HelpCommand,
     MenuFile,
+    FilesMenu,
+    FilesDrive(FilesFilter),
+    FilesListSpecification,
+    FilesDeleteSpecification,
+    FilesRenameSource,
+    FilesRenameDestination(String),
     Delay,
     UnitsFormat,
     UnitsPrecision(UnitFormat),
@@ -185,6 +211,12 @@ impl InputState {
             Self::WblockSelection(_, _) => "WBLOCK: entity numbers, ALL, or LAST",
             Self::HelpCommand => "Command name (RETURN for list)",
             Self::MenuFile => "File name",
+            Self::FilesMenu => "FILES: selection (0–7)",
+            Self::FilesDrive(_) => "FILES: drive letter (A–Z)",
+            Self::FilesListSpecification => "FILES: file specification",
+            Self::FilesDeleteSpecification => "FILES: file deletion specification",
+            Self::FilesRenameSource => "FILES: current filename",
+            Self::FilesRenameDestination(_) => "FILES: new filename",
             Self::Delay => "DELAY: duration",
             Self::UnitsFormat => "UNITS: choice, 1 to 4",
             Self::UnitsPrecision(UnitFormat::Architectural) => {
@@ -865,9 +897,88 @@ impl Editor {
                 if line.trim().is_empty() {
                     return self.cancel();
                 }
-                self.status = format!("MENU file {} selected", line.trim());
                 self.state = InputState::Command;
+                Ok(Effect::LoadMenu(line.trim().to_owned()))
+            }
+            InputState::FilesMenu => match line.trim() {
+                "0" => self.cancel(),
+                "1" => {
+                    self.state = InputState::FilesDrive(FilesFilter::Drawings);
+                    Ok(Effect::Continue)
+                }
+                "2" => {
+                    self.state = InputState::FilesDrive(FilesFilter::Menus);
+                    Ok(Effect::Continue)
+                }
+                "3" => {
+                    self.state = InputState::FilesDrive(FilesFilter::Shapes);
+                    Ok(Effect::Continue)
+                }
+                "4" => {
+                    self.state = InputState::FilesDrive(FilesFilter::Patterns);
+                    Ok(Effect::Continue)
+                }
+                "5" => {
+                    self.state = InputState::FilesListSpecification;
+                    Ok(Effect::Continue)
+                }
+                "6" => {
+                    self.state = InputState::FilesDeleteSpecification;
+                    Ok(Effect::Continue)
+                }
+                "7" => {
+                    self.state = InputState::FilesRenameSource;
+                    Ok(Effect::Continue)
+                }
+                _ => Err("FILES selection must be 0 through 7".into()),
+            },
+            InputState::FilesDrive(filter) => {
+                let drive = line.trim();
+                if drive.len() != 1 || !drive.as_bytes()[0].is_ascii_alphabetic() {
+                    return Err("FILES drive must be a single letter".into());
+                }
+                self.state = InputState::FilesMenu;
+                Ok(Effect::Files(FilesRequest::ListDrive {
+                    filter,
+                    drive: drive.as_bytes()[0].to_ascii_uppercase() as char,
+                }))
+            }
+            InputState::FilesListSpecification => {
+                if line.trim().is_empty() {
+                    self.state = InputState::FilesMenu;
+                    return Ok(Effect::Continue);
+                }
+                self.state = InputState::FilesMenu;
+                Ok(Effect::Files(FilesRequest::ListSpecification(
+                    line.trim().to_owned(),
+                )))
+            }
+            InputState::FilesDeleteSpecification => {
+                if line.trim().is_empty() {
+                    self.state = InputState::FilesMenu;
+                    return Ok(Effect::Continue);
+                }
+                self.state = InputState::FilesMenu;
+                Ok(Effect::Files(FilesRequest::Delete(line.trim().to_owned())))
+            }
+            InputState::FilesRenameSource => {
+                if line.trim().is_empty() {
+                    self.state = InputState::FilesMenu;
+                    return Ok(Effect::Continue);
+                }
+                self.state = InputState::FilesRenameDestination(line.trim().to_owned());
                 Ok(Effect::Continue)
+            }
+            InputState::FilesRenameDestination(source) => {
+                if line.trim().is_empty() {
+                    self.state = InputState::FilesMenu;
+                    return Ok(Effect::Continue);
+                }
+                self.state = InputState::FilesMenu;
+                Ok(Effect::Files(FilesRequest::Rename {
+                    source,
+                    destination: line.trim().to_owned(),
+                }))
             }
             InputState::DimFirstExtension => {
                 self.state = InputState::DimIntersection(point(line)?);
@@ -1711,6 +1822,7 @@ impl Editor {
             "MENU" => self.state = InputState::MenuFile,
             "FILES" => {
                 self.status = "File Utility Menu".into();
+                self.state = InputState::FilesMenu;
                 return Ok(Effect::Report(FILE_UTILITY_MENU.into()));
             }
             // STATUS, REDRAW and REGEN do not edit the drawing model. The
@@ -4687,6 +4799,54 @@ mod tests {
         assert!(menu.contains("List Drawing files"));
         assert!(menu.contains("Rename files"));
         assert_eq!(editor.status(), "File Utility Menu");
+
+        editor.submit("0").unwrap();
+        editor.submit("MENU").unwrap();
+        assert_eq!(
+            editor.submit("ACAD.MNU").unwrap(),
+            Effect::LoadMenu("ACAD.MNU".into())
+        );
+    }
+
+    #[test]
+    fn files_dialog_builds_list_delete_and_rename_requests() {
+        let mut editor = Editor::default();
+        let Effect::Report(menu) = editor.submit("FILES").unwrap() else {
+            panic!("FILES should display the utility menu");
+        };
+        assert!(menu.contains("List Drawing files"));
+        assert_eq!(editor.prompt(), "FILES: selection (0–7)");
+
+        editor.submit("1").unwrap();
+        assert_eq!(editor.prompt(), "FILES: drive letter (A–Z)");
+        assert_eq!(
+            editor.submit("b").unwrap(),
+            Effect::Files(FilesRequest::ListDrive {
+                filter: FilesFilter::Drawings,
+                drive: 'B',
+            })
+        );
+
+        editor.submit("6").unwrap();
+        assert_eq!(editor.prompt(), "FILES: file deletion specification");
+        assert_eq!(
+            editor.submit("B:*.DWG").unwrap(),
+            Effect::Files(FilesRequest::Delete("B:*.DWG".into()))
+        );
+
+        editor.submit("7").unwrap();
+        editor.submit("B:OLD.DWG").unwrap();
+        assert_eq!(editor.prompt(), "FILES: new filename");
+        assert_eq!(
+            editor.submit("B:NEW.DWG").unwrap(),
+            Effect::Files(FilesRequest::Rename {
+                source: "B:OLD.DWG".into(),
+                destination: "B:NEW.DWG".into(),
+            })
+        );
+        assert_eq!(editor.prompt(), "FILES: selection (0–7)");
+        editor.submit("0").unwrap();
+        assert_eq!(editor.prompt(), "Command");
     }
 
     #[test]

@@ -80,8 +80,12 @@ remains open.
 The newly recognized command slice has different levels of coverage. `?` shows
 the recovered command list; `HELP LINE` returns the captured native help page,
 while other named help pages remain unrecovered. `FILES` enters the File Utility
-Menu, but its list/delete/rename operations are not implemented. `MENU` prompts
-for a file name but does not yet parse menu files. `RES` and `RESOLUTION` share
+Menu; list-by-type, wildcard listing, delete, and rename operations now run on
+the host filesystem. Drive A defaults to the current directory; set
+`AUTOCAD_DRIVE_<letter>` to map a DOS drive letter to a directory (other drives
+require a mapping). `MENU` parses the selected `.MNU` file and retains its
+labels and exact command macro bytes; screen-menu rendering and click-to-command
+behavior remain open. `RES` and `RESOLUTION` share
 SNAP state, and `UNITS` stores its format and precision in AC1.40 DWG. `DELAY`
 validates an interval but has no script queue to delay; `RESUME` is a no-op
 without one. `DIM` writes LINE, SOLID, and TEXT primitives for the observed

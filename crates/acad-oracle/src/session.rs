@@ -236,6 +236,13 @@ impl Session {
         crate::fat12::fat12_file(&image, filename)
     }
 
+    /// Read a file from the disposable Samples floppy after guest writes.
+    pub fn read_samples_file(&self, filename: &str) -> Result<Vec<u8>, String> {
+        let image = fs::read(self.dir.join("samples.img"))
+            .map_err(|e| format!("read copied Samples floppy: {e}"))?;
+        crate::fat12::fat12_file(&image, filename)
+    }
+
     /// Press or release one key. Repeated presses produce repeated make
     /// codes, as a real keyboard's typematic repeat does.
     pub fn key(&mut self, qcode: &str, down: bool) -> Result<(), String> {

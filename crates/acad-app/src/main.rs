@@ -7,6 +7,7 @@ use winit::{
     event_loop::{ActiveEventLoop, EventLoop},
     window::{Window, WindowId},
 };
+mod files;
 
 /// A window plus the softbuffer surface drawing into it. They are created
 /// together on resume and torn down together, so they travel as one.
@@ -15,6 +16,7 @@ type WindowState = (Rc<Window>, softbuffer::Surface<Rc<Window>, Rc<Window>>);
 struct App {
     editor: acad_cmd::Editor,
     libraries: Libraries,
+    menu: Option<acad_cmd::menu::MenuFile>,
     reported: std::collections::BTreeSet<String>,
     state: Option<WindowState>,
     input: String,
@@ -147,6 +149,26 @@ impl App {
                     Err(e) => format!("WBLOCK failed: {e}"),
                 };
             }
+            Ok(acad_cmd::Effect::LoadMenu(requested)) => match load_menu_file(&requested) {
+                Ok((path, menu)) => {
+                    let headers = menu
+                        .entries
+                        .iter()
+                        .filter(|entry| entry.kind == acad_cmd::menu::MenuEntryKind::Header)
+                        .count();
+                    let items = menu.entries.len() - headers;
+                    self.status = format!("Loaded {} menu entries from {}", items, path.display());
+                    self.menu = Some(menu);
+                }
+                Err(error) => self.status = error,
+            },
+            Ok(acad_cmd::Effect::Files(request)) => match files::execute(request) {
+                Ok(report) => {
+                    println!("{report}");
+                    self.status = report.lines().next().unwrap_or("FILES complete").to_owned();
+                }
+                Err(error) => self.status = error,
+            },
             Ok(acad_cmd::Effect::Report(report)) => {
                 println!("{report}");
                 self.status = "Report printed to terminal".into();
@@ -156,13 +178,43 @@ impl App {
     }
 
     fn update_title(&self, window: &Window) {
+        let menu = self
+            .menu
+            .as_ref()
+            .map(|menu| format!(" | screen menu: {} entries", menu.entries.len()))
+            .unwrap_or_default();
         window.set_title(&format!(
-            "AutoCAD 1.4 — {} {} {}",
+            "AutoCAD 1.4 — {} {} {}{}",
             self.editor.prompt(),
             self.input,
-            self.status
+            self.status,
+            menu,
         ));
     }
+}
+
+fn load_menu_file(
+    requested: &str,
+) -> Result<(std::path::PathBuf, acad_cmd::menu::MenuFile), String> {
+    let requested = std::path::PathBuf::from(requested.trim());
+    let mut candidates = vec![requested.clone()];
+    if requested.extension().is_none() {
+        candidates.push(requested.with_extension("MNU"));
+    }
+    if let Some(name) = candidates.last().cloned() {
+        let corpus = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus");
+        candidates.push(corpus.join("System").join(&name));
+        candidates.push(corpus.join("Samples").join(name));
+    }
+    let path = candidates
+        .into_iter()
+        .find(|candidate| candidate.is_file())
+        .ok_or_else(|| format!("menu file not found: {}", requested.display()))?;
+    let bytes = std::fs::read(&path)
+        .map_err(|error| format!("cannot read menu file {}: {error}", path.display()))?;
+    let menu = acad_cmd::menu::parse_menu(&bytes)
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    Ok((path, menu))
 }
 
 impl ApplicationHandler for App {
@@ -539,6 +591,7 @@ fn main() {
     el.run_app(&mut App {
         editor,
         libraries,
+        menu: None,
         reported: Default::default(),
         state: None,
         input: String::new(),
@@ -551,6 +604,20 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn menu_loader_resolves_extension_and_preserves_macro_controls() {
+        let (path, menu) = load_menu_file("ACAD").unwrap();
+        assert!(path.ends_with("corpus/System/ACAD.MNU"));
+        assert!(menu
+            .entries
+            .iter()
+            .any(|entry| entry.label == "^Snap" && entry.action == [0x02]));
+        assert!(menu
+            .entries
+            .iter()
+            .any(|entry| entry.label == "ZOOM All" && entry.action == b"zoom a"));
+    }
 
     #[test]
     fn crosshair_marks_both_axes_at_the_mouse_position() {
@@ -709,6 +776,7 @@ mod tests {
         let mut app = App {
             editor: acad_cmd::Editor::default(),
             libraries: Libraries::default(),
+            menu: None,
             reported: Default::default(),
             state: None,
             input: String::new(),

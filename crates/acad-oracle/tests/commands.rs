@@ -718,6 +718,90 @@ fn original_files_enters_the_file_utility_menu() {
 
 #[cfg(unix)]
 #[test]
+fn original_files_rename_changes_only_the_disposable_samples_disk() {
+    use acad_oracle::session::Session;
+    use std::time::Duration;
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)");
+    let system = root.join("System.img");
+    let samples = root.join("Samples.img");
+    if !system.exists() || !samples.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted floppies or qemu-system-i386 absent");
+        return;
+    }
+
+    let mut vm = Session::boot_disposable(&system, Some(&samples), &[]).unwrap();
+    let timeout = Duration::from_secs(30);
+    let original = vm.read_samples_file("SUBDIV.DWG").unwrap();
+    vm.wait_for_text("Enter selection:", timeout).unwrap();
+    vm.type_line("1").unwrap();
+    vm.wait_for_text("Enter NAME of drawing:", timeout).unwrap();
+    vm.type_line("FILEOPS").unwrap();
+    vm.wait_until_text_gone("Enter NAME of drawing:", timeout)
+        .unwrap();
+    vm.type_line("FILES").unwrap();
+    vm.wait_for_text("File Utility Menu", timeout).unwrap();
+
+    vm.type_line("7").unwrap();
+    vm.wait_for_text("Enter current filename:", timeout)
+        .unwrap();
+    vm.type_line("B:SUBDIV.DWG").unwrap();
+    vm.wait_for_text("Enter new filename:", timeout).unwrap();
+    vm.type_line("B:RENAMED.DWG").unwrap();
+    let start = std::time::Instant::now();
+    while start.elapsed() < timeout
+        && vm.read_samples_file("SUBDIV.DWG").is_ok()
+        && vm.read_samples_file("RENAMED.DWG").is_err()
+    {
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(vm.read_samples_file("SUBDIV.DWG").is_err());
+    assert_eq!(vm.read_samples_file("RENAMED.DWG").unwrap(), original);
+    vm.shutdown().unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn original_files_delete_changes_only_the_disposable_samples_disk() {
+    use acad_oracle::session::Session;
+    use std::time::Duration;
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)");
+    let system = root.join("System.img");
+    let samples = root.join("Samples.img");
+    if !system.exists() || !samples.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted floppies or qemu-system-i386 absent");
+        return;
+    }
+
+    let mut vm = Session::boot_disposable(&system, Some(&samples), &[]).unwrap();
+    let timeout = Duration::from_secs(30);
+    let original = vm.read_samples_file("SUBDIV.DWG").unwrap();
+    vm.wait_for_text("Enter selection:", timeout).unwrap();
+    vm.type_line("1").unwrap();
+    vm.wait_for_text("Enter NAME of drawing:", timeout).unwrap();
+    vm.type_line("FILEDEL").unwrap();
+    vm.wait_until_text_gone("Enter NAME of drawing:", timeout)
+        .unwrap();
+    vm.type_line("FILES").unwrap();
+    vm.wait_for_text("File Utility Menu", timeout).unwrap();
+    vm.type_line("6").unwrap();
+    vm.wait_for_text("Enter file deletion specification:", timeout)
+        .unwrap();
+    vm.type_line("B:SUBDIV.DWG").unwrap();
+    let start = std::time::Instant::now();
+    while start.elapsed() < timeout && vm.read_samples_file("SUBDIV.DWG").is_ok() {
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(vm.read_samples_file("SUBDIV.DWG").is_err());
+    assert!(!original.is_empty());
+    vm.shutdown().unwrap();
+}
+
+#[cfg(unix)]
+#[test]
 fn redraw_and_regen_are_display_only_commands_in_the_original() {
     let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
@@ -742,6 +826,38 @@ fn redraw_and_regen_are_display_only_commands_in_the_original() {
         1,
         "display refresh commands must not add or remove entities"
     );
+}
+
+#[cfg(unix)]
+#[test]
+fn original_menu_load_and_cancel_return_to_command_input() {
+    use acad_model::Entity;
+
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    for (name, menu_input) in [("MNLOAD", "ACAD.MNU"), ("MNCAN", "")] {
+        let inputs = ["MENU", menu_input, "CIRCLE", "3,3", "2"];
+        let (dwg, _) = acad_oracle::generate_pair(&disk, name, &inputs).unwrap();
+        let drawing = acad_dwg::parse(&dwg).unwrap();
+        let first = drawing.entities().next().map(|entity| match entity {
+            Entity::OnLayer { entity, .. } => entity.as_ref(),
+            entity => entity,
+        });
+        assert!(
+            matches!(
+                first,
+                Some(Entity::Circle { center, radius })
+                    if center.x == 3.0 && center.y == 3.0 && *radius == 2.0
+            ),
+            "MENU input {menu_input:?} should leave command input active; got {first:?}"
+        );
+        assert_eq!(drawing.entities().count(), 1);
+    }
 }
 
 #[cfg(unix)]
