@@ -5,6 +5,7 @@ mod entity_ops;
 mod geometry;
 mod input_state;
 mod parse;
+mod report;
 mod selection;
 
 use acad_model::{Block, Drawing, Entity, Extents, Header, Item, Point, UnitFormat, Units};
@@ -22,10 +23,14 @@ use parse::{
     color_index, format_measurement, layer_index, number, parse_mode, parse_toggle, point,
     point_from, positive_count, positive_word,
 };
+use report::{database_listing, hatch_pattern_report, help_report, list_entities, HATCH_PATTERNS};
 use selection::{
     entities_in_window, entity_pick_distance, selectable_count, selected_item_indexes, selection,
 };
 use std::collections::{BTreeMap, BTreeSet};
+
+#[cfg(test)]
+use report::LINE_HELP;
 
 pub(crate) const MAX_ARRAY_ENTITIES: usize = 100_000;
 
@@ -2160,25 +2165,6 @@ impl Editor {
     }
 }
 
-const COMMAND_LIST: &str = "\
-Command List
-
-ARC         DELAY       HELP        ORTHO       SKETCH
-AREA        DIM         ID          PAN         SNAP
-ARRAY       DIST        INSERT      PLOT        SOLID
-AXIS        END         LAYER       POINT       STATUS
-BASE        ENDREP      LIMITS      QPLOT       TABLET
-BLOCK       ERASE       LINE        QUIT        TEXT
-BREAK       FILES       LIST        REDRAW      TRACE
-CHANGE      FILL        LOAD        REGEN       UNITS
-CIRCLE      FILLET      MENU        REPEAT      WBLOCK
-COPY        GRID        MOVE        RESUME      ZOOM
-DBLIST      HATCH       OOPS        SHAPE       ?
-
-Point Entry: Absolute: x,y; Relative: @dx,dy; Distance, angle: @d<a
-Object selection: L = Last object; W = Within window
-Command repeat: press space or RETURN.\n";
-
 const FILE_UTILITY_MENU: &str = "\
 File Utility Menu
 
@@ -2190,132 +2176,6 @@ File Utility Menu
 5. List User specified files
 6. Delete files
 7. Rename files\n";
-
-fn help_report(input: &str) -> Result<String, String> {
-    let command = input.trim().to_ascii_uppercase();
-    if command.is_empty() {
-        return Ok(COMMAND_LIST.into());
-    }
-    if command == "LINE" {
-        return Ok(LINE_HELP.into());
-    }
-    Err(format!("help text for {command} has not been recovered"))
-}
-
-const HATCH_PATTERNS: &[(&str, &str)] = &[
-    ("EARTH", "Earth or ground (subterranean)"),
-    ("ESCHER", "Escher pattern"),
-    ("FLEX", "Flexible material"),
-    ("GRASS", "Grass area"),
-    ("GRATE", "Grated area"),
-    ("HEX", "Hexagons"),
-    ("HONEY", "Honeycomb pattern"),
-    ("HOUND", "Houndstooth check"),
-    ("INSUL", "Insulation material"),
-    ("LINE", "Parallel horizontal lines"),
-    ("MUDST", "Mud and sand"),
-    ("NET", "Horizontal / vertical grid"),
-    ("NET3", "Network pattern 0-60-120"),
-    ("PLAST", "Plastic material"),
-    ("PLASTI", "Plastic material"),
-    ("SACNCR", "Concrete"),
-    ("SQUARE", "Small aligned squares"),
-    ("STARS", "Star of David"),
-    ("STEEL", "Steel material"),
-    ("SWAMP", "Swampy area"),
-    ("TRANS", "Heat transfer material"),
-    ("TRIANG", "Equilateral triangles"),
-    ("ZIGZAG", "Staircase effect"),
-];
-
-fn hatch_pattern_report() -> String {
-    HATCH_PATTERNS
-        .iter()
-        .map(|(name, description)| format!("{name:<15} - {description}\n"))
-        .collect()
-}
-
-const LINE_HELP: &str = "\
-The  LINE  command allows you to draw straight lines.
-
-Format:     LINE  From point:  <point>
-            To point:  <point>
-            To point:  <point>
-            To point:  RETURN to end line sequence
-
-You can continue the previous line or arc by responding to the
-\"From point:\" prompt with a space or RETURN.  If you are drawing
-a sequence of lines which will become a closed polygon, you may
-reply to the \"to point\" prompt with \"C\" to draw the last segment
-(close the polygon).
-
-Lines may be constrained to horizontal or vertical by the ORTHO command.
-
-Reference:  Section 3.1 of User Guide.\n";
-
-fn list_entities(drawing: &Drawing) -> String {
-    let mut lines = Vec::new();
-    for (index, entity) in drawing
-        .entities()
-        .filter(|entity| !matches!(bare(entity), Entity::Load { .. }))
-        .enumerate()
-    {
-        let kind = match bare(entity) {
-            Entity::Repeat(_) => "REPEAT",
-            Entity::Line { .. } => "LINE",
-            Entity::Circle { .. } => "CIRCLE",
-            Entity::Arc { .. } => "ARC",
-            Entity::Text { .. } => "TEXT",
-            Entity::Insert { .. } => "INSERT",
-            Entity::Point { .. } => "POINT",
-            Entity::Trace { .. } => "TRACE",
-            Entity::Solid { .. } => "SOLID",
-            Entity::Shape { .. } => "SHAPE",
-            Entity::Load { .. } | Entity::OnLayer { .. } => unreachable!(),
-        };
-        lines.push(format!("{} {kind}", index + 1));
-    }
-    if lines.is_empty() {
-        "No entities".into()
-    } else {
-        lines.join(", ")
-    }
-}
-
-fn database_listing(drawing: &Drawing) -> String {
-    fn append_entity(lines: &mut Vec<String>, count: &mut usize, entity: &Entity) {
-        *count += 1;
-        lines.push(format!("Entity {}: {:#?}", count, bare(entity)));
-    }
-
-    let mut lines = vec!["Drawing database".to_owned()];
-    let mut count = 0;
-    for item in &drawing.items {
-        match item {
-            Item::Entity(entity) => append_entity(&mut lines, &mut count, entity),
-            Item::Erased(_) => {}
-            Item::Block(block) => {
-                lines.push(format!("Block {} base {:?}", block.name, block.base));
-                for entity in &block.entities {
-                    append_entity(&mut lines, &mut count, entity);
-                }
-            }
-            Item::Repeat(repeat) => {
-                lines.push(format!(
-                    "Repeat {} columns × {} rows",
-                    repeat.columns, repeat.rows
-                ));
-                for entity in &repeat.entities {
-                    append_entity(&mut lines, &mut count, entity);
-                }
-            }
-        }
-    }
-    if count == 0 {
-        lines.push("No entities".into());
-    }
-    lines.join("\n")
-}
 
 #[cfg(test)]
 mod tests {
