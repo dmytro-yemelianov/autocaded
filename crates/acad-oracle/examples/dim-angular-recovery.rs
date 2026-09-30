@@ -1,18 +1,57 @@
 //! One-shot recovery tool: drives native AutoCAD 1.4 under QEMU through
-//! candidate `DIM` `A` (angular mode) input sequences and prints the
-//! resulting DWG entities, so the actual input shape the native editor
-//! expects can be inferred from what it produced — the same blind
-//! sequence-in/decoded-entities-out technique this crate's own
-//! `original_dim_exports_primitive_geometry_matched_by_rust` test already
-//! uses for linear DIM (crates/acad-oracle/tests/commands.rs). Live
-//! screen-probing does not work here: `Session::text_screen()` only
-//! decodes a full-screen 80x25 text page, and AutoCAD's drawing editor is
-//! a graphics/mixed-mode view it cannot read.
+//! candidate `DIM` `A` (angular mode) input sequences, then captures and
+//! renders the drawing editor's CGA framebuffer as a PNG so the actual
+//! on-screen prompt text can be read by eye. `Session::text_screen()` does
+//! not work here — it only decodes a genuine 80x25 alpha-text page, and
+//! AutoCAD's drawing editor draws its own prompt text as bitmap graphics
+//! (see `crates/acad-oracle/src/cga.rs`'s module doc), so a standard BIOS
+//! font match cannot be assumed to apply. Rendering the raw bitmap and
+//! reading it directly avoids needing to reverse-engineer AutoCAD's own
+//! on-screen font.
 //!
-//! Not a test — there is nothing to assert yet, only to observe and print.
+//! Not a test — there is nothing to assert yet, only to observe.
 //! Run with: `cargo run -p acad-oracle --example dim-angular-recovery`
 
+use acad_oracle::cga::Frame;
+use acad_oracle::session::Session;
 use std::path::Path;
+use std::time::Duration;
+
+fn save_png(frame: &Frame, path: &Path) {
+    let pixels = frame.to_rgb_640x400();
+    let mut pixmap = tiny_skia::Pixmap::new(640, 400).expect("640x400 pixmap");
+    let data = pixmap.pixels_mut();
+    for (index, &rgb) in pixels.iter().enumerate() {
+        let r = ((rgb >> 16) & 0xFF) as u8;
+        let g = ((rgb >> 8) & 0xFF) as u8;
+        let b = (rgb & 0xFF) as u8;
+        data[index] = tiny_skia::PremultipliedColorU8::from_rgba(r, g, b, 0xFF).unwrap();
+    }
+    pixmap.save_png(path).expect("write png");
+}
+
+/// Boot a fresh drawing, type `editor_lines`, then capture the stabilized
+/// CGA framebuffer — independent of whether the drawing can later be
+/// closed cleanly, unlike `acad_oracle::generate_pair`/`generate_visual_pair`,
+/// which only return their capture on a fully successful run (including
+/// `END` and the return to the drawing menu). A candidate whose guessed
+/// input shape leaves AutoCAD mid-prompt is exactly the case this tool
+/// needs to see, not one it can afford to fail on.
+fn capture_stuck_frame(disk: &Path, name: &str, editor_lines: &[&str]) -> Result<Vec<u8>, String> {
+    let mut vm = Session::boot_disposable(disk, None, &[])?;
+    vm.wait_for_text("Enter selection:", Duration::from_secs(60))?;
+    vm.type_line("1")?;
+    vm.wait_for_text("Enter NAME of drawing:", Duration::from_secs(60))?;
+    vm.type_line(name)?;
+    vm.wait_until_text_gone("Enter NAME of drawing:", Duration::from_secs(60))?;
+    std::thread::sleep(Duration::from_millis(500));
+    for line in editor_lines {
+        vm.type_line(line)?;
+    }
+    let cga = vm.capture_editor()?;
+    vm.shutdown().ok();
+    Ok(cga)
+}
 
 fn main() {
     let disk = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -22,22 +61,41 @@ fn main() {
         return;
     }
 
-    // Each candidate is a full command-line input sequence, run blind from
-    // a fresh drawing (2 reference lines are drawn first: 0,0-5,0 and
-    // 0,0-0,5, giving a right-angle corner at the origin). Whatever extra
-    // lines/points a candidate's angular flow doesn't actually consume get
-    // fed back to the command prompt as literal text (harmless: AutoCAD's
-    // command-line at worst reports "unknown command" and keeps going), so
-    // a too-long guess is safe to try; a too-short one just leaves trailing
-    // inputs unconsumed and visible in the final entity list as no-ops.
-    let candidates: [(&str, &[&str]); 3] = [
+    // Same 6 candidates the blind generate_pair bisection already tried
+    // (see the plan's recorded findings table), now captured visually
+    // instead of only by whether the session could close cleanly.
+    let candidates: [(&str, &[&str]); 6] = [
+        (
+            "DIMANG1",
+            &[
+                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "5,0",
+                "0,0", "0,5", "3,3", "",
+            ],
+        ),
+        (
+            "DIMANG2",
+            &[
+                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "1,0", "0,1",
+                "3,3", "",
+            ],
+        ),
+        (
+            "DIMANG3",
+            &[
+                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "",
+            ],
+        ),
         (
             "DIMANG4",
-            &["LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", ""],
+            &[
+                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "",
+            ],
         ),
         (
             "DIMANG5",
-            &["LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "5,0", ""],
+            &[
+                "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "5,0", "",
+            ],
         ),
         (
             "DIMANG6",
@@ -50,17 +108,16 @@ fn main() {
 
     for (name, inputs) in candidates {
         println!("=== candidate {name}: {inputs:?} ===");
-        match acad_oracle::generate_pair(&disk, name, inputs) {
-            Ok((dwg, _dxf)) => match acad_dwg::parse(&dwg) {
-                Ok(drawing) => {
-                    println!("  parsed OK, {} items:", drawing.items.len());
-                    for (index, item) in drawing.items.iter().enumerate() {
-                        println!("    [{index}] {item:?}");
-                    }
+        match capture_stuck_frame(&disk, name, inputs) {
+            Ok(cga) => match Frame::new(&cga) {
+                Ok(frame) => {
+                    let path = std::env::temp_dir().join(format!("dim-angular-{name}.png"));
+                    save_png(&frame, &path);
+                    println!("  wrote {}", path.display());
                 }
-                Err(error) => println!("  DWG parse failed: {error}"),
+                Err(error) => println!("  frame decode failed: {error}"),
             },
-            Err(error) => println!("  generate_pair failed: {error}"),
+            Err(error) => println!("  capture failed: {error}"),
         }
         println!();
     }

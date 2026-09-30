@@ -32,11 +32,12 @@
 
 **Files:**
 - Create: `crates/acad-oracle/examples/dim-angular-recovery.rs`
+- Modify: `crates/acad-oracle/Cargo.toml` (added `tiny-skia = "0.11"` as a dev-dependency, to encode captured CGA framebuffers as viewable PNGs — see Step 3's Revision 2)
 - Test: none (this is a one-shot recovery tool, run manually and its output recorded by hand into this plan's follow-up — it is not a `#[test]`, because its job is to print observations for a human/agent to read and write down, not to assert anything, since there is nothing yet to assert against)
 
 **Interfaces:**
-- Consumes: `acad_oracle::session::Session::boot_in_place(a: &Path, b: Option<&Path>) -> Result<Self, String>`, `Session::type_line(&mut self, line: &str) -> Result<(), String>`, `Session::text_screen(&mut self) -> Result<String, String>`, `Session::wait_for_text(&mut self, needle: &str, timeout: Duration) -> Result<(), String>`, `Session::shutdown(&mut self) -> Result<(), String>` (all already defined in `crates/acad-oracle/src/session.rs`).
-- Produces: printed stdout observations only — this task produces recorded findings (written into this plan file's Task 2 placeholder section below, by hand, after running it), not new library code other than the example binary itself.
+- Consumes (final, as committed — see Step 3 for how this evolved from the originally planned `text_screen()`-based approach): `acad_oracle::session::Session::boot_disposable`, `Session::type_line`, `Session::wait_for_text`, `Session::wait_until_text_gone`, `Session::capture_editor() -> Result<Vec<u8>, String>`, `Session::shutdown` (all in `crates/acad-oracle/src/session.rs`); `acad_oracle::cga::Frame::new(&[u8]) -> Result<Frame, String>` and `Frame::to_rgb_640x400() -> Vec<u32>` (in `crates/acad-oracle/src/cga.rs`); `tiny_skia::Pixmap`/`PremultipliedColorU8` for PNG encoding.
+- Produces: PNG files under the OS temp directory (one per candidate, named `dim-angular-<CANDIDATE>.png`) plus printed stdout status — this task's real deliverable is the findings recorded in this plan file after reading those images, not new library code other than the example binary itself.
 
 - [x] **Step 1: Write the recovery example**
 
@@ -114,24 +115,28 @@ Expected: either the tool self-skips with `skipping: extracted System.img or qem
 
 - [x] **Step 3: Record the findings in this plan file**
 
-**The originally planned live screen-probing approach did not work** (see the ledger's Task 1 Ruling): `Session::text_screen()` only decodes a genuine full-screen 80x25 text page and returns byte-identical garbage once inside AutoCAD's drawing editor, which uses a graphics/mixed-mode screen. The recovery tool was rewritten to use this codebase's own proven blind-sequence-in/decoded-DWG-out technique (`acad_oracle::generate_pair`, the same method `original_dim_exports_primitive_geometry_matched_by_rust` already uses for linear DIM) instead of reading the live screen.
+**This step went through two revisions; both are recorded here rather than silently overwritten, per this project's evidence-first discipline.**
 
-**What was actually observed**, from 6 candidate input sequences run against the real AutoCAD 1.4 oracle (all starting from two reference lines, `0,0`-`5,0` and `0,0`-`0,5`, then `DIM`, `A`):
+**Revision 1 (superseded):** The originally planned live screen-probing approach did not work (see the ledger's Task 1 Ruling): `Session::text_screen()` only decodes a genuine full-screen 80x25 text page and returns byte-identical garbage once inside AutoCAD's drawing editor. The tool was rewritten to use `acad_oracle::generate_pair` (blind sequence in, decoded DWG entities out — the same method the existing linear-DIM QEMU test uses) instead. That version recorded 6 candidates, all timing out except a bare `DIM`, `A`, `""`, and drew a weakly-supported inference from the timeout pattern alone (a whole-branch review correctly flagged this reasoning as not actually distinguishing "`A` is recognized and wants more input" from "`A` is rejected and something else in the guessed sequence caused the hang").
 
-| Sequence after `DIM`, `A` | Result |
-|---|---|
-| `""` (immediate blank) | Succeeds cleanly, returns to the drawing menu; **no new entity is added** — only the 2 reference lines exist afterward. |
-| `"0,0"`, `""` | **Hangs** — `generate_pair` times out (60s) waiting for the session to return to the "Current drawing:" menu screen. |
-| `"0,0"`, `"5,0"`, `""` | Hangs, same timeout. |
-| `"0,0"`, `"5,0"`, `"0,0"`, `""` | Hangs, same timeout. |
-| `"0,0"`, `"5,0"`, `"0,0"`, `"0,5"`, `"3,3"`, `""` | Hangs, same timeout. |
-| `"1,0"`, `"0,1"`, `"3,3"`, `""` | Hangs, same timeout. |
+**Revision 2 (current, visually confirmed):** Rather than keep guessing blind, the recovery tool was rewritten again to capture the AutoCAD drawing editor's raw CGA framebuffer directly — via `Session::capture_editor()`, independent of whether the drawing can later close cleanly — and render it as a PNG with the existing `acad_oracle::cga::Frame::to_rgb_640x400()` decoder (using `tiny-skia`, added as a new dev-dependency, to encode the PNG). This sidesteps the original problem entirely: the drawing editor's bottom status/command lines ARE legible bitmap text once decoded this way, no OCR or font-matching needed — they can simply be read by eye. The same 6 candidate sequences were re-run and their resulting screens captured as images.
 
-**Interpretation** (this is inference from the pattern above, not a directly-read fact — flagged as such): `A` is very likely recognized as a real sub-mode (not silently rejected — if it were, a bare `""` afterward should have been "swallowed" by whatever `A`'s error left behind rather than cleanly closing the drawing), and that sub-mode expects a specific, currently-unknown number and shape of further inputs before it can cleanly terminate. Every guessed shape tried (1 point, 2 points, 3 points, 4 points + text, or a 2-point-pick-plus-location variant) left the session mid-prompt when the test harness tried to close the drawing, hence the timeout — meaning every one of these guesses was wrong (too few inputs, or the wrong kind of input, e.g. maybe it wants a keyword or a different coordinate convention, not bare `x,y` points).
+**What was actually observed, directly, by reading the captured screens:**
 
-**What was NOT recovered**: the exact prompt text, the exact number of points/inputs the native `A` sub-mode requires, and therefore the output geometry it produces. Lowercase `a` was not re-tested with this method (the finding from the original garbled screen-probe run is discarded as unreliable, since that whole run's readings were uninterpretable garbage).
+| Candidate | Sequence after `DIM` | Captured screen (bottom 3 lines) |
+|---|---|---|
+| DIMANG3 | `A`, `""` | `Dimension arrow size:` / `*Invalid*` / `Command:` |
+| DIMANG1, DIMANG2, DIMANG4, DIMANG5, DIMANG6 | `A` plus 1-5 further coordinate inputs, `""` | All five show the identical, unchanged screen: `Command:` / `DIM` / `First extension line origin or (ABCT):` — i.e. still sitting at DIM's very first prompt, as if none of the input after `DIM` had any visible effect. |
 
-**Recommended next step** (for whoever picks up Tasks 2+): blind bisection has diminishing returns past this point — each further guess costs a full QEMU boot (~30-60s) and narrows very little. The next productive step is almost certainly to reuse the CGA graphics-mode decoder already built for the interactive `acad-qemu` example (`acad_oracle::cga::{Mode, ModeTracker, Frame, ...}`, see `crates/acad-oracle/examples/acad-qemu.rs`) to actually read AutoCAD's live status-line prompt text while single-stepping through `DIM`, `A`, one input at a time — either by a human driving that interactive window directly, or by teaching a new recovery tool to decode frames with that same machinery instead of the plain-text-only `Session::text_screen()`. This is a larger task than this plan's Task 1 scoped for (it requires graphics-mode text extraction, not just blind sequence probing), so it is out of this plan's scope and should be its own follow-up plan.
+**Two solid facts, directly read, not inferred:**
+1. `DIM`'s own first prompt is confirmed, by direct visual read, to be exactly `First extension line origin or (ABCT):` — this matches the existing Rust implementation's prompt string (`crates/acad-cmd/src/input_state.rs:279`) verbatim. That existing prompt text was evidently already accurate.
+2. A `DIM` session that receives only `A` followed immediately by a blank line ends up back at `Command:` after passing through a screen reading `Dimension arrow size:` / `*Invalid*` — i.e. rejecting some input as invalid for a numeric prompt. Whether that `Dimension arrow size:` prompt is itself a real, separate, always-first step of native `DIM` that today's Rust implementation is simply missing, or something `A` triggers indirectly, was not resolved before this task's time budget ran out — it needs one more targeted probe (see Next step).
+
+**One clear methodology finding, not a native-behavior finding:** the 5-candidates-identical-frozen-screen result is far more consistent with a synchronization defect in this recovery tool's own `capture_stuck_frame` helper (which calls `Session::capture_editor()` only once, after typing every line in a candidate, rather than after each individual line) than with 5 different guessed input shapes all coincidentally producing byte-identical screens. `capture_editor()`'s BIOS-keyboard-queue-drain check can pass once DOS has read a keystroke out of its buffer, which does not guarantee AutoCAD's own command loop has finished acting on it and redrawn before the *next* line is typed — so a later line can plausibly race ahead of the screen update the previous one caused. This is a tooling gap to fix, not a recovered fact about native AutoCAD.
+
+**What was NOT recovered**: whether `A` is recognized as a real sub-mode at all (the frozen screens are inconclusive due to the synchronization issue above), what further input it would want if so, and the resulting output geometry. Lowercase `a` was not re-tested with this method.
+
+**Recommended next step** (for whoever picks up Tasks 2+): fix `capture_stuck_frame` to call `Session::capture_editor()` after *each* typed line (not once at the end) and save a numbered PNG per step, so the screen's progression — or lack of it — after each individual keystroke is directly visible, exactly as this task's `DIM`, `A`, `""` capture already proved is possible. That is a small, mechanical change to the existing tool, not a new decoder or a separate research project — the hard part (reading AutoCAD's own on-screen bitmap text) is already solved by this task's Revision 2.
 
 - [x] **Step 4: Commit the recovery tool and findings**
 

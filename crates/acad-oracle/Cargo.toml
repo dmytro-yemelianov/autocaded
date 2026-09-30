@@ -16,3 +16,4 @@ acad-render = { path = "../acad-render" }
 acad-cmd = { path = "../acad-cmd" }
 winit = "0.30"
 softbuffer = "0.4"
+tiny-skia = "0.11"
