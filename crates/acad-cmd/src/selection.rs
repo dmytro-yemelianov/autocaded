@@ -1,7 +1,7 @@
 use acad_model::{Drawing, Entity, Item, Point};
 use std::collections::BTreeSet;
 
-use crate::bare;
+use crate::entity_ops::bare;
 
 pub(crate) fn entities_in_window(drawing: &Drawing, first: Point, second: Point) -> Vec<usize> {
     let min = Point {

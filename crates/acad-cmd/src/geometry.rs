@@ -1,7 +1,8 @@
 //! Pure geometry helpers: hatch, dimension, break, fillet and area/perimeter math.
 
+use crate::entity_ops::bare;
 use crate::parse::format_measurement;
-use crate::{bare, MAX_ARRAY_ENTITIES};
+use crate::MAX_ARRAY_ENTITIES;
 use acad_model::{Drawing, Entity, Item, Point, Units};
 use std::collections::BTreeSet;
 
