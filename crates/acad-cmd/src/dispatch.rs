@@ -17,6 +17,9 @@ use crate::{Editor, Effect, FilesFilter, FilesRequest, HATCH_PATTERNS, MAX_ARRAY
 use acad_model::{Entity, Extents, Item, Point, UnitFormat, Units};
 
 impl Editor {
+    /// Submit one complete line of keyboard input. Coordinates use AutoCAD's
+    /// `x,y`, `@dx,dy`, or `@distance<angle` notation where a prior point exists.
+    /// A `LINE` remains active until an empty line is entered.
     pub fn submit(&mut self, input: &str) -> Result<Effect, String> {
         self.status.clear();
         let line = input.trim();
