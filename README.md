@@ -240,6 +240,21 @@ Rust 1.88.0, pinned by `rust-toolchain.toml`.
     cargo run -p acad-app -- corpus/Samples/DISC.BAK     # fonts included
     cargo run -p acad-render --example render-png -- corpus/Samples/DISC.BAK /tmp/disc.png
 
+Startup loads the shipped `ACAD.MNU` screen menu alongside the requested drawing.
+The bottom command area shows the current prompt, text as you type, and the latest
+status or error. Type a command or response and press Return; menu GO uses the
+same submission path. Backspace edits input and Escape cancels the active command.
+Long input scrolls to its end and caret. Clicks in this area do not place points or
+select entities. Reports such as LIST/DBLIST still print to the launching terminal.
+
+Use `MENU`, then a menu filename (for example `ACAD`), to load or reload a menu;
+Return at its filename prompt unloads the panel while leaving the command area
+visible. A missing menu file is reported in the status line and keyboard commands
+remain available. The menu loader searches the existing current-path and corpus
+locations. The window minimum accommodates all ACAD rows, NEXT, and the command
+area (160×380 physical client pixels); these interface improvements do not claim
+native pixel fidelity or command-history support.
+
 The current command loop accepts `LINE`, `CIRCLE`, `POINT`, `SOLID`, `TRACE`, three-point `ARC`,
 `TEXT`, `BLOCK` (name, base point, then `LAST`, `ALL` or entity IDs),
 `INSERT` for existing blocks (insertion point, optional independent

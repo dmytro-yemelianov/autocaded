@@ -7,6 +7,7 @@ use winit::{
     event_loop::{ActiveEventLoop, EventLoop},
     window::{Window, WindowId},
 };
+mod command_line;
 mod files;
 mod menu_panel;
 
@@ -46,6 +47,25 @@ impl App {
         };
         let result = self.editor.submit_return(&command_input);
         handle_result(self, result);
+    }
+
+    fn load_menu(&mut self, requested: &str) {
+        match load_menu_file(requested) {
+            Ok((path, menu)) => {
+                let items = menu
+                    .entries
+                    .iter()
+                    .filter(|entry| entry.kind != acad_cmd::menu::MenuEntryKind::Header)
+                    .count();
+                self.status = format!("Loaded {} menu entries from {}", items, path.display());
+                self.menu = Some(menu);
+                self.menu_page = 0;
+                if let Some((window, _)) = &self.state {
+                    self.apply_menu_window_size(window);
+                }
+            }
+            Err(error) => self.status = error,
+        }
     }
 
     fn unload_menu(&mut self) {
@@ -143,7 +163,12 @@ impl App {
         let Some((x, y)) = self.cursor else {
             return false;
         };
-        let layout = menu_panel::layout_for(&menu, self.menu_page, width, height);
+        let layout = menu_panel::layout_for(
+            &menu,
+            self.menu_page,
+            width,
+            command_line::drawing_height(height),
+        );
         if !layout.contains(x, y) {
             return false;
         }
@@ -205,6 +230,12 @@ impl App {
         height: u32,
         mut handle_result: impl FnMut(&mut Self, Result<acad_cmd::Effect, String>),
     ) {
+        if self
+            .cursor
+            .is_some_and(|(x, y)| command_line::contains(width, height, x, y))
+        {
+            return;
+        }
         if !self.handle_panel_click(width, height, &mut handle_result) {
             if self.editor.accepts_mouse_point() {
                 self.input.clear();
@@ -282,23 +313,7 @@ impl App {
                     Err(e) => format!("WBLOCK failed: {e}"),
                 };
             }
-            Ok(acad_cmd::Effect::LoadMenu(requested)) => match load_menu_file(&requested) {
-                Ok((path, menu)) => {
-                    let headers = menu
-                        .entries
-                        .iter()
-                        .filter(|entry| entry.kind == acad_cmd::menu::MenuEntryKind::Header)
-                        .count();
-                    let items = menu.entries.len() - headers;
-                    self.status = format!("Loaded {} menu entries from {}", items, path.display());
-                    self.menu = Some(menu);
-                    self.menu_page = 0;
-                    if let Some((window, _)) = &self.state {
-                        self.apply_menu_window_size(window);
-                    }
-                }
-                Err(error) => self.status = error,
-            },
+            Ok(acad_cmd::Effect::LoadMenu(requested)) => self.load_menu(&requested),
             Ok(acad_cmd::Effect::Files(request)) => match files::execute(request) {
                 Ok(report) => {
                     println!("{report}");
@@ -358,15 +373,18 @@ fn split_macro_pieces(text: &str) -> impl Iterator<Item = &str> {
     })
 }
 
-/// A loaded menu alone imposes a minimum; use physical client pixels so
+/// Reserve the command area even without a menu; use physical client pixels so
 /// the policy matches both the raster and cursor coordinates on every DPI.
 fn menu_min_inner_size(
     menu: Option<&acad_cmd::menu::MenuFile>,
 ) -> Option<winit::dpi::PhysicalSize<u32>> {
-    menu.map(|menu| {
-        let (width, height) = menu_panel::required_panel_size(menu);
-        winit::dpi::PhysicalSize::new(width, height)
-    })
+    let (width, height) = menu
+        .map(menu_panel::required_panel_size)
+        .unwrap_or((160, 1));
+    Some(winit::dpi::PhysicalSize::new(
+        width,
+        height + command_line::HEIGHT,
+    ))
 }
 
 fn supported_client_size(
@@ -498,36 +516,46 @@ impl ApplicationHandler for App {
                         &self.libraries,
                     ));
                 }
-                let pm = rasterize(&primitives, size.width, size.height);
+                let canvas_height = command_line::drawing_height(size.height);
+                let pm = rasterize(&primitives, size.width, canvas_height.max(1));
                 let cursor = self.cursor;
                 let Some((_, surface)) = self.state.as_mut() else {
                     return;
                 };
                 surface.resize(w, h).unwrap();
                 let mut buffer = surface.buffer_mut().unwrap();
+                buffer.fill(0);
                 for (dst, src) in buffer.iter_mut().zip(pm.pixels()) {
                     *dst = ((src.red() as u32) << 16)
                         | ((src.green() as u32) << 8)
                         | src.blue() as u32;
                 }
                 if let Some(spacing) = self.editor.axis_spacing() {
-                    draw_axis_ticks(&mut buffer, size.width, size.height, &vp, spacing);
+                    draw_axis_ticks(&mut buffer, size.width, canvas_height, &vp, spacing);
                 }
                 if let Some((x, y)) = cursor {
-                    draw_crosshair(&mut buffer, size.width, size.height, x, y);
+                    draw_crosshair(&mut buffer, size.width, canvas_height, x, y);
                 }
                 if let Some(menu) = &self.menu {
                     let layout =
-                        menu_panel::layout_for(menu, self.menu_page, size.width, size.height);
+                        menu_panel::layout_for(menu, self.menu_page, size.width, canvas_height);
                     menu_panel::draw_panel(
-                        &mut buffer,
+                        &mut buffer[..(size.width as usize * canvas_height as usize)],
                         size.width,
-                        size.height,
+                        canvas_height,
                         menu,
                         self.menu_page,
                         &layout,
                     );
                 }
+                command_line::draw(
+                    &mut buffer,
+                    size.width,
+                    size.height,
+                    self.editor.prompt(),
+                    &self.input,
+                    &self.status,
+                );
                 buffer.present().unwrap();
             }
             _ => {}
@@ -627,6 +655,7 @@ fn highlight_primitives(primitives: Vec<Prim>) -> Vec<Prim> {
 }
 
 fn viewport_for(drawing: &acad_model::Drawing, width: u32, height: u32) -> Viewport {
+    let height = command_line::drawing_height(height).max(1);
     let view = drawing.header.view;
     if view.height.is_finite() && view.height > 0.0 {
         Viewport::from_view(view.center, view.height, width, height)
@@ -706,7 +735,7 @@ fn draw_axis_ticks(buffer: &mut [u32], width: u32, height: u32, viewport: &Viewp
             let x = screen_x.round() as usize;
             for offset in 0..LENGTH {
                 draw(buffer, x, offset);
-                draw(buffer, x, height - 1 - offset);
+                draw(buffer, x, height - 1 - offset.min(height - 1));
             }
         }
         x_world += world_step;
@@ -724,7 +753,7 @@ fn draw_axis_ticks(buffer: &mut [u32], width: u32, height: u32, viewport: &Viewp
             let y = screen_y.round() as usize;
             for offset in 0..LENGTH {
                 draw(buffer, offset, y);
-                draw(buffer, width - 1 - offset, y);
+                draw(buffer, width - 1 - offset.min(width - 1), y);
             }
         }
         y_world += world_step;
@@ -800,7 +829,7 @@ fn main() {
         );
     }
     let el = EventLoop::new().unwrap();
-    el.run_app(&mut App {
+    let mut app = App {
         editor,
         libraries,
         menu: None,
@@ -810,13 +839,98 @@ fn main() {
         input: String::new(),
         status: String::new(),
         cursor: None,
-    })
-    .unwrap();
+    };
+    app.load_menu("ACAD");
+    el.run_app(&mut app).unwrap();
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn startup_loads_acad_and_missing_menu_keeps_commands_usable() {
+        let mut app = menu_app(2);
+        app.unload_menu();
+        app.load_menu("ACAD");
+        assert!(app.menu.is_some());
+        assert_eq!(app.menu_page, 0);
+        assert!(app.status.starts_with("Loaded 56 menu entries"));
+        app.unload_menu();
+        app.load_menu("/missing-startup-menu/ACAD.MNU");
+        assert!(app.menu.is_none());
+        assert!(app.status.starts_with("menu file not found:"));
+        let mut pixels = vec![0; 640 * 480];
+        command_line::draw(
+            &mut pixels,
+            640,
+            480,
+            app.editor.prompt(),
+            &app.input,
+            &app.status,
+        );
+        assert!(
+            pixels.contains(&0x00ff_c080),
+            "missing-file status is painted"
+        );
+        app.input = "LINE".into();
+        app.submit_return_input(&mut |_, result| {
+            result.unwrap();
+        });
+        assert!(app.editor.accepts_mouse_point());
+        pixels.fill(0);
+        command_line::draw(
+            &mut pixels,
+            640,
+            480,
+            app.editor.prompt(),
+            &app.input,
+            &app.status,
+        );
+        assert!(pixels.contains(&0x00ff_ffff));
+    }
+
+    #[test]
+    fn command_area_consumes_point_and_selection_clicks_with_or_without_menu() {
+        for menu in [true, false] {
+            for command in ["LINE", "ERASE"] {
+                let mut app = menu_app(0);
+                if !menu {
+                    app.unload_menu();
+                }
+                app.editor.submit(command).unwrap();
+                app.input = "unchanged".into();
+                app.status = "unchanged status".into();
+                let before = app.editor.drawing().clone();
+                let prompt = app.editor.prompt().to_owned();
+                for (x, y) in [(20.0, 436.0), (639.0, 479.0)] {
+                    app.cursor = Some((x, y));
+                    app.handle_left_click(640, 480, |_, _| panic!("command-area submission"));
+                    assert_eq!(app.input, "unchanged");
+                    assert_eq!(app.status, "unchanged status");
+                    assert_eq!(app.editor.prompt(), prompt);
+                    assert_eq!(app.editor.drawing(), &before);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn drawing_overlays_stay_above_command_area_even_in_tiny_clients() {
+        for height in [0, 1, 43, 44, 45, 46, 47, 48, 49, 100] {
+            let canvas = command_line::drawing_height(height);
+            let mut pixels = vec![0; 100 * height as usize];
+            let vp = viewport_for(acad_cmd::Editor::default().drawing(), 100, height);
+            draw_axis_ticks(&mut pixels, 100, canvas, &vp, 2.0);
+            draw_crosshair(&mut pixels, 100, canvas, 20.0, canvas as f64);
+            if canvas > 0 {
+                draw_crosshair(&mut pixels, 100, canvas, 20.0, 0.0);
+            }
+            assert!(pixels[(100 * canvas as usize)..]
+                .iter()
+                .all(|&pixel| pixel == 0));
+        }
+    }
 
     #[test]
     fn menu_loader_resolves_extension_and_preserves_macro_controls() {
@@ -1163,15 +1277,22 @@ mod tests {
         let mut app = menu_app(0);
         let menu = app.menu.as_ref().unwrap();
         let minimum = menu_min_inner_size(Some(menu)).unwrap();
-        assert_eq!(minimum, PhysicalSize::new(160, 336));
-        for requested_height in [335, 336, 337] {
+        assert_eq!(minimum, PhysicalSize::new(160, 336 + command_line::HEIGHT));
+        for requested_height in [335, 336, 337, 379, 380, 381] {
             let requested = PhysicalSize::new(640, requested_height);
             let supported = supported_client_size(Some(menu), requested);
-            assert_eq!(supported.height, requested_height.max(336));
+            assert_eq!(
+                supported.height,
+                requested_height.max(336 + command_line::HEIGHT)
+            );
             assert_eq!(supported_client_size(None, requested), requested);
             for page in 0..3 {
-                let layout = menu_panel::layout_for(menu, page, supported.width, supported.height);
-                assert_eq!(layout.rect.3, minimum.height as usize);
+                let canvas = command_line::drawing_height(supported.height);
+                let layout = menu_panel::layout_for(menu, page, supported.width, canvas);
+                assert_eq!(
+                    layout.rect.3,
+                    (minimum.height - command_line::HEIGHT) as usize
+                );
                 let next_y = (layout.rect.3 - layout.row_height + 2) as f64;
                 assert_eq!(
                     menu_panel::entry_at(menu, page, &layout, (layout.rect.0 + 2) as f64, next_y),
@@ -1179,13 +1300,22 @@ mod tests {
                 );
                 let mut buffer = vec![0; supported.width as usize * supported.height as usize];
                 menu_panel::draw_panel(
-                    &mut buffer,
+                    &mut buffer[..supported.width as usize * canvas as usize],
                     supported.width,
-                    supported.height,
+                    canvas,
                     menu,
                     page,
                     &layout,
                 );
+                command_line::draw(
+                    &mut buffer,
+                    supported.width,
+                    supported.height,
+                    "Command",
+                    "",
+                    "Ready",
+                );
+                assert!(buffer[supported.width as usize * canvas as usize..].contains(&0x00ff_ffff));
                 let text_x = layout.rect.0 + menu_panel::GLYPH_WIDTH;
                 assert!(
                     ((layout.rect.3 - layout.row_height)..layout.rect.3).any(|y| {
@@ -1195,7 +1325,10 @@ mod tests {
                 );
             }
         }
-        assert_eq!(menu_min_inner_size(None), None);
+        assert_eq!(
+            menu_min_inner_size(None),
+            Some(PhysicalSize::new(160, 1 + command_line::HEIGHT))
+        );
         assert_eq!(
             supported_client_size(Some(menu), PhysicalSize::new(159, 335)),
             minimum
@@ -1483,7 +1616,10 @@ mod tests {
             assert_eq!(app.status, "");
             assert!(app.input.is_empty());
             assert!(app.editor.drawing().items.is_empty());
-            assert_eq!(menu_min_inner_size(app.menu.as_ref()), None);
+            assert_eq!(
+                menu_min_inner_size(app.menu.as_ref()).unwrap().height,
+                1 + command_line::HEIGHT
+            );
         }
     }
 
