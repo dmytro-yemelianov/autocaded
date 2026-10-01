@@ -18,6 +18,7 @@ struct App {
     editor: acad_cmd::Editor,
     libraries: Libraries,
     menu: Option<acad_cmd::menu::MenuFile>,
+    menu_page: usize,
     reported: std::collections::BTreeSet<String>,
     state: Option<WindowState>,
     input: String,
@@ -160,6 +161,7 @@ impl App {
                     let items = menu.entries.len() - headers;
                     self.status = format!("Loaded {} menu entries from {}", items, path.display());
                     self.menu = Some(menu);
+                    self.menu_page = 0;
                 }
                 Err(error) => self.status = error,
             },
@@ -316,6 +318,18 @@ impl ApplicationHandler for App {
                 }
                 if let Some((x, y)) = cursor {
                     draw_crosshair(&mut buffer, size.width, size.height, x, y);
+                }
+                if let Some(menu) = &self.menu {
+                    let layout =
+                        menu_panel::layout_for(menu, self.menu_page, size.width, size.height);
+                    menu_panel::draw_panel(
+                        &mut buffer,
+                        size.width,
+                        size.height,
+                        menu,
+                        self.menu_page,
+                        &layout,
+                    );
                 }
                 buffer.present().unwrap();
             }
@@ -593,6 +607,7 @@ fn main() {
         editor,
         libraries,
         menu: None,
+        menu_page: 0,
         reported: Default::default(),
         state: None,
         input: String::new(),
@@ -778,6 +793,7 @@ mod tests {
             editor: acad_cmd::Editor::default(),
             libraries: Libraries::default(),
             menu: None,
+            menu_page: 0,
             reported: Default::default(),
             state: None,
             input: String::new(),
