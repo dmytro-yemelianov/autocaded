@@ -6,6 +6,7 @@
 
 # Superpowers execution scratch
 .superpowers/
+.worktrees/
 
 # Extracted corpus: bytes stay local, the manifest is the record
 corpus/*
