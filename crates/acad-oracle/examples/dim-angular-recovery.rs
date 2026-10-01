@@ -9,12 +9,14 @@
 //! reading it directly avoids needing to reverse-engineer AutoCAD's own
 //! on-screen font.
 //!
-//! `A` was already recovered this way (see
-//! `docs/superpowers/plans/2026-09-30-dim-angular-recovery.md`): it
-//! answers "Dimension arrow size:", not an angular-dimensioning sub-mode.
-//! This run probes `B`, `C`, and `T` the same way, each from a fresh
-//! drawing, to see whether they follow the same "global DIM setting"
-//! pattern or do something else.
+//! The full `ABCT` picture is recovered this way (see
+//! `docs/superpowers/plans/2026-09-30-dim-angular-recovery.md`): none are
+//! an angular-dimensioning sub-mode. `A` sets dimension arrow size, `T`
+//! toggles text orientation, and `B`/`C` (Baseline/Continue) only make
+//! sense once a prior dimension exists to chain from. This run confirms
+//! `B`/`C` after placing one first, and confirms that even a *valid*
+//! arrow-size value returns straight to `Command:` rather than continuing
+//! into the dimensioning flow.
 //!
 //! Not a test — there is nothing to assert yet, only to observe.
 //! Run with: `cargo run -p acad-oracle --example dim-angular-recovery`
@@ -71,6 +73,41 @@ fn capture_each_step(
     Ok(frames)
 }
 
+/// Run one candidate and save a numbered, labeled PNG per step, printing
+/// where each one landed (or the error, if the session itself failed).
+fn run_and_save(disk: &Path, name: &str, inputs: &[&str]) {
+    println!("=== {name}: {inputs:?} ===");
+    match capture_each_step(disk, name, inputs) {
+        Ok(frames) => {
+            for (step, cga) in frames.iter().enumerate() {
+                match Frame::new(cga) {
+                    Ok(frame) => {
+                        let label = if inputs[step].is_empty() {
+                            "blank".to_owned()
+                        } else {
+                            inputs[step].replace([',', ' '], "_")
+                        };
+                        let path = std::env::temp_dir()
+                            .join(format!("dim-angular-{name}-{step:02}-{label}.png"));
+                        save_png(&frame, &path);
+                        println!(
+                            "  step {step:02} ({:?}): wrote {}",
+                            inputs[step],
+                            path.display()
+                        );
+                    }
+                    Err(error) => println!(
+                        "  step {step:02} ({:?}): frame decode failed: {error}",
+                        inputs[step]
+                    ),
+                }
+            }
+        }
+        Err(error) => println!("  capture failed: {error}"),
+    }
+    println!();
+}
+
 fn main() {
     let disk = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
@@ -79,45 +116,29 @@ fn main() {
         return;
     }
 
-    // Each of B, C, T from a fresh drawing: just DIM then the letter,
-    // mirroring exactly the sequence that revealed A's real meaning
-    // ("Dimension arrow size:") in one step.
-    let candidates: [(&str, &[&str]); 3] = [
-        ("DIMLETB", &["DIM", "B"]),
-        ("DIMLETC", &["DIM", "C"]),
-        ("DIMLETT", &["DIM", "T"]),
-    ];
+    // B and C were rejected outright in a fresh drawing with no dimension
+    // yet placed (consistent with Baseline/Continue needing one to chain
+    // from). Retry both after placing one ordinary linear dimension first
+    // (the same points as the existing DIMSHORT regression case), to see
+    // whether they behave differently once that precondition is met.
+    run_and_save(
+        &disk,
+        "DIMBASE",
+        &["DIM", "1,1", "5,1", "3,2", "", "DIM", "B"],
+    );
+    run_and_save(
+        &disk,
+        "DIMCONT",
+        &["DIM", "1,1", "5,1", "3,2", "", "DIM", "C"],
+    );
 
-    for (name, inputs) in candidates {
-        println!("=== {name}: {inputs:?} ===");
-        match capture_each_step(&disk, name, inputs) {
-            Ok(frames) => {
-                for (step, cga) in frames.iter().enumerate() {
-                    match Frame::new(cga) {
-                        Ok(frame) => {
-                            let label = if inputs[step].is_empty() {
-                                "blank".to_owned()
-                            } else {
-                                inputs[step].replace([',', ' '], "_")
-                            };
-                            let path = std::env::temp_dir()
-                                .join(format!("dim-angular-{name}-{step:02}-{label}.png"));
-                            save_png(&frame, &path);
-                            println!(
-                                "  step {step:02} ({:?}): wrote {}",
-                                inputs[step],
-                                path.display()
-                            );
-                        }
-                        Err(error) => println!(
-                            "  step {step:02} ({:?}): frame decode failed: {error}",
-                            inputs[step]
-                        ),
-                    }
-                }
-            }
-            Err(error) => println!("  capture failed: {error}"),
-        }
-        println!();
-    }
+    // "DIM", "A", "2", then the DIMSHORT points hung waiting to close under
+    // generate_pair's all-or-nothing result — capture every step visually
+    // instead, exactly as Revision 3 did for the original A-plus-more-input
+    // hang.
+    run_and_save(
+        &disk,
+        "DIMARBIG",
+        &["DIM", "A", "2", "1,1", "5,1", "3,2", ""],
+    );
 }
