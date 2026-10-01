@@ -75,7 +75,7 @@ fn zoom_all_bounds(limits: Extents, extents: Extents) -> Extents {
 /// confirmed because two boxes sharing the same `xmin`/`height` but
 /// different `xmax` (so different box-centers) produced the identical
 /// resulting view `center.x`.
-fn fit_box_to_device(bounds: Extents) -> acad_model::DwgView {
+pub(crate) fn fit_box_to_device(bounds: Extents) -> acad_model::DwgView {
     let (width, height) = if bounds.width() / bounds.height() >= ZOOM_ALL_DEVICE_ASPECT {
         (bounds.width(), bounds.width() / ZOOM_ALL_DEVICE_ASPECT)
     } else {

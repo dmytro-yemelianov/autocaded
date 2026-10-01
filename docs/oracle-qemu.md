@@ -13,7 +13,12 @@ The tests skip if the extracted images or QEMU are absent. The first selects
 **New drawing**, names it `ORCEMPTY`, executes `END`, then selects **Make
 drawing interchange file**. It checks the original's 640-byte `AC1.40` DWG
 and compares the generated DXF, through DOS EOF, with the Rust DXF writer's
-output after parsing it. The second mounts Samples in drive B and asks the
+output after parsing it. It also compares fresh `Editor::default()` LIMITS
+and saved view directly with native's empty DWG: limits `(0,0)-(12,9)`,
+center approximately `(6.8504901960784315,4.5)`, height `9`. A second fresh
+native drawing executes ZOOM All, checking that it retains this initial view;
+the Rust editor is checked before and after the same command. The sample-export
+test mounts Samples in drive B and asks the
 original to export `SELEXOL`, `BLIVET`, `FLOW`, `FLOOR`, `ADDER`, `HOUSE`,
 `COLORS`, `OFFICE`, and `SHUTTLE`. Those fresh DXFs are compared with the
 Rust DWG reader for both versions by block name, entity type, order within

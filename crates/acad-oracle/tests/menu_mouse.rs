@@ -157,6 +157,7 @@ fn original_zoom_all_menu_click_matches_the_typed_macro() {
     // one at a time (matching how a real click dispatches them), instead
     // of a mouse click.
     let mut rust = acad_cmd::Editor::default();
+    let rust_initial_view = rust.drawing().header.view;
     rust.submit("LIMITS").unwrap();
     rust.submit("5,7").unwrap();
     rust.submit("29,25").unwrap();
@@ -172,9 +173,8 @@ fn original_zoom_all_menu_click_matches_the_typed_macro() {
     // `original_zoom_all_fits_limits_matched_by_rust` in `commands.rs` and
     // `zoom_all_fits_the_union_of_limits_and_extents_anchored_at_the_origin`
     // in `acad-cmd`'s own `editor.rs` for the same box's committed,
-    // independently-derived evidence. Neither side's pre-click default view
-    // (Rust: center (0,0) height 20; native: center
-    // (6.8504901960784315, 4.5) height 9.0) is anywhere near this, so a
+    // independently-derived evidence. Both sides' pre-click default view
+    // (center (6.8504901960784315, 4.5), height 9.0) is far from this, so a
     // missed click, a dead click, or a wrong formula that happened to leave
     // the view unchanged would all be caught by the assertions below.
     assert!(
@@ -182,7 +182,7 @@ fn original_zoom_all_menu_click_matches_the_typed_macro() {
         "native view did not move away from its pre-click default — click had no effect: {native_view:?}"
     );
     assert!(
-        (rust_view.center.x - 0.0).abs() > 1.0 || (rust_view.height - 20.0).abs() > 1.0,
+        (rust_view.height - rust_initial_view.height).abs() > 1.0,
         "rust view did not move away from its pre-click default: {rust_view:?}"
     );
 

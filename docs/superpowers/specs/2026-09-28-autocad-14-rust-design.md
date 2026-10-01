@@ -437,6 +437,12 @@ update the saved view; coordinate-based PAN changes its center while keeping
 the current view height. Remaining commands and the full AutoCAD menu/command
 behavior are still open.
 
+A fresh command editor uses the QEMU-observed native LIMITS `(0,0)-(12,9)`
+and saved view centered at approximately `(6.8504901960784315,4.5)`, height `9`.
+Its initial ZOOM All retains that view; both initial states and the native
+command result are compared in the empty-drawing oracle test. Constructing an
+editor from a supplied drawing preserves its stored header instead.
+
 The command engine also has LIST plus ERASE, MOVE, COPY, ROTATE and SCALE over
 one-based IDs (or `ALL`), with model tests for geometry changes and undo.
 QEMU checks the original's `LAST` selection for ERASE, MOVE, and COPY; BLOCK

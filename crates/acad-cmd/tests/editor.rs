@@ -10,6 +10,46 @@ fn bare_first(editor: &Editor) -> &Entity {
 }
 
 #[test]
+fn fresh_editor_limits_and_view_match_the_recovered_native_defaults() {
+    let mut editor = Editor::default();
+    assert_eq!(editor.drawing().entities().count(), 0);
+    assert_eq!(
+        editor.drawing().header.limits,
+        acad_model::Extents {
+            xmin: 0.0,
+            ymin: 0.0,
+            xmax: 12.0,
+            ymax: 9.0,
+        }
+    );
+    let view = editor.drawing().header.view;
+    assert_eq!(view.height, 9.0);
+    assert_eq!(view.center.y, 4.5);
+    assert!((view.center.x - 6.850_490_196_078_431).abs() < 1e-12);
+    editor.submit("ZOOM").unwrap();
+    editor.submit("ALL").unwrap();
+    assert_eq!(editor.drawing().header.view, view);
+}
+
+#[test]
+fn new_editor_preserves_a_supplied_drawing_header() {
+    let mut drawing = Editor::default().drawing().clone();
+    drawing.header.limits = acad_model::Extents {
+        xmin: -5.0,
+        ymin: 7.0,
+        xmax: 29.0,
+        ymax: 35.0,
+    };
+    drawing.header.view = acad_model::DwgView {
+        center: Point { x: 2.5, y: -3.5 },
+        height: 11.0,
+    };
+    let header = drawing.header.clone();
+    let editor = Editor::new(drawing);
+    assert_eq!(editor.drawing().header, header);
+}
+
+#[test]
 fn line_keeps_accepting_vertices_until_return_and_undo_removes_the_last_segment() {
     let mut editor = Editor::default();
     editor.submit("LINE").unwrap();
@@ -290,11 +330,11 @@ fn malformed_geometry_does_not_mutate_the_drawing() {
 #[test]
 fn zoom_factor_changes_saved_view_height_without_moving_its_center() {
     let mut editor = Editor::default();
-    let center = editor.drawing().header.view.center;
+    let original = editor.drawing().header.view;
     editor.submit("ZOOM").unwrap();
     editor.submit("2").unwrap();
-    assert_eq!(editor.drawing().header.view.height, 10.0);
-    assert_eq!(editor.drawing().header.view.center, center);
+    assert_eq!(editor.drawing().header.view.height, original.height / 2.0);
+    assert_eq!(editor.drawing().header.view.center, original.center);
 }
 
 #[test]
@@ -345,6 +385,9 @@ fn zoom_all_fits_the_union_of_limits_and_extents_anchored_at_the_origin() {
     // origin" — this test's second case (`LIMITS` not containing the
     // origin at all) is the one that actually pins this down.
     let mut editor = Editor::default();
+    for input in ["LIMITS", "-10,-10", "10,10"] {
+        editor.submit(input).unwrap();
+    }
     editor.submit("ZOOM").unwrap();
     editor.submit("A").unwrap();
     let view = editor.drawing().header.view;

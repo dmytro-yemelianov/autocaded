@@ -99,6 +99,8 @@ struct ErasedItem {
 }
 
 impl Default for Editor {
+    /// Starts a fresh drawing with the LIMITS and saved view observed in
+    /// native AutoCAD 1.4's recovered standard display environment.
     fn default() -> Self {
         let zero = Extents {
             xmin: 0.0,
@@ -106,20 +108,18 @@ impl Default for Editor {
             ymin: 0.0,
             ymax: 0.0,
         };
+        let limits = Extents {
+            xmin: 0.0,
+            xmax: 12.0,
+            ymin: 0.0,
+            ymax: 9.0,
+        };
         Self::new(Drawing {
             header: Header {
                 extents: zero,
-                limits: Extents {
-                    xmin: -10.0,
-                    xmax: 10.0,
-                    ymin: -10.0,
-                    ymax: 10.0,
-                },
+                limits,
                 base: Point { x: 0.0, y: 0.0 },
-                view: acad_model::DwgView {
-                    center: Point { x: 0.0, y: 0.0 },
-                    height: 20.0,
-                },
+                view: dispatch::fit_box_to_device(limits),
                 axis: acad_model::Mode {
                     on: false,
                     spacing: 0.0,
