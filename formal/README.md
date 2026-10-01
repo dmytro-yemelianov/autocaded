@@ -26,9 +26,8 @@ pagination remain open.
 
 `AutoCAD.HelpFiles` models the observed command-list/help prompt, the exact
 captured LINE help page, MENU cancellation flow, and FILES menu entry. Rust
-parses `.MNU` labels and preserves macro bytes. The unmerged screen-menu
-branch implements panel rendering, repeat-boundary pagination, and plain-text
-mouse macros; a QEMU differential case compares a real native click with Rust
+parses `.MNU` labels and preserves macro bytes. The app implements panel
+rendering, repeat-boundary pagination, and plain-text mouse macros; a QEMU differential case compares a real native click with Rust
 dispatch. This Lean model does not prove mouse dispatch or pagination.
 Control-byte click semantics and the exact native GO mechanism remain open.
 Rust implements FILES listing, deletion, and rename

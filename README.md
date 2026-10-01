@@ -84,8 +84,13 @@ Menu; list-by-type, wildcard listing, delete, and rename operations now run on
 the host filesystem. Drive A defaults to the current directory; set
 `AUTOCAD_DRIVE_<letter>` to map a DOS drive letter to a directory (other drives
 require a mapping). `MENU` parses the selected `.MNU` file and retains its
-labels and exact command macro bytes; screen-menu rendering and click-to-command
-behavior remain open. `RES` and `RESOLUTION` share
+labels and exact command macro bytes. Its clickable screen panel uses recovered
+repeat-marker page boundaries, wraps NEXT, and dispatches plain-text macros.
+Blank panel slots consume clicks, mixed-case labels render, and loaded menus
+keep the complete panel accessible through a minimum window size. Native GO
+and control-byte click semantics, plus general custom text macros, remain
+unrecovered; see [the handover](docs/HANDOVER-2026-09-30.md).
+`RES` and `RESOLUTION` share
 SNAP state, and `UNITS` stores its format and precision in AC1.40 DWG. `DELAY`
 validates an interval but has no script queue to delay; `RESUME` is a no-op
 without one. `DIM` writes LINE, SOLID, and TEXT primitives for the observed
