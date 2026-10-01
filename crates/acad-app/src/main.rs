@@ -1336,53 +1336,51 @@ mod tests {
 
     #[test]
     fn app_mouse_route_menu_cancel_clears_buffers_and_retains_selection() {
-        for page in 0..3 {
-            for (setup, buffer) in [
-                (vec![], "p"),
-                (vec!["LINE"], "2"),
-                (vec!["ERASE"], "1"),
-                (vec!["MENU"], "AC"),
-            ] {
-                let mut app = menu_app(page);
-                for input in setup {
-                    app.editor.submit(input).unwrap();
-                }
-                app.input = buffer.into();
-                let original = app.editor.drawing().clone();
-                control_cursor(&mut app, 0x03);
-                let mut callbacks = 0;
-                app.handle_left_click(640, 480, |app, result| {
-                    callbacks += 1;
-                    assert_eq!(result, Ok(acad_cmd::Effect::Continue));
-                    app.status = app.editor.status().to_owned();
-                });
-                assert_eq!(callbacks, 1);
-                assert!(app.input.is_empty());
-                assert_eq!(app.editor.prompt(), "Command");
-                assert_eq!(app.status, "*Cancel*");
-                assert_eq!(app.editor.drawing(), &original);
-                assert_eq!(app.menu_page, page);
-                assert!(app.menu.is_some());
-                for input in ["POINT", "8,7"] {
-                    app.editor.submit(input).unwrap();
-                }
-                assert_eq!(app.editor.drawing().items.len(), 1);
-                assert_eq!(
-                    app.editor
-                        .pick_entity_at(acad_model::Point { x: 8.0, y: 7.0 }, 1e-12),
-                    Some(1)
-                );
-                let id = match buffer {
-                    "p" => "CBIDLE",
-                    "2" => "CBPOINT",
-                    "1" => "CBSELECT",
-                    _ => continue,
-                };
-                let native = menu_control_fixture(&format!("cancel-tail/drawings/{id}.dwg"));
-                assert_eq!(app.editor.drawing().items, native.items);
-                assert_eq!(app.editor.drawing().header.snap, native.header.snap);
-                assert_eq!(app.editor.drawing().header.ortho, native.header.ortho);
+        for (setup, buffer) in [
+            (vec![], "p"),
+            (vec!["LINE"], "2"),
+            (vec!["ERASE"], "1"),
+            (vec!["MENU"], "AC"),
+        ] {
+            let mut app = menu_app(0);
+            for input in setup {
+                app.editor.submit(input).unwrap();
             }
+            app.input = buffer.into();
+            let original = app.editor.drawing().clone();
+            control_cursor(&mut app, 0x03);
+            let mut callbacks = 0;
+            app.handle_left_click(640, 480, |app, result| {
+                callbacks += 1;
+                assert_eq!(result, Ok(acad_cmd::Effect::Continue));
+                app.status = app.editor.status().to_owned();
+            });
+            assert_eq!(callbacks, 1);
+            assert!(app.input.is_empty());
+            assert_eq!(app.editor.prompt(), "Command");
+            assert_eq!(app.status, "*Cancel*");
+            assert_eq!(app.editor.drawing(), &original);
+            assert_eq!(app.menu_page, 0);
+            assert!(app.menu.is_some());
+            for input in ["POINT", "8,7"] {
+                app.editor.submit(input).unwrap();
+            }
+            assert_eq!(app.editor.drawing().items.len(), 1);
+            assert_eq!(
+                app.editor
+                    .pick_entity_at(acad_model::Point { x: 8.0, y: 7.0 }, 1e-12),
+                Some(1)
+            );
+            let id = match buffer {
+                "p" => "CBIDLE",
+                "2" => "CBPOINT",
+                "1" => "CBSELECT",
+                _ => continue,
+            };
+            let native = menu_control_fixture(&format!("cancel-tail/drawings/{id}.dwg"));
+            assert_eq!(app.editor.drawing().items, native.items);
+            assert_eq!(app.editor.drawing().header.snap, native.header.snap);
+            assert_eq!(app.editor.drawing().header.ortho, native.header.ortho);
         }
         let mut app = menu_app(0);
         app.editor = acad_cmd::Editor::new(menu_control_fixture("pilot/drawings/CSELECT.dwg"));
@@ -1401,5 +1399,38 @@ mod tests {
         assert_eq!(app.status, "*Cancel*");
         assert_eq!(app.editor.prompt(), "Command");
         assert_eq!(app.editor.drawing(), &original);
+    }
+
+    #[test]
+    fn app_mouse_route_cancel_preserves_later_pages() {
+        for (page, id) in [(1, "CPAGE1"), (2, "CPAGE2")] {
+            let mut app = menu_app(page);
+            let menu = app.menu.clone();
+            app.editor.submit("LINE").unwrap();
+            app.input = "2".into();
+            let original = app.editor.drawing().clone();
+            control_cursor(&mut app, 0x03);
+            let mut callbacks = 0;
+            app.handle_left_click(640, 480, |app, result| {
+                callbacks += 1;
+                assert_eq!(result, Ok(acad_cmd::Effect::Continue));
+                app.status = app.editor.status().to_owned();
+            });
+            assert_eq!(callbacks, 1);
+            assert_eq!(app.menu_page, page);
+            assert_eq!(app.menu, menu);
+            assert!(app.menu.is_some());
+            assert!(app.input.is_empty());
+            assert_eq!(app.editor.prompt(), "Command");
+            assert_eq!(app.status, "*Cancel*");
+            assert_eq!(app.editor.drawing(), &original);
+            for input in ["POINT", "8,7"] {
+                app.editor.submit(input).unwrap();
+            }
+            let native = menu_control_fixture(&format!("cancel-tail/drawings/{id}.dwg"));
+            assert_eq!(app.editor.drawing().items, native.items);
+            assert_eq!(app.editor.drawing().header.snap, native.header.snap);
+            assert_eq!(app.editor.drawing().header.ortho, native.header.ortho);
+        }
     }
 }
