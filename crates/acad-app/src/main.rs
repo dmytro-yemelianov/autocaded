@@ -90,6 +90,67 @@ impl App {
         Err(format!("shape library is not available: {requested}"))
     }
 
+    /// Dispatches a left-click against the rendered screen-menu panel, if
+    /// one is loaded and the click lands inside it. Returns `true` when the
+    /// click was handled (including as a documented no-op for a
+    /// control-byte entry) so the caller skips the ordinary
+    /// `submit_mouse_point`/`pick_mouse_entity` dispatch; returns `false`
+    /// when there is no menu, no cursor position, or the click fell outside
+    /// the panel rect, so the caller should fall through as usual.
+    ///
+    /// `;`-separator resolution (brief Task 4 Step 1): `Editor::submit`
+    /// (`crates/acad-cmd/src/dispatch.rs:23-27`) trims its input and, while
+    /// in `InputState::Command`, passes the *entire* trimmed string straight
+    /// to `self.command(line)` (line 27) with no scan for `;` anywhere in
+    /// `submit`/`command`. `command`'s match arms compare the whole
+    /// upper-cased string against literal keywords like `"END"` (dispatch.rs
+    /// ~line 1296), so a macro's embedded `;` (e.g. `ACAD.MNU`'s
+    /// `[END/save]end;` -> action bytes `b"end;"`) would never match
+    /// anything if passed through whole. `;` in `.MNU` macro syntax stands
+    /// for pressing Enter (ending one submission and starting the next), so
+    /// this method splits the decoded macro text on `;` itself and calls
+    /// `self.editor.submit(...)` once per piece — including empty pieces,
+    /// which are harmless no-ops per `command`'s own `"" => {}` arm.
+    fn handle_panel_click(&mut self, el: &ActiveEventLoop, width: u32, height: u32) -> bool {
+        let Some(menu) = self.menu.clone() else {
+            return false;
+        };
+        let Some((x, y)) = self.cursor else {
+            return false;
+        };
+        let layout = menu_panel::layout_for(&menu, self.menu_page, width, height);
+        let Some(hit) = menu_panel::entry_at(&menu, self.menu_page, &layout, x, y) else {
+            return false;
+        };
+        match hit {
+            menu_panel::PanelHit::Entry(index) => {
+                let Some(entry) = menu_panel::resolve_entry(&menu, self.menu_page, index) else {
+                    return true;
+                };
+                if entry.action.len() == 1 && entry.action[0] < 0x20 {
+                    self.status = format!(
+                        "{} is not yet implemented (control byte 0x{:02x})",
+                        entry.label, entry.action[0]
+                    );
+                    return true;
+                }
+                let Ok(text) = std::str::from_utf8(&entry.action) else {
+                    self.status = format!("{}: macro is not valid UTF-8", entry.label);
+                    return true;
+                };
+                for piece in split_macro_pieces(text) {
+                    let result = self.editor.submit(piece);
+                    self.handle_result(el, result);
+                }
+                true
+            }
+            menu_panel::PanelHit::Next | menu_panel::PanelHit::Go => {
+                self.menu_page = advance_menu_page(self.menu_page, &menu, hit);
+                true
+            }
+        }
+    }
+
     fn submit_mouse_point(&mut self, el: &ActiveEventLoop, width: u32, height: u32) {
         if !self.editor.accepts_mouse_point() {
             return;
@@ -196,6 +257,50 @@ impl App {
     }
 }
 
+/// Splits a decoded macro's text on `;` into the individual pieces that get
+/// submitted to `Editor::submit` one at a time (`;` in `.MNU` macro syntax
+/// stands for pressing Enter — see `handle_panel_click`'s doc comment for
+/// why `submit`/`command` do not do this splitting themselves). Pulled out
+/// as a free function so it is testable without an `ActiveEventLoop`.
+fn split_macro_pieces(text: &str) -> std::str::Split<'_, char> {
+    text.split(';')
+}
+
+/// Computes the next `menu_page` for a `PanelHit::Next` or `PanelHit::Go`
+/// click. Pulled out as a free function (rather than inlined in
+/// `handle_panel_click`) so the page-advancing logic is testable without an
+/// `ActiveEventLoop`, which `handle_panel_click`'s `Entry` branch otherwise
+/// requires (to route `Effect::Quit` through `el.exit()` via
+/// `handle_result`).
+fn advance_menu_page(
+    current_page: usize,
+    menu: &acad_cmd::menu::MenuFile,
+    hit: menu_panel::PanelHit,
+) -> usize {
+    match hit {
+        // Task 1's recovery: NEXT advances to the next page, wrapping back
+        // to page 0 after the last page — matching `page_slice`'s own
+        // `page % starts.len()` wrapping, driven here by however many pages
+        // this menu actually has rather than a hardcoded page count.
+        menu_panel::PanelHit::Next => {
+            let pages = menu_panel::page_count(menu);
+            if pages > 0 {
+                (current_page + 1) % pages
+            } else {
+                current_page
+            }
+        }
+        // Task 1 could not fully isolate native AutoCAD's `< GO >` behavior
+        // (it produced an "Unknown command" error whose exact mechanism is
+        // unrecovered). Rather than guess at replicating that error, this
+        // is a conservative simplification: reset to page 0, which is the
+        // safe, useful behavior pending further recovery — not a claim that
+        // it matches native exactly.
+        menu_panel::PanelHit::Go => 0,
+        menu_panel::PanelHit::Entry(_) => current_page,
+    }
+}
+
 fn load_menu_file(
     requested: &str,
 ) -> Result<(std::path::PathBuf, acad_cmd::menu::MenuFile), String> {
@@ -268,11 +373,13 @@ impl ApplicationHandler for App {
                 ..
             } => {
                 let size = window.inner_size();
-                if self.editor.accepts_mouse_point() {
-                    self.input.clear();
-                    self.submit_mouse_point(el, size.width, size.height);
-                } else {
-                    self.pick_mouse_entity(size.width, size.height);
+                if !self.handle_panel_click(el, size.width, size.height) {
+                    if self.editor.accepts_mouse_point() {
+                        self.input.clear();
+                        self.submit_mouse_point(el, size.width, size.height);
+                    } else {
+                        self.pick_mouse_entity(size.width, size.height);
+                    }
                 }
                 self.update_title(&window);
                 window.request_redraw();
@@ -821,5 +928,62 @@ mod tests {
         let output = flatten_with_libraries(app.editor.drawing(), &viewport, &app.libraries);
         assert!(!output.primitives.is_empty());
         std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn split_macro_pieces_splits_on_semicolon_as_an_enter_keypress() {
+        // ACAD.MNU's `[END/save]end;` entry (menu.rs confirms action bytes
+        // are b"end;") must become two submissions: "end" (matches the
+        // "END" arm case-insensitively) and "" (a harmless no-op per
+        // dispatch.rs's `"" => {}` arm), not one literal "end;" submission
+        // that would fail to match any command keyword.
+        let pieces: Vec<&str> = split_macro_pieces("end;").collect();
+        assert_eq!(pieces, vec!["end", ""]);
+        // A macro with no `;` at all (e.g. "zoom a") stays a single piece.
+        let pieces: Vec<&str> = split_macro_pieces("zoom a").collect();
+        assert_eq!(pieces, vec!["zoom a"]);
+    }
+
+    #[test]
+    fn advance_menu_page_wraps_next_and_resets_go_to_page_zero() {
+        let menu =
+            acad_cmd::menu::parse_menu(include_bytes!("../../../corpus/System/ACAD.MNU")).unwrap();
+        assert_eq!(menu_panel::page_count(&menu), 3);
+        assert_eq!(advance_menu_page(0, &menu, menu_panel::PanelHit::Next), 1);
+        assert_eq!(advance_menu_page(1, &menu, menu_panel::PanelHit::Next), 2);
+        // NEXT on the last page wraps back to page 0.
+        assert_eq!(advance_menu_page(2, &menu, menu_panel::PanelHit::Next), 0);
+        // GO always resets to page 0, from any page.
+        assert_eq!(advance_menu_page(2, &menu, menu_panel::PanelHit::Go), 0);
+        assert_eq!(advance_menu_page(0, &menu, menu_panel::PanelHit::Go), 0);
+    }
+
+    #[test]
+    fn handle_panel_click_resolves_a_click_on_the_point_entry_and_sends_it_through_submit() {
+        // End-to-end exercise of the index-space fix: clicking page 1's
+        // first visible item row must submit "POINT" through the real
+        // Editor (entering InputState::Point), not some unrelated entry.
+        let menu =
+            acad_cmd::menu::parse_menu(include_bytes!("../../../corpus/System/ACAD.MNU")).unwrap();
+        let (width, height) = (640u32, 480u32);
+        let layout = menu_panel::layout_for(&menu, 1, width, height);
+        let (rect_x, rect_y, _, _) = layout.rect;
+        let row_2_y = rect_y + 2 * layout.row_height + 2;
+        let hit =
+            menu_panel::entry_at(&menu, 1, &layout, (rect_x + 2) as f64, row_2_y as f64).unwrap();
+        let menu_panel::PanelHit::Entry(index) = hit else {
+            panic!("expected an Entry hit, got {hit:?}");
+        };
+        let entry = menu_panel::resolve_entry(&menu, 1, index).unwrap();
+        assert_eq!(entry.label, "POINT");
+
+        let mut editor = acad_cmd::Editor::default();
+        for piece in split_macro_pieces(std::str::from_utf8(&entry.action).unwrap()) {
+            editor.submit(piece).unwrap();
+        }
+        // Submitting "POINT" put the editor into InputState::Point, which
+        // accepts a mouse point next — confirming the click really drove a
+        // command, not a no-op.
+        assert!(editor.accepts_mouse_point());
     }
 }

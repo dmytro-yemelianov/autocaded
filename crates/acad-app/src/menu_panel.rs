@@ -500,6 +500,116 @@ pub(crate) fn draw_panel(
     );
 }
 
+/// What a click inside the panel rect resolved to, in `draw_panel`'s own
+/// row-numbering (row 0 = header/blank slot, rows `1..=max_items` = item
+/// rows, final row = synthetic `NEXT`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PanelHit {
+    /// A click on one of this page's item rows. The `usize` is a row index
+    /// *relative to this page's displayed item slice* (i.e. an index into
+    /// `page_slice(item_entries(menu), page_starts(...), page)`), already
+    /// adjusted for the leading-gap of blank rows that `draw_panel` leaves
+    /// at the top of a short page — NOT a raw index into `menu.entries`,
+    /// and NOT a row number. Resolve it the rest of the way to a
+    /// `MenuEntry` with `resolve_entry`.
+    Entry(usize),
+    /// A click on the synthetic final `NEXT` row.
+    Next,
+    /// A click on row 0 of the one page that owns the header entry.
+    Go,
+}
+
+/// Hit-tests a click at buffer-space `(x, y)` against `layout`'s rect,
+/// returning which row of the *current page* it landed on, in `draw_panel`'s
+/// own row-numbering scheme (re-read above `draw_panel`'s loop: row 0 is the
+/// header/blank slot, item rows are `1 + leading_gap + offset`, and the
+/// final row is always `1 + max_items`).
+///
+/// Needs `menu` and `page` (not just `layout`) because which row is the
+/// header/blank slot vs. an item row vs. `NEXT` depends on `has_header` and
+/// `max_items_per_page`, exactly like `draw_panel` itself.
+pub(crate) fn entry_at(
+    menu: &MenuFile,
+    page: usize,
+    layout: &PanelLayout,
+    x: f64,
+    y: f64,
+) -> Option<PanelHit> {
+    let (rect_x, rect_y, rect_w, rect_h) = layout.rect;
+    if x < rect_x as f64
+        || y < rect_y as f64
+        || x >= (rect_x + rect_w) as f64
+        || y >= (rect_y + rect_h) as f64
+    {
+        return None;
+    }
+    if layout.row_height == 0 {
+        return None;
+    }
+    let row = ((y - rect_y as f64) / layout.row_height as f64) as usize;
+
+    let items = item_entries(menu);
+    let starts = page_starts(items);
+    if starts.is_empty() {
+        return None;
+    }
+    let page_items = page_slice(items, &starts, page);
+    let max_items = max_items_per_page(items, &starts);
+    let next_row = 1 + max_items;
+
+    if row == 0 {
+        return if has_header(menu, page) {
+            Some(PanelHit::Go)
+        } else {
+            None
+        };
+    }
+    if row == next_row {
+        return Some(PanelHit::Next);
+    }
+    if row > next_row {
+        return None;
+    }
+    // row is in 1..next_row: an item row. Undo draw_panel's leading_gap
+    // offset (`row = 1 + leading_gap + offset`) to recover `offset`, the
+    // index into `page_items` — this is the fix for the brief's bug: a
+    // page-relative row is NOT an index into `menu.entries`.
+    let leading_gap = max_items - page_items.len();
+    let offset = row - 1;
+    if offset < leading_gap {
+        // Clicked a blank row above this page's first item.
+        return None;
+    }
+    let item_index = offset - leading_gap;
+    if item_index >= page_items.len() {
+        return None;
+    }
+    Some(PanelHit::Entry(item_index))
+}
+
+/// Resolves a `PanelHit::Entry(index)` (a page-relative row index, per
+/// `entry_at`'s contract) to the real `MenuEntry` it refers to. This is the
+/// index-space fix the brief's sample code got wrong: `index` is an offset
+/// into `page_slice(item_entries(menu), page_starts(item_entries(menu)),
+/// page)`, not into `menu.entries` directly, because `item_entries` strips
+/// the leading `Header` entry and `page_slice` sub-slices what's left.
+pub(crate) fn resolve_entry(menu: &MenuFile, page: usize, index: usize) -> Option<&MenuEntry> {
+    let items = item_entries(menu);
+    let starts = page_starts(items);
+    if starts.is_empty() {
+        return None;
+    }
+    let page_items = page_slice(items, &starts, page);
+    page_items.get(index)
+}
+
+/// The number of pages `menu` lays out into, i.e. `page_starts(...).len()`.
+/// Callers (e.g. advancing past `NEXT`) wrap modulo this value, matching
+/// `page_slice`'s own wrapping.
+pub(crate) fn page_count(menu: &MenuFile) -> usize {
+    page_starts(item_entries(menu)).len()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -626,5 +736,95 @@ mod tests {
             is_row_lit(&buffer, 20),
             "row 20 must always hold the synthetic NEXT row"
         );
+    }
+
+    #[test]
+    fn entry_at_resolves_a_click_inside_a_row_and_none_outside_the_panel() {
+        let menu = acad_mnu();
+        let layout = layout_for(&menu, 0, 640, 480);
+        let (rect_x, rect_y, _, _) = layout.rect;
+        let row_height = layout.row_height;
+        // Page 0 has a header, so row 1 (not row 0, which is the `< GO >`
+        // header slot) is its first item row.
+        let inside = entry_at(
+            &menu,
+            0,
+            &layout,
+            (rect_x + 2) as f64,
+            (rect_y + row_height + 2) as f64,
+        );
+        assert!(matches!(inside, Some(PanelHit::Entry(_))));
+        let outside = entry_at(&menu, 0, &layout, 0.0, 0.0);
+        assert_eq!(outside, None);
+    }
+
+    #[test]
+    fn entry_at_resolves_row_0_on_page_0_to_go_and_on_page_1_to_none() {
+        let menu = acad_mnu();
+        let layout = layout_for(&menu, 0, 640, 480);
+        let (rect_x, rect_y, _, _) = layout.rect;
+        assert_eq!(
+            entry_at(&menu, 0, &layout, (rect_x + 2) as f64, (rect_y + 2) as f64),
+            Some(PanelHit::Go)
+        );
+        // Page 1 has no header entry, so row 0 is just a blank slot, not Go.
+        assert_eq!(
+            entry_at(&menu, 1, &layout, (rect_x + 2) as f64, (rect_y + 2) as f64),
+            None
+        );
+    }
+
+    #[test]
+    fn entry_at_resolves_the_final_row_to_next_on_every_page() {
+        let menu = acad_mnu();
+        let layout = layout_for(&menu, 0, 640, 480);
+        let (rect_x, rect_y, _, _) = layout.rect;
+        let row_height = layout.row_height;
+        let next_row_y = rect_y + 20 * row_height + 2;
+        assert_eq!(
+            entry_at(&menu, 0, &layout, (rect_x + 2) as f64, next_row_y as f64),
+            Some(PanelHit::Next)
+        );
+        assert_eq!(
+            entry_at(&menu, 1, &layout, (rect_x + 2) as f64, next_row_y as f64),
+            Some(PanelHit::Next)
+        );
+    }
+
+    #[test]
+    fn entry_at_on_page_1_row_2_resolves_through_resolve_entry_to_the_point_entry() {
+        // Worked example from the task brief: page 1 (ACAD.MNU's second
+        // page, stripped-index 19 onward) is headerless with 18 items (max
+        // is 19), so draw_panel leaves a 1-row leading gap and the first
+        // item (`*POINT`, stripped index 19) is drawn at row 2. Clicking
+        // that row must resolve — through entry_at's page-relative index and
+        // resolve_entry's un-offsetting — to the entry labeled "POINT" with
+        // repeat == true, not to whatever sits at menu.entries[19] or [20].
+        let menu = acad_mnu();
+        let page = 1;
+        let layout = layout_for(&menu, page, 640, 480);
+        let (rect_x, rect_y, _, _) = layout.rect;
+        let row_height = layout.row_height;
+        let row_2_y = rect_y + 2 * row_height + 2;
+        let hit = entry_at(&menu, page, &layout, (rect_x + 2) as f64, row_2_y as f64);
+        let Some(PanelHit::Entry(index)) = hit else {
+            panic!("expected an Entry hit at page 1 row 2, got {hit:?}");
+        };
+        let entry = resolve_entry(&menu, page, index).expect("resolved entry must exist");
+        assert_eq!(entry.label, "POINT");
+        assert!(entry.repeat);
+        assert_eq!(entry.action, b"POINT");
+
+        // Confirm this is NOT the same as naively indexing menu.entries by
+        // the page-relative index (the brief's bug): menu.entries[0] is the
+        // `< GO >` header, so a raw index would be off by the header plus
+        // this page's own start offset.
+        assert_ne!(menu.entries[index].label, "POINT");
+    }
+
+    #[test]
+    fn page_count_reports_the_number_of_pages_acad_mnu_lays_out_into() {
+        let menu = acad_mnu();
+        assert_eq!(page_count(&menu), 3);
     }
 }
