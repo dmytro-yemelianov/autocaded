@@ -91,6 +91,65 @@ pub(crate) fn fit_box_to_device(bounds: Extents) -> acad_model::DwgView {
 }
 
 impl Editor {
+    /// Submit physical Return or screen-menu GO. Raw script/macro submissions
+    /// retain their separate empty-input policy and do not update this history.
+    pub fn submit_return(&mut self, input: &str) -> Result<Effect, String> {
+        const UNKNOWN: &str = "Unknown command. Type ? for list of commands.";
+        let line = input.trim();
+        if matches!(self.state, InputState::Command) {
+            let command = if line.is_empty() {
+                let Some(previous) = self.last_return_command.clone() else {
+                    self.status = UNKNOWN.into();
+                    return Err(self.status.clone());
+                };
+                previous
+            } else {
+                line.to_ascii_uppercase()
+            };
+            let result = self.submit(&command);
+            if result.is_ok() && !line.is_empty() {
+                self.last_return_command = Some(command);
+            }
+            return match result {
+                Err(error) if error.starts_with("unknown command: ") => {
+                    self.status = UNKNOWN.into();
+                    Err(self.status.clone())
+                }
+                result => result,
+            };
+        }
+        match &self.state {
+            InputState::LineStart | InputState::CircleRadius(_) if line.is_empty() => {
+                self.state = InputState::Command;
+                self.status = "*Invalid*".into();
+                return Ok(Effect::Continue);
+            }
+            InputState::EditSelection(EditCommand::Erase) if line.is_empty() => {
+                self.state = InputState::Command;
+                self.status.clear();
+                return Ok(Effect::Continue);
+            }
+            InputState::MenuFile if line.is_empty() => {
+                self.state = InputState::Command;
+                self.status.clear();
+                return Ok(Effect::UnloadMenu);
+            }
+            InputState::RepeatColumns if positive_word(line, "columns").is_err() => {
+                self.state = InputState::Command;
+                self.status = "*Invalid*".into();
+                return Ok(Effect::Continue);
+            }
+            _ => {}
+        }
+        let single_erase = matches!(self.state, InputState::EditSelection(EditCommand::Erase))
+            && selection(line, selectable_count(&self.drawing)).is_ok_and(|ids| ids.len() == 1);
+        let result = self.submit(line);
+        if single_erase && result.is_ok() {
+            self.status = "1 selected, 1 found.".into();
+        }
+        result
+    }
+
     /// Submit one complete line of keyboard input. Coordinates use AutoCAD's
     /// `x,y`, `@dx,dy`, or `@distance<angle` notation where a prior point exists.
     /// A `LINE` remains active until an empty line is entered.

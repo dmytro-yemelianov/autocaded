@@ -41,7 +41,7 @@ pub fn parse_menu(bytes: &[u8]) -> Result<MenuFile, String> {
             let label = printable_label(&line[1..close], line_number + 1)?;
             let tail = &line[close + 1..];
             if tail == b";" {
-                (label, Vec::new(), MenuEntryKind::Header, false)
+                (label, tail.to_vec(), MenuEntryKind::Header, false)
             } else {
                 (label, tail.to_vec(), MenuEntryKind::Item, false)
             }
@@ -115,10 +115,10 @@ mod tests {
             .unwrap();
         assert_eq!(point.action, b"POINT");
         assert!(point.repeat);
-        assert!(menu
-            .entries
-            .iter()
-            .any(|entry| entry.kind == MenuEntryKind::Header));
+        let header = &menu.entries[0];
+        assert_eq!(header.kind, MenuEntryKind::Header);
+        assert_eq!(header.action, b";");
+        assert!(!header.repeat);
     }
 
     #[test]

@@ -57,6 +57,7 @@ pub enum Effect {
     Save(String),
     SaveDrawing(String, Box<Drawing>),
     LoadMenu(String),
+    UnloadMenu,
     Files(FilesRequest),
     Report(String),
     Quit,
@@ -88,6 +89,7 @@ pub struct Editor {
     undo: Vec<UndoSnapshot>,
     last_erased: Option<Vec<ErasedItem>>,
     repeat_start: Option<usize>,
+    last_return_command: Option<String>,
     shape_libraries: BTreeMap<String, BTreeMap<String, u16>>,
     active_shape_library: Option<String>,
 }
@@ -170,6 +172,7 @@ impl Editor {
             undo: Vec::new(),
             last_erased: None,
             repeat_start: None,
+            last_return_command: None,
             shape_libraries: BTreeMap::new(),
             active_shape_library,
         }

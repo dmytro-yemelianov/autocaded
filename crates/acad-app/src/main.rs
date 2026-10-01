@@ -27,10 +27,14 @@ struct App {
 }
 
 impl App {
-    fn submit_line(&mut self, el: &ActiveEventLoop, input: &str) {
+    fn submit_return_input(
+        &mut self,
+        handle_result: &mut impl FnMut(&mut Self, Result<acad_cmd::Effect, String>),
+    ) {
+        let input = std::mem::take(&mut self.input);
         self.status.clear();
         let command_input = if self.editor.awaiting_shape_library_name() {
-            match self.resolve_shape_library(input) {
+            match self.resolve_shape_library(&input) {
                 Ok(name) => name,
                 Err(error) => {
                     self.status = error;
@@ -38,10 +42,19 @@ impl App {
                 }
             }
         } else {
-            input.to_owned()
+            input
         };
-        let result = self.editor.submit(&command_input);
-        self.handle_result(el, result);
+        let result = self.editor.submit_return(&command_input);
+        handle_result(self, result);
+    }
+
+    fn unload_menu(&mut self) {
+        self.menu = None;
+        self.menu_page = 0;
+        self.status.clear();
+        if let Some((window, _)) = &self.state {
+            self.apply_menu_window_size(window);
+        }
     }
 
     fn resolve_shape_library(&mut self, requested: &str) -> Result<String, String> {
@@ -173,8 +186,12 @@ impl App {
                 }
                 true
             }
-            menu_panel::PanelHit::Next | menu_panel::PanelHit::Go => {
-                self.menu_page = advance_menu_page(self.menu_page, &menu, hit);
+            menu_panel::PanelHit::Next => {
+                self.menu_page = advance_menu_page(self.menu_page, &menu);
+                true
+            }
+            menu_panel::PanelHit::Go => {
+                self.submit_return_input(handle_result);
                 true
             }
         }
@@ -252,6 +269,7 @@ impl App {
                 self.status = self.editor.status().to_owned();
             }
             Ok(acad_cmd::Effect::Quit) => el.exit(),
+            Ok(acad_cmd::Effect::UnloadMenu) => self.unload_menu(),
             Ok(acad_cmd::Effect::Save(path)) => {
                 self.status = match save_drawing(&path, self.editor.drawing()) {
                     Ok(()) => format!("Saved {path}"),
@@ -364,36 +382,13 @@ fn supported_client_size(
     }
 }
 
-/// Computes the next `menu_page` for a `PanelHit::Next` or `PanelHit::Go`
-/// click. Pulled out as a free function (rather than inlined in
-/// `handle_panel_click`) so page navigation remains independently testable.
-/// The App routes submission effects through its result handler.
-fn advance_menu_page(
-    current_page: usize,
-    menu: &acad_cmd::menu::MenuFile,
-    hit: menu_panel::PanelHit,
-) -> usize {
-    match hit {
-        // Task 1's recovery: NEXT advances to the next page, wrapping back
-        // to page 0 after the last page — matching `page_slice`'s own
-        // `page % starts.len()` wrapping, driven here by however many pages
-        // this menu actually has rather than a hardcoded page count.
-        menu_panel::PanelHit::Next => {
-            let pages = menu_panel::page_count(menu);
-            if pages > 0 {
-                (current_page + 1) % pages
-            } else {
-                current_page
-            }
-        }
-        // Task 1 could not fully isolate native AutoCAD's `< GO >` behavior
-        // (it produced an "Unknown command" error whose exact mechanism is
-        // unrecovered). Rather than guess at replicating that error, this
-        // is a conservative simplification: reset to page 0, which is the
-        // safe, useful behavior pending further recovery — not a claim that
-        // it matches native exactly.
-        menu_panel::PanelHit::Go => 0,
-        menu_panel::PanelHit::Entry(_) => current_page,
+/// NEXT advances independently of command submission and wraps the last page.
+fn advance_menu_page(current_page: usize, menu: &acad_cmd::menu::MenuFile) -> usize {
+    let pages = menu_panel::page_count(menu);
+    if pages > 0 {
+        (current_page + 1) % pages
+    } else {
+        current_page
     }
 }
 
@@ -441,8 +436,7 @@ impl ApplicationHandler for App {
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
                 match &event.logical_key {
                     Key::Named(NamedKey::Enter) => {
-                        let input = std::mem::take(&mut self.input);
-                        self.submit_line(el, &input);
+                        self.submit_return_input(&mut |app, result| app.handle_result(el, result));
                     }
                     Key::Named(NamedKey::Backspace) => {
                         self.input.pop();
@@ -1050,17 +1044,14 @@ mod tests {
     }
 
     #[test]
-    fn advance_menu_page_wraps_next_and_resets_go_to_page_zero() {
+    fn advance_menu_page_wraps_next() {
         let menu =
             acad_cmd::menu::parse_menu(include_bytes!("../../../corpus/System/ACAD.MNU")).unwrap();
         assert_eq!(menu_panel::page_count(&menu), 3);
-        assert_eq!(advance_menu_page(0, &menu, menu_panel::PanelHit::Next), 1);
-        assert_eq!(advance_menu_page(1, &menu, menu_panel::PanelHit::Next), 2);
+        assert_eq!(advance_menu_page(0, &menu), 1);
+        assert_eq!(advance_menu_page(1, &menu), 2);
         // NEXT on the last page wraps back to page 0.
-        assert_eq!(advance_menu_page(2, &menu, menu_panel::PanelHit::Next), 0);
-        // GO always resets to page 0, from any page.
-        assert_eq!(advance_menu_page(2, &menu, menu_panel::PanelHit::Go), 0);
-        assert_eq!(advance_menu_page(0, &menu, menu_panel::PanelHit::Go), 0);
+        assert_eq!(advance_menu_page(2, &menu), 0);
     }
 
     fn menu_app(page: usize) -> App {
@@ -1432,5 +1423,315 @@ mod tests {
             assert_eq!(app.editor.drawing().header.snap, native.header.snap);
             assert_eq!(app.editor.drawing().header.ortho, native.header.ortho);
         }
+    }
+    fn go_cursor(app: &mut App) {
+        let menu = app.menu.as_ref().unwrap();
+        assert!(menu.entries.iter().any(|entry| entry.kind
+            == acad_cmd::menu::MenuEntryKind::Header
+            && entry.action == b";"));
+        let layout = menu_panel::layout_for(menu, app.menu_page, 640, 480);
+        app.cursor = Some(((layout.rect.0 + 2) as f64, 2.0));
+        assert_eq!(
+            menu_panel::entry_at(menu, app.menu_page, &layout, app.cursor.unwrap().0, 2.0),
+            Some(menu_panel::PanelHit::Go)
+        );
+    }
+
+    fn return_result(app: &mut App, result: Result<acad_cmd::Effect, String>) {
+        match result.unwrap() {
+            acad_cmd::Effect::Continue => app.status = app.editor.status().into(),
+            acad_cmd::Effect::LoadMenu(name) => {
+                app.menu = Some(load_menu_file(&name).unwrap().1);
+                app.menu_page = 0;
+            }
+            acad_cmd::Effect::UnloadMenu => app.unload_menu(),
+            effect => panic!("unexpected effect: {effect:?}"),
+        }
+    }
+
+    fn return_or_go(app: &mut App, go: bool) -> usize {
+        let mut count = 0;
+        let mut callback = |app: &mut App, result| {
+            count += 1;
+            return_result(app, result);
+        };
+        if go {
+            go_cursor(app);
+            app.handle_left_click(640, 480, &mut callback);
+        } else {
+            app.submit_return_input(&mut callback);
+        }
+        count
+    }
+
+    #[test]
+    fn app_mouse_route_go_and_return_repeat_menu_once_then_unload() {
+        for go in [false, true] {
+            let mut app = menu_app(0);
+            for input in ["MENU", "ACAD"] {
+                app.input = input.into();
+                assert_eq!(return_or_go(&mut app, false), 1);
+            }
+            assert_eq!(return_or_go(&mut app, go), 1);
+            assert_eq!(app.editor.prompt(), "File name");
+            assert!(app.menu.is_some());
+            assert_eq!(app.menu_page, 0);
+            assert_eq!(return_or_go(&mut app, go), 1);
+            assert_eq!(app.editor.prompt(), "Command");
+            assert!(app.menu.is_none());
+            assert_eq!(app.menu_page, 0);
+            assert_eq!(app.status, "");
+            assert!(app.input.is_empty());
+            assert!(app.editor.drawing().items.is_empty());
+            assert_eq!(menu_min_inner_size(app.menu.as_ref()), None);
+        }
+    }
+
+    #[test]
+    fn app_mouse_route_menu_cancel_keeps_panel() {
+        let mut app = menu_app(0);
+        app.editor.submit_return("MENU").unwrap();
+        app.input = "pending".into();
+        control_cursor(&mut app, 0x03);
+        let mut count = 0;
+        app.handle_left_click(640, 480, |app, result| {
+            count += 1;
+            assert_eq!(result, Ok(acad_cmd::Effect::Continue));
+            return_result(app, result);
+        });
+        assert_eq!(count, 1);
+        assert_eq!(app.status, "*Cancel*");
+        assert_eq!(app.editor.prompt(), "Command");
+        assert!(app.menu.is_some());
+        assert_eq!(app.menu_page, 0);
+        assert!(app.input.is_empty());
+    }
+
+    #[test]
+    fn app_mouse_route_go_empty_prompts_and_history() {
+        for (setup, status, id) in [
+            (vec!["LINE"], "*Invalid*", "GOFIRST"),
+            (vec!["LINE", "2,3"], "", "GONEXT"),
+            (vec!["CIRCLE", "2,3"], "*Invalid*", "GORADIUS"),
+            (vec!["LINE", "2,3", "4,5", "", "ERASE"], "", "GOSELECT"),
+        ] {
+            let mut app = menu_app(0);
+            for input in setup {
+                app.editor.submit_return(input).unwrap();
+            }
+            assert_eq!(return_or_go(&mut app, true), 1);
+            assert_eq!(app.status, status);
+            assert_eq!(app.editor.prompt(), "Command");
+            assert!(app.input.is_empty());
+            assert_eq!(app.menu_page, 0);
+            let native = menu_control_fixture(&format!("go/drawings/{id}.dwg"));
+            assert_eq!(app.editor.drawing().items, native.items);
+        }
+        let mut app = menu_app(0);
+        go_cursor(&mut app);
+        app.handle_left_click(640, 480, |app, result| {
+            assert_eq!(
+                result,
+                Err("Unknown command. Type ? for list of commands.".into())
+            );
+            app.status = result.unwrap_err();
+        });
+        assert_eq!(app.status, app.editor.status());
+        app.input = ";".into();
+        assert_eq!(app.input, ";");
+        app.submit_return_input(&mut |app, result| {
+            assert_eq!(
+                result,
+                Err("Unknown command. Type ? for list of commands.".into())
+            );
+            app.status = result.unwrap_err();
+        });
+        assert!(app.input.is_empty());
+        for input in ["POINT", "8,7"] {
+            app.editor.submit_return(input).unwrap();
+        }
+        let items = app.editor.drawing().items.clone();
+        for cursor in [(100.0, 100.0), (400.0, 300.0)] {
+            app.cursor = Some(cursor);
+            assert_eq!(return_or_go(&mut app, true), 1);
+            assert_eq!(app.editor.prompt(), "POINT: point");
+            assert_eq!(app.editor.drawing().items, items);
+            app.editor
+                .apply_menu_control(acad_cmd::MenuControl::Cancel)
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn app_mouse_route_go_submits_pending_point_and_selection_once() {
+        let mut app = menu_app(0);
+        app.editor.submit_return("LINE").unwrap();
+        app.input = "2,3".into();
+        assert_eq!(return_or_go(&mut app, true), 1);
+        assert!(app.input.is_empty());
+        assert_eq!(app.editor.prompt(), "LINE: next point (Enter to finish)");
+        for input in ["4,5", ""] {
+            app.input = input.into();
+            assert_eq!(return_or_go(&mut app, true), 1);
+        }
+        assert_eq!(
+            app.editor.drawing().items,
+            menu_control_fixture("buffers/drawings/GOBUFPNT.dwg").items
+        );
+        for go in [false, true] {
+            let mut app = menu_app(0);
+            let mut seed = menu_control_fixture("pilot/drawings/CSELECT.dwg");
+            seed.items.truncate(1); // Exclude CSELECT's later continuation POINT.
+            app.editor = acad_cmd::Editor::new(seed);
+            let original = app.editor.drawing().items.clone();
+            app.editor.submit_return("ERASE").unwrap();
+            let screen =
+                viewport_for(app.editor.drawing(), 640, 480).to_screen(acad_model::Point {
+                    x: 6.0,
+                    y: 3.58823529411769,
+                });
+            app.cursor = Some((screen.x, screen.y));
+            click(&mut app, 640, 480);
+            assert_eq!(app.input, "1");
+            assert_eq!(return_or_go(&mut app, go), 1);
+            assert!(app.input.is_empty());
+            assert_eq!(app.status, "1 selected, 1 found.");
+            assert_eq!(app.editor.prompt(), "Command");
+            assert_eq!(
+                app.editor.drawing().items,
+                original
+                    .into_iter()
+                    .map(|item| match item {
+                        acad_model::Item::Entity(entity) => acad_model::Item::Erased(entity),
+                        _ => panic!("seed must be a LINE"),
+                    })
+                    .collect::<Vec<_>>()
+            );
+            if go {
+                for input in ["POINT", "8,7"] {
+                    app.editor.submit_return(input).unwrap();
+                }
+                assert_eq!(
+                    app.editor.drawing().items,
+                    menu_control_fixture("buffers/drawings/GOBUFSEL.dwg").items
+                );
+            } else {
+                assert_eq!(
+                    app.editor.drawing().items,
+                    menu_control_fixture("buffers/drawings/CSELBASE.dwg").items
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn app_mouse_route_return_and_go_preserve_load_resolution() {
+        for go in [false, true] {
+            let mut app = menu_app(0);
+            let path =
+                std::env::temp_dir().join(format!("acad-go-load-{}-{go}.SHP", std::process::id()));
+            std::fs::write(&path, b"*129,13,STAR\n2,8,(4,2),1,9,(2,0),(0,2),(0,0),0;\n").unwrap();
+            app.editor.submit_return("LOAD").unwrap();
+            app.input = path.to_str().unwrap().into();
+            assert_eq!(return_or_go(&mut app, go), 1);
+            assert!(app.input.is_empty());
+            assert_eq!(app.editor.prompt(), "Command");
+            let name = path.file_stem().unwrap().to_str().unwrap();
+            assert!(app.libraries.get(name).is_some());
+            for input in ["SHAPE", "star", "1,2", "0.5", "45"] {
+                app.editor.submit_return(input).unwrap();
+            }
+            assert_eq!(app.editor.drawing().items.len(), 2);
+            assert!(!flatten_with_libraries(
+                app.editor.drawing(),
+                &viewport_for(app.editor.drawing(), 640, 480),
+                &app.libraries
+            )
+            .primitives
+            .is_empty());
+            std::fs::remove_file(path).unwrap();
+            for (input, error) in [
+                (
+                    "menu-controls-no-such-library",
+                    "shape library is not available: menu-controls-no-such-library",
+                ),
+                ("", "shape library name cannot be empty"),
+            ] {
+                app.editor.submit_return("LOAD").unwrap();
+                app.input = input.into();
+                assert_eq!(return_or_go(&mut app, go), 0);
+                assert!(app.input.is_empty());
+                assert_eq!(app.status, error);
+                assert!(app.editor.awaiting_shape_library_name());
+                app.editor.cancel_command().unwrap();
+            }
+        }
+        // Plain macro pieces retain their LOAD bypass and empty-piece policy,
+        // even when the SHP exists on disk and physical Return could resolve it.
+        let mut app = menu_app(0);
+        let path = std::env::temp_dir().join(format!("acad-macro-load-{}.SHP", std::process::id()));
+        std::fs::write(&path, b"*129,13,STAR\n2,8,(4,2),1,9,(2,0),(0,2),(0,0),0;\n").unwrap();
+        app.menu = Some(
+            acad_cmd::menu::parse_menu(format!("[Load]LOAD {};\n", path.display()).as_bytes())
+                .unwrap(),
+        );
+        let layout = menu_panel::layout_for(app.menu.as_ref().unwrap(), 0, 640, 480);
+        app.cursor = Some(((layout.rect.0 + 2) as f64, (layout.row_height + 2) as f64));
+        app.input = "kept".into();
+        let mut results = Vec::new();
+        app.handle_left_click(640, 480, |_, result| results.push(result));
+        assert_eq!(
+            results,
+            vec![
+                Ok(acad_cmd::Effect::Continue),
+                Err(format!(
+                    "shape library is not available: {}",
+                    path.display()
+                )),
+                Err("shape library name cannot be empty".into())
+            ]
+        );
+        assert_eq!(app.input, "kept");
+        assert!(app.editor.awaiting_shape_library_name());
+        assert!(app.editor.drawing().items.is_empty());
+        assert!(app
+            .libraries
+            .get(path.file_stem().unwrap().to_str().unwrap())
+            .is_none());
+        app.editor.cancel_command().unwrap();
+        assert_eq!(
+            app.editor.submit_return(""),
+            Err("Unknown command. Type ? for list of commands.".into())
+        );
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn app_mouse_route_go_header_only_and_next_still_wraps() {
+        let mut app = menu_app(0);
+        go_cursor(&mut app);
+        for page in [1, 2] {
+            app.menu_page = page;
+            app.editor.submit("LINE").unwrap();
+            app.input = "2,3".into();
+            let layout = menu_panel::layout_for(app.menu.as_ref().unwrap(), page, 640, 480);
+            app.cursor = Some(((layout.rect.0 + 2) as f64, 2.0));
+            let mut count = 0;
+            app.handle_left_click(640, 480, |_, _| count += 1);
+            assert_eq!(count, 0);
+            assert_eq!(app.menu_page, page);
+            assert_eq!(app.input, "2,3");
+            assert_eq!(app.editor.prompt(), "LINE: first point");
+            assert!(app.editor.drawing().items.is_empty());
+            app.editor.cancel_command().unwrap();
+        }
+        let layout = menu_panel::layout_for(app.menu.as_ref().unwrap(), 2, 640, 480);
+        app.cursor = Some((
+            (layout.rect.0 + 2) as f64,
+            (layout.rect.3 - layout.row_height + 2) as f64,
+        ));
+        app.handle_left_click(640, 480, |_, _| panic!("NEXT submitted input"));
+        assert_eq!(app.menu_page, 0);
+        assert_eq!(app.input, "2,3");
     }
 }

@@ -256,3 +256,123 @@ fn original_menu_controls_pending_snap_matches_native() {
     compare(pending_line(MenuControl::Snap).drawing(), &native);
     eprintln!("EXECUTED native FSLINE replay: controlled flags/spacing and full LINE match Rust and recorded fixture");
 }
+
+#[test]
+fn menu_controls_go_native_fixtures() {
+    const UNKNOWN: &str = "Unknown command. Type ? for list of commands.";
+    for (input, path) in [
+        ("", "go/drawings/GOFRESH.dwg"),
+        ("", "go/drawings/RTFRESH.dwg"),
+        (";", "pilot/drawings/SEMICOL.dwg"),
+    ] {
+        let mut editor = Editor::default();
+        assert_eq!(editor.submit_return(input), Err(UNKNOWN.into()));
+        assert_eq!(editor.status(), UNKNOWN);
+        compare(editor.drawing(), &fixture(path));
+    }
+    for path in ["pilot/drawings/GOIDLE.dwg", "pilot/drawings/RETURN.dwg"] {
+        let mut editor = Editor::default();
+        editor.submit_return("MENU").unwrap();
+        assert_eq!(
+            editor.submit_return("ACAD"),
+            Ok(Effect::LoadMenu("ACAD".into()))
+        );
+        assert_eq!(editor.submit_return(""), Ok(Effect::Continue));
+        assert_eq!(editor.prompt(), "File name");
+        assert_eq!(editor.submit_return(""), Ok(Effect::UnloadMenu));
+        assert_eq!(editor.prompt(), "Command");
+        compare(editor.drawing(), &fixture(path));
+    }
+    let mut editor = Editor::default();
+    editor.submit_return("MENU").unwrap();
+    editor.apply_menu_control(MenuControl::Cancel).unwrap();
+    for input in ["POINT", "8,7"] {
+        editor.submit_return(input).unwrap();
+    }
+    compare(editor.drawing(), &fixture("controls/drawings/CMENU.dwg"));
+    for (setup, status, id) in [
+        (vec!["LINE"], "*Invalid*", "GOFIRST"),
+        (vec!["LINE", "2,3"], "", "GONEXT"),
+        (vec!["CIRCLE", "2,3"], "*Invalid*", "GORADIUS"),
+        (vec!["LINE", "2,3", "4,5", "", "ERASE"], "", "GOSELECT"),
+    ] {
+        let mut editor = Editor::default();
+        for input in setup {
+            editor.submit_return(input).unwrap();
+        }
+        assert_eq!(editor.submit_return(""), Ok(Effect::Continue));
+        assert_eq!(editor.status(), status);
+        assert_eq!(editor.prompt(), "Command");
+        compare(editor.drawing(), &fixture(&format!("go/drawings/{id}.dwg")));
+        if id == "GORADIUS" {
+            assert_eq!(editor.submit_return("1.25"), Err(UNKNOWN.into()));
+        } else if id == "GOFIRST" || id == "GONEXT" {
+            for input in ["2,3", "4,5"] {
+                assert_eq!(editor.submit_return(input), Err(UNKNOWN.into()));
+            }
+            editor.submit_return("").unwrap();
+            assert_eq!(editor.prompt(), "LINE: first point");
+        }
+    }
+    let mut editor = Editor::default();
+    for input in ["POINT", "8,7"] {
+        editor.submit_return(input).unwrap();
+    }
+    for _ in 0..2 {
+        editor.submit_return("").unwrap();
+        assert_eq!(editor.prompt(), "POINT: point");
+        compare(editor.drawing(), &fixture("go/drawings/GOHIST.dwg"));
+        editor.apply_menu_control(MenuControl::Cancel).unwrap();
+    }
+    let mut editor = Editor::default();
+    for input in ["LINE", "2,3", "4,5", ""] {
+        editor.submit_return(input).unwrap();
+    }
+    compare(editor.drawing(), &fixture("buffers/drawings/GOBUFPNT.dwg"));
+    for go in [false, true] {
+        let mut seed = fixture("pilot/drawings/CSELECT.dwg");
+        seed.items.truncate(1); // Native LINE, before CSELECT's independent continuation POINT.
+        let mut editor = Editor::new(seed);
+        for input in ["ERASE", "1"] {
+            editor.submit_return(input).unwrap();
+        }
+        assert_eq!(editor.status(), "1 selected, 1 found.");
+        if go {
+            for input in ["POINT", "8,7"] {
+                editor.submit_return(input).unwrap();
+            }
+        }
+        compare(
+            editor.drawing(),
+            &fixture(if go {
+                "buffers/drawings/GOBUFSEL.dwg"
+            } else {
+                "buffers/drawings/CSELBASE.dwg"
+            }),
+        );
+    }
+    let mut editor = Editor::default();
+    for input in ["REPEAT", "POINT", "4,5"] {
+        editor.submit_return(input).unwrap();
+    }
+    editor.apply_menu_control(MenuControl::Cancel).unwrap();
+    editor.submit_return("ENDREP").unwrap();
+    assert_eq!(editor.submit_return("REPEAT"), Ok(Effect::Continue));
+    assert_eq!(editor.status(), "*Invalid*");
+    assert_eq!(editor.prompt(), "Command");
+    for input in ["POINT", "6,5", "ENDREP"] {
+        editor.submit_return(input).unwrap();
+    }
+    assert_eq!(editor.prompt(), "ENDREP: columns");
+    assert_eq!(editor.drawing().items.len(), 2);
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../docs/recovery/2026-10-01-menu-controls/cancel/drawings");
+    assert!(std::fs::read_to_string(root.join("CREPEAT.dxf"))
+        .unwrap()
+        .contains("POINT"));
+    assert!(
+        std::fs::read_to_string(root.join("CREPEAT.parse-error.txt"))
+            .unwrap()
+            .contains("REPEAT at offset 0x202 has no ENDREP")
+    );
+}

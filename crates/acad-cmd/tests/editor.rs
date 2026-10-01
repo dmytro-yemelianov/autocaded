@@ -1455,3 +1455,121 @@ fn menu_control_cancel_retains_repeat_marker() {
         );
     }
 }
+
+const RETURN_UNKNOWN: &str = "Unknown command. Type ? for list of commands.";
+
+#[test]
+fn menu_return_fresh_unknown_and_semicolon_are_distinct() {
+    let mut editor = Editor::default();
+    assert_eq!(editor.submit(""), Ok(Effect::Continue));
+    for input in ["", ";"] {
+        assert_eq!(editor.submit_return(input), Err(RETURN_UNKNOWN.into()));
+        assert_eq!(editor.status(), RETURN_UNKNOWN);
+        assert_eq!(editor.prompt(), "Command");
+        assert!(editor.drawing().items.is_empty());
+    }
+    // Raw macro commands and their empty pieces do not acquire Return history.
+    for input in ["POINT", "8,7", ""] {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(editor.submit_return(""), Err(RETURN_UNKNOWN.into()));
+    assert_eq!(editor.drawing().items.len(), 1);
+    editor.submit("MENU").unwrap();
+    assert_eq!(editor.submit(""), Ok(Effect::Continue));
+    editor.submit("ERASE").unwrap();
+    assert_eq!(editor.submit(""), Err("invalid entity number: ".into()));
+    assert!(editor.accepts_mouse_selection());
+}
+
+#[test]
+fn menu_return_empty_active_prompts_match_native() {
+    for (setup, status) in [
+        (vec!["LINE"], "*Invalid*"),
+        (vec!["CIRCLE", "2,3"], "*Invalid*"),
+        (vec!["LINE", "2,3"], ""),
+        (vec!["LINE", "2,3", "4,5"], ""),
+        (vec!["LINE", "2,3", "4,5", "", "ERASE"], ""),
+    ] {
+        let mut editor = Editor::default();
+        for input in setup {
+            editor.submit_return(input).unwrap();
+        }
+        let items = editor.drawing().items.clone();
+        assert_eq!(editor.submit_return(""), Ok(Effect::Continue));
+        assert_eq!(editor.prompt(), "Command");
+        assert_eq!(editor.status(), status);
+        assert_eq!(editor.drawing().items, items);
+    }
+    let mut editor = Editor::default();
+    editor.submit_return("MENU").unwrap();
+    assert_eq!(editor.submit_return(""), Ok(Effect::UnloadMenu));
+    assert_eq!(editor.status(), "");
+    assert_eq!(editor.prompt(), "Command");
+    // No correction to unobserved nonempty parser errors or other prompts.
+    editor.submit_return("CIRCLE").unwrap();
+    assert!(editor.submit_return("").is_err());
+    assert_eq!(editor.prompt(), "CIRCLE: center point");
+    editor.submit_return("2,3").unwrap();
+    assert!(editor.submit_return("bad").is_err());
+    assert_eq!(editor.prompt(), "CIRCLE: radius");
+}
+
+#[test]
+fn menu_return_known_history_survives_unknowns_and_prompt_answers() {
+    for setup in [vec!["LINE", ""], vec!["LINE", "2,3", ""]] {
+        let mut editor = Editor::default();
+        for input in setup {
+            editor.submit_return(input).unwrap();
+        }
+        for input in ["2,3", "4,5"] {
+            assert_eq!(editor.submit_return(input), Err(RETURN_UNKNOWN.into()));
+        }
+        editor
+            .apply_menu_control(acad_cmd::MenuControl::Snap)
+            .unwrap();
+        editor
+            .apply_menu_control(acad_cmd::MenuControl::Cancel)
+            .unwrap();
+        editor.submit_return("").unwrap();
+        assert_eq!(editor.prompt(), "LINE: first point");
+        assert!(editor.drawing().items.is_empty());
+    }
+    let mut editor = Editor::default();
+    editor.submit_return(" point ").unwrap();
+    editor.submit_return("8,7").unwrap();
+    let items = editor.drawing().items.clone();
+    editor.submit_return("").unwrap();
+    assert_eq!(editor.prompt(), "POINT: point");
+    assert_eq!(editor.drawing().items, items);
+    editor
+        .apply_menu_control(acad_cmd::MenuControl::Cancel)
+        .unwrap();
+    editor.submit("LINE").unwrap();
+    editor.submit("").unwrap();
+    editor.submit_return("").unwrap();
+    assert_eq!(editor.prompt(), "POINT: point");
+}
+
+#[test]
+fn menu_return_invalid_repeat_columns_retains_marker() {
+    for invalid in ["REPEAT", "0", "-1", "1.5", "65536"] {
+        let mut editor = Editor::default();
+        for input in ["REPEAT", "POINT", "4,5"] {
+            editor.submit_return(input).unwrap();
+        }
+        editor
+            .apply_menu_control(acad_cmd::MenuControl::Cancel)
+            .unwrap();
+        editor.submit_return("ENDREP").unwrap();
+        let items = editor.drawing().items.clone();
+        assert_eq!(editor.submit_return(invalid), Ok(Effect::Continue));
+        assert_eq!(editor.prompt(), "Command");
+        assert_eq!(editor.status(), "*Invalid*");
+        assert_eq!(editor.drawing().items, items);
+        for input in ["POINT", "6,5", "ENDREP"] {
+            editor.submit_return(input).unwrap();
+        }
+        assert_eq!(editor.prompt(), "ENDREP: columns");
+        assert_eq!(editor.drawing().items.len(), 2);
+    }
+}
