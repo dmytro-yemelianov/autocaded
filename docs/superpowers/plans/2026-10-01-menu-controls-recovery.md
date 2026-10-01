@@ -10,7 +10,7 @@
 
 **Spec:** `docs/HANDOVER-2026-09-30.md`, known limits item 3; `docs/superpowers/plans/2026-10-01-screen-menu-rendering.md`, recovered Task 1 findings; `corpus/System/ACAD.MNU`; `docs/oracle-qemu.md`; `formal/README.md`.
 
-**Common execution workflow:** [Recovery subagent roadmap](2026-10-01-recovery-subagent-roadmap.md) owns model routing, fresh implementer/reviewer dispatch, ledger, worktrees, escalation, integration, and final whole-branch review. Task 3/4 implementation is accepted. Task 5 documentation is updated; serial gates passed (310 non-oracle tests; menu_controls 10/10 with one executed FSLINE and zero skips; menu_mouse 1/1; fmt, Clippy, and Lean passed). Final Astra whole-branch review and local integration remain coordinator-owned.
+**Common execution workflow:** [Recovery subagent roadmap](2026-10-01-recovery-subagent-roadmap.md) owns model routing, fresh implementer/reviewer dispatch, ledger, worktrees, escalation, integration, and final whole-branch review. Task 3/4 implementation is accepted. Task 5 documentation is updated; serial gates passed (310 non-oracle tests; menu_controls 10/10 with one executed FSLINE and zero skips; menu_mouse 1/1; fmt, Clippy, and Lean passed). Final Astra review and the scoped review of its two minor fixes are complete; the slice through `55f7c81` is merged locally and the merged tree passed 310 non-oracle tests.
 
 ## Global Constraints
 
@@ -201,7 +201,7 @@ Fixture names are the recovery tool's normalized output interface; native guest 
 
 - [x] **Step 1: Update documentation from the final evidence.** Name the recovered controls, idle/active/pending cases tested, actual geometry coverage, and GO's resolved behavior or precise open question. Preserve M1–M3 limits. Do not claim Lean proves native mouse dispatch or untested constraint geometry.
 - [x] **Step 2: Run integration gates on the final slice.** `cargo test --workspace --exclude acad-oracle -- --test-threads=1`; focused real-QEMU `cargo test -p acad-oracle --test menu_controls -- --nocapture` and existing `--test menu_mouse`; `cargo fmt --all --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cd formal && lake build`. Record skips separately from real passes. Retest after fixes only as needed.
-- [ ] **Step 3: Final whole-branch review and merge handoff.** Follow the roadmap's model/workflow policy, including the required single Astra final whole-branch review for this independently completed slice. Reviewer gets baseline, diff, brief, evidence index, and checks. Merge sequentially with other slices; no parallel writers on app/editor/formal shared files.
+- [x] **Step 3: Final whole-branch review and merge handoff.** Follow the roadmap's model/workflow policy, including the required single Astra final whole-branch review for this independently completed slice. Reviewer gets baseline, diff, brief, evidence index, and checks. Merge sequentially with other slices; no parallel writers on app/editor/formal shared files.
 
 ## Self-review / known evidence boundaries
 

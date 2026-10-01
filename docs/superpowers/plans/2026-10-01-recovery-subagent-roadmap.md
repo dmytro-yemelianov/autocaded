@@ -1,7 +1,7 @@
 # Remaining command recovery: subagent execution roadmap
 
 Date: 2026-10-01
-Status: proposed execution order; planning only, native experiments and implementation not started
+Status: execution authorized; menu integrated locally through `55f7c81`; DIM and HATCH evidence/implementation pending
 Baseline: local `main` at `1f38904`, with screen-menu rendering and fresh drawing defaults merged
 
 **Goal:** Close the next three bounded gaps with native evidence, Lean behavioral contracts, Rust implementation, and differential tests: menu controls, DIM geometry, and a first additional HATCH pattern.
