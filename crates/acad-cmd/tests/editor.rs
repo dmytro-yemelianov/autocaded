@@ -1278,3 +1278,180 @@ fn editing_geometry_preserves_the_user_view_and_limits() {
     assert_eq!(editor.drawing().header.extents.xmin, 1.0);
     assert_eq!(editor.drawing().header.extents.xmax, 11.0);
 }
+
+fn menu_control_editor() -> Editor {
+    let mut editor = Editor::default();
+    editor.drawing_mut().header.snap.spacing = 0.5;
+    editor
+}
+
+fn menu_control_apply(editor: &mut Editor, control: acad_cmd::MenuControl, status: &str) {
+    assert_eq!(editor.apply_menu_control(control), Ok(Effect::Continue));
+    assert_eq!(editor.status(), status);
+}
+
+#[test]
+fn menu_control_snap_idle_matches_native() {
+    let mut editor = menu_control_editor();
+    let mut expected = editor.drawing().clone();
+    expected.header.snap.on = true;
+    menu_control_apply(&mut editor, acad_cmd::MenuControl::Snap, "<Snap on>");
+    assert_eq!(editor.drawing(), &expected);
+    assert_eq!(editor.prompt(), "Command");
+}
+
+#[test]
+fn menu_control_ortho_idle_matches_native() {
+    let mut editor = menu_control_editor();
+    let mut expected = editor.drawing().clone();
+    expected.header.ortho = true;
+    menu_control_apply(&mut editor, acad_cmd::MenuControl::Ortho, "<Ortho on>");
+    assert_eq!(editor.drawing(), &expected);
+}
+
+#[test]
+fn menu_control_twice_and_initial_on_match_native() {
+    for (control, on, off) in [
+        (acad_cmd::MenuControl::Snap, "<Snap on>", "<Snap off>"),
+        (acad_cmd::MenuControl::Ortho, "<Ortho on>", "<Ortho off>"),
+    ] {
+        let mut editor = menu_control_editor();
+        let original = editor.drawing().clone();
+        menu_control_apply(&mut editor, control, on);
+        menu_control_apply(&mut editor, control, off);
+        assert_eq!(editor.drawing(), &original);
+        editor.drawing_mut().header.snap.on = true;
+        editor.drawing_mut().header.ortho = true;
+        let mut expected = editor.drawing().clone();
+        match control {
+            acad_cmd::MenuControl::Snap => expected.header.snap.on = false,
+            acad_cmd::MenuControl::Ortho => expected.header.ortho = false,
+            acad_cmd::MenuControl::Cancel => unreachable!(),
+        }
+        menu_control_apply(&mut editor, control, off);
+        assert_eq!(editor.drawing(), &expected);
+    }
+}
+
+#[test]
+fn menu_control_preserves_fractional_line_pending_state() {
+    for control in [acad_cmd::MenuControl::Snap, acad_cmd::MenuControl::Ortho] {
+        let mut editor = menu_control_editor();
+        editor.submit("LINE").unwrap();
+        editor.submit("2.1,3.15").unwrap();
+        editor.apply_menu_control(control).unwrap();
+        assert_eq!(editor.prompt(), "LINE: next point (Enter to finish)");
+        assert!(editor.drawing().items.is_empty());
+        editor.submit("4.25,5.15").unwrap();
+        editor.submit("").unwrap();
+        assert_eq!(editor.prompt(), "Command");
+        assert_eq!(
+            bare_first(&editor),
+            &Entity::Line {
+                start: Point { x: 2.1, y: 3.15 },
+                end: Point { x: 4.25, y: 5.15 },
+            }
+        );
+        assert_eq!(editor.drawing().items.len(), 1);
+    }
+}
+
+#[test]
+fn menu_control_preserves_circle_radius_pending_state() {
+    for control in [acad_cmd::MenuControl::Snap, acad_cmd::MenuControl::Ortho] {
+        let mut editor = menu_control_editor();
+        editor.submit("CIRCLE").unwrap();
+        editor.submit("2,3").unwrap();
+        editor.apply_menu_control(control).unwrap();
+        assert_eq!(editor.prompt(), "CIRCLE: radius");
+        assert!(editor.drawing().items.is_empty());
+        editor.submit("1.25").unwrap();
+        assert_eq!(editor.prompt(), "Command");
+        assert_eq!(
+            bare_first(&editor),
+            &Entity::Circle {
+                center: Point { x: 2.0, y: 3.0 },
+                radius: 1.25,
+            }
+        );
+        assert_eq!(editor.drawing().items.len(), 1);
+    }
+}
+
+#[test]
+fn menu_control_cancel_retains_completed_segment() {
+    let mut editor = menu_control_editor();
+    for input in ["LINE", "2,3", "4,5"] {
+        editor.submit(input).unwrap();
+    }
+    let completed = editor.drawing().clone();
+    menu_control_apply(&mut editor, acad_cmd::MenuControl::Cancel, "*Cancel*");
+    assert_eq!(editor.prompt(), "Command");
+    assert_eq!(editor.drawing(), &completed);
+    editor.submit("POINT").unwrap();
+    editor.submit("8,7").unwrap();
+    assert_eq!(&editor.drawing().items[..1], completed.items);
+    assert_eq!(editor.drawing().items.len(), 2);
+    assert_eq!(
+        editor.drawing().entities().last().unwrap(),
+        &Entity::OnLayer {
+            layer: 1,
+            entity: Box::new(Entity::Point {
+                origin: Point { x: 8.0, y: 7.0 }
+            }),
+        }
+    );
+}
+
+#[test]
+fn menu_control_cancel_discards_only_pending_geometry() {
+    for setup in [
+        vec![],
+        vec!["LINE"],
+        vec!["LINE", "2,3"],
+        vec!["CIRCLE", "2,3"],
+        vec!["MENU"],
+    ] {
+        let mut editor = menu_control_editor();
+        for input in setup {
+            editor.submit(input).unwrap();
+        }
+        let original = editor.drawing().clone();
+        menu_control_apply(&mut editor, acad_cmd::MenuControl::Cancel, "*Cancel*");
+        assert_eq!(editor.prompt(), "Command");
+        assert_eq!(editor.drawing(), &original);
+        editor.submit("POINT").unwrap();
+        editor.submit("8,7").unwrap();
+        assert_eq!(editor.drawing().items.len(), 1);
+        assert_eq!(
+            bare_first(&editor),
+            &Entity::Point {
+                origin: Point { x: 8.0, y: 7.0 }
+            }
+        );
+    }
+}
+
+#[test]
+fn menu_control_cancel_retains_repeat_marker() {
+    for control in [
+        acad_cmd::MenuControl::Cancel,
+        acad_cmd::MenuControl::Snap,
+        acad_cmd::MenuControl::Ortho,
+    ] {
+        let mut editor = menu_control_editor();
+        for input in ["REPEAT", "POINT", "4,5"] {
+            editor.submit(input).unwrap();
+        }
+        editor.apply_menu_control(control).unwrap();
+        editor.submit("ENDREP").unwrap();
+        assert_eq!(editor.prompt(), "ENDREP: columns");
+        assert_eq!(editor.drawing().items.len(), 1);
+        assert_eq!(
+            bare_first(&editor),
+            &Entity::Point {
+                origin: Point { x: 4.0, y: 5.0 }
+            }
+        );
+    }
+}

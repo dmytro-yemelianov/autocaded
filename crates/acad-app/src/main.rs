@@ -92,7 +92,7 @@ impl App {
 
     /// Dispatches a left-click against the rendered screen-menu panel, if
     /// one is loaded and the click lands inside it. Returns `true` when the
-    /// click was handled (including as a documented no-op for a
+    /// click was handled (including an unsupported
     /// control-byte entry or a blank panel slot) so the caller skips the ordinary
     /// `submit_mouse_point`/`pick_mouse_entity` dispatch; returns `false`
     /// when there is no menu, no cursor position, or the click fell outside
@@ -142,6 +142,20 @@ impl App {
                 let Some(entry) = menu_panel::resolve_entry(&menu, self.menu_page, index) else {
                     return true;
                 };
+                let control = match entry.action.as_slice() {
+                    [0x02] => Some(acad_cmd::MenuControl::Snap),
+                    [0x0f] => Some(acad_cmd::MenuControl::Ortho),
+                    [0x03] => Some(acad_cmd::MenuControl::Cancel),
+                    _ => None,
+                };
+                if let Some(control) = control {
+                    if control == acad_cmd::MenuControl::Cancel {
+                        self.input.clear();
+                    }
+                    let result = self.editor.apply_menu_control(control);
+                    handle_result(self, result);
+                    return true;
+                }
                 if entry.action.len() == 1 && entry.action[0] < 0x20 {
                     self.status = format!(
                         "{} is not yet implemented (control byte 0x{:02x})",
@@ -1137,7 +1151,7 @@ mod tests {
     }
 
     #[test]
-    fn app_mouse_route_dispatches_point_and_consumes_control_entries() {
+    fn app_mouse_route_dispatches_point_macro() {
         let (width, height) = (640, 480);
         let mut app = menu_app(1);
         let layout = menu_panel::layout_for(app.menu.as_ref().unwrap(), 1, width, height);
@@ -1150,12 +1164,6 @@ mod tests {
             app.editor.accepts_mouse_point(),
             "POINT row must submit its macro"
         );
-        app.menu_page = 0;
-        app.cursor = Some(((layout.rect.0 + 2) as f64, (layout.row_height + 2) as f64));
-        click(&mut app, width, height);
-        assert!(app.editor.accepts_mouse_point());
-        assert_eq!(app.editor.drawing().entities().count(), 0);
-        assert!(app.status.contains("^Snap") && app.status.contains("0x02"));
     }
 
     #[test]
@@ -1218,5 +1226,180 @@ mod tests {
         app.editor.submit("POINT").unwrap();
         click(&mut app, 640, 480);
         assert_eq!(app.editor.drawing().entities().count(), 1);
+    }
+
+    fn menu_control_fixture(path: &str) -> acad_model::Drawing {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../docs/recovery/2026-10-01-menu-controls")
+            .join(path);
+        acad_dwg::parse(&std::fs::read(path).unwrap()).unwrap()
+    }
+
+    fn control_cursor(app: &mut App, byte: u8) {
+        let menu = app.menu.as_ref().unwrap();
+        let layout = menu_panel::layout_for(menu, app.menu_page, 640, 480);
+        app.cursor = (0..21).find_map(|row| {
+            let (x, y) = (
+                (layout.rect.0 + 2) as f64,
+                (row * layout.row_height + 2) as f64,
+            );
+            let menu_panel::PanelHit::Entry(index) =
+                menu_panel::entry_at(menu, app.menu_page, &layout, x, y)?
+            else {
+                return None;
+            };
+            (menu_panel::resolve_entry(menu, app.menu_page, index)?.action == [byte])
+                .then_some((x, y))
+        });
+        assert!(app.cursor.is_some(), "control byte {byte:x} missing");
+    }
+
+    #[test]
+    fn app_mouse_route_menu_controls_preserve_prompt_and_consume_panel() {
+        for (byte, status) in [(0x02, "<Snap on>"), (0x0f, "<Ortho on>")] {
+            for setup in [vec!["LINE", "2.1,3.15"], vec!["CIRCLE", "2,3"]] {
+                let mut app = menu_app(0);
+                app.editor.drawing_mut().header.snap.spacing = 0.5;
+                for input in setup {
+                    app.editor.submit(input).unwrap();
+                }
+                let prompt = app.editor.prompt().to_owned();
+                let mut expected = app.editor.drawing().clone();
+                if byte == 0x02 {
+                    expected.header.snap.on = true;
+                } else {
+                    expected.header.ortho = true;
+                }
+                app.input = "pending text".into();
+                control_cursor(&mut app, byte);
+                let mut callbacks = 0;
+                app.handle_left_click(640, 480, |app, result| {
+                    callbacks += 1;
+                    assert_eq!(result, Ok(acad_cmd::Effect::Continue));
+                    app.status = app.editor.status().to_owned();
+                });
+                assert_eq!(callbacks, 1);
+                assert_eq!(app.status, status);
+                assert_eq!(app.input, "pending text");
+                assert_eq!(app.editor.prompt(), prompt);
+                assert_eq!(app.editor.drawing(), &expected);
+                assert_eq!(app.menu_page, 0);
+                assert!(app.menu.is_some());
+                let line = prompt.starts_with("LINE");
+                for input in if line {
+                    vec!["4.25,5.15", ""]
+                } else {
+                    vec!["1.25"]
+                } {
+                    app.editor.submit(input).unwrap();
+                }
+                let id = match (byte, line) {
+                    (0x02, true) => "FSLINE",
+                    (0x0f, true) => "FOLINE",
+                    (0x02, false) => "SCIRCLE",
+                    (0x0f, false) => "OCIRCLE",
+                    _ => unreachable!(),
+                };
+                let native = menu_control_fixture(&format!("controls/drawings/{id}.dwg"));
+                assert_eq!(app.editor.drawing().items, native.items);
+                assert_eq!(app.editor.drawing().header.snap, native.header.snap);
+                assert_eq!(app.editor.drawing().header.ortho, native.header.ortho);
+            }
+        }
+        let mut app = menu_app(0);
+        let entry = app
+            .menu
+            .as_mut()
+            .unwrap()
+            .entries
+            .iter_mut()
+            .find(|entry| entry.action == [0x02])
+            .unwrap();
+        entry.action = vec![0x04];
+        app.editor.submit("POINT").unwrap();
+        app.input = "unchanged".into();
+        control_cursor(&mut app, 0x04);
+        app.handle_left_click(640, 480, |_, _| panic!("unknown control callback"));
+        assert!(app.status.contains("0x04"));
+        assert_eq!(app.input, "unchanged");
+        assert!(app.editor.accepts_mouse_point());
+        assert!(app.editor.drawing().items.is_empty());
+        for page in [1, 2] {
+            app.menu_page = page;
+            let layout = menu_panel::layout_for(app.menu.as_ref().unwrap(), page, 640, 480);
+            app.cursor = Some(((layout.rect.0 + 2) as f64, 2.0));
+            app.handle_left_click(640, 480, |_, _| panic!("blank callback"));
+            assert!(app.editor.drawing().items.is_empty());
+            assert_eq!(app.menu_page, page);
+        }
+    }
+
+    #[test]
+    fn app_mouse_route_menu_cancel_clears_buffers_and_retains_selection() {
+        for page in 0..3 {
+            for (setup, buffer) in [
+                (vec![], "p"),
+                (vec!["LINE"], "2"),
+                (vec!["ERASE"], "1"),
+                (vec!["MENU"], "AC"),
+            ] {
+                let mut app = menu_app(page);
+                for input in setup {
+                    app.editor.submit(input).unwrap();
+                }
+                app.input = buffer.into();
+                let original = app.editor.drawing().clone();
+                control_cursor(&mut app, 0x03);
+                let mut callbacks = 0;
+                app.handle_left_click(640, 480, |app, result| {
+                    callbacks += 1;
+                    assert_eq!(result, Ok(acad_cmd::Effect::Continue));
+                    app.status = app.editor.status().to_owned();
+                });
+                assert_eq!(callbacks, 1);
+                assert!(app.input.is_empty());
+                assert_eq!(app.editor.prompt(), "Command");
+                assert_eq!(app.status, "*Cancel*");
+                assert_eq!(app.editor.drawing(), &original);
+                assert_eq!(app.menu_page, page);
+                assert!(app.menu.is_some());
+                for input in ["POINT", "8,7"] {
+                    app.editor.submit(input).unwrap();
+                }
+                assert_eq!(app.editor.drawing().items.len(), 1);
+                assert_eq!(
+                    app.editor
+                        .pick_entity_at(acad_model::Point { x: 8.0, y: 7.0 }, 1e-12),
+                    Some(1)
+                );
+                let id = match buffer {
+                    "p" => "CBIDLE",
+                    "2" => "CBPOINT",
+                    "1" => "CBSELECT",
+                    _ => continue,
+                };
+                let native = menu_control_fixture(&format!("cancel-tail/drawings/{id}.dwg"));
+                assert_eq!(app.editor.drawing().items, native.items);
+                assert_eq!(app.editor.drawing().header.snap, native.header.snap);
+                assert_eq!(app.editor.drawing().header.ortho, native.header.ortho);
+            }
+        }
+        let mut app = menu_app(0);
+        app.editor = acad_cmd::Editor::new(menu_control_fixture("pilot/drawings/CSELECT.dwg"));
+        let original = app.editor.drawing().clone();
+        app.editor.submit("ERASE").unwrap();
+        let screen = viewport_for(app.editor.drawing(), 640, 480).to_screen(acad_model::Point {
+            x: 6.0,
+            y: 3.58823529411769,
+        });
+        app.cursor = Some((screen.x, screen.y));
+        click(&mut app, 640, 480);
+        assert_eq!(app.input, "1");
+        control_cursor(&mut app, 0x03);
+        click(&mut app, 640, 480);
+        assert!(app.input.is_empty());
+        assert_eq!(app.status, "*Cancel*");
+        assert_eq!(app.editor.prompt(), "Command");
+        assert_eq!(app.editor.drawing(), &original);
     }
 }

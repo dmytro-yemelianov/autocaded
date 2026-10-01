@@ -44,6 +44,13 @@ pub(crate) const HATCH_PATTERNS: &[(&str, &str)] = &[
     ("ZIGZAG", "Staircase effect"),
 ];
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MenuControl {
+    Snap,
+    Ortho,
+    Cancel,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Effect {
     Continue,
@@ -214,6 +221,35 @@ impl Editor {
                 self.drawing.header.snap.spacing.max(f64::EPSILON)
             }
         })
+    }
+
+    /// Apply the recovered immediate screen-menu controls without submitting text.
+    /// Menu Cancel retains the repeat marker and completed drawing mutations.
+    pub fn apply_menu_control(&mut self, control: MenuControl) -> Result<Effect, String> {
+        self.status = match control {
+            MenuControl::Snap => {
+                self.drawing.header.snap.on = !self.drawing.header.snap.on;
+                if self.drawing.header.snap.on {
+                    "<Snap on>"
+                } else {
+                    "<Snap off>"
+                }
+            }
+            MenuControl::Ortho => {
+                self.drawing.header.ortho = !self.drawing.header.ortho;
+                if self.drawing.header.ortho {
+                    "<Ortho on>"
+                } else {
+                    "<Ortho off>"
+                }
+            }
+            MenuControl::Cancel => {
+                self.state = InputState::Command;
+                "*Cancel*"
+            }
+        }
+        .into();
+        Ok(Effect::Continue)
     }
 
     /// Cancel the active command and any unfinished REPEAT grouping.
