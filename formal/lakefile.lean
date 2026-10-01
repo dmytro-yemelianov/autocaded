@@ -5,4 +5,4 @@ package «autocad-formal»
 
 @[default_target]
 lean_lib AutoCAD where
-  roots := #[`AutoCAD.Wblock, `AutoCAD.Dblist, `AutoCAD.Units, `AutoCAD.HelpFiles, `AutoCAD.Geometry]
+  roots := #[`AutoCAD.Wblock, `AutoCAD.Dblist, `AutoCAD.Units, `AutoCAD.HelpFiles, `AutoCAD.Geometry, `AutoCAD.MenuControls]

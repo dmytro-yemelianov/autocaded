@@ -29,7 +29,17 @@ captured LINE help page, MENU cancellation flow, and FILES menu entry. Rust
 parses `.MNU` labels and preserves macro bytes. The app implements panel
 rendering, repeat-boundary pagination, and plain-text mouse macros; a QEMU differential case compares a real native click with Rust
 dispatch. This Lean model does not prove mouse dispatch or pagination.
-Control-byte click semantics and the exact native GO mechanism remain open.
+`AutoCAD.MenuControls` adds finite, artifact-linked observations for immediate
+Snap/Ortho toggles, pending typed geometry, menu Cancel retention and buffers,
+REPEAT opener retention, MENU blank unload versus Cancel, and GO's Return-like
+history/buffer behavior. Its partial lookup returns `none` for unrecorded inputs;
+that means uncertified, not a native error/no-op. Decimal coordinates and spacing
+are symbolic tokens; Rust tests must establish refinement separately. The
+[implementation brief](../docs/recovery/2026-10-01-menu-controls/implementation.md)
+pins actual staged fixture names, exact expected results and proposed Rust APIs.
+The native GO byte mechanism, true blank-panel mapping, general command history,
+and total mouse Snap/Ortho projection (ties, rounding, origin, axis/order) remain
+open. CREPEAT has prompt/native-DXF evidence only: no full decoded group/header.
 Rust implements FILES listing, deletion, and rename
 against mapped host directories; the Lean model does not specify their
 filesystem semantics. Other named help pages remain open.
@@ -45,6 +55,6 @@ and circle boundaries, a nested line-loop hole, and an upper semicircle closed
 by a diameter. Other listed patterns remain outside this model. SKETCH takes a record increment before awaiting a digitizer, so it
 remains dependent on an input device.
 
-The original behavior still needs the QEMU oracle. Lean proves that the Rust
-implementation matches this model only when the behavior is represented here;
-it cannot supply missing facts about AutoCAD by itself.
+The original behavior still needs the QEMU oracle. Lean checks the stated model's
+obligations. No Rust refinement proof is supplied by this package; Rust regression tests establish correspondence separately. Lean
+cannot supply missing facts about AutoCAD by itself.
