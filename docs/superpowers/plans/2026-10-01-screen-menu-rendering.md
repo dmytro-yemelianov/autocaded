@@ -327,9 +327,9 @@ git commit -m "test(oracle): add QEMU differential case for a native menu click"
 **Files:**
 - Modify: `docs/HANDOVER-2026-09-30.md` (or whatever the current dated handover file is named at execution time — check `docs/` for the most recent one first)
 
-- [ ] **Step 1:** Update "Known limits and next work" item 3 to record what this plan completed (plain-text entry rendering and click dispatch, one differential case) and what remains explicitly out of scope per this plan's Global Constraints (control-byte entry dispatch semantics still unrecovered).
-- [ ] **Step 1b (tracked by Task 5's review, not yet fixed):** `acad_cmd::Editor::default()`'s fallback header (`LIMITS` -10..10 both axes, `view` center (0,0) height 20) does not match native AutoCAD 1.4's real fresh-drawing default (`LIMITS` 0..12 x 0..9, `view` center (6.8504901960784315, 4.5) height 9.0 — confirmed under QEMU by Task 5's `menu_mouse.rs`/`commands.rs` oracle tests). Since `acad-app`'s own startup path calls `Editor::default()` (`crates/acad-app/src/main.rs:922`), the real app's on-screen view/limits diverge from native from the very first frame, independent of anything in this plan. Record this as its own "known limits and next work" item in the handover doc rather than only as an implicit workaround inside Task 5's test seeding.
-- [ ] **Step 2:** Commit.
+- [x] **Step 1:** Update "Known limits and next work" item 3 to record what this plan completed (plain-text entry rendering and click dispatch, one differential case) and what remains explicitly out of scope per this plan's Global Constraints (control-byte entry dispatch semantics still unrecovered).
+- [x] **Step 1b (default-header mismatch tracked; behavior remains unresolved):** `acad_cmd::Editor::default()`'s fallback header (`LIMITS` -10..10 both axes, `view` center (0,0) height 20) does not match native AutoCAD 1.4's real fresh-drawing default (`LIMITS` 0..12 x 0..9, `view` center (6.8504901960784315, 4.5) height 9.0 — confirmed under QEMU by Task 5's `menu_mouse.rs`/`commands.rs` oracle tests). This mismatch remains unresolved for default/empty drawing construction. Production `acad-app` startup reads and parses a drawing and calls `Editor::new(drawing)` (`crates/acad-app/src/main.rs:708-727`); the cited `Editor::default()` call is a test fixture, not startup. Record this as its own "known limits and next work" item in the handover doc rather than only as an implicit workaround inside Task 5's test seeding.
+- [x] **Step 2:** Commit.
 
 ```bash
 git add docs/HANDOVER-*.md
