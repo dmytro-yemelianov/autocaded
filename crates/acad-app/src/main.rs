@@ -8,6 +8,7 @@ use winit::{
     window::{Window, WindowId},
 };
 mod files;
+mod menu_panel;
 
 /// A window plus the softbuffer surface drawing into it. They are created
 /// together on resume and torn down together, so they travel as one.
