@@ -1551,9 +1551,8 @@ mod tests {
             app.editor.submit_return(input).unwrap();
         }
         let items = app.editor.drawing().items.clone();
-        for cursor in [(100.0, 100.0), (400.0, 300.0)] {
-            app.cursor = Some(cursor);
-            assert_eq!(return_or_go(&mut app, true), 1);
+        for go in [false, true] {
+            assert_eq!(return_or_go(&mut app, go), 1);
             assert_eq!(app.editor.prompt(), "POINT: point");
             assert_eq!(app.editor.drawing().items, items);
             app.editor

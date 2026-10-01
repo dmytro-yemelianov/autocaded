@@ -165,10 +165,11 @@ The offline oracle coverage consists of eight `menu_control_*` fixture tests;
 Task 4 adds `menu_controls_go_native_fixtures`.
 `original_menu_controls_pending_snap_matches_native` is the separate live FSLINE
 regression. The `menu_control_` filter runs only the eight fixture cases. The Task
-3/4 focused native target had ten tests: nine fixture cases and one actual QEMU
-FSLINE execution, with zero skips. Final slice validation and exact test counts
-are recorded in the Task 5 report. These are finite Rust refinements, not general
-native parity. No desktop/DPI runtime verification was performed.
+3 focused native target had nine tests: eight fixture cases and one actual QEMU
+FSLINE execution. The Task 4 and final focused target had ten tests: nine fixture
+cases and one actual QEMU FSLINE execution, with zero skips. Final slice validation
+and exact test counts are recorded in the Task 5 report. These are finite Rust
+refinements, not general native parity. No desktop/DPI runtime verification was performed.
 
 `submit_mouse_point` remains unchanged. Snap and Ortho toggle exported flags,
 while observed typed points bypass those constraints; mouse projection remains
