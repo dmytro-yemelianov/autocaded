@@ -28,21 +28,36 @@ use acad_model::{Entity, Extents, Item, Point, UnitFormat, Units};
 /// fixed device aspect rather than a per-box coincidence. This is the native
 /// screen's drawing viewport (it excludes the always-present screen-menu
 /// panel reserved on the right, and CGA's non-square pixels), not a generic
-/// 4:3 or 640/480 constant — no simpler closed form reproduced the measured
-/// digits, so it is recorded as measured rather than derived.
+/// 4:3 or 640/480 constant. As an exact fraction (`Fraction(1.5223311546840958...)`
+/// in lowest terms) this is precisely `2795/1836`; `1836 = 2^2 * 3^3 * 17`
+/// and `2795 = 5 * 13 * 43` share no common factor, so this is not simply a
+/// reduced form of some rounder pixel-count ratio either (no `W`/`H` integer
+/// pair smaller than `2795`/`1836` itself reproduces it) — recorded as
+/// measured rather than derived from a known device pixel geometry.
 const ZOOM_ALL_DEVICE_ASPECT: f64 = 1.522_331_154_684_095_9;
 
-/// The box a fit-to-box ZOOM variant shows: the drawing's `LIMITS`, expanded
-/// to also include `EXTENTS` when the latter has already been given a real
-/// (non-degenerate) area. A still-zero/point `EXTENTS` is this format's
-/// sentinel for "no entity has caused a recompute yet" (observed under QEMU:
-/// drawing entities past `LIMITS` does not by itself update the stored
-/// `EXTENTS` header field), so it must not be unioned in — doing so would
-/// wrongly pull the shown box toward the origin.
+/// The box a fit-to-box ZOOM variant shows: the drawing's `LIMITS`, always
+/// expanded to also include `EXTENTS` — unconditionally, with no
+/// degenerate-`EXTENTS` special case. An earlier version of this function
+/// special-cased a degenerate (zero-area) `EXTENTS` as "no entity has caused
+/// a recompute yet" and skipped unioning it in, reasoning that doing so
+/// would wrongly pull the shown box toward the origin. That reasoning had
+/// it backwards: a QEMU re-check (Task 5's review) with `LIMITS` boxes that
+/// do *not* start at `(0, 0)` (e.g. `(5, 7)`-`(29, 25)`) showed native's
+/// `ZOOM All` result always includes the origin regardless of `LIMITS`,
+/// which only a plain, unconditional union with a *degenerate point at the
+/// origin* (`EXTENTS`'s own real default, both on native and in this
+/// crate's `Editor::default()`) explains — i.e. the origin isn't excluded
+/// from a degenerate `EXTENTS`, it *is* what a degenerate `EXTENTS` at the
+/// origin contributes. (Native does not appear to auto-recompute `EXTENTS`
+/// from added geometry the same frame it's drawn — a LINE placed well
+/// outside `LIMITS` left the stored `EXTENTS` field at `(0,0,0,0)` even
+/// after `REGEN` — so the general "entities already moved `EXTENTS` away
+/// from the origin, do we still union it in" case remains unverified; only
+/// the degenerate-at-origin case this task's own tests exercise is
+/// confirmed. A future task should verify the non-degenerate case directly
+/// before relying on it.)
 fn zoom_all_bounds(limits: Extents, extents: Extents) -> Extents {
-    if extents.is_degenerate() {
-        return limits;
-    }
     Extents {
         xmin: limits.xmin.min(extents.xmin),
         ymin: limits.ymin.min(extents.ymin),

@@ -2059,6 +2059,50 @@ fn original_zoom_previous_restores_the_prior_view() {
 
 #[cfg(unix)]
 #[test]
+fn original_zoom_all_fits_limits_matched_by_rust() {
+    // `ZOOM All`'s fit-to-box behavior (Task 5 of the screen-menu-rendering
+    // plan: `crates/acad-cmd/src/dispatch.rs`'s `"A" | "ALL"` arm,
+    // `zoom_all_bounds`/`fit_box_to_device`) was previously validated only
+    // by scratch probes that were never committed. This keyboard-only test
+    // (no mouse simulation needed) is the committed evidence: it exercises
+    // a wide box (width > height, width-constrained) and a box with a
+    // non-zero `ymin` (so an anchor-at-origin bug, or a bug that only
+    // shows up for boxes starting at (0,0), would be caught), each typed
+    // directly against the native original and compared to the Rust
+    // `Editor`'s own result for the identical input.
+    let disk = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img");
+    if !disk.exists() || !acad_oracle::available() {
+        eprintln!("skipping oracle: extracted System.img or qemu-system-i386 absent");
+        return;
+    }
+
+    for (name, min, max) in [("ORCZALL1", "0,0", "20,10"), ("ORCZALL2", "5,7", "29,25")] {
+        let inputs = ["LIMITS", min, max, "ZOOM", "A"];
+        let (_, dxf) = acad_oracle::generate_pair(&disk, name, &inputs).unwrap();
+        let native = acad_dxf::parse(&dxf).unwrap();
+
+        let mut rust = acad_cmd::Editor::default();
+        for input in inputs {
+            rust.submit(input).unwrap();
+        }
+
+        let native_view = native.header.view;
+        let rust_view = rust.drawing().header.view;
+        let close = |actual: f64, expected: f64, what: &str| {
+            assert!(
+                (actual - expected).abs() <= 1e-6,
+                "{name} {what}: {actual} != {expected}"
+            );
+        };
+        close(native_view.center.x, rust_view.center.x, "center.x");
+        close(native_view.center.y, rust_view.center.y, "center.y");
+        close(native_view.height, rust_view.height, "height");
+    }
+}
+
+#[cfg(unix)]
+#[test]
 fn original_creates_a_line_arc_and_rotated_text() {
     use acad_model::{Entity, Item, Point};
 

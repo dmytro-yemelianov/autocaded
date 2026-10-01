@@ -268,11 +268,13 @@ impl App {
     }
 }
 
-/// Splits a decoded macro's text on `;` into the individual pieces that get
-/// submitted to `Editor::submit` one at a time (`;` in `.MNU` macro syntax
-/// stands for pressing Enter — see `handle_panel_click`'s doc comment for
-/// why `submit`/`command` do not do this splitting themselves). Pulled out
-/// as a free function so it is testable without an `ActiveEventLoop`.
+/// Splits a decoded macro's text on `;` *and* ASCII whitespace into the
+/// individual pieces that get submitted to `Editor::submit` one at a time
+/// (both stand for pressing Enter in `.MNU` macro syntax — see
+/// `handle_panel_click`'s doc comment for why `submit`/`command` do not do
+/// this splitting themselves, and why whitespace needed to be added to this
+/// function alongside `;`). Pulled out as a free function so it is testable
+/// without an `ActiveEventLoop`.
 fn split_macro_pieces(text: &str) -> impl Iterator<Item = &str> {
     text.split(';').flat_map(|piece| {
         // `split_whitespace` drops empty/all-whitespace pieces entirely, but

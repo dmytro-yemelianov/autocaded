@@ -330,14 +330,20 @@ fn zoom_extents_centers_on_the_drawing_and_previous_restores_the_view() {
 }
 
 #[test]
-fn zoom_all_fits_limits_anchored_at_its_own_lower_left_corner() {
+fn zoom_all_fits_the_union_of_limits_and_extents_anchored_at_the_origin() {
     // Native AutoCAD 1.4's `ZOOM All` (recovered under QEMU in Task 5 of the
-    // screen-menu-rendering plan) does not center a width-constrained box's
-    // shown region on the box's own center: it anchors the box's lower-left
-    // corner (xmin, ymin) and extends only up/right to fill the device's
-    // aspect ratio. `Editor::default()`'s LIMITS are a square (-10,-10) to
-    // (10,10); since the device is wider-than-tall relative to that square,
-    // height stays exactly the box's own height (20) and width expands.
+    // screen-menu-rendering plan, then *corrected* by the task's own review
+    // round after a LIMITS box not containing the origin exposed the first
+    // version's bug) does not center a slack-axis box's shown region on the
+    // box's own center, and does not anchor at the box's own corner either:
+    // it fits `union(LIMITS, EXTENTS)`, and a fresh drawing's `EXTENTS`
+    // defaults to a degenerate point *at the origin* (both natively and in
+    // this crate's `Editor::default()`), so the shown box always ends up
+    // including `(0, 0)` even when `LIMITS` itself does not. `(-10,-10)` to
+    // `(10,10)` already contains the origin, so it cannot by itself
+    // distinguish "anchored at the box's own corner" from "anchored at the
+    // origin" — this test's second case (`LIMITS` not containing the
+    // origin at all) is the one that actually pins this down.
     let mut editor = Editor::default();
     editor.submit("ZOOM").unwrap();
     editor.submit("A").unwrap();
@@ -345,33 +351,32 @@ fn zoom_all_fits_limits_anchored_at_its_own_lower_left_corner() {
     assert_eq!(view.height, 20.0);
     assert_eq!(
         view.center.y, 0.0,
-        "y is the fitting axis: box's own center"
-    );
-    assert!(
-        view.center.x > -10.0,
-        "x is the slack axis: anchored at xmin, not centered at 0.0"
+        "y is the fitting axis: union(LIMITS, origin)'s own center"
     );
     const DEVICE_ASPECT: f64 = 1.522_331_154_684_095_9;
-    let expected_x = -10.0 + (20.0 * DEVICE_ASPECT) / 2.0;
+    let expected_x = (20.0 * DEVICE_ASPECT) / 2.0 - 10.0;
     assert!((view.center.x - expected_x).abs() < 1e-9);
 
-    // A LIMITS box wider than the device aspect is instead width-constrained:
-    // width stays the box's own width and height expands, still anchored at
-    // the box's own ymin rather than centered.
+    // A LIMITS box that does not contain the origin at all: the shown box
+    // must still be anchored relative to (0, 0), not to LIMITS's own
+    // (5, 7) lower-left corner — i.e. `union((5,7)-(29,25), (0,0))` =
+    // `(0,0)-(29,25)`, not `(5,7)-(29,25)` itself.
     editor.submit("LIMITS").unwrap();
-    editor.submit("0,0").unwrap();
-    editor.submit("20,10").unwrap();
+    editor.submit("5,7").unwrap();
+    editor.submit("29,25").unwrap();
     editor.submit("ZOOM").unwrap();
     editor.submit("ALL").unwrap();
     let view = editor.drawing().header.view;
-    assert_eq!(
-        view.center.x, 10.0,
-        "x is the fitting axis: box's own center"
-    );
-    assert!(view.height > 10.0, "y is the slack axis: height expanded");
+    // union box is (0,0)-(29,25): width 29, height 25, aspect 1.16 < device
+    // aspect, so height stays exactly 25 (the union box's own height) and
+    // width expands from the origin.
+    assert_eq!(view.height, 25.0);
+    assert_eq!(view.center.y, 12.5, "anchored at union ymin = 0, not 7");
+    let expected_x = (25.0 * DEVICE_ASPECT) / 2.0;
     assert!(
-        view.center.y > 0.0 && view.center.y < view.height,
-        "y anchored at ymin=0, not centered at the box's own center 5.0"
+        (view.center.x - expected_x).abs() < 1e-6,
+        "anchored at union xmin = 0, not LIMITS's own xmin = 5: {} != {expected_x}",
+        view.center.x
     );
 }
 
