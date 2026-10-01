@@ -149,6 +149,35 @@ The separate top drawing request `(250,4)` has no visible drawing crosshair;
 it likewise does not certify the inverse at that boundary. Actual GO label
 landings are independently visible on page 0.
 
+## Rust refinement and validation
+
+The accepted implementation in commits `7feb962`, `41c411f`, and `9b2b165`
+adds exact-byte Snap/Ortho/Cancel routing, typed pending-state preservation,
+Cancel buffer clearing with completed entity and repeat-marker retention, and a
+shared physical Return/GO submission path. Return/GO repeats observed MENU,
+POINT, and LINE histories, including buffered LINE points and picked ERASE
+selections. Empty MENU filename unloads; Cancel retains the panel. Rust regressions
+refine these finite fixtures and exercise the actual app route. `menu.rs` owns only
+exact parsed Header-tail preservation and its parser regression; the `b";"` value
+is corpus metadata, while GO behavior follows the observed Return transitions.
+
+The offline oracle coverage consists of eight `menu_control_*` fixture tests;
+Task 4 adds `menu_controls_go_native_fixtures`.
+`original_menu_controls_pending_snap_matches_native` is the separate live FSLINE
+regression. The `menu_control_` filter runs only the eight fixture cases. The Task
+3/4 focused native target had ten tests: nine fixture cases and one actual QEMU
+FSLINE execution, with zero skips. Final slice validation and exact test counts
+are recorded in the Task 5 report. These are finite Rust refinements, not general
+native parity. No desktop/DPI runtime verification was performed.
+
+`submit_mouse_point` remains unchanged. Snap and Ortho toggle exported flags,
+while observed typed points bypass those constraints; mouse projection remains
+unimplemented. True native blank-slot hit mapping is uncertified. Exact ties,
+origin, negative rounding, arbitrary spacing, axis choice, projection order, and
+view rules remain unsupported. Partial-buffer toggle parity, general command
+history, and broad native constraints are not claimed. M1–M3 custom macro behavior
+remains as described in the handover.
+
 ## Axis witnesses and remaining geometry boundary
 
 MAXIS saves six LINEs: one raw/control pair for each native endpoint

@@ -36,10 +36,23 @@ history/buffer behavior. Its partial lookup returns `none` for unrecorded inputs
 that means uncertified, not a native error/no-op. Decimal coordinates and spacing
 are symbolic tokens; Rust tests must establish refinement separately. The
 [implementation brief](../docs/recovery/2026-10-01-menu-controls/implementation.md)
-pins actual staged fixture names, exact expected results and proposed Rust APIs.
-The native GO byte mechanism, true blank-panel mapping, general command history,
-and total mouse Snap/Ortho projection (ties, rounding, origin, axis/order) remain
-open. CREPEAT has prompt/native-DXF evidence only: no full decoded group/header.
+pins actual staged fixture names and exact expected results; accepted Rust tests
+refine these finite cases, including actual parsed app entries and the shared
+Return/GO path. Snap/Ortho change flags and preserve pending typed prompts, while
+typed coordinates in the observed cases bypass constraints. Menu Cancel clears
+app input and pending command state while retaining completed entities, repeat
+marker, loaded panel and page. GO shares physical Return submission: it submits
+the current buffer once and repeats observed MENU/POINT/LINE histories; empty
+MENU filename unloads and Cancel retains the panel. These Rust tests do not prove
+native mouse dispatch generally or desktop/DPI behavior.
+The native GO byte mechanism, true blank-panel hit mapping, general command
+history, and mouse Snap/Ortho projection remain open. `submit_mouse_point` is
+unchanged; exact ties, origin, negative rounding, arbitrary spacing, axis choice,
+projection order, and view rules are unrecovered. The partial Lean lookup is not
+a mouse dispatch or projection proof. `submit_mouse_point` is
+unchanged; exact ties, origin, negative rounding, arbitrary spacing, axis choice,
+projection order, and view rules are unrecovered. The partial Lean lookup is not
+a mouse dispatch or projection proof. CREPEAT has prompt/native-DXF evidence only: no full decoded group/header.
 Rust implements FILES listing, deletion, and rename
 against mapped host directories; the Lean model does not specify their
 filesystem semantics. Other named help pages remain open.

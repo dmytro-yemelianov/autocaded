@@ -24,8 +24,7 @@ pub fn submit_return(&mut self, input: &str) -> Result<Effect, String>;
 Task 3 owns `MenuControl` and `apply_menu_control` in `lib.rs`, editor regression
 cases in `crates/acad-cmd/tests/editor.rs`, app control routing/tests in
 `crates/acad-app/src/main.rs`, and fixture tests in
-`crates/acad-oracle/tests/menu_controls.rs`. A separate module is unnecessary for
-three small operations. Do not feed control bytes to text `submit` or enter typed
+`crates/acad-oracle/tests/menu_controls.rs`. Do not feed control bytes to text `submit` or enter typed
 SNAP/ORTHO prompts for these immediate operations. Snap flips only `header.snap.on`, Ortho flips only
 `header.ortho`; both preserve spacing bit-for-bit, command state, pending geometry,
 completed items, and the repeat marker. Return `Ok(Effect::Continue)` and replace
@@ -51,7 +50,11 @@ CircleRadius, MenuFile, EditSelection(Erase), and RepeatColumns suffice. No chan
 to `editor_ops.rs`, model, codecs, rendering, Session, splitter or geometry are
 needed. `menu_panel.rs` keeps its current hit rules; only a stale GO comment may
 be corrected in Task 4 if necessary. NEXT keeps its independent wrapping helper;
-GO must leave that pagination helper and perform a submission.
+GO must leave that pagination helper and perform a submission. Task 4 also owns
+`crates/acad-cmd/src/menu.rs` solely to preserve the exact parsed Header tail
+`b";"` and assert the parser regression. The semicolon is corpus metadata; GO
+behavior comes from reviewed observable Return transitions. There is no
+hit/layout/macro refactor.
 
 `submit_return` is an explicit physical Return/GO entry point; `submit` retains
 its existing macro/script policy. At Command, a successful **nonempty** Return
@@ -75,7 +78,7 @@ corrections, using the existing dispatcher for valid nonempty answers:
 | LineStart / empty | Continue; status `*Invalid*`; Command; no LINE |
 | CircleRadius / empty | Continue; status `*Invalid*`; Command; discard pending center |
 | LineNext / empty | existing finish behavior; Command; retain completed segments |
-| EditSelection(Erase) / empty | existing empty-selection behavior; Command; retain seed LINE |
+| EditSelection(Erase) / empty | explicit Return-specific correction; Command; retain seed LINE |
 | MenuFile / empty | `Ok(Effect::UnloadMenu)`; Command; clear editor status |
 | RepeatColumns / invalid positive integer (`REPEAT` observed) | Continue; status `*Invalid*`; Command; retain repeat marker and points |
 
@@ -161,19 +164,15 @@ Task 2; if future live tests retain absence guards, report skips honestly.
 | 3 `app_mouse_route_cancel_preserves_later_pages` | Actual Cancel on pages 1/2: page remains 1/2, menu Some, LINE-first cleared, input empty; independent POINT (8,7). [CPAGE1 post](cancel-tail/captures/CPAGE1-022-probe.png), [CPAGE1.dwg](cancel-tail/drawings/CPAGE1.dwg), [CPAGE2 post](cancel-tail/captures/CPAGE2-027-probe.png), [CPAGE2.dwg](cancel-tail/drawings/CPAGE2.dwg). |
 | 4 `menu_return_fresh_unknown_and_semicolon_are_distinct` | Fresh empty submit_return: Command, native Unknown error/status, zero items. Literal `;` buffer is still `;` before Return, then same Unknown. Raw submit("") remains Continue/no-op (Rust regression). [GOFRESH post](go/captures/GOFRESH-013-probe.png), [GOFRESH.dwg](go/drawings/GOFRESH.dwg), [RTFRESH post](go/captures/RTFRESH-010-probe.png), [RTFRESH.dwg](go/drawings/RTFRESH.dwg), [semicolon buffered](pilot/captures/SEMICOL-014-probe.png), [returned](pilot/captures/SEMICOL-018-continuation.png), [SEMICOL.dwg](pilot/drawings/SEMICOL.dwg). |
 | 4 `app_mouse_route_go_and_return_repeat_menu_once_then_unload` | Submit_return MENU,ACAD and load parsed panel; empty GO/keyboard helper stops once at Rust `File name`, menu remains Some/page0, exactly one callback; second empty GO returns Command/UnloadMenu, menu None/page0, no items. [GOIDLE first](pilot/captures/GOIDLE-019-probe.png), [second gate](pilot/captures/GOIDLE-024-continuation.png), [unloaded](pilot/captures/GOIDLE-026-continuation.png), [GOIDLE.dwg](pilot/drawings/GOIDLE.dwg), [physical Return](pilot/captures/RETURN-014-probe.png), [RETURN.dwg](pilot/drawings/RETURN.dwg). |
-| 4 `app_mouse_route_menu_cancel_keeps_panel` | MenuFile prompt with loaded panel; Cancel → Continue/Command/*Cancel*, menu stays Some and page0. Distinct from preceding unload test. [CMENU filename gate](controls/captures/CMENU-013-probe.png), [Cancel post](controls/captures/CMENU-020-probe.png), [CMENU.dwg](controls/drawings/CMENU.dwg). |
+| 4 `app_mouse_route_menu_cancel_keeps_panel` | MenuFile prompt with loaded panel; Cancel → Continue/Command/*Cancel*, menu stays Some and page0. Distinct from preceding unload test. [CMENU filename gate](controls/captures/CMENU-015-probe.png), [Cancel post](controls/captures/CMENU-020-probe.png), [CMENU.dwg](controls/drawings/CMENU.dwg). |
 | 4 `menu_return_empty_active_prompts_match_native` | Explicit empty Return in LINE-first/CIRCLE-radius → Invalid/Command/no items; LINE-next after 2,3 → Command/no segment; empty ERASE → Command retaining LINE (2,3)→(4,5). Each is exercised through real GO route with empty App.input too. [GOFIRST post](go/captures/GOFIRST-017-probe.png), [GOFIRST.dwg](go/drawings/GOFIRST.dwg), [GONEXT post](go/captures/GONEXT-019-probe.png), [GONEXT.dwg](go/drawings/GONEXT.dwg), [GORADIUS post](go/captures/GORADIUS-019-probe.png), [GORADIUS.dwg](go/drawings/GORADIUS.dwg), [GOSELECT post](go/captures/GOSELECT-025-probe.png), [GOSELECT.dwg](go/drawings/GOSELECT.dwg). For GOFIRST/GONEXT, the linked later-history case pins unknown coordinates at Command. For GORADIUS, following `1.25` is unknown at Command ([continuation](go/captures/GORADIUS-021-continuation.png)), proving scalar state was lost. GOSELECT asserts seed retention only. |
-| 4 `menu_return_known_history_survives_unknowns_and_prompt_answers` | Successful LINE command; empty first/next ends it; unknown 2,3/4,5 do not replace history; next empty reopens LINE-first. [GOFIRST sequence23](go/captures/GOFIRST-023-continuation.png), [GONEXT sequence23](go/captures/GONEXT-023-continuation.png). POINT,8,7 then empty GO reopens Rust `POINT: point`, saves only original POINT (8,7) regardless prior cursor location: [GOHIST post](go/captures/GOHIST-021-probe.png), [second location](go/captures/GOHIST-029-continuation.png), [GOHIST.dwg](go/drawings/GOHIST.dwg). |
+| 4 `menu_return_known_history_survives_unknowns_and_prompt_answers` | Successful LINE command; empty first/next ends it; unknown 2,3/4,5 do not replace history; next empty reopens LINE-first. [GOFIRST sequence23](go/captures/GOFIRST-023-continuation.png), [GONEXT sequence23](go/captures/GONEXT-023-continuation.png). POINT,8,7 then empty GO reopens Rust `POINT: point`, saves only original POINT (8,7) regardless prior cursor location: [GOHIST post](go/captures/GOHIST-021-probe.png), [second location](go/captures/GOHIST-036-continuation.png), [GOHIST.dwg](go/drawings/GOHIST.dwg). |
 | 4 `app_mouse_route_go_submits_pending_point_and_selection_once` | LINE-first App.input `2,3`; GO takes buffer → LINE-next anchor (2,3), input empty, one callback; 4,5 then empty completes exact LINE (2,3)→(4,5), no pointer point. [GOBUFPNT gate](buffers/captures/GOBUFPNT-027-probe.png), [post](buffers/captures/GOBUFPNT-029-probe.png), [GOBUFPNT.dwg](buffers/drawings/GOBUFPNT.dwg). Real drawing pick of same seed LINE as CSELECT accumulates `1`; GO and keyboard helper each erase exactly that LINE (unchanged coordinates/layer), empty buffer/Command, status `1 selected, 1 found.`. GO then POINT,8,7 gives Erased LINE followed by POINT (8,7). [GOBUFSEL post](buffers/captures/GOBUFSEL-036-probe.png), [GOBUFSEL.dwg](buffers/drawings/GOBUFSEL.dwg), [Return control](buffers/captures/CSELBASE-033-probe.png), [CSELBASE.dwg](buffers/drawings/CSELBASE.dwg). |
 | 4 `menu_return_invalid_repeat_columns_retains_marker` | After Task3 CREPEAT setup, submit_return ENDREP then REPEAT → Invalid/Command, not new group; POINT,6,5 succeeds; ENDREP asks columns again. [invalid answer](cancel/captures/CREPEAT-025-continuation.png), [second ENDREP](cancel/captures/CREPEAT-031-continuation.png), [CREPEAT.dxf](cancel/drawings/CREPEAT.dxf). Decoder boundary remains `REPEAT at offset 0x202 has no ENDREP`; no codec change or unmatched-DWG equality assertion. |
 | 4 `app_mouse_route_return_and_go_preserve_load_resolution` | Both shared helper callers at LOAD resolve/register available SHP before submit_return; one callback, buffer empty; unavailable/empty requested library gives existing resolution error and no editor submission. Existing LOAD policy regression, **no native LOAD/GO claim**. Macro LOAD bypass remains unchanged. |
 | 4 `app_mouse_route_go_header_only_and_next_still_wraps` | Parsed ACAD header action b";": only page0 exposes GO. Pages1/2 top blanks consumed, preserve page/buffer/state, no callbacks. NEXT wraps last→0 as before. Replace old GO page-reset assertion; do not manufacture a page2 GO hit through advance_menu_page. Rust hit regression only; true blank native mapping unverified. |
 
-Oracle fixture test names are `menu_controls_idle_native_fixtures`,
-`menu_controls_pending_native_fixtures`, `menu_controls_cancel_native_fixtures`
-(Task 3), and `menu_controls_go_native_fixtures` (Task 4). They cover the table's
-native-backed rows using the exact staged `.dwg` paths; CREPEAT uses DXF text and
-prompt artifacts only. App tests exercise `handle_left_click` and actual parsed
+Oracle fixture regressions use the eight `menu_control_*` names listed in the Task 3 table. Task 4 adds `menu_controls_go_native_fixtures`; `original_menu_controls_pending_snap_matches_native` is the separate live FSLINE regression. The `menu_control_` filter runs only the eight offline fixture cases. They refine finite observed cases using exact staged `.dwg` paths; CREPEAT uses DXF text and prompt artifacts only. App tests exercise `handle_left_click` and actual parsed
 entries, not just enum/helper calls. Editor tests use the `menu_control` filter;
 Return tests use `menu_return`; app tests use `app_mouse_route`. Future validation:
 focused filters plus `cargo test -p acad-cmd -p acad-app`, oracle fixture test,

@@ -10,7 +10,7 @@
 
 **Spec:** `docs/HANDOVER-2026-09-30.md`, known limits item 3; `docs/superpowers/plans/2026-10-01-screen-menu-rendering.md`, recovered Task 1 findings; `corpus/System/ACAD.MNU`; `docs/oracle-qemu.md`; `formal/README.md`.
 
-**Common execution workflow:** [Recovery subagent roadmap](2026-10-01-recovery-subagent-roadmap.md) owns model routing, fresh implementer/reviewer dispatch, ledger, worktrees, escalation, integration, and final whole-branch review. This document owns the menu evidence and code boundaries.
+**Common execution workflow:** [Recovery subagent roadmap](2026-10-01-recovery-subagent-roadmap.md) owns model routing, fresh implementer/reviewer dispatch, ledger, worktrees, escalation, integration, and final whole-branch review. Task 3/4 implementation is accepted. Task 5 documentation is updated; serial gates passed (310 non-oracle tests; menu_controls 10/10 with one executed FSLINE and zero skips; menu_mouse 1/1; fmt, Clippy, and Lean passed). Final Astra whole-branch review and local integration remain coordinator-owned.
 
 ## Global Constraints
 
@@ -67,7 +67,7 @@ Future changes are limited to: new recovery example and evidence files; `acad-cm
 
 **Produces:** A checked evidence bundle, with each input linked to a stable pre/post frame and each saved drawing linked to its native exports. Research uses a separate worktree/private image; reading, harness preparation, and offline analysis may occur independently of DIM/HATCH. Acquire the roadmap's coordinator probe lease before booting: **one native guest total**. Session's mutex is process-local and does not serialize other executables; concurrent guests can produce incomplete stable CGA captures. Do not bypass the lock or compensate by increasing timeouts.
 
-- [ ] **Step 1: Prepare the isolated recovery checkout at execution time.** Follow `superpowers:using-git-worktrees`; use branch `research/menu-controls` and a separate Cargo target directory. Verify the baseline and image presence without modifying corpus files:
+- [x] **Step 1: Prepare the isolated recovery checkout at execution time.** Follow `superpowers:using-git-worktrees`; use branch `research/menu-controls` and a separate Cargo target directory. Verify the baseline and image presence without modifying corpus files:
 
 ```bash
 git rev-parse --short HEAD
@@ -78,7 +78,7 @@ command -v qemu-system-i386
 
 The recovery example must report missing prerequisites and produce no claimed observations in that case. Retain the existing `-d nochain` Session launch workaround.
 
-- [ ] **Step 2: Add the observation tool, reusing the existing PNG converter and click helper.** Its optional sole argument is the evidence directory; default to `docs/recovery/2026-10-01-menu-controls`. Fail on an existing nonempty bundle to avoid mixing runs. Log case ID, every typed line/key/mouse transition, native coordinates, `Session::pointer()`, and artifact paths. Save raw 16 KiB CGA plus PNG after each stable capture; transcribe visible graphics prompts by reading PNGs, not `text_screen()`.
+- [x] **Step 2: Add the observation tool, reusing the existing PNG converter and click helper.** Its optional sole argument is the evidence directory; default to `docs/recovery/2026-10-01-menu-controls`. Fail on an existing nonempty bundle to avoid mixing runs. Log case ID, every typed line/key/mouse transition, native coordinates, `Session::pointer()`, and artifact paths. Save raw 16 KiB CGA plus PNG after each stable capture; transcribe visible graphics prompts by reading PNGs, not `text_screen()`.
 
 ```rust
 fn click_pixel(vm: &mut Session, column: usize, row: usize) -> Result<Vec<u8>, String> {
@@ -95,7 +95,7 @@ fn click_pixel(vm: &mut Session, column: usize, row: usize) -> Result<Vec<u8>, S
 
 Load `MENU`, `ACAD`; pin once the editor is active. Start at column 600; native row centers are GO 4, Snap 12, Ortho 20, Cancel 156, NEXT 164. These derive from the recovered row bands, not a new guarantee of every hit boundary. Check the PNG label before every click. On later pages Cancel remains row 19; row 0 is blank rather than GO. Verify a top-row crosshair capture because the mouse inverse unit test only covers native rows 8..161.
 
-- [ ] **Step 3: Run the finite recovery matrix in stages.** Start with idle controls, one active LINE continuation, completed/pending LINE cancellation, selection cancellation, and the GO comparison. Expand only to the remaining listed cases needed to establish the intended contract or discriminate an ambiguity; do not explore every InputState. Use separate fresh cases for destructive/cancel probes, and one case per before/after setting where END is needed. Use 1–8 uppercase/digit DOS drawing names (`SCIDLE`, `OCIDLE`, `CLSTART`, `CLSEG`, `CCENTER`, `CSELECT`, `CREPEAT`, `GOIDLE`). Record baseline exports and repeat a disputed observation in a fresh Session.
+- [x] **Step 3: Run the finite recovery matrix in stages.** Start with idle controls, one active LINE continuation, completed/pending LINE cancellation, selection cancellation, and the GO comparison. Expand only to the remaining listed cases needed to establish the intended contract or discriminate an ambiguity; do not explore every InputState. Use separate fresh cases for destructive/cancel probes, and one case per before/after setting where END is needed. Use 1–8 uppercase/digit DOS drawing names (`SCIDLE`, `OCIDLE`, `CLSTART`, `CLSEG`, `CCENTER`, `CSELECT`, `CREPEAT`, `GOIDLE`). Record baseline exports and repeat a disputed observation in a fresh Session.
 
 | Cases | Inputs and observation purpose |
 |---|---|
@@ -110,7 +110,7 @@ Load `MENU`, `ACAD`; pin once the editor is active. Start at column 600; native 
 
 Literal semicolon is unsupported by `Session::type_line`; use `key("semicolon", true)`, release with `false`, capture, then separately press/release `"ret"`. For control-key comparisons use `key("ctrl", true)`, press/release `"b"`, `"o"`, or `"c"`, then release Ctrl. These are comparison inputs, not assumed equivalents. Avoid leaving a modifier pressed. Native pending selection is not automatically identical to Rust's `App.input` buffer.
 
-- [ ] **Step 4: Save exports without pretending END works at an active prompt.** First capture the observed result. Continue or cancel only after the screenshot confirms the current prompt; log cleanup separately. Reuse the native main-menu export flow once at Command:
+- [x] **Step 4: Save exports without pretending END works at an active prompt.** First capture the observed result. Continue or cancel only after the screenshot confirms the current prompt; log cleanup separately. Reuse the native main-menu export flow once at Command:
 
 ```rust
 vm.type_line("END")?;
@@ -127,7 +127,7 @@ let drawing = acad_dwg::parse(&dwg)?;
 
 Persist `dwg`, `dxf`, decoded `Header`/`Item` debug output and file hashes while Session still exists. Parse errors require string conversion in a `Result<(), String>` example. Do not substitute Rust-generated DXF for native DXF. An unsaveable case still needs frames/transcript and a clear statement that no header snapshot was obtained.
 
-- [ ] **Step 5: Run and classify observations.** This is research, not a passing compatibility test:
+- [x] **Step 5: Run and classify observations.** This is research, not a passing compatibility test:
 
 ```bash
 cargo run -p acad-oracle --example menu-controls-recovery -- docs/recovery/2026-10-01-menu-controls
@@ -137,7 +137,7 @@ cargo clippy -p acad-oracle --all-targets -- -D warnings
 
 `observations.tsv` columns: `case`, `before_prompt`, `after_prompt`, `before_snap_on`, `after_snap_on`, `before_spacing`, `after_spacing`, `before_ortho`, `after_ortho`, `pending_continuation`, `saved_entities`, `artifact`, `certainty`. Mark observed / inferred / unresolved separately. README states exact image hash, baseline commit, QEMU version, artifact index, cleanup inputs, and any repeat discrepancies. No expected Boolean, geometry, or error value is supplied by this plan.
 
-- [ ] **Step 6: Fresh evidence review.** Reviewer checks click landings, actual transcript, all Review Focus cases, native headers/entities, and cleanup contamination. GO is resolved only if comparison probes distinguish mechanisms sufficiently to define observable behavior; otherwise produce a precise narrowed ambiguity for escalation. Commit only reviewed tool/evidence files, without production code.
+- [x] **Step 6: Fresh evidence review.** Reviewer checks click landings, actual transcript, all Review Focus cases, native headers/entities, and cleanup contamination. GO is resolved only if comparison probes distinguish mechanisms sufficiently to define observable behavior; otherwise produce a precise narrowed ambiguity for escalation. Commit only reviewed tool/evidence files, without production code.
 
 ## Task 2: Freeze the implementation brief and observed contracts
 
@@ -145,10 +145,10 @@ cargo clippy -p acad-oracle --all-targets -- -D warnings
 
 **Consumes:** Task 1 bundle and evidence review. **Produces:** A concrete brief naming each observed transition, fixture, test name, Rust API, exact affected files, and unresolved cases. This is an execution gate, not permission to implement guessed transitions.
 
-- [ ] **Step 1: Write the brief from evidence.** Specify whether Snap/Ortho are immediate toggles, prompt inputs, or another observed operation; exact spacing preservation; prompt/pending-geometry behavior; Cancel entity retention, repeat behavior, and app-buffer rule; status behavior; GO's behavior and where it is clickable. Pin follow-up inputs that prove state rather than merely asserting the prompt string.
-- [ ] **Step 2: Define a focused editor interface only where warranted.** Proposed signature, to be accepted or replaced in the reviewed brief: `pub enum MenuControl { Snap, Ortho, Cancel }` and `pub fn apply_menu_control(&mut self, control: MenuControl) -> Result<Effect, String>`. This API does **not** exist at baseline. Keep byte-to-enum mapping in app routing. Reuse `cancel_command` only if its observed retention/reset behavior agrees; do not feed control bytes to text `submit` or route immediate controls through typed SNAP/ORTHO prompts without evidence.
-- [ ] **Step 3: Add Lean only for confirmed behavioral transitions.** New module `AutoCAD.MenuControls` models observed flags, spacing, prompt/pending state, cancellation retention, and GO only if resolved. Define explicit input/output states and fixture-linked `example` obligations from the brief; no unobserved universal transition rule. Add its root to the existing `lean_lib AutoCAD` list. This is a behavioral contract; Rust tests separately establish refinement. If Task 1 supports only UI pixels with no meaningful state contract, record why no Lean addition is warranted.
-- [ ] **Step 4: Build and review the brief/contract.** Run `cd formal && lake build`; fresh reviewer verifies every native claim links to an artifact and every promised test has an exact expected value from that artifact. Unresolved GO cannot block shipping separately recovered controls, but prevents a GO compatibility claim.
+- [x] **Step 1: Write the brief from evidence.** Specify whether Snap/Ortho are immediate toggles, prompt inputs, or another observed operation; exact spacing preservation; prompt/pending-geometry behavior; Cancel entity retention, repeat behavior, and app-buffer rule; status behavior; GO's behavior and where it is clickable. Pin follow-up inputs that prove state rather than merely asserting the prompt string.
+- [x] **Step 2: Define a focused editor interface only where warranted.** Proposed signature, to be accepted or replaced in the reviewed brief: `pub enum MenuControl { Snap, Ortho, Cancel }` and `pub fn apply_menu_control(&mut self, control: MenuControl) -> Result<Effect, String>`. This API does **not** exist at baseline. Keep byte-to-enum mapping in app routing. Reuse `cancel_command` only if its observed retention/reset behavior agrees; do not feed control bytes to text `submit` or route immediate controls through typed SNAP/ORTHO prompts without evidence.
+- [x] **Step 3: Add Lean only for confirmed behavioral transitions.** New module `AutoCAD.MenuControls` models observed flags, spacing, prompt/pending state, cancellation retention, and GO only if resolved. Define explicit input/output states and fixture-linked `example` obligations from the brief; no unobserved universal transition rule. Add its root to the existing `lean_lib AutoCAD` list. This is a behavioral contract; Rust tests separately establish refinement. If Task 1 supports only UI pixels with no meaningful state contract, record why no Lean addition is warranted.
+- [x] **Step 4: Build and review the brief/contract.** Run `cd formal && lake build`; fresh reviewer verifies every native claim links to an artifact and every promised test has an exact expected value from that artifact. Unresolved GO cannot block shipping separately recovered controls, but prevents a GO compatibility claim.
 
 ## Task 3: Implement the recovered controls with red/green tests
 
@@ -156,7 +156,7 @@ cargo clippy -p acad-oracle --all-targets -- -D warnings
 
 **Consumes:** Reviewed Task 2 interface and expected observations. **Produces:** Observed editor controls and the real app mouse route, with native/fixture regressions. Code tasks run sequentially with a fresh implementer and fresh reviewer; do not share production-file ownership with DIM/HATCH tasks.
 
-- [ ] **Step 1: Write concrete failing editor, app, and native tests from the brief.** Update the old app no-op test `app_mouse_route_dispatches_point_and_consumes_control_entries`; its unsupported-status assertion will cease to describe the observed controls. Preserve its POINT-route coverage in a separate test. Add actual `menu_app`/`click` route cases for every control and pending `App.input` selection, not only a helper unit test.
+- [x] **Step 1: Write concrete failing editor, app, and native tests from the brief.** Update the old app no-op test `app_mouse_route_dispatches_point_and_consumes_control_entries`; its unsupported-status assertion will cease to describe the observed controls. Preserve its POINT-route coverage in a separate test. Add actual `menu_app`/`click` route cases for every control and pending `App.input` selection, not only a helper unit test.
 
 Use native fixture comparisons, not assumed toggles. This skeleton uses the proposed Task 2 interface only if adopted; before dispatching this task replace the skeleton with the brief's complete cases and assertions:
 
@@ -179,10 +179,10 @@ fn snap_idle_matches_recorded_native_header() {
 
 Fixture names are the recovery tool's normalized output interface; native guest drawing names remain ≤8 characters. Require captured native before/after files to exist before running this fixture test. For live oracle cases retain existing absence guards and label skipped runs honestly. Compare full entity kinds/order/layers/geometry; use the codec's existing precision policy with tolerances justified by exported evidence. Do not impose full-header equality when unrelated native metadata differs.
 
-- [ ] **Step 2: Run the focused tests and inspect genuine failures.** Commands: `cargo test -p acad-cmd --test editor menu_control -- --nocapture`; `cargo test -p acad-app app_mouse_route -- --nocapture`; `cargo test -p acad-oracle --test menu_controls -- --nocapture`. The brief defines test names to match the editor filter. Compile failure for the new interface is an acceptable first red state; after compiling, verify behavioral assertions fail on baseline behavior.
-- [ ] **Step 3: Implement the minimal editor transitions and app dispatch.** Only bytes `02`, `0f`, `03` enter the recovered path; other controls keep their documented unsupported status. Route results through the existing handler. Apply the brief's input-buffer rule explicitly; ensure any Cancel clearing affects `App.input` as well as editor state when observed. Preserve completed entities according to evidence. Do not use `drawing_mut()` as the production control dispatch shortcut.
-- [ ] **Step 4: If mouse constraints were observed, bound the geometry change.** Flags alone do not reproduce an off-grid/orthogonal continuation. The brief must define native origin, rounding/tie rule, axis choice, and ordering when both are enabled before changing `submit_mouse_point`; if the matrix cannot distinguish these, extend recovery rather than invent formulas. Keep typed coordinates unchanged unless observed otherwise. Limit the first supported refinement to the proven prompts and disclose broader gaps.
-- [ ] **Step 5: Verify once, review, then commit the tested change.** Run focused tests above plus `cargo test -p acad-cmd -p acad-app`, `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cd formal && lake build`. Reviewer checks all five Review Focus lines and regression scope. Commit exact affected files after resolving review findings.
+- [x] **Step 2: Run the focused tests and inspect genuine failures.** Commands: `cargo test -p acad-cmd --test editor menu_control -- --nocapture`; `cargo test -p acad-app app_mouse_route -- --nocapture`; `cargo test -p acad-oracle --test menu_controls -- --nocapture`. The brief defines test names to match the editor filter. Compile failure for the new interface is an acceptable first red state; after compiling, verify behavioral assertions fail on baseline behavior.
+- [x] **Step 3: Implement the minimal editor transitions and app dispatch.** Only bytes `02`, `0f`, `03` enter the recovered path; other controls keep their documented unsupported status. Route results through the existing handler. Apply the brief's input-buffer rule explicitly; ensure any Cancel clearing affects `App.input` as well as editor state when observed. Preserve completed entities according to evidence. Do not use `drawing_mut()` as the production control dispatch shortcut.
+- [x] **Step 4: If mouse constraints were observed, bound the geometry change.** Flags alone do not reproduce an off-grid/orthogonal continuation. The brief must define native origin, rounding/tie rule, axis choice, and ordering when both are enabled before changing `submit_mouse_point`; if the matrix cannot distinguish these, extend recovery rather than invent formulas. Keep typed coordinates unchanged unless observed otherwise. Limit the first supported refinement to the proven prompts and disclose broader gaps.
+- [x] **Step 5: Verify once, review, then commit the tested change.** Run focused tests above plus `cargo test -p acad-cmd -p acad-app`, `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cd formal && lake build`. Reviewer checks all five Review Focus lines and regression scope. Commit exact affected files after resolving review findings.
 
 ## Task 4: Correct GO only after its separate evidence gate
 
@@ -190,19 +190,19 @@ Fixture names are the recovery tool's normalized output interface; native guest 
 
 **Consumes:** Resolved GO observations and Task 2 brief. **Produces:** Proven GO behavior or an explicit remaining research boundary; never call unresolved behavior native-compatible.
 
-- [ ] **Step 1: Inspect the GO decision record.** If unresolved, use the root escalation path for cross-layer/native ambiguity. Do not replace page-reset simplification with a guessed unknown-command error. Controls may complete independently.
-- [ ] **Step 2: When resolved, freeze exact tests before code.** Test idle and active prompt clicks, page-0 header versus page-1/page-2 blank slots, visible status/prompt, continuation, exported entities, and page state. Exercise `handle_left_click` with the real parsed header action (`b";"`); a direct `advance_menu_page(...Go)` helper call from page 2 is not proof that the UI exposes that click.
-- [ ] **Step 3: Run red tests, minimally adjust GO routing, run green tests.** Keep NEXT assertions intact when replacing `advance_menu_page_wraps_next_and_resets_go_to_page_zero`. Command/status effects belong in app/editor routing, rather than smuggling them into a pagination-only helper. Change hit-testing only if Task 1 proved its current slot rules wrong.
-- [ ] **Step 4: Gate and fresh review.** Run `cargo test -p acad-app`, `cargo test -p acad-oracle --test menu_controls -- --nocapture`, format, workspace Clippy, and Lean build if affected. Commit the independently reviewed correction; unresolved GO has no production commit.
+- [x] **Step 1: Inspect the GO decision record.** If unresolved, use the root escalation path for cross-layer/native ambiguity. Do not replace page-reset simplification with a guessed unknown-command error. Controls may complete independently.
+- [x] **Step 2: When resolved, freeze exact tests before code.** Test idle and active prompt clicks, page-0 header versus page-1/page-2 blank slots, visible status/prompt, continuation, exported entities, and page state. Exercise `handle_left_click` with the real parsed header action (`b";"`); a direct `advance_menu_page(...Go)` helper call from page 2 is not proof that the UI exposes that click.
+- [x] **Step 3: Run red tests, minimally adjust GO routing, run green tests.** Keep NEXT assertions intact when replacing `advance_menu_page_wraps_next_and_resets_go_to_page_zero`. Command/status effects belong in app/editor routing, rather than smuggling them into a pagination-only helper. Change hit-testing only if Task 1 proved its current slot rules wrong.
+- [x] **Step 4: Gate and fresh review.** Run `cargo test -p acad-app`, `cargo test -p acad-oracle --test menu_controls -- --nocapture`, format, workspace Clippy, and Lean build if affected. Commit the independently reviewed correction; unresolved GO has no production commit.
 
 ## Task 5: Report verified coverage and integrate sequentially
 
 **Files:** Modify `docs/HANDOVER-2026-09-30.md`, `formal/README.md`, evidence README and this plan's checkboxes.
 
-- [ ] **Step 1: Update documentation from the final evidence.** Name the recovered controls, idle/active/pending cases tested, actual geometry coverage, and GO's resolved behavior or precise open question. Preserve M1–M3 limits. Do not claim Lean proves native mouse dispatch or untested constraint geometry.
-- [ ] **Step 2: Run integration gates on the final slice.** `cargo test --workspace --exclude acad-oracle -- --test-threads=1`; focused real-QEMU `cargo test -p acad-oracle --test menu_controls -- --nocapture` and existing `--test menu_mouse`; `cargo fmt --all --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cd formal && lake build`. Record skips separately from real passes. Retest after fixes only as needed.
+- [x] **Step 1: Update documentation from the final evidence.** Name the recovered controls, idle/active/pending cases tested, actual geometry coverage, and GO's resolved behavior or precise open question. Preserve M1–M3 limits. Do not claim Lean proves native mouse dispatch or untested constraint geometry.
+- [x] **Step 2: Run integration gates on the final slice.** `cargo test --workspace --exclude acad-oracle -- --test-threads=1`; focused real-QEMU `cargo test -p acad-oracle --test menu_controls -- --nocapture` and existing `--test menu_mouse`; `cargo fmt --all --check`; `cargo clippy --workspace --all-targets -- -D warnings`; `cd formal && lake build`. Record skips separately from real passes. Retest after fixes only as needed.
 - [ ] **Step 3: Final whole-branch review and merge handoff.** Follow the roadmap's model/workflow policy, including the required single Astra final whole-branch review for this independently completed slice. Reviewer gets baseline, diff, brief, evidence index, and checks. Merge sequentially with other slices; no parallel writers on app/editor/formal shared files.
 
 ## Self-review / known evidence boundaries
 
-The plan covers all three shipped control bytes, Cancel on all pages, active point/scalar prompts, pending geometry and selections, nondefault settings, mouse continuation, and GO's unresolved mechanism. It supplies current APIs, artifact paths, native coordinate conversion, export flow, tests/gates, and a mandatory evidence-backed brief before code dispatch. No native outcome is invented. Broader SNAP/ORTHO behavior, arbitrary custom macros, and unavailable native prerequisites remain explicit limits rather than claimed implementation.
+The plan covers all three shipped control bytes, Cancel on all pages, active point/scalar prompts, pending geometry and selections, nondefault settings, mouse continuation, and GO's unresolved mechanism. It supplies current APIs, artifact paths, native coordinate conversion, export flow, tests/gates, and a mandatory evidence-backed brief before code dispatch. The deferred mouse-refinement gate is explicit: `submit_mouse_point` is unchanged, mouse Snap/Ortho projection is unimplemented, and origin/ties/negative rounding/arbitrary spacing/axis/order/view rules remain unresolved. True native blank-slot mapping and M1–M3 remain explicit limits.
