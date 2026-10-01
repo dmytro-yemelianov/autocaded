@@ -48,11 +48,7 @@ native mouse dispatch generally or desktop/DPI behavior.
 The native GO byte mechanism, true blank-panel hit mapping, general command
 history, and mouse Snap/Ortho projection remain open. `submit_mouse_point` is
 unchanged; exact ties, origin, negative rounding, arbitrary spacing, axis choice,
-projection order, and view rules are unrecovered. The partial Lean lookup is not
-a mouse dispatch or projection proof. `submit_mouse_point` is
-unchanged; exact ties, origin, negative rounding, arbitrary spacing, axis choice,
-projection order, and view rules are unrecovered. The partial Lean lookup is not
-a mouse dispatch or projection proof. CREPEAT has prompt/native-DXF evidence only: no full decoded group/header.
+projection order, and view rules are unrecovered. CREPEAT has prompt/native-DXF evidence only: no full decoded group/header.
 Rust implements FILES listing, deletion, and rename
 against mapped host directories; the Lean model does not specify their
 filesystem semantics. Other named help pages remain open.
