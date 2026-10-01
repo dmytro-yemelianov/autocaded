@@ -330,6 +330,52 @@ fn zoom_extents_centers_on_the_drawing_and_previous_restores_the_view() {
 }
 
 #[test]
+fn zoom_all_fits_limits_anchored_at_its_own_lower_left_corner() {
+    // Native AutoCAD 1.4's `ZOOM All` (recovered under QEMU in Task 5 of the
+    // screen-menu-rendering plan) does not center a width-constrained box's
+    // shown region on the box's own center: it anchors the box's lower-left
+    // corner (xmin, ymin) and extends only up/right to fill the device's
+    // aspect ratio. `Editor::default()`'s LIMITS are a square (-10,-10) to
+    // (10,10); since the device is wider-than-tall relative to that square,
+    // height stays exactly the box's own height (20) and width expands.
+    let mut editor = Editor::default();
+    editor.submit("ZOOM").unwrap();
+    editor.submit("A").unwrap();
+    let view = editor.drawing().header.view;
+    assert_eq!(view.height, 20.0);
+    assert_eq!(
+        view.center.y, 0.0,
+        "y is the fitting axis: box's own center"
+    );
+    assert!(
+        view.center.x > -10.0,
+        "x is the slack axis: anchored at xmin, not centered at 0.0"
+    );
+    const DEVICE_ASPECT: f64 = 1.522_331_154_684_095_9;
+    let expected_x = -10.0 + (20.0 * DEVICE_ASPECT) / 2.0;
+    assert!((view.center.x - expected_x).abs() < 1e-9);
+
+    // A LIMITS box wider than the device aspect is instead width-constrained:
+    // width stays the box's own width and height expands, still anchored at
+    // the box's own ymin rather than centered.
+    editor.submit("LIMITS").unwrap();
+    editor.submit("0,0").unwrap();
+    editor.submit("20,10").unwrap();
+    editor.submit("ZOOM").unwrap();
+    editor.submit("ALL").unwrap();
+    let view = editor.drawing().header.view;
+    assert_eq!(
+        view.center.x, 10.0,
+        "x is the fitting axis: box's own center"
+    );
+    assert!(view.height > 10.0, "y is the slack axis: height expanded");
+    assert!(
+        view.center.y > 0.0 && view.center.y < view.height,
+        "y anchored at ymin=0, not centered at the box's own center 5.0"
+    );
+}
+
+#[test]
 fn zoom_window_and_center_set_views_and_reject_empty_extents() {
     let mut editor = Editor::default();
     for input in ["ZOOM", "W", "0,0", "10,5"] {

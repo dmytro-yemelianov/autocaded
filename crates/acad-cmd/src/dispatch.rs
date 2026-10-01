@@ -16,6 +16,65 @@ use crate::selection::{entities_in_window, selectable_count, selected_item_index
 use crate::{Editor, Effect, FilesFilter, FilesRequest, HATCH_PATTERNS, MAX_ARRAY_ENTITIES};
 use acad_model::{Entity, Extents, Item, Point, UnitFormat, Units};
 
+/// The native screen's fit-to-box aspect ratio for `ZOOM All`/`Extents`-style
+/// commands: how many world-space units wide the drawing viewport shows per
+/// world-space unit tall, once a box's shorter-relative dimension is made to
+/// fill the screen exactly. Recovered empirically under QEMU (Task 5 of the
+/// screen-menu-rendering plan) by setting explicit `LIMITS` boxes of several
+/// shapes and sizes and reading back `ZOOM A`'s resulting DWG view: every box
+/// produced the *same* ratio bit-for-bit regardless of its own size or
+/// position (`(center.x - xmin) * 2 / height` when height-constrained,
+/// `(center.y - ymin) * 2 / width` when width-constrained), confirming a
+/// fixed device aspect rather than a per-box coincidence. This is the native
+/// screen's drawing viewport (it excludes the always-present screen-menu
+/// panel reserved on the right, and CGA's non-square pixels), not a generic
+/// 4:3 or 640/480 constant — no simpler closed form reproduced the measured
+/// digits, so it is recorded as measured rather than derived.
+const ZOOM_ALL_DEVICE_ASPECT: f64 = 1.522_331_154_684_095_9;
+
+/// The box a fit-to-box ZOOM variant shows: the drawing's `LIMITS`, expanded
+/// to also include `EXTENTS` when the latter has already been given a real
+/// (non-degenerate) area. A still-zero/point `EXTENTS` is this format's
+/// sentinel for "no entity has caused a recompute yet" (observed under QEMU:
+/// drawing entities past `LIMITS` does not by itself update the stored
+/// `EXTENTS` header field), so it must not be unioned in — doing so would
+/// wrongly pull the shown box toward the origin.
+fn zoom_all_bounds(limits: Extents, extents: Extents) -> Extents {
+    if extents.is_degenerate() {
+        return limits;
+    }
+    Extents {
+        xmin: limits.xmin.min(extents.xmin),
+        ymin: limits.ymin.min(extents.ymin),
+        xmax: limits.xmax.max(extents.xmax),
+        ymax: limits.ymax.max(extents.ymax),
+    }
+}
+
+/// Fits `bounds` to the native device aspect ratio, anchored at its own
+/// lower-left corner (`xmin`, `ymin`) rather than centered: whichever axis
+/// has slack (because `bounds`'s own aspect ratio does not match the
+/// device's) is extended upward/rightward from that corner, not expanded
+/// symmetrically about the box's center. This anchor-at-corner behavior,
+/// not simple centering, is what Task 5's QEMU recovery actually found —
+/// confirmed because two boxes sharing the same `xmin`/`height` but
+/// different `xmax` (so different box-centers) produced the identical
+/// resulting view `center.x`.
+fn fit_box_to_device(bounds: Extents) -> acad_model::DwgView {
+    let (width, height) = if bounds.width() / bounds.height() >= ZOOM_ALL_DEVICE_ASPECT {
+        (bounds.width(), bounds.width() / ZOOM_ALL_DEVICE_ASPECT)
+    } else {
+        (bounds.height() * ZOOM_ALL_DEVICE_ASPECT, bounds.height())
+    };
+    acad_model::DwgView {
+        center: Point {
+            x: bounds.xmin + width / 2.0,
+            y: bounds.ymin + height / 2.0,
+        },
+        height,
+    }
+}
+
 impl Editor {
     /// Submit one complete line of keyboard input. Coordinates use AutoCAD's
     /// `x,y`, `@dx,dy`, or `@distance<angle` notation where a prior point exists.
@@ -718,6 +777,19 @@ impl Editor {
                     }
                     "W" | "WINDOW" => {
                         self.state = InputState::ZoomWindowMin;
+                        return Ok(Effect::Continue);
+                    }
+                    "A" | "ALL" => {
+                        let bounds = zoom_all_bounds(
+                            self.drawing.header.limits,
+                            self.drawing.header.extents,
+                        );
+                        if bounds.is_degenerate() {
+                            return Err("LIMITS and EXTENTS have no positive area".into());
+                        }
+                        let view = fit_box_to_device(bounds);
+                        self.set_view(view.center, view.height);
+                        self.state = InputState::Command;
                         return Ok(Effect::Continue);
                     }
                     _ => {}

@@ -98,19 +98,30 @@ impl App {
     /// when there is no menu, no cursor position, or the click fell outside
     /// the panel rect, so the caller should fall through as usual.
     ///
-    /// `;`-separator resolution (brief Task 4 Step 1): `Editor::submit`
-    /// (`crates/acad-cmd/src/dispatch.rs:23-27`) trims its input and, while
-    /// in `InputState::Command`, passes the *entire* trimmed string straight
-    /// to `self.command(line)` (line 27) with no scan for `;` anywhere in
-    /// `submit`/`command`. `command`'s match arms compare the whole
-    /// upper-cased string against literal keywords like `"END"` (dispatch.rs
-    /// ~line 1296), so a macro's embedded `;` (e.g. `ACAD.MNU`'s
+    /// Separator resolution (brief Task 4 Step 1, revised by Task 5's QEMU
+    /// differential test): `Editor::submit` (`crates/acad-cmd/src/dispatch.rs:23-27`)
+    /// trims its input and, while in `InputState::Command`, passes the
+    /// *entire* trimmed string straight to `self.command(line)` with no scan
+    /// for `;` or whitespace anywhere in `submit`/`command`. `command`'s
+    /// match arms compare the whole upper-cased string against literal
+    /// keywords like `"END"`, so a macro's embedded `;` (e.g. `ACAD.MNU`'s
     /// `[END/save]end;` -> action bytes `b"end;"`) would never match
-    /// anything if passed through whole. `;` in `.MNU` macro syntax stands
-    /// for pressing Enter (ending one submission and starting the next), so
-    /// this method splits the decoded macro text on `;` itself and calls
-    /// `self.editor.submit(...)` once per piece — including empty pieces,
-    /// which are harmless no-ops per `command`'s own `"" => {}` arm.
+    /// anything if passed through whole. The same is true of an embedded
+    /// space: `[ZOOM All]zoom a` decodes to `b"zoom a"`, and `"ZOOM A"` as
+    /// one literal string matches neither `"ZOOM"`/`"Z"` in `InputState::Command`
+    /// nor, were it to reach `InputState::Zoom` some other way, the `"A"`/`"ALL"`
+    /// sub-match there — confirmed by Task 5's QEMU recovery, where the
+    /// native command line echoes `zoom` and `a` as two separate pieces of
+    /// input (`Command: zoom Magnification or type (ACELPW): a`), exactly
+    /// like pressing Enter (or Space, which classic AutoCAD treats the same
+    /// as Enter outside text-string entry) between them. So this method
+    /// splits the decoded macro text on `;` *and* ASCII whitespace and calls
+    /// `self.editor.submit(...)` once per non-empty piece — a bare `;` still
+    /// yields a harmless empty-piece no-op per `command`'s own `"" => {}` arm,
+    /// but a run of whitespace must not (an all-whitespace/empty piece from
+    /// splitting on space is never a deliberate blank Enter in a macro, only
+    /// a side effect of how the label's own action text happens to be
+    /// spaced).
     fn handle_panel_click(&mut self, el: &ActiveEventLoop, width: u32, height: u32) -> bool {
         let Some(menu) = self.menu.clone() else {
             return false;
@@ -262,8 +273,19 @@ impl App {
 /// stands for pressing Enter — see `handle_panel_click`'s doc comment for
 /// why `submit`/`command` do not do this splitting themselves). Pulled out
 /// as a free function so it is testable without an `ActiveEventLoop`.
-fn split_macro_pieces(text: &str) -> std::str::Split<'_, char> {
-    text.split(';')
+fn split_macro_pieces(text: &str) -> impl Iterator<Item = &str> {
+    text.split(';').flat_map(|piece| {
+        // `split_whitespace` drops empty/all-whitespace pieces entirely, but
+        // a piece that was empty because of the `;` split itself (e.g.
+        // `"end;"`'s trailing piece) is a deliberate blank Enter that must
+        // still reach `Editor::submit` once, matching this function's
+        // pre-whitespace-splitting behavior exactly.
+        let mut words: Vec<&str> = piece.split_whitespace().collect();
+        if words.is_empty() {
+            words.push("");
+        }
+        words
+    })
 }
 
 /// Computes the next `menu_page` for a `PanelHit::Next` or `PanelHit::Go`
@@ -939,9 +961,18 @@ mod tests {
         // that would fail to match any command keyword.
         let pieces: Vec<&str> = split_macro_pieces("end;").collect();
         assert_eq!(pieces, vec!["end", ""]);
-        // A macro with no `;` at all (e.g. "zoom a") stays a single piece.
+    }
+
+    #[test]
+    fn split_macro_pieces_also_splits_on_whitespace_as_an_enter_keypress() {
+        // ACAD.MNU's `[ZOOM All]zoom a` entry decodes to `b"zoom a"`: a bare
+        // literal "zoom a" never matches any `command()` keyword (it only
+        // ever compares the whole uppercased string), so the embedded space
+        // must split exactly like `;` does — confirmed under QEMU (Task 5):
+        // clicking `ZOOM All` natively echoes `zoom` and `a` as two separate
+        // command-line submissions, not one.
         let pieces: Vec<&str> = split_macro_pieces("zoom a").collect();
-        assert_eq!(pieces, vec!["zoom a"]);
+        assert_eq!(pieces, vec!["zoom", "a"]);
     }
 
     #[test]
