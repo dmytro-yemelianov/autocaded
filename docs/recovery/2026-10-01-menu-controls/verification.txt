@@ -1,0 +1,17 @@
+nonempty: exit1, expected refusal; menu-controls-recovery: refusing nonempty evidence directory docs/recovery/2026-10-01-menu-controls
+extra-argument: exit1, expected refusal; menu-controls-recovery: usage: menu-controls-recovery [evidence-directory]
+missing-QEMU: exit1, expected refusal; menu-controls-recovery: missing System.img or qemu-system-i386; no observations collected
+unknown-case: exit1, expected refusal; menu-controls-recovery: unknown case NOTACASE
+
+Final scoped checks (2026-10-01):
+CARGO_TARGET_DIR=target/menu-controls cargo fmt --all --check: exit0.
+CARGO_TARGET_DIR=target/menu-controls cargo clippy -p acad-oracle --all-targets -- -D warnings: exit0.
+Final collector compiled and MAXIS native run completed exit0; no full slow oracle suite run.
+Offline CGA/PNG validation: 2034 raw frames, each exactly16384 bytes; paired PNG640x400 RGBA/opaque black-white; every pixel matches CGA even/odd banks with doubled Y.
+Artifact consistency: 50 unique cases/native DWG+DXF pairs;49 parsed Header/Items snapshots;1 preserved parse failure;1141 transcript rows;every indexed/transcript/observation artifact exists;no Await/UNTRANSCRIBED certainty placeholders.
+122 per-case/postrun drawing file hashes match. Current corpus System.img and cancel offline postrun hash match original7848be12b368cb3f11b28fe285bf28b486a0e909f299c32006be9f790f8931b1;successful stage after-hashes match.
+MAXIS analysis: six matched parsed starts; final limits/base/view match BASEOFF; actual world deltas and saved axes give V,H,V, differing from native-pixel H,H,H, driver V,V,V, doubled-PNG V,H,H candidates. No exact-tie claim.
+Generated native drawings: maxDWG768bytes,maxDXF1152bytes. No disk/font files included.
+Self-review: production/Session/QEMU/codec unchanged; only collector and evidence paths staged. Final manifest verified after packaging.
+Final SHA256SUMS validation: 4291 evidence files match; all14 claim-map groups resolve.
+Default git diff --cached --check reports only intentional native DXF CRLF and transcript empty trailing TSV columns; byte-preserved. Scoped check excluding *.dxf/*transcript.tsv passed.

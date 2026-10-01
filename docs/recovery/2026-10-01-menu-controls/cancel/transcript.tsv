@@ -1,0 +1,91 @@
+case	sequence	phase	input	pointer_mirrored	before_artifact	after_artifact
+CIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+CIDLE	2	boot	line "1"	(0, 0)	captures/CIDLE-001-boot.png	captures/CIDLE-002-boot.png
+CIDLE	4	boot	line "CIDLE"	(0, 0)	captures/CIDLE-003-boot.png	captures/CIDLE-004-boot.png
+CIDLE	6	setup	line "MENU"	(0, 0)	captures/CIDLE-005-setup.png	captures/CIDLE-006-setup.png
+CIDLE	8	setup	line "ACAD"	(0, 0)	captures/CIDLE-007-setup.png	captures/CIDLE-008-setup.png
+CIDLE	10	setup	mouse_pin	(0, 0)	captures/CIDLE-009-setup.png	captures/CIDLE-010-setup.png
+CIDLE	12	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CIDLE-011-probe.png	captures/CIDLE-012-probe.png
+CIDLE	14	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CIDLE-013-probe.png	captures/CIDLE-014-probe.png
+CIDLE	15	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CIDLE-014-probe.png	captures/CIDLE-015-probe.png
+CIDLE	17	continuation	line "POINT"	(19230, 2630)	captures/CIDLE-016-continuation.png	captures/CIDLE-017-continuation.png
+CIDLE	19	continuation	line "8,7"	(19230, 2630)	captures/CIDLE-018-continuation.png	captures/CIDLE-019-continuation.png
+CIDLE	22	export	line "END"	(19230, 2630)	captures/CIDLE-021-export.png	captures/CIDLE-022-export.png
+CIDLE	24	export	line "5"	(19230, 2630)	captures/CIDLE-023-export.png	captures/CIDLE-024-export.png
+CIDLE	26	export	line "CIDLE"	(19230, 2630)	captures/CIDLE-025-export.png	captures/CIDLE-026-export.png
+CIDLE	26	export	shutdown	(19230, 2630)		
+CLSTART	0	boot	boot_disposable private system.img	(0, 0)		
+CLSTART	2	boot	line "1"	(0, 0)	captures/CLSTART-001-boot.png	captures/CLSTART-002-boot.png
+CLSTART	4	boot	line "CLSTART"	(0, 0)	captures/CLSTART-003-boot.png	captures/CLSTART-004-boot.png
+CLSTART	6	setup	line "MENU"	(0, 0)	captures/CLSTART-005-setup.png	captures/CLSTART-006-setup.png
+CLSTART	8	setup	line "ACAD"	(0, 0)	captures/CLSTART-007-setup.png	captures/CLSTART-008-setup.png
+CLSTART	10	setup	mouse_pin	(0, 0)	captures/CLSTART-009-setup.png	captures/CLSTART-010-setup.png
+CLSTART	12	setup	line "LINE"	(0, 0)	captures/CLSTART-011-setup.png	captures/CLSTART-012-setup.png
+CLSTART	14	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CLSTART-013-probe.png	captures/CLSTART-014-probe.png
+CLSTART	16	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CLSTART-015-probe.png	captures/CLSTART-016-probe.png
+CLSTART	17	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CLSTART-016-probe.png	captures/CLSTART-017-probe.png
+CLSTART	19	continuation	line "POINT"	(19230, 2630)	captures/CLSTART-018-continuation.png	captures/CLSTART-019-continuation.png
+CLSTART	21	continuation	line "8,7"	(19230, 2630)	captures/CLSTART-020-continuation.png	captures/CLSTART-021-continuation.png
+CLSTART	24	export	line "END"	(19230, 2630)	captures/CLSTART-023-export.png	captures/CLSTART-024-export.png
+CLSTART	26	export	line "5"	(19230, 2630)	captures/CLSTART-025-export.png	captures/CLSTART-026-export.png
+CLSTART	28	export	line "CLSTART"	(19230, 2630)	captures/CLSTART-027-export.png	captures/CLSTART-028-export.png
+CLSTART	28	export	shutdown	(19230, 2630)		
+CLSEG	0	boot	boot_disposable private system.img	(0, 0)		
+CLSEG	2	boot	line "1"	(0, 0)	captures/CLSEG-001-boot.png	captures/CLSEG-002-boot.png
+CLSEG	4	boot	line "CLSEG"	(0, 0)	captures/CLSEG-003-boot.png	captures/CLSEG-004-boot.png
+CLSEG	6	setup	line "MENU"	(0, 0)	captures/CLSEG-005-setup.png	captures/CLSEG-006-setup.png
+CLSEG	8	setup	line "ACAD"	(0, 0)	captures/CLSEG-007-setup.png	captures/CLSEG-008-setup.png
+CLSEG	10	setup	mouse_pin	(0, 0)	captures/CLSEG-009-setup.png	captures/CLSEG-010-setup.png
+CLSEG	12	setup	line "LINE"	(0, 0)	captures/CLSEG-011-setup.png	captures/CLSEG-012-setup.png
+CLSEG	14	setup	line "2,3"	(0, 0)	captures/CLSEG-013-setup.png	captures/CLSEG-014-setup.png
+CLSEG	16	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CLSEG-015-probe.png	captures/CLSEG-016-probe.png
+CLSEG	18	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CLSEG-017-probe.png	captures/CLSEG-018-probe.png
+CLSEG	19	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CLSEG-018-probe.png	captures/CLSEG-019-probe.png
+CLSEG	21	continuation	line "POINT"	(19230, 2630)	captures/CLSEG-020-continuation.png	captures/CLSEG-021-continuation.png
+CLSEG	23	continuation	line "8,7"	(19230, 2630)	captures/CLSEG-022-continuation.png	captures/CLSEG-023-continuation.png
+CLSEG	26	export	line "END"	(19230, 2630)	captures/CLSEG-025-export.png	captures/CLSEG-026-export.png
+CLSEG	28	export	line "5"	(19230, 2630)	captures/CLSEG-027-export.png	captures/CLSEG-028-export.png
+CLSEG	30	export	line "CLSEG"	(19230, 2630)	captures/CLSEG-029-export.png	captures/CLSEG-030-export.png
+CLSEG	30	export	shutdown	(19230, 2630)		
+CCENTER	0	boot	boot_disposable private system.img	(0, 0)		
+CCENTER	2	boot	line "1"	(0, 0)	captures/CCENTER-001-boot.png	captures/CCENTER-002-boot.png
+CCENTER	4	boot	line "CCENTER"	(0, 0)	captures/CCENTER-003-boot.png	captures/CCENTER-004-boot.png
+CCENTER	6	setup	line "MENU"	(0, 0)	captures/CCENTER-005-setup.png	captures/CCENTER-006-setup.png
+CCENTER	8	setup	line "ACAD"	(0, 0)	captures/CCENTER-007-setup.png	captures/CCENTER-008-setup.png
+CCENTER	10	setup	mouse_pin	(0, 0)	captures/CCENTER-009-setup.png	captures/CCENTER-010-setup.png
+CCENTER	12	setup	line "CIRCLE"	(0, 0)	captures/CCENTER-011-setup.png	captures/CCENTER-012-setup.png
+CCENTER	14	setup	line "2,3"	(0, 0)	captures/CCENTER-013-setup.png	captures/CCENTER-014-setup.png
+CCENTER	16	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CCENTER-015-probe.png	captures/CCENTER-016-probe.png
+CCENTER	18	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CCENTER-017-probe.png	captures/CCENTER-018-probe.png
+CCENTER	19	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CCENTER-018-probe.png	captures/CCENTER-019-probe.png
+CCENTER	21	continuation	line "POINT"	(19230, 2630)	captures/CCENTER-020-continuation.png	captures/CCENTER-021-continuation.png
+CCENTER	23	continuation	line "8,7"	(19230, 2630)	captures/CCENTER-022-continuation.png	captures/CCENTER-023-continuation.png
+CCENTER	26	export	line "END"	(19230, 2630)	captures/CCENTER-025-export.png	captures/CCENTER-026-export.png
+CCENTER	28	export	line "5"	(19230, 2630)	captures/CCENTER-027-export.png	captures/CCENTER-028-export.png
+CCENTER	30	export	line "CCENTER"	(19230, 2630)	captures/CCENTER-029-export.png	captures/CCENTER-030-export.png
+CCENTER	30	export	shutdown	(19230, 2630)		
+CREPEAT	0	boot	boot_disposable private system.img	(0, 0)		
+CREPEAT	2	boot	line "1"	(0, 0)	captures/CREPEAT-001-boot.png	captures/CREPEAT-002-boot.png
+CREPEAT	4	boot	line "CREPEAT"	(0, 0)	captures/CREPEAT-003-boot.png	captures/CREPEAT-004-boot.png
+CREPEAT	6	setup	line "MENU"	(0, 0)	captures/CREPEAT-005-setup.png	captures/CREPEAT-006-setup.png
+CREPEAT	8	setup	line "ACAD"	(0, 0)	captures/CREPEAT-007-setup.png	captures/CREPEAT-008-setup.png
+CREPEAT	10	setup	mouse_pin	(0, 0)	captures/CREPEAT-009-setup.png	captures/CREPEAT-010-setup.png
+CREPEAT	12	setup	line "REPEAT"	(0, 0)	captures/CREPEAT-011-setup.png	captures/CREPEAT-012-setup.png
+CREPEAT	14	setup	line "POINT"	(0, 0)	captures/CREPEAT-013-setup.png	captures/CREPEAT-014-setup.png
+CREPEAT	16	setup	line "4,5"	(0, 0)	captures/CREPEAT-015-setup.png	captures/CREPEAT-016-setup.png
+CREPEAT	18	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CREPEAT-017-probe.png	captures/CREPEAT-018-probe.png
+CREPEAT	20	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CREPEAT-019-probe.png	captures/CREPEAT-020-probe.png
+CREPEAT	21	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CREPEAT-020-probe.png	captures/CREPEAT-021-probe.png
+CREPEAT	23	continuation	line "ENDREP"	(19230, 2630)	captures/CREPEAT-022-continuation.png	captures/CREPEAT-023-continuation.png
+CREPEAT	25	continuation	line "REPEAT"	(19230, 2630)	captures/CREPEAT-024-continuation.png	captures/CREPEAT-025-continuation.png
+CREPEAT	27	continuation	line "POINT"	(19230, 2630)	captures/CREPEAT-026-continuation.png	captures/CREPEAT-027-continuation.png
+CREPEAT	29	continuation	line "6,5"	(19230, 2630)	captures/CREPEAT-028-continuation.png	captures/CREPEAT-029-continuation.png
+CREPEAT	31	continuation	line "ENDREP"	(19230, 2630)	captures/CREPEAT-030-continuation.png	captures/CREPEAT-031-continuation.png
+CREPEAT	33	cleanup	key ctrl true	(19230, 2630)	captures/CREPEAT-032-cleanup.png	captures/CREPEAT-033-cleanup.png
+CREPEAT	35	cleanup	key c true	(19230, 2630)	captures/CREPEAT-034-cleanup.png	captures/CREPEAT-035-cleanup.png
+CREPEAT	37	cleanup	key c false	(19230, 2630)	captures/CREPEAT-036-cleanup.png	captures/CREPEAT-037-cleanup.png
+CREPEAT	39	cleanup	key ctrl false	(19230, 2630)	captures/CREPEAT-038-cleanup.png	captures/CREPEAT-039-cleanup.png
+CREPEAT	42	export	line "END"	(19230, 2630)	captures/CREPEAT-041-export.png	captures/CREPEAT-042-export.png
+CREPEAT	44	export	line "5"	(19230, 2630)	captures/CREPEAT-043-export.png	captures/CREPEAT-044-export.png
+CREPEAT	46	export	line "CREPEAT"	(19230, 2630)	captures/CREPEAT-045-export.png	captures/CREPEAT-046-export.png
+CREPEAT	46	export	shutdown	(19230, 2630)		

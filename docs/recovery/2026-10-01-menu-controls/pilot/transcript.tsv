@@ -1,0 +1,172 @@
+case	sequence	phase	input	pointer_mirrored	before_artifact	after_artifact
+BASEOFF	0	boot	boot_disposable private system.img	(0, 0)		
+BASEOFF	2	boot	line "1"	(0, 0)	captures/BASEOFF-001-boot.png	captures/BASEOFF-002-boot.png
+BASEOFF	4	boot	line "BASEOFF"	(0, 0)	captures/BASEOFF-003-boot.png	captures/BASEOFF-004-boot.png
+BASEOFF	6	setup	line "MENU"	(0, 0)	captures/BASEOFF-005-setup.png	captures/BASEOFF-006-setup.png
+BASEOFF	8	setup	line "ACAD"	(0, 0)	captures/BASEOFF-007-setup.png	captures/BASEOFF-008-setup.png
+BASEOFF	10	setup	mouse_pin	(0, 0)	captures/BASEOFF-009-setup.png	captures/BASEOFF-010-setup.png
+BASEOFF	12	setup	line "SNAP"	(0, 0)	captures/BASEOFF-011-setup.png	captures/BASEOFF-012-setup.png
+BASEOFF	14	setup	line "0.5"	(0, 0)	captures/BASEOFF-013-setup.png	captures/BASEOFF-014-setup.png
+BASEOFF	16	setup	line "SNAP"	(0, 0)	captures/BASEOFF-015-setup.png	captures/BASEOFF-016-setup.png
+BASEOFF	18	setup	line "OFF"	(0, 0)	captures/BASEOFF-017-setup.png	captures/BASEOFF-018-setup.png
+BASEOFF	20	setup	line "ORTHO"	(0, 0)	captures/BASEOFF-019-setup.png	captures/BASEOFF-020-setup.png
+BASEOFF	22	setup	line "OFF"	(0, 0)	captures/BASEOFF-021-setup.png	captures/BASEOFF-022-setup.png
+BASEOFF	25	export	line "END"	(0, 0)	captures/BASEOFF-024-export.png	captures/BASEOFF-025-export.png
+BASEOFF	27	export	line "5"	(0, 0)	captures/BASEOFF-026-export.png	captures/BASEOFF-027-export.png
+BASEOFF	29	export	line "BASEOFF"	(0, 0)	captures/BASEOFF-028-export.png	captures/BASEOFF-029-export.png
+BASEOFF	29	export	shutdown	(0, 0)		
+SCIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+SCIDLE	2	boot	line "1"	(0, 0)	captures/SCIDLE-001-boot.png	captures/SCIDLE-002-boot.png
+SCIDLE	4	boot	line "SCIDLE"	(0, 0)	captures/SCIDLE-003-boot.png	captures/SCIDLE-004-boot.png
+SCIDLE	6	setup	line "MENU"	(0, 0)	captures/SCIDLE-005-setup.png	captures/SCIDLE-006-setup.png
+SCIDLE	8	setup	line "ACAD"	(0, 0)	captures/SCIDLE-007-setup.png	captures/SCIDLE-008-setup.png
+SCIDLE	10	setup	mouse_pin	(0, 0)	captures/SCIDLE-009-setup.png	captures/SCIDLE-010-setup.png
+SCIDLE	12	setup	line "SNAP"	(0, 0)	captures/SCIDLE-011-setup.png	captures/SCIDLE-012-setup.png
+SCIDLE	14	setup	line "0.5"	(0, 0)	captures/SCIDLE-013-setup.png	captures/SCIDLE-014-setup.png
+SCIDLE	16	setup	line "SNAP"	(0, 0)	captures/SCIDLE-015-setup.png	captures/SCIDLE-016-setup.png
+SCIDLE	18	setup	line "OFF"	(0, 0)	captures/SCIDLE-017-setup.png	captures/SCIDLE-018-setup.png
+SCIDLE	20	setup	line "ORTHO"	(0, 0)	captures/SCIDLE-019-setup.png	captures/SCIDLE-020-setup.png
+SCIDLE	22	setup	line "OFF"	(0, 0)	captures/SCIDLE-021-setup.png	captures/SCIDLE-022-setup.png
+SCIDLE	24	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/SCIDLE-023-probe.png	captures/SCIDLE-024-probe.png
+SCIDLE	26	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	captures/SCIDLE-025-probe.png	captures/SCIDLE-026-probe.png
+SCIDLE	27	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/SCIDLE-026-probe.png	captures/SCIDLE-027-probe.png
+SCIDLE	30	export	line "END"	(19230, 18070)	captures/SCIDLE-029-export.png	captures/SCIDLE-030-export.png
+SCIDLE	32	export	line "5"	(19230, 18070)	captures/SCIDLE-031-export.png	captures/SCIDLE-032-export.png
+SCIDLE	34	export	line "SCIDLE"	(19230, 18070)	captures/SCIDLE-033-export.png	captures/SCIDLE-034-export.png
+SCIDLE	34	export	shutdown	(19230, 18070)		
+OCIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+OCIDLE	2	boot	line "1"	(0, 0)	captures/OCIDLE-001-boot.png	captures/OCIDLE-002-boot.png
+OCIDLE	4	boot	line "OCIDLE"	(0, 0)	captures/OCIDLE-003-boot.png	captures/OCIDLE-004-boot.png
+OCIDLE	6	setup	line "MENU"	(0, 0)	captures/OCIDLE-005-setup.png	captures/OCIDLE-006-setup.png
+OCIDLE	8	setup	line "ACAD"	(0, 0)	captures/OCIDLE-007-setup.png	captures/OCIDLE-008-setup.png
+OCIDLE	10	setup	mouse_pin	(0, 0)	captures/OCIDLE-009-setup.png	captures/OCIDLE-010-setup.png
+OCIDLE	12	setup	line "SNAP"	(0, 0)	captures/OCIDLE-011-setup.png	captures/OCIDLE-012-setup.png
+OCIDLE	14	setup	line "0.5"	(0, 0)	captures/OCIDLE-013-setup.png	captures/OCIDLE-014-setup.png
+OCIDLE	16	setup	line "SNAP"	(0, 0)	captures/OCIDLE-015-setup.png	captures/OCIDLE-016-setup.png
+OCIDLE	18	setup	line "OFF"	(0, 0)	captures/OCIDLE-017-setup.png	captures/OCIDLE-018-setup.png
+OCIDLE	20	setup	line "ORTHO"	(0, 0)	captures/OCIDLE-019-setup.png	captures/OCIDLE-020-setup.png
+OCIDLE	22	setup	line "OFF"	(0, 0)	captures/OCIDLE-021-setup.png	captures/OCIDLE-022-setup.png
+OCIDLE	24	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/OCIDLE-023-probe.png	captures/OCIDLE-024-probe.png
+OCIDLE	26	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/OCIDLE-025-probe.png	captures/OCIDLE-026-probe.png
+OCIDLE	27	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/OCIDLE-026-probe.png	captures/OCIDLE-027-probe.png
+OCIDLE	30	export	line "END"	(19230, 17210)	captures/OCIDLE-029-export.png	captures/OCIDLE-030-export.png
+OCIDLE	32	export	line "5"	(19230, 17210)	captures/OCIDLE-031-export.png	captures/OCIDLE-032-export.png
+OCIDLE	34	export	line "OCIDLE"	(19230, 17210)	captures/OCIDLE-033-export.png	captures/OCIDLE-034-export.png
+OCIDLE	34	export	shutdown	(19230, 17210)		
+SLINE	0	boot	boot_disposable private system.img	(0, 0)		
+SLINE	2	boot	line "1"	(0, 0)	captures/SLINE-001-boot.png	captures/SLINE-002-boot.png
+SLINE	4	boot	line "SLINE"	(0, 0)	captures/SLINE-003-boot.png	captures/SLINE-004-boot.png
+SLINE	6	setup	line "MENU"	(0, 0)	captures/SLINE-005-setup.png	captures/SLINE-006-setup.png
+SLINE	8	setup	line "ACAD"	(0, 0)	captures/SLINE-007-setup.png	captures/SLINE-008-setup.png
+SLINE	10	setup	mouse_pin	(0, 0)	captures/SLINE-009-setup.png	captures/SLINE-010-setup.png
+SLINE	12	setup	line "SNAP"	(0, 0)	captures/SLINE-011-setup.png	captures/SLINE-012-setup.png
+SLINE	14	setup	line "0.5"	(0, 0)	captures/SLINE-013-setup.png	captures/SLINE-014-setup.png
+SLINE	16	setup	line "SNAP"	(0, 0)	captures/SLINE-015-setup.png	captures/SLINE-016-setup.png
+SLINE	18	setup	line "OFF"	(0, 0)	captures/SLINE-017-setup.png	captures/SLINE-018-setup.png
+SLINE	20	setup	line "ORTHO"	(0, 0)	captures/SLINE-019-setup.png	captures/SLINE-020-setup.png
+SLINE	22	setup	line "OFF"	(0, 0)	captures/SLINE-021-setup.png	captures/SLINE-022-setup.png
+SLINE	24	setup	line "LINE"	(0, 0)	captures/SLINE-023-setup.png	captures/SLINE-024-setup.png
+SLINE	26	setup	line "2,3"	(0, 0)	captures/SLINE-025-setup.png	captures/SLINE-026-setup.png
+SLINE	28	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/SLINE-027-probe.png	captures/SLINE-028-probe.png
+SLINE	30	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	captures/SLINE-029-probe.png	captures/SLINE-030-probe.png
+SLINE	31	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/SLINE-030-probe.png	captures/SLINE-031-probe.png
+SLINE	33	continuation	line "4,5"	(19230, 18070)	captures/SLINE-032-continuation.png	captures/SLINE-033-continuation.png
+SLINE	35	continuation	line ""	(19230, 18070)	captures/SLINE-034-continuation.png	captures/SLINE-035-continuation.png
+SLINE	38	export	line "END"	(19230, 18070)	captures/SLINE-037-export.png	captures/SLINE-038-export.png
+SLINE	40	export	line "5"	(19230, 18070)	captures/SLINE-039-export.png	captures/SLINE-040-export.png
+SLINE	42	export	line "SLINE"	(19230, 18070)	captures/SLINE-041-export.png	captures/SLINE-042-export.png
+SLINE	42	export	shutdown	(19230, 18070)		
+CLDONE	0	boot	boot_disposable private system.img	(0, 0)		
+CLDONE	2	boot	line "1"	(0, 0)	captures/CLDONE-001-boot.png	captures/CLDONE-002-boot.png
+CLDONE	4	boot	line "CLDONE"	(0, 0)	captures/CLDONE-003-boot.png	captures/CLDONE-004-boot.png
+CLDONE	6	setup	line "MENU"	(0, 0)	captures/CLDONE-005-setup.png	captures/CLDONE-006-setup.png
+CLDONE	8	setup	line "ACAD"	(0, 0)	captures/CLDONE-007-setup.png	captures/CLDONE-008-setup.png
+CLDONE	10	setup	mouse_pin	(0, 0)	captures/CLDONE-009-setup.png	captures/CLDONE-010-setup.png
+CLDONE	12	setup	line "LINE"	(0, 0)	captures/CLDONE-011-setup.png	captures/CLDONE-012-setup.png
+CLDONE	14	setup	line "2,3"	(0, 0)	captures/CLDONE-013-setup.png	captures/CLDONE-014-setup.png
+CLDONE	16	setup	line "4,5"	(0, 0)	captures/CLDONE-015-setup.png	captures/CLDONE-016-setup.png
+CLDONE	18	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CLDONE-017-probe.png	captures/CLDONE-018-probe.png
+CLDONE	20	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CLDONE-019-probe.png	captures/CLDONE-020-probe.png
+CLDONE	21	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CLDONE-020-probe.png	captures/CLDONE-021-probe.png
+CLDONE	23	continuation	line "POINT"	(19230, 2630)	captures/CLDONE-022-continuation.png	captures/CLDONE-023-continuation.png
+CLDONE	25	continuation	line "8,7"	(19230, 2630)	captures/CLDONE-024-continuation.png	captures/CLDONE-025-continuation.png
+CLDONE	28	export	line "END"	(19230, 2630)	captures/CLDONE-027-export.png	captures/CLDONE-028-export.png
+CLDONE	30	export	line "5"	(19230, 2630)	captures/CLDONE-029-export.png	captures/CLDONE-030-export.png
+CLDONE	32	export	line "CLDONE"	(19230, 2630)	captures/CLDONE-031-export.png	captures/CLDONE-032-export.png
+CLDONE	32	export	shutdown	(19230, 2630)		
+CSELECT	0	boot	boot_disposable private system.img	(0, 0)		
+CSELECT	2	boot	line "1"	(0, 0)	captures/CSELECT-001-boot.png	captures/CSELECT-002-boot.png
+CSELECT	4	boot	line "CSELECT"	(0, 0)	captures/CSELECT-003-boot.png	captures/CSELECT-004-boot.png
+CSELECT	6	setup	line "MENU"	(0, 0)	captures/CSELECT-005-setup.png	captures/CSELECT-006-setup.png
+CSELECT	8	setup	line "ACAD"	(0, 0)	captures/CSELECT-007-setup.png	captures/CSELECT-008-setup.png
+CSELECT	10	setup	mouse_pin	(0, 0)	captures/CSELECT-009-setup.png	captures/CSELECT-010-setup.png
+CSELECT	12	setup	line "LINE"	(0, 0)	captures/CSELECT-011-setup.png	captures/CSELECT-012-setup.png
+CSELECT	14	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	captures/CSELECT-013-setup.png	captures/CSELECT-014-setup.png
+CSELECT	16	setup	mouse pixel=80,100 device=2560,8630 buttons=4	(2560, 8630)	captures/CSELECT-015-setup.png	captures/CSELECT-016-setup.png
+CSELECT	17	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	captures/CSELECT-016-setup.png	captures/CSELECT-017-setup.png
+CSELECT	19	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	captures/CSELECT-018-setup.png	captures/CSELECT-019-setup.png
+CSELECT	21	setup	mouse pixel=480,100 device=15380,8630 buttons=4	(15380, 8630)	captures/CSELECT-020-setup.png	captures/CSELECT-021-setup.png
+CSELECT	22	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	captures/CSELECT-021-setup.png	captures/CSELECT-022-setup.png
+CSELECT	24	setup	line ""	(15380, 8630)	captures/CSELECT-023-setup.png	captures/CSELECT-024-setup.png
+CSELECT	26	setup	line "ERASE"	(15380, 8630)	captures/CSELECT-025-setup.png	captures/CSELECT-026-setup.png
+CSELECT	28	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	captures/CSELECT-027-setup.png	captures/CSELECT-028-setup.png
+CSELECT	30	setup	mouse pixel=280,100 device=8970,8630 buttons=4	(8970, 8630)	captures/CSELECT-029-setup.png	captures/CSELECT-030-setup.png
+CSELECT	31	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	captures/CSELECT-030-setup.png	captures/CSELECT-031-setup.png
+CSELECT	33	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CSELECT-032-probe.png	captures/CSELECT-033-probe.png
+CSELECT	35	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CSELECT-034-probe.png	captures/CSELECT-035-probe.png
+CSELECT	36	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CSELECT-035-probe.png	captures/CSELECT-036-probe.png
+CSELECT	38	continuation	line "POINT"	(19230, 2630)	captures/CSELECT-037-continuation.png	captures/CSELECT-038-continuation.png
+CSELECT	40	continuation	line "8,7"	(19230, 2630)	captures/CSELECT-039-continuation.png	captures/CSELECT-040-continuation.png
+CSELECT	43	export	line "END"	(19230, 2630)	captures/CSELECT-042-export.png	captures/CSELECT-043-export.png
+CSELECT	45	export	line "5"	(19230, 2630)	captures/CSELECT-044-export.png	captures/CSELECT-045-export.png
+CSELECT	47	export	line "CSELECT"	(19230, 2630)	captures/CSELECT-046-export.png	captures/CSELECT-047-export.png
+CSELECT	47	export	shutdown	(19230, 2630)		
+GOIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+GOIDLE	2	boot	line "1"	(0, 0)	captures/GOIDLE-001-boot.png	captures/GOIDLE-002-boot.png
+GOIDLE	4	boot	line "GOIDLE"	(0, 0)	captures/GOIDLE-003-boot.png	captures/GOIDLE-004-boot.png
+GOIDLE	6	setup	line "MENU"	(0, 0)	captures/GOIDLE-005-setup.png	captures/GOIDLE-006-setup.png
+GOIDLE	8	setup	line "ACAD"	(0, 0)	captures/GOIDLE-007-setup.png	captures/GOIDLE-008-setup.png
+GOIDLE	10	setup	mouse_pin	(0, 0)	captures/GOIDLE-009-setup.png	captures/GOIDLE-010-setup.png
+GOIDLE	12	setup	mouse pixel=100,40 device=3210,15070 buttons=0	(3210, 15070)	captures/GOIDLE-011-setup.png	captures/GOIDLE-012-setup.png
+GOIDLE	14	setup	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOIDLE-013-setup.png	captures/GOIDLE-014-setup.png
+GOIDLE	16	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOIDLE-015-probe.png	captures/GOIDLE-016-probe.png
+GOIDLE	18	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOIDLE-017-probe.png	captures/GOIDLE-018-probe.png
+GOIDLE	19	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOIDLE-018-probe.png	captures/GOIDLE-019-probe.png
+GOIDLE	21	continuation	mouse pixel=450,130 device=14420,5410 buttons=0	(14420, 5410)	captures/GOIDLE-020-continuation.png	captures/GOIDLE-021-continuation.png
+GOIDLE	23	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOIDLE-022-continuation.png	captures/GOIDLE-023-continuation.png
+GOIDLE	25	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOIDLE-024-continuation.png	captures/GOIDLE-025-continuation.png
+GOIDLE	26	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOIDLE-025-continuation.png	captures/GOIDLE-026-continuation.png
+GOIDLE	29	export	line "END"	(19230, 18930)	captures/GOIDLE-028-export.png	captures/GOIDLE-029-export.png
+GOIDLE	31	export	line "5"	(19230, 18930)	captures/GOIDLE-030-export.png	captures/GOIDLE-031-export.png
+GOIDLE	33	export	line "GOIDLE"	(19230, 18930)	captures/GOIDLE-032-export.png	captures/GOIDLE-033-export.png
+GOIDLE	33	export	shutdown	(19230, 18930)		
+RETURN	0	boot	boot_disposable private system.img	(0, 0)		
+RETURN	2	boot	line "1"	(0, 0)	captures/RETURN-001-boot.png	captures/RETURN-002-boot.png
+RETURN	4	boot	line "RETURN"	(0, 0)	captures/RETURN-003-boot.png	captures/RETURN-004-boot.png
+RETURN	6	setup	line "MENU"	(0, 0)	captures/RETURN-005-setup.png	captures/RETURN-006-setup.png
+RETURN	8	setup	line "ACAD"	(0, 0)	captures/RETURN-007-setup.png	captures/RETURN-008-setup.png
+RETURN	10	setup	mouse_pin	(0, 0)	captures/RETURN-009-setup.png	captures/RETURN-010-setup.png
+RETURN	12	probe	key ret true	(0, 0)	captures/RETURN-011-probe.png	captures/RETURN-012-probe.png
+RETURN	14	probe	key ret false	(0, 0)	captures/RETURN-013-probe.png	captures/RETURN-014-probe.png
+RETURN	16	cleanup	key ctrl true	(0, 0)	captures/RETURN-015-cleanup.png	captures/RETURN-016-cleanup.png
+RETURN	18	cleanup	key c true	(0, 0)	captures/RETURN-017-cleanup.png	captures/RETURN-018-cleanup.png
+RETURN	20	cleanup	key c false	(0, 0)	captures/RETURN-019-cleanup.png	captures/RETURN-020-cleanup.png
+RETURN	22	cleanup	key ctrl false	(0, 0)	captures/RETURN-021-cleanup.png	captures/RETURN-022-cleanup.png
+RETURN	25	export	line "END"	(0, 0)	captures/RETURN-024-export.png	captures/RETURN-025-export.png
+RETURN	27	export	line "5"	(0, 0)	captures/RETURN-026-export.png	captures/RETURN-027-export.png
+RETURN	29	export	line "RETURN"	(0, 0)	captures/RETURN-028-export.png	captures/RETURN-029-export.png
+RETURN	29	export	shutdown	(0, 0)		
+SEMICOL	0	boot	boot_disposable private system.img	(0, 0)		
+SEMICOL	2	boot	line "1"	(0, 0)	captures/SEMICOL-001-boot.png	captures/SEMICOL-002-boot.png
+SEMICOL	4	boot	line "SEMICOL"	(0, 0)	captures/SEMICOL-003-boot.png	captures/SEMICOL-004-boot.png
+SEMICOL	6	setup	line "MENU"	(0, 0)	captures/SEMICOL-005-setup.png	captures/SEMICOL-006-setup.png
+SEMICOL	8	setup	line "ACAD"	(0, 0)	captures/SEMICOL-007-setup.png	captures/SEMICOL-008-setup.png
+SEMICOL	10	setup	mouse_pin	(0, 0)	captures/SEMICOL-009-setup.png	captures/SEMICOL-010-setup.png
+SEMICOL	12	probe	key semicolon true	(0, 0)	captures/SEMICOL-011-probe.png	captures/SEMICOL-012-probe.png
+SEMICOL	14	probe	key semicolon false	(0, 0)	captures/SEMICOL-013-probe.png	captures/SEMICOL-014-probe.png
+SEMICOL	16	continuation	key ret true	(0, 0)	captures/SEMICOL-015-continuation.png	captures/SEMICOL-016-continuation.png
+SEMICOL	18	continuation	key ret false	(0, 0)	captures/SEMICOL-017-continuation.png	captures/SEMICOL-018-continuation.png
+SEMICOL	21	export	line "END"	(0, 0)	captures/SEMICOL-020-export.png	captures/SEMICOL-021-export.png
+SEMICOL	23	export	line "5"	(0, 0)	captures/SEMICOL-022-export.png	captures/SEMICOL-023-export.png
+SEMICOL	25	export	line "SEMICOL"	(0, 0)	captures/SEMICOL-024-export.png	captures/SEMICOL-025-export.png
+SEMICOL	25	export	shutdown	(0, 0)		

@@ -1,0 +1,1142 @@
+case	sequence	phase	input	pointer_mirrored	before_artifact	after_artifact
+BASEOFF	0	boot	boot_disposable private system.img	(0, 0)		
+BASEOFF	2	boot	"line ""1"""	(0, 0)	pilot/captures/BASEOFF-001-boot.png	pilot/captures/BASEOFF-002-boot.png
+BASEOFF	4	boot	"line ""BASEOFF"""	(0, 0)	pilot/captures/BASEOFF-003-boot.png	pilot/captures/BASEOFF-004-boot.png
+BASEOFF	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/BASEOFF-005-setup.png	pilot/captures/BASEOFF-006-setup.png
+BASEOFF	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/BASEOFF-007-setup.png	pilot/captures/BASEOFF-008-setup.png
+BASEOFF	10	setup	mouse_pin	(0, 0)	pilot/captures/BASEOFF-009-setup.png	pilot/captures/BASEOFF-010-setup.png
+BASEOFF	12	setup	"line ""SNAP"""	(0, 0)	pilot/captures/BASEOFF-011-setup.png	pilot/captures/BASEOFF-012-setup.png
+BASEOFF	14	setup	"line ""0.5"""	(0, 0)	pilot/captures/BASEOFF-013-setup.png	pilot/captures/BASEOFF-014-setup.png
+BASEOFF	16	setup	"line ""SNAP"""	(0, 0)	pilot/captures/BASEOFF-015-setup.png	pilot/captures/BASEOFF-016-setup.png
+BASEOFF	18	setup	"line ""OFF"""	(0, 0)	pilot/captures/BASEOFF-017-setup.png	pilot/captures/BASEOFF-018-setup.png
+BASEOFF	20	setup	"line ""ORTHO"""	(0, 0)	pilot/captures/BASEOFF-019-setup.png	pilot/captures/BASEOFF-020-setup.png
+BASEOFF	22	setup	"line ""OFF"""	(0, 0)	pilot/captures/BASEOFF-021-setup.png	pilot/captures/BASEOFF-022-setup.png
+BASEOFF	25	export	"line ""END"""	(0, 0)	pilot/captures/BASEOFF-024-export.png	pilot/captures/BASEOFF-025-export.png
+BASEOFF	27	export	"line ""5"""	(0, 0)	pilot/captures/BASEOFF-026-export.png	pilot/captures/BASEOFF-027-export.png
+BASEOFF	29	export	"line ""BASEOFF"""	(0, 0)	pilot/captures/BASEOFF-028-export.png	pilot/captures/BASEOFF-029-export.png
+BASEOFF	29	export	shutdown	(0, 0)		
+SCIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+SCIDLE	2	boot	"line ""1"""	(0, 0)	pilot/captures/SCIDLE-001-boot.png	pilot/captures/SCIDLE-002-boot.png
+SCIDLE	4	boot	"line ""SCIDLE"""	(0, 0)	pilot/captures/SCIDLE-003-boot.png	pilot/captures/SCIDLE-004-boot.png
+SCIDLE	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/SCIDLE-005-setup.png	pilot/captures/SCIDLE-006-setup.png
+SCIDLE	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/SCIDLE-007-setup.png	pilot/captures/SCIDLE-008-setup.png
+SCIDLE	10	setup	mouse_pin	(0, 0)	pilot/captures/SCIDLE-009-setup.png	pilot/captures/SCIDLE-010-setup.png
+SCIDLE	12	setup	"line ""SNAP"""	(0, 0)	pilot/captures/SCIDLE-011-setup.png	pilot/captures/SCIDLE-012-setup.png
+SCIDLE	14	setup	"line ""0.5"""	(0, 0)	pilot/captures/SCIDLE-013-setup.png	pilot/captures/SCIDLE-014-setup.png
+SCIDLE	16	setup	"line ""SNAP"""	(0, 0)	pilot/captures/SCIDLE-015-setup.png	pilot/captures/SCIDLE-016-setup.png
+SCIDLE	18	setup	"line ""OFF"""	(0, 0)	pilot/captures/SCIDLE-017-setup.png	pilot/captures/SCIDLE-018-setup.png
+SCIDLE	20	setup	"line ""ORTHO"""	(0, 0)	pilot/captures/SCIDLE-019-setup.png	pilot/captures/SCIDLE-020-setup.png
+SCIDLE	22	setup	"line ""OFF"""	(0, 0)	pilot/captures/SCIDLE-021-setup.png	pilot/captures/SCIDLE-022-setup.png
+SCIDLE	24	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	pilot/captures/SCIDLE-023-probe.png	pilot/captures/SCIDLE-024-probe.png
+SCIDLE	26	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	pilot/captures/SCIDLE-025-probe.png	pilot/captures/SCIDLE-026-probe.png
+SCIDLE	27	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	pilot/captures/SCIDLE-026-probe.png	pilot/captures/SCIDLE-027-probe.png
+SCIDLE	30	export	"line ""END"""	(19230, 18070)	pilot/captures/SCIDLE-029-export.png	pilot/captures/SCIDLE-030-export.png
+SCIDLE	32	export	"line ""5"""	(19230, 18070)	pilot/captures/SCIDLE-031-export.png	pilot/captures/SCIDLE-032-export.png
+SCIDLE	34	export	"line ""SCIDLE"""	(19230, 18070)	pilot/captures/SCIDLE-033-export.png	pilot/captures/SCIDLE-034-export.png
+SCIDLE	34	export	shutdown	(19230, 18070)		
+OCIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+OCIDLE	2	boot	"line ""1"""	(0, 0)	pilot/captures/OCIDLE-001-boot.png	pilot/captures/OCIDLE-002-boot.png
+OCIDLE	4	boot	"line ""OCIDLE"""	(0, 0)	pilot/captures/OCIDLE-003-boot.png	pilot/captures/OCIDLE-004-boot.png
+OCIDLE	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/OCIDLE-005-setup.png	pilot/captures/OCIDLE-006-setup.png
+OCIDLE	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/OCIDLE-007-setup.png	pilot/captures/OCIDLE-008-setup.png
+OCIDLE	10	setup	mouse_pin	(0, 0)	pilot/captures/OCIDLE-009-setup.png	pilot/captures/OCIDLE-010-setup.png
+OCIDLE	12	setup	"line ""SNAP"""	(0, 0)	pilot/captures/OCIDLE-011-setup.png	pilot/captures/OCIDLE-012-setup.png
+OCIDLE	14	setup	"line ""0.5"""	(0, 0)	pilot/captures/OCIDLE-013-setup.png	pilot/captures/OCIDLE-014-setup.png
+OCIDLE	16	setup	"line ""SNAP"""	(0, 0)	pilot/captures/OCIDLE-015-setup.png	pilot/captures/OCIDLE-016-setup.png
+OCIDLE	18	setup	"line ""OFF"""	(0, 0)	pilot/captures/OCIDLE-017-setup.png	pilot/captures/OCIDLE-018-setup.png
+OCIDLE	20	setup	"line ""ORTHO"""	(0, 0)	pilot/captures/OCIDLE-019-setup.png	pilot/captures/OCIDLE-020-setup.png
+OCIDLE	22	setup	"line ""OFF"""	(0, 0)	pilot/captures/OCIDLE-021-setup.png	pilot/captures/OCIDLE-022-setup.png
+OCIDLE	24	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	pilot/captures/OCIDLE-023-probe.png	pilot/captures/OCIDLE-024-probe.png
+OCIDLE	26	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	pilot/captures/OCIDLE-025-probe.png	pilot/captures/OCIDLE-026-probe.png
+OCIDLE	27	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	pilot/captures/OCIDLE-026-probe.png	pilot/captures/OCIDLE-027-probe.png
+OCIDLE	30	export	"line ""END"""	(19230, 17210)	pilot/captures/OCIDLE-029-export.png	pilot/captures/OCIDLE-030-export.png
+OCIDLE	32	export	"line ""5"""	(19230, 17210)	pilot/captures/OCIDLE-031-export.png	pilot/captures/OCIDLE-032-export.png
+OCIDLE	34	export	"line ""OCIDLE"""	(19230, 17210)	pilot/captures/OCIDLE-033-export.png	pilot/captures/OCIDLE-034-export.png
+OCIDLE	34	export	shutdown	(19230, 17210)		
+SLINE	0	boot	boot_disposable private system.img	(0, 0)		
+SLINE	2	boot	"line ""1"""	(0, 0)	pilot/captures/SLINE-001-boot.png	pilot/captures/SLINE-002-boot.png
+SLINE	4	boot	"line ""SLINE"""	(0, 0)	pilot/captures/SLINE-003-boot.png	pilot/captures/SLINE-004-boot.png
+SLINE	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/SLINE-005-setup.png	pilot/captures/SLINE-006-setup.png
+SLINE	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/SLINE-007-setup.png	pilot/captures/SLINE-008-setup.png
+SLINE	10	setup	mouse_pin	(0, 0)	pilot/captures/SLINE-009-setup.png	pilot/captures/SLINE-010-setup.png
+SLINE	12	setup	"line ""SNAP"""	(0, 0)	pilot/captures/SLINE-011-setup.png	pilot/captures/SLINE-012-setup.png
+SLINE	14	setup	"line ""0.5"""	(0, 0)	pilot/captures/SLINE-013-setup.png	pilot/captures/SLINE-014-setup.png
+SLINE	16	setup	"line ""SNAP"""	(0, 0)	pilot/captures/SLINE-015-setup.png	pilot/captures/SLINE-016-setup.png
+SLINE	18	setup	"line ""OFF"""	(0, 0)	pilot/captures/SLINE-017-setup.png	pilot/captures/SLINE-018-setup.png
+SLINE	20	setup	"line ""ORTHO"""	(0, 0)	pilot/captures/SLINE-019-setup.png	pilot/captures/SLINE-020-setup.png
+SLINE	22	setup	"line ""OFF"""	(0, 0)	pilot/captures/SLINE-021-setup.png	pilot/captures/SLINE-022-setup.png
+SLINE	24	setup	"line ""LINE"""	(0, 0)	pilot/captures/SLINE-023-setup.png	pilot/captures/SLINE-024-setup.png
+SLINE	26	setup	"line ""2,3"""	(0, 0)	pilot/captures/SLINE-025-setup.png	pilot/captures/SLINE-026-setup.png
+SLINE	28	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	pilot/captures/SLINE-027-probe.png	pilot/captures/SLINE-028-probe.png
+SLINE	30	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	pilot/captures/SLINE-029-probe.png	pilot/captures/SLINE-030-probe.png
+SLINE	31	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	pilot/captures/SLINE-030-probe.png	pilot/captures/SLINE-031-probe.png
+SLINE	33	continuation	"line ""4,5"""	(19230, 18070)	pilot/captures/SLINE-032-continuation.png	pilot/captures/SLINE-033-continuation.png
+SLINE	35	continuation	"line """""	(19230, 18070)	pilot/captures/SLINE-034-continuation.png	pilot/captures/SLINE-035-continuation.png
+SLINE	38	export	"line ""END"""	(19230, 18070)	pilot/captures/SLINE-037-export.png	pilot/captures/SLINE-038-export.png
+SLINE	40	export	"line ""5"""	(19230, 18070)	pilot/captures/SLINE-039-export.png	pilot/captures/SLINE-040-export.png
+SLINE	42	export	"line ""SLINE"""	(19230, 18070)	pilot/captures/SLINE-041-export.png	pilot/captures/SLINE-042-export.png
+SLINE	42	export	shutdown	(19230, 18070)		
+CLDONE	0	boot	boot_disposable private system.img	(0, 0)		
+CLDONE	2	boot	"line ""1"""	(0, 0)	pilot/captures/CLDONE-001-boot.png	pilot/captures/CLDONE-002-boot.png
+CLDONE	4	boot	"line ""CLDONE"""	(0, 0)	pilot/captures/CLDONE-003-boot.png	pilot/captures/CLDONE-004-boot.png
+CLDONE	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/CLDONE-005-setup.png	pilot/captures/CLDONE-006-setup.png
+CLDONE	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/CLDONE-007-setup.png	pilot/captures/CLDONE-008-setup.png
+CLDONE	10	setup	mouse_pin	(0, 0)	pilot/captures/CLDONE-009-setup.png	pilot/captures/CLDONE-010-setup.png
+CLDONE	12	setup	"line ""LINE"""	(0, 0)	pilot/captures/CLDONE-011-setup.png	pilot/captures/CLDONE-012-setup.png
+CLDONE	14	setup	"line ""2,3"""	(0, 0)	pilot/captures/CLDONE-013-setup.png	pilot/captures/CLDONE-014-setup.png
+CLDONE	16	setup	"line ""4,5"""	(0, 0)	pilot/captures/CLDONE-015-setup.png	pilot/captures/CLDONE-016-setup.png
+CLDONE	18	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	pilot/captures/CLDONE-017-probe.png	pilot/captures/CLDONE-018-probe.png
+CLDONE	20	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	pilot/captures/CLDONE-019-probe.png	pilot/captures/CLDONE-020-probe.png
+CLDONE	21	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	pilot/captures/CLDONE-020-probe.png	pilot/captures/CLDONE-021-probe.png
+CLDONE	23	continuation	"line ""POINT"""	(19230, 2630)	pilot/captures/CLDONE-022-continuation.png	pilot/captures/CLDONE-023-continuation.png
+CLDONE	25	continuation	"line ""8,7"""	(19230, 2630)	pilot/captures/CLDONE-024-continuation.png	pilot/captures/CLDONE-025-continuation.png
+CLDONE	28	export	"line ""END"""	(19230, 2630)	pilot/captures/CLDONE-027-export.png	pilot/captures/CLDONE-028-export.png
+CLDONE	30	export	"line ""5"""	(19230, 2630)	pilot/captures/CLDONE-029-export.png	pilot/captures/CLDONE-030-export.png
+CLDONE	32	export	"line ""CLDONE"""	(19230, 2630)	pilot/captures/CLDONE-031-export.png	pilot/captures/CLDONE-032-export.png
+CLDONE	32	export	shutdown	(19230, 2630)		
+CSELECT	0	boot	boot_disposable private system.img	(0, 0)		
+CSELECT	2	boot	"line ""1"""	(0, 0)	pilot/captures/CSELECT-001-boot.png	pilot/captures/CSELECT-002-boot.png
+CSELECT	4	boot	"line ""CSELECT"""	(0, 0)	pilot/captures/CSELECT-003-boot.png	pilot/captures/CSELECT-004-boot.png
+CSELECT	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/CSELECT-005-setup.png	pilot/captures/CSELECT-006-setup.png
+CSELECT	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/CSELECT-007-setup.png	pilot/captures/CSELECT-008-setup.png
+CSELECT	10	setup	mouse_pin	(0, 0)	pilot/captures/CSELECT-009-setup.png	pilot/captures/CSELECT-010-setup.png
+CSELECT	12	setup	"line ""LINE"""	(0, 0)	pilot/captures/CSELECT-011-setup.png	pilot/captures/CSELECT-012-setup.png
+CSELECT	14	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	pilot/captures/CSELECT-013-setup.png	pilot/captures/CSELECT-014-setup.png
+CSELECT	16	setup	mouse pixel=80,100 device=2560,8630 buttons=4	(2560, 8630)	pilot/captures/CSELECT-015-setup.png	pilot/captures/CSELECT-016-setup.png
+CSELECT	17	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	pilot/captures/CSELECT-016-setup.png	pilot/captures/CSELECT-017-setup.png
+CSELECT	19	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	pilot/captures/CSELECT-018-setup.png	pilot/captures/CSELECT-019-setup.png
+CSELECT	21	setup	mouse pixel=480,100 device=15380,8630 buttons=4	(15380, 8630)	pilot/captures/CSELECT-020-setup.png	pilot/captures/CSELECT-021-setup.png
+CSELECT	22	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	pilot/captures/CSELECT-021-setup.png	pilot/captures/CSELECT-022-setup.png
+CSELECT	24	setup	"line """""	(15380, 8630)	pilot/captures/CSELECT-023-setup.png	pilot/captures/CSELECT-024-setup.png
+CSELECT	26	setup	"line ""ERASE"""	(15380, 8630)	pilot/captures/CSELECT-025-setup.png	pilot/captures/CSELECT-026-setup.png
+CSELECT	28	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	pilot/captures/CSELECT-027-setup.png	pilot/captures/CSELECT-028-setup.png
+CSELECT	30	setup	mouse pixel=280,100 device=8970,8630 buttons=4	(8970, 8630)	pilot/captures/CSELECT-029-setup.png	pilot/captures/CSELECT-030-setup.png
+CSELECT	31	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	pilot/captures/CSELECT-030-setup.png	pilot/captures/CSELECT-031-setup.png
+CSELECT	33	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	pilot/captures/CSELECT-032-probe.png	pilot/captures/CSELECT-033-probe.png
+CSELECT	35	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	pilot/captures/CSELECT-034-probe.png	pilot/captures/CSELECT-035-probe.png
+CSELECT	36	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	pilot/captures/CSELECT-035-probe.png	pilot/captures/CSELECT-036-probe.png
+CSELECT	38	continuation	"line ""POINT"""	(19230, 2630)	pilot/captures/CSELECT-037-continuation.png	pilot/captures/CSELECT-038-continuation.png
+CSELECT	40	continuation	"line ""8,7"""	(19230, 2630)	pilot/captures/CSELECT-039-continuation.png	pilot/captures/CSELECT-040-continuation.png
+CSELECT	43	export	"line ""END"""	(19230, 2630)	pilot/captures/CSELECT-042-export.png	pilot/captures/CSELECT-043-export.png
+CSELECT	45	export	"line ""5"""	(19230, 2630)	pilot/captures/CSELECT-044-export.png	pilot/captures/CSELECT-045-export.png
+CSELECT	47	export	"line ""CSELECT"""	(19230, 2630)	pilot/captures/CSELECT-046-export.png	pilot/captures/CSELECT-047-export.png
+CSELECT	47	export	shutdown	(19230, 2630)		
+GOIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+GOIDLE	2	boot	"line ""1"""	(0, 0)	pilot/captures/GOIDLE-001-boot.png	pilot/captures/GOIDLE-002-boot.png
+GOIDLE	4	boot	"line ""GOIDLE"""	(0, 0)	pilot/captures/GOIDLE-003-boot.png	pilot/captures/GOIDLE-004-boot.png
+GOIDLE	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/GOIDLE-005-setup.png	pilot/captures/GOIDLE-006-setup.png
+GOIDLE	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/GOIDLE-007-setup.png	pilot/captures/GOIDLE-008-setup.png
+GOIDLE	10	setup	mouse_pin	(0, 0)	pilot/captures/GOIDLE-009-setup.png	pilot/captures/GOIDLE-010-setup.png
+GOIDLE	12	setup	mouse pixel=100,40 device=3210,15070 buttons=0	(3210, 15070)	pilot/captures/GOIDLE-011-setup.png	pilot/captures/GOIDLE-012-setup.png
+GOIDLE	14	setup	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	pilot/captures/GOIDLE-013-setup.png	pilot/captures/GOIDLE-014-setup.png
+GOIDLE	16	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	pilot/captures/GOIDLE-015-probe.png	pilot/captures/GOIDLE-016-probe.png
+GOIDLE	18	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	pilot/captures/GOIDLE-017-probe.png	pilot/captures/GOIDLE-018-probe.png
+GOIDLE	19	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	pilot/captures/GOIDLE-018-probe.png	pilot/captures/GOIDLE-019-probe.png
+GOIDLE	21	continuation	mouse pixel=450,130 device=14420,5410 buttons=0	(14420, 5410)	pilot/captures/GOIDLE-020-continuation.png	pilot/captures/GOIDLE-021-continuation.png
+GOIDLE	23	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	pilot/captures/GOIDLE-022-continuation.png	pilot/captures/GOIDLE-023-continuation.png
+GOIDLE	25	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	pilot/captures/GOIDLE-024-continuation.png	pilot/captures/GOIDLE-025-continuation.png
+GOIDLE	26	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	pilot/captures/GOIDLE-025-continuation.png	pilot/captures/GOIDLE-026-continuation.png
+GOIDLE	29	export	"line ""END"""	(19230, 18930)	pilot/captures/GOIDLE-028-export.png	pilot/captures/GOIDLE-029-export.png
+GOIDLE	31	export	"line ""5"""	(19230, 18930)	pilot/captures/GOIDLE-030-export.png	pilot/captures/GOIDLE-031-export.png
+GOIDLE	33	export	"line ""GOIDLE"""	(19230, 18930)	pilot/captures/GOIDLE-032-export.png	pilot/captures/GOIDLE-033-export.png
+GOIDLE	33	export	shutdown	(19230, 18930)		
+RETURN	0	boot	boot_disposable private system.img	(0, 0)		
+RETURN	2	boot	"line ""1"""	(0, 0)	pilot/captures/RETURN-001-boot.png	pilot/captures/RETURN-002-boot.png
+RETURN	4	boot	"line ""RETURN"""	(0, 0)	pilot/captures/RETURN-003-boot.png	pilot/captures/RETURN-004-boot.png
+RETURN	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/RETURN-005-setup.png	pilot/captures/RETURN-006-setup.png
+RETURN	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/RETURN-007-setup.png	pilot/captures/RETURN-008-setup.png
+RETURN	10	setup	mouse_pin	(0, 0)	pilot/captures/RETURN-009-setup.png	pilot/captures/RETURN-010-setup.png
+RETURN	12	probe	key ret true	(0, 0)	pilot/captures/RETURN-011-probe.png	pilot/captures/RETURN-012-probe.png
+RETURN	14	probe	key ret false	(0, 0)	pilot/captures/RETURN-013-probe.png	pilot/captures/RETURN-014-probe.png
+RETURN	16	cleanup	key ctrl true	(0, 0)	pilot/captures/RETURN-015-cleanup.png	pilot/captures/RETURN-016-cleanup.png
+RETURN	18	cleanup	key c true	(0, 0)	pilot/captures/RETURN-017-cleanup.png	pilot/captures/RETURN-018-cleanup.png
+RETURN	20	cleanup	key c false	(0, 0)	pilot/captures/RETURN-019-cleanup.png	pilot/captures/RETURN-020-cleanup.png
+RETURN	22	cleanup	key ctrl false	(0, 0)	pilot/captures/RETURN-021-cleanup.png	pilot/captures/RETURN-022-cleanup.png
+RETURN	25	export	"line ""END"""	(0, 0)	pilot/captures/RETURN-024-export.png	pilot/captures/RETURN-025-export.png
+RETURN	27	export	"line ""5"""	(0, 0)	pilot/captures/RETURN-026-export.png	pilot/captures/RETURN-027-export.png
+RETURN	29	export	"line ""RETURN"""	(0, 0)	pilot/captures/RETURN-028-export.png	pilot/captures/RETURN-029-export.png
+RETURN	29	export	shutdown	(0, 0)		
+SEMICOL	0	boot	boot_disposable private system.img	(0, 0)		
+SEMICOL	2	boot	"line ""1"""	(0, 0)	pilot/captures/SEMICOL-001-boot.png	pilot/captures/SEMICOL-002-boot.png
+SEMICOL	4	boot	"line ""SEMICOL"""	(0, 0)	pilot/captures/SEMICOL-003-boot.png	pilot/captures/SEMICOL-004-boot.png
+SEMICOL	6	setup	"line ""MENU"""	(0, 0)	pilot/captures/SEMICOL-005-setup.png	pilot/captures/SEMICOL-006-setup.png
+SEMICOL	8	setup	"line ""ACAD"""	(0, 0)	pilot/captures/SEMICOL-007-setup.png	pilot/captures/SEMICOL-008-setup.png
+SEMICOL	10	setup	mouse_pin	(0, 0)	pilot/captures/SEMICOL-009-setup.png	pilot/captures/SEMICOL-010-setup.png
+SEMICOL	12	probe	key semicolon true	(0, 0)	pilot/captures/SEMICOL-011-probe.png	pilot/captures/SEMICOL-012-probe.png
+SEMICOL	14	probe	key semicolon false	(0, 0)	pilot/captures/SEMICOL-013-probe.png	pilot/captures/SEMICOL-014-probe.png
+SEMICOL	16	continuation	key ret true	(0, 0)	pilot/captures/SEMICOL-015-continuation.png	pilot/captures/SEMICOL-016-continuation.png
+SEMICOL	18	continuation	key ret false	(0, 0)	pilot/captures/SEMICOL-017-continuation.png	pilot/captures/SEMICOL-018-continuation.png
+SEMICOL	21	export	"line ""END"""	(0, 0)	pilot/captures/SEMICOL-020-export.png	pilot/captures/SEMICOL-021-export.png
+SEMICOL	23	export	"line ""5"""	(0, 0)	pilot/captures/SEMICOL-022-export.png	pilot/captures/SEMICOL-023-export.png
+SEMICOL	25	export	"line ""SEMICOL"""	(0, 0)	pilot/captures/SEMICOL-024-export.png	pilot/captures/SEMICOL-025-export.png
+SEMICOL	25	export	shutdown	(0, 0)		
+GOFRESH	0	boot	boot_disposable private system.img	(0, 0)		
+GOFRESH	2	boot	"line ""1"""	(0, 0)	go/captures/GOFRESH-001-boot.png	go/captures/GOFRESH-002-boot.png
+GOFRESH	4	boot	"line ""GOFRESH"""	(0, 0)	go/captures/GOFRESH-003-boot.png	go/captures/GOFRESH-004-boot.png
+GOFRESH	6	setup	mouse_pin	(0, 0)	go/captures/GOFRESH-005-setup.png	go/captures/GOFRESH-006-setup.png
+GOFRESH	8	setup	mouse pixel=100,40 device=3210,15070 buttons=0	(3210, 15070)	go/captures/GOFRESH-007-setup.png	go/captures/GOFRESH-008-setup.png
+GOFRESH	10	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOFRESH-009-probe.png	go/captures/GOFRESH-010-probe.png
+GOFRESH	12	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/GOFRESH-011-probe.png	go/captures/GOFRESH-012-probe.png
+GOFRESH	13	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOFRESH-012-probe.png	go/captures/GOFRESH-013-probe.png
+GOFRESH	15	continuation	mouse pixel=450,130 device=14420,5410 buttons=0	(14420, 5410)	go/captures/GOFRESH-014-continuation.png	go/captures/GOFRESH-015-continuation.png
+GOFRESH	17	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOFRESH-016-continuation.png	go/captures/GOFRESH-017-continuation.png
+GOFRESH	19	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/GOFRESH-018-continuation.png	go/captures/GOFRESH-019-continuation.png
+GOFRESH	20	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOFRESH-019-continuation.png	go/captures/GOFRESH-020-continuation.png
+GOFRESH	23	export	"line ""END"""	(19230, 18930)	go/captures/GOFRESH-022-export.png	go/captures/GOFRESH-023-export.png
+GOFRESH	25	export	"line ""5"""	(19230, 18930)	go/captures/GOFRESH-024-export.png	go/captures/GOFRESH-025-export.png
+GOFRESH	27	export	"line ""GOFRESH"""	(19230, 18930)	go/captures/GOFRESH-026-export.png	go/captures/GOFRESH-027-export.png
+GOFRESH	27	export	shutdown	(19230, 18930)		
+RTFRESH	0	boot	boot_disposable private system.img	(0, 0)		
+RTFRESH	2	boot	"line ""1"""	(0, 0)	go/captures/RTFRESH-001-boot.png	go/captures/RTFRESH-002-boot.png
+RTFRESH	4	boot	"line ""RTFRESH"""	(0, 0)	go/captures/RTFRESH-003-boot.png	go/captures/RTFRESH-004-boot.png
+RTFRESH	6	setup	mouse_pin	(0, 0)	go/captures/RTFRESH-005-setup.png	go/captures/RTFRESH-006-setup.png
+RTFRESH	8	probe	key ret true	(0, 0)	go/captures/RTFRESH-007-probe.png	go/captures/RTFRESH-008-probe.png
+RTFRESH	10	probe	key ret false	(0, 0)	go/captures/RTFRESH-009-probe.png	go/captures/RTFRESH-010-probe.png
+RTFRESH	13	export	"line ""END"""	(0, 0)	go/captures/RTFRESH-012-export.png	go/captures/RTFRESH-013-export.png
+RTFRESH	15	export	"line ""5"""	(0, 0)	go/captures/RTFRESH-014-export.png	go/captures/RTFRESH-015-export.png
+RTFRESH	17	export	"line ""RTFRESH"""	(0, 0)	go/captures/RTFRESH-016-export.png	go/captures/RTFRESH-017-export.png
+RTFRESH	17	export	shutdown	(0, 0)		
+GOHIST	0	boot	boot_disposable private system.img	(0, 0)		
+GOHIST	2	boot	"line ""1"""	(0, 0)	go/captures/GOHIST-001-boot.png	go/captures/GOHIST-002-boot.png
+GOHIST	4	boot	"line ""GOHIST"""	(0, 0)	go/captures/GOHIST-003-boot.png	go/captures/GOHIST-004-boot.png
+GOHIST	6	setup	"line ""MENU"""	(0, 0)	go/captures/GOHIST-005-setup.png	go/captures/GOHIST-006-setup.png
+GOHIST	8	setup	"line ""ACAD"""	(0, 0)	go/captures/GOHIST-007-setup.png	go/captures/GOHIST-008-setup.png
+GOHIST	10	setup	mouse_pin	(0, 0)	go/captures/GOHIST-009-setup.png	go/captures/GOHIST-010-setup.png
+GOHIST	12	setup	"line ""POINT"""	(0, 0)	go/captures/GOHIST-011-setup.png	go/captures/GOHIST-012-setup.png
+GOHIST	14	setup	"line ""8,7"""	(0, 0)	go/captures/GOHIST-013-setup.png	go/captures/GOHIST-014-setup.png
+GOHIST	16	setup	mouse pixel=100,40 device=3210,15070 buttons=0	(3210, 15070)	go/captures/GOHIST-015-setup.png	go/captures/GOHIST-016-setup.png
+GOHIST	18	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOHIST-017-probe.png	go/captures/GOHIST-018-probe.png
+GOHIST	20	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/GOHIST-019-probe.png	go/captures/GOHIST-020-probe.png
+GOHIST	21	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOHIST-020-probe.png	go/captures/GOHIST-021-probe.png
+GOHIST	23	continuation	key ctrl true	(19230, 18930)	go/captures/GOHIST-022-continuation.png	go/captures/GOHIST-023-continuation.png
+GOHIST	25	continuation	key c true	(19230, 18930)	go/captures/GOHIST-024-continuation.png	go/captures/GOHIST-025-continuation.png
+GOHIST	27	continuation	key c false	(19230, 18930)	go/captures/GOHIST-026-continuation.png	go/captures/GOHIST-027-continuation.png
+GOHIST	29	continuation	key ctrl false	(19230, 18930)	go/captures/GOHIST-028-continuation.png	go/captures/GOHIST-029-continuation.png
+GOHIST	31	continuation	mouse pixel=450,130 device=14420,5410 buttons=0	(14420, 5410)	go/captures/GOHIST-030-continuation.png	go/captures/GOHIST-031-continuation.png
+GOHIST	33	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOHIST-032-continuation.png	go/captures/GOHIST-033-continuation.png
+GOHIST	35	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/GOHIST-034-continuation.png	go/captures/GOHIST-035-continuation.png
+GOHIST	36	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOHIST-035-continuation.png	go/captures/GOHIST-036-continuation.png
+GOHIST	38	cleanup	key ctrl true	(19230, 18930)	go/captures/GOHIST-037-cleanup.png	go/captures/GOHIST-038-cleanup.png
+GOHIST	40	cleanup	key c true	(19230, 18930)	go/captures/GOHIST-039-cleanup.png	go/captures/GOHIST-040-cleanup.png
+GOHIST	42	cleanup	key c false	(19230, 18930)	go/captures/GOHIST-041-cleanup.png	go/captures/GOHIST-042-cleanup.png
+GOHIST	44	cleanup	key ctrl false	(19230, 18930)	go/captures/GOHIST-043-cleanup.png	go/captures/GOHIST-044-cleanup.png
+GOHIST	47	export	"line ""END"""	(19230, 18930)	go/captures/GOHIST-046-export.png	go/captures/GOHIST-047-export.png
+GOHIST	49	export	"line ""5"""	(19230, 18930)	go/captures/GOHIST-048-export.png	go/captures/GOHIST-049-export.png
+GOHIST	51	export	"line ""GOHIST"""	(19230, 18930)	go/captures/GOHIST-050-export.png	go/captures/GOHIST-051-export.png
+GOHIST	51	export	shutdown	(19230, 18930)		
+GOFIRST	0	boot	boot_disposable private system.img	(0, 0)		
+GOFIRST	2	boot	"line ""1"""	(0, 0)	go/captures/GOFIRST-001-boot.png	go/captures/GOFIRST-002-boot.png
+GOFIRST	4	boot	"line ""GOFIRST"""	(0, 0)	go/captures/GOFIRST-003-boot.png	go/captures/GOFIRST-004-boot.png
+GOFIRST	6	setup	"line ""MENU"""	(0, 0)	go/captures/GOFIRST-005-setup.png	go/captures/GOFIRST-006-setup.png
+GOFIRST	8	setup	"line ""ACAD"""	(0, 0)	go/captures/GOFIRST-007-setup.png	go/captures/GOFIRST-008-setup.png
+GOFIRST	10	setup	mouse_pin	(0, 0)	go/captures/GOFIRST-009-setup.png	go/captures/GOFIRST-010-setup.png
+GOFIRST	12	setup	"line ""LINE"""	(0, 0)	go/captures/GOFIRST-011-setup.png	go/captures/GOFIRST-012-setup.png
+GOFIRST	14	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOFIRST-013-probe.png	go/captures/GOFIRST-014-probe.png
+GOFIRST	16	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/GOFIRST-015-probe.png	go/captures/GOFIRST-016-probe.png
+GOFIRST	17	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOFIRST-016-probe.png	go/captures/GOFIRST-017-probe.png
+GOFIRST	19	continuation	"line ""2,3"""	(19230, 18930)	go/captures/GOFIRST-018-continuation.png	go/captures/GOFIRST-019-continuation.png
+GOFIRST	21	continuation	"line ""4,5"""	(19230, 18930)	go/captures/GOFIRST-020-continuation.png	go/captures/GOFIRST-021-continuation.png
+GOFIRST	23	continuation	"line """""	(19230, 18930)	go/captures/GOFIRST-022-continuation.png	go/captures/GOFIRST-023-continuation.png
+GOFIRST	25	cleanup	key ctrl true	(19230, 18930)	go/captures/GOFIRST-024-cleanup.png	go/captures/GOFIRST-025-cleanup.png
+GOFIRST	27	cleanup	key c true	(19230, 18930)	go/captures/GOFIRST-026-cleanup.png	go/captures/GOFIRST-027-cleanup.png
+GOFIRST	29	cleanup	key c false	(19230, 18930)	go/captures/GOFIRST-028-cleanup.png	go/captures/GOFIRST-029-cleanup.png
+GOFIRST	31	cleanup	key ctrl false	(19230, 18930)	go/captures/GOFIRST-030-cleanup.png	go/captures/GOFIRST-031-cleanup.png
+GOFIRST	34	export	"line ""END"""	(19230, 18930)	go/captures/GOFIRST-033-export.png	go/captures/GOFIRST-034-export.png
+GOFIRST	36	export	"line ""5"""	(19230, 18930)	go/captures/GOFIRST-035-export.png	go/captures/GOFIRST-036-export.png
+GOFIRST	38	export	"line ""GOFIRST"""	(19230, 18930)	go/captures/GOFIRST-037-export.png	go/captures/GOFIRST-038-export.png
+GOFIRST	38	export	shutdown	(19230, 18930)		
+GONEXT	0	boot	boot_disposable private system.img	(0, 0)		
+GONEXT	2	boot	"line ""1"""	(0, 0)	go/captures/GONEXT-001-boot.png	go/captures/GONEXT-002-boot.png
+GONEXT	4	boot	"line ""GONEXT"""	(0, 0)	go/captures/GONEXT-003-boot.png	go/captures/GONEXT-004-boot.png
+GONEXT	6	setup	"line ""MENU"""	(0, 0)	go/captures/GONEXT-005-setup.png	go/captures/GONEXT-006-setup.png
+GONEXT	8	setup	"line ""ACAD"""	(0, 0)	go/captures/GONEXT-007-setup.png	go/captures/GONEXT-008-setup.png
+GONEXT	10	setup	mouse_pin	(0, 0)	go/captures/GONEXT-009-setup.png	go/captures/GONEXT-010-setup.png
+GONEXT	12	setup	"line ""LINE"""	(0, 0)	go/captures/GONEXT-011-setup.png	go/captures/GONEXT-012-setup.png
+GONEXT	14	setup	"line ""2,3"""	(0, 0)	go/captures/GONEXT-013-setup.png	go/captures/GONEXT-014-setup.png
+GONEXT	16	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GONEXT-015-probe.png	go/captures/GONEXT-016-probe.png
+GONEXT	18	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/GONEXT-017-probe.png	go/captures/GONEXT-018-probe.png
+GONEXT	19	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GONEXT-018-probe.png	go/captures/GONEXT-019-probe.png
+GONEXT	21	continuation	"line ""4,5"""	(19230, 18930)	go/captures/GONEXT-020-continuation.png	go/captures/GONEXT-021-continuation.png
+GONEXT	23	continuation	"line """""	(19230, 18930)	go/captures/GONEXT-022-continuation.png	go/captures/GONEXT-023-continuation.png
+GONEXT	25	cleanup	key ctrl true	(19230, 18930)	go/captures/GONEXT-024-cleanup.png	go/captures/GONEXT-025-cleanup.png
+GONEXT	27	cleanup	key c true	(19230, 18930)	go/captures/GONEXT-026-cleanup.png	go/captures/GONEXT-027-cleanup.png
+GONEXT	29	cleanup	key c false	(19230, 18930)	go/captures/GONEXT-028-cleanup.png	go/captures/GONEXT-029-cleanup.png
+GONEXT	31	cleanup	key ctrl false	(19230, 18930)	go/captures/GONEXT-030-cleanup.png	go/captures/GONEXT-031-cleanup.png
+GONEXT	34	export	"line ""END"""	(19230, 18930)	go/captures/GONEXT-033-export.png	go/captures/GONEXT-034-export.png
+GONEXT	36	export	"line ""5"""	(19230, 18930)	go/captures/GONEXT-035-export.png	go/captures/GONEXT-036-export.png
+GONEXT	38	export	"line ""GONEXT"""	(19230, 18930)	go/captures/GONEXT-037-export.png	go/captures/GONEXT-038-export.png
+GONEXT	38	export	shutdown	(19230, 18930)		
+GORADIUS	0	boot	boot_disposable private system.img	(0, 0)		
+GORADIUS	2	boot	"line ""1"""	(0, 0)	go/captures/GORADIUS-001-boot.png	go/captures/GORADIUS-002-boot.png
+GORADIUS	4	boot	"line ""GORADIUS"""	(0, 0)	go/captures/GORADIUS-003-boot.png	go/captures/GORADIUS-004-boot.png
+GORADIUS	6	setup	"line ""MENU"""	(0, 0)	go/captures/GORADIUS-005-setup.png	go/captures/GORADIUS-006-setup.png
+GORADIUS	8	setup	"line ""ACAD"""	(0, 0)	go/captures/GORADIUS-007-setup.png	go/captures/GORADIUS-008-setup.png
+GORADIUS	10	setup	mouse_pin	(0, 0)	go/captures/GORADIUS-009-setup.png	go/captures/GORADIUS-010-setup.png
+GORADIUS	12	setup	"line ""CIRCLE"""	(0, 0)	go/captures/GORADIUS-011-setup.png	go/captures/GORADIUS-012-setup.png
+GORADIUS	14	setup	"line ""2,3"""	(0, 0)	go/captures/GORADIUS-013-setup.png	go/captures/GORADIUS-014-setup.png
+GORADIUS	16	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GORADIUS-015-probe.png	go/captures/GORADIUS-016-probe.png
+GORADIUS	18	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/GORADIUS-017-probe.png	go/captures/GORADIUS-018-probe.png
+GORADIUS	19	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GORADIUS-018-probe.png	go/captures/GORADIUS-019-probe.png
+GORADIUS	21	continuation	"line ""1.25"""	(19230, 18930)	go/captures/GORADIUS-020-continuation.png	go/captures/GORADIUS-021-continuation.png
+GORADIUS	23	cleanup	key ctrl true	(19230, 18930)	go/captures/GORADIUS-022-cleanup.png	go/captures/GORADIUS-023-cleanup.png
+GORADIUS	25	cleanup	key c true	(19230, 18930)	go/captures/GORADIUS-024-cleanup.png	go/captures/GORADIUS-025-cleanup.png
+GORADIUS	27	cleanup	key c false	(19230, 18930)	go/captures/GORADIUS-026-cleanup.png	go/captures/GORADIUS-027-cleanup.png
+GORADIUS	29	cleanup	key ctrl false	(19230, 18930)	go/captures/GORADIUS-028-cleanup.png	go/captures/GORADIUS-029-cleanup.png
+GORADIUS	32	export	"line ""END"""	(19230, 18930)	go/captures/GORADIUS-031-export.png	go/captures/GORADIUS-032-export.png
+GORADIUS	34	export	"line ""5"""	(19230, 18930)	go/captures/GORADIUS-033-export.png	go/captures/GORADIUS-034-export.png
+GORADIUS	36	export	"line ""GORADIUS"""	(19230, 18930)	go/captures/GORADIUS-035-export.png	go/captures/GORADIUS-036-export.png
+GORADIUS	36	export	shutdown	(19230, 18930)		
+GOSELECT	0	boot	boot_disposable private system.img	(0, 0)		
+GOSELECT	2	boot	"line ""1"""	(0, 0)	go/captures/GOSELECT-001-boot.png	go/captures/GOSELECT-002-boot.png
+GOSELECT	4	boot	"line ""GOSELECT"""	(0, 0)	go/captures/GOSELECT-003-boot.png	go/captures/GOSELECT-004-boot.png
+GOSELECT	6	setup	"line ""MENU"""	(0, 0)	go/captures/GOSELECT-005-setup.png	go/captures/GOSELECT-006-setup.png
+GOSELECT	8	setup	"line ""ACAD"""	(0, 0)	go/captures/GOSELECT-007-setup.png	go/captures/GOSELECT-008-setup.png
+GOSELECT	10	setup	mouse_pin	(0, 0)	go/captures/GOSELECT-009-setup.png	go/captures/GOSELECT-010-setup.png
+GOSELECT	12	setup	"line ""LINE"""	(0, 0)	go/captures/GOSELECT-011-setup.png	go/captures/GOSELECT-012-setup.png
+GOSELECT	14	setup	"line ""2,3"""	(0, 0)	go/captures/GOSELECT-013-setup.png	go/captures/GOSELECT-014-setup.png
+GOSELECT	16	setup	"line ""4,5"""	(0, 0)	go/captures/GOSELECT-015-setup.png	go/captures/GOSELECT-016-setup.png
+GOSELECT	18	setup	"line """""	(0, 0)	go/captures/GOSELECT-017-setup.png	go/captures/GOSELECT-018-setup.png
+GOSELECT	20	setup	"line ""ERASE"""	(0, 0)	go/captures/GOSELECT-019-setup.png	go/captures/GOSELECT-020-setup.png
+GOSELECT	22	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOSELECT-021-probe.png	go/captures/GOSELECT-022-probe.png
+GOSELECT	24	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/GOSELECT-023-probe.png	go/captures/GOSELECT-024-probe.png
+GOSELECT	25	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/GOSELECT-024-probe.png	go/captures/GOSELECT-025-probe.png
+GOSELECT	27	cleanup	key ctrl true	(19230, 18930)	go/captures/GOSELECT-026-cleanup.png	go/captures/GOSELECT-027-cleanup.png
+GOSELECT	29	cleanup	key c true	(19230, 18930)	go/captures/GOSELECT-028-cleanup.png	go/captures/GOSELECT-029-cleanup.png
+GOSELECT	31	cleanup	key c false	(19230, 18930)	go/captures/GOSELECT-030-cleanup.png	go/captures/GOSELECT-031-cleanup.png
+GOSELECT	33	cleanup	key ctrl false	(19230, 18930)	go/captures/GOSELECT-032-cleanup.png	go/captures/GOSELECT-033-cleanup.png
+GOSELECT	36	export	"line ""END"""	(19230, 18930)	go/captures/GOSELECT-035-export.png	go/captures/GOSELECT-036-export.png
+GOSELECT	38	export	"line ""5"""	(19230, 18930)	go/captures/GOSELECT-037-export.png	go/captures/GOSELECT-038-export.png
+GOSELECT	40	export	"line ""GOSELECT"""	(19230, 18930)	go/captures/GOSELECT-039-export.png	go/captures/GOSELECT-040-export.png
+GOSELECT	40	export	shutdown	(19230, 18930)		
+BLANK1	0	boot	boot_disposable private system.img	(0, 0)		
+BLANK1	2	boot	"line ""1"""	(0, 0)	go/captures/BLANK1-001-boot.png	go/captures/BLANK1-002-boot.png
+BLANK1	4	boot	"line ""BLANK1"""	(0, 0)	go/captures/BLANK1-003-boot.png	go/captures/BLANK1-004-boot.png
+BLANK1	6	setup	"line ""MENU"""	(0, 0)	go/captures/BLANK1-005-setup.png	go/captures/BLANK1-006-setup.png
+BLANK1	8	setup	"line ""ACAD"""	(0, 0)	go/captures/BLANK1-007-setup.png	go/captures/BLANK1-008-setup.png
+BLANK1	10	setup	mouse_pin	(0, 0)	go/captures/BLANK1-009-setup.png	go/captures/BLANK1-010-setup.png
+BLANK1	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	go/captures/BLANK1-011-setup.png	go/captures/BLANK1-012-setup.png
+BLANK1	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	go/captures/BLANK1-013-setup.png	go/captures/BLANK1-014-setup.png
+BLANK1	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	go/captures/BLANK1-014-setup.png	go/captures/BLANK1-015-setup.png
+BLANK1	17	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/BLANK1-016-probe.png	go/captures/BLANK1-017-probe.png
+BLANK1	19	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/BLANK1-018-probe.png	go/captures/BLANK1-019-probe.png
+BLANK1	20	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/BLANK1-019-probe.png	go/captures/BLANK1-020-probe.png
+BLANK1	22	continuation	"line ""LINE"""	(19230, 18930)	go/captures/BLANK1-021-continuation.png	go/captures/BLANK1-022-continuation.png
+BLANK1	24	continuation	"line ""2,3"""	(19230, 18930)	go/captures/BLANK1-023-continuation.png	go/captures/BLANK1-024-continuation.png
+BLANK1	26	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/BLANK1-025-continuation.png	go/captures/BLANK1-026-continuation.png
+BLANK1	28	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/BLANK1-027-continuation.png	go/captures/BLANK1-028-continuation.png
+BLANK1	29	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/BLANK1-028-continuation.png	go/captures/BLANK1-029-continuation.png
+BLANK1	31	cleanup	key ctrl true	(19230, 18930)	go/captures/BLANK1-030-cleanup.png	go/captures/BLANK1-031-cleanup.png
+BLANK1	33	cleanup	key c true	(19230, 18930)	go/captures/BLANK1-032-cleanup.png	go/captures/BLANK1-033-cleanup.png
+BLANK1	35	cleanup	key c false	(19230, 18930)	go/captures/BLANK1-034-cleanup.png	go/captures/BLANK1-035-cleanup.png
+BLANK1	37	cleanup	key ctrl false	(19230, 18930)	go/captures/BLANK1-036-cleanup.png	go/captures/BLANK1-037-cleanup.png
+BLANK1	40	export	"line ""END"""	(19230, 18930)	go/captures/BLANK1-039-export.png	go/captures/BLANK1-040-export.png
+BLANK1	42	export	"line ""5"""	(19230, 18930)	go/captures/BLANK1-041-export.png	go/captures/BLANK1-042-export.png
+BLANK1	44	export	"line ""BLANK1"""	(19230, 18930)	go/captures/BLANK1-043-export.png	go/captures/BLANK1-044-export.png
+BLANK1	44	export	shutdown	(19230, 18930)		
+BLANK2	0	boot	boot_disposable private system.img	(0, 0)		
+BLANK2	2	boot	"line ""1"""	(0, 0)	go/captures/BLANK2-001-boot.png	go/captures/BLANK2-002-boot.png
+BLANK2	4	boot	"line ""BLANK2"""	(0, 0)	go/captures/BLANK2-003-boot.png	go/captures/BLANK2-004-boot.png
+BLANK2	6	setup	"line ""MENU"""	(0, 0)	go/captures/BLANK2-005-setup.png	go/captures/BLANK2-006-setup.png
+BLANK2	8	setup	"line ""ACAD"""	(0, 0)	go/captures/BLANK2-007-setup.png	go/captures/BLANK2-008-setup.png
+BLANK2	10	setup	mouse_pin	(0, 0)	go/captures/BLANK2-009-setup.png	go/captures/BLANK2-010-setup.png
+BLANK2	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	go/captures/BLANK2-011-setup.png	go/captures/BLANK2-012-setup.png
+BLANK2	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	go/captures/BLANK2-013-setup.png	go/captures/BLANK2-014-setup.png
+BLANK2	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	go/captures/BLANK2-014-setup.png	go/captures/BLANK2-015-setup.png
+BLANK2	17	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	go/captures/BLANK2-016-setup.png	go/captures/BLANK2-017-setup.png
+BLANK2	19	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	go/captures/BLANK2-018-setup.png	go/captures/BLANK2-019-setup.png
+BLANK2	20	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	go/captures/BLANK2-019-setup.png	go/captures/BLANK2-020-setup.png
+BLANK2	22	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/BLANK2-021-probe.png	go/captures/BLANK2-022-probe.png
+BLANK2	24	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/BLANK2-023-probe.png	go/captures/BLANK2-024-probe.png
+BLANK2	25	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/BLANK2-024-probe.png	go/captures/BLANK2-025-probe.png
+BLANK2	27	continuation	"line ""LINE"""	(19230, 18930)	go/captures/BLANK2-026-continuation.png	go/captures/BLANK2-027-continuation.png
+BLANK2	29	continuation	"line ""2,3"""	(19230, 18930)	go/captures/BLANK2-028-continuation.png	go/captures/BLANK2-029-continuation.png
+BLANK2	31	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/BLANK2-030-continuation.png	go/captures/BLANK2-031-continuation.png
+BLANK2	33	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	go/captures/BLANK2-032-continuation.png	go/captures/BLANK2-033-continuation.png
+BLANK2	34	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	go/captures/BLANK2-033-continuation.png	go/captures/BLANK2-034-continuation.png
+BLANK2	36	cleanup	key ctrl true	(19230, 18930)	go/captures/BLANK2-035-cleanup.png	go/captures/BLANK2-036-cleanup.png
+BLANK2	38	cleanup	key c true	(19230, 18930)	go/captures/BLANK2-037-cleanup.png	go/captures/BLANK2-038-cleanup.png
+BLANK2	40	cleanup	key c false	(19230, 18930)	go/captures/BLANK2-039-cleanup.png	go/captures/BLANK2-040-cleanup.png
+BLANK2	42	cleanup	key ctrl false	(19230, 18930)	go/captures/BLANK2-041-cleanup.png	go/captures/BLANK2-042-cleanup.png
+BLANK2	45	export	"line ""END"""	(19230, 18930)	go/captures/BLANK2-044-export.png	go/captures/BLANK2-045-export.png
+BLANK2	47	export	"line ""5"""	(19230, 18930)	go/captures/BLANK2-046-export.png	go/captures/BLANK2-047-export.png
+BLANK2	49	export	"line ""BLANK2"""	(19230, 18930)	go/captures/BLANK2-048-export.png	go/captures/BLANK2-049-export.png
+BLANK2	49	export	shutdown	(19230, 18930)		
+CSELBASE	0	boot	boot_disposable private system.img	(0, 0)		
+CSELBASE	2	boot	"line ""1"""	(0, 0)	buffers/captures/CSELBASE-001-boot.png	buffers/captures/CSELBASE-002-boot.png
+CSELBASE	4	boot	"line ""CSELBASE"""	(0, 0)	buffers/captures/CSELBASE-003-boot.png	buffers/captures/CSELBASE-004-boot.png
+CSELBASE	6	setup	"line ""MENU"""	(0, 0)	buffers/captures/CSELBASE-005-setup.png	buffers/captures/CSELBASE-006-setup.png
+CSELBASE	8	setup	"line ""ACAD"""	(0, 0)	buffers/captures/CSELBASE-007-setup.png	buffers/captures/CSELBASE-008-setup.png
+CSELBASE	10	setup	mouse_pin	(0, 0)	buffers/captures/CSELBASE-009-setup.png	buffers/captures/CSELBASE-010-setup.png
+CSELBASE	12	setup	"line ""LINE"""	(0, 0)	buffers/captures/CSELBASE-011-setup.png	buffers/captures/CSELBASE-012-setup.png
+CSELBASE	14	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	buffers/captures/CSELBASE-013-setup.png	buffers/captures/CSELBASE-014-setup.png
+CSELBASE	16	setup	mouse pixel=80,100 device=2560,8630 buttons=4	(2560, 8630)	buffers/captures/CSELBASE-015-setup.png	buffers/captures/CSELBASE-016-setup.png
+CSELBASE	17	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	buffers/captures/CSELBASE-016-setup.png	buffers/captures/CSELBASE-017-setup.png
+CSELBASE	19	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	buffers/captures/CSELBASE-018-setup.png	buffers/captures/CSELBASE-019-setup.png
+CSELBASE	21	setup	mouse pixel=480,100 device=15380,8630 buttons=4	(15380, 8630)	buffers/captures/CSELBASE-020-setup.png	buffers/captures/CSELBASE-021-setup.png
+CSELBASE	22	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	buffers/captures/CSELBASE-021-setup.png	buffers/captures/CSELBASE-022-setup.png
+CSELBASE	24	setup	"line """""	(15380, 8630)	buffers/captures/CSELBASE-023-setup.png	buffers/captures/CSELBASE-024-setup.png
+CSELBASE	26	setup	"line ""ERASE"""	(15380, 8630)	buffers/captures/CSELBASE-025-setup.png	buffers/captures/CSELBASE-026-setup.png
+CSELBASE	28	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	buffers/captures/CSELBASE-027-setup.png	buffers/captures/CSELBASE-028-setup.png
+CSELBASE	30	setup	mouse pixel=280,100 device=8970,8630 buttons=4	(8970, 8630)	buffers/captures/CSELBASE-029-setup.png	buffers/captures/CSELBASE-030-setup.png
+CSELBASE	31	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	buffers/captures/CSELBASE-030-setup.png	buffers/captures/CSELBASE-031-setup.png
+CSELBASE	33	probe	"line """""	(8970, 8630)	buffers/captures/CSELBASE-032-probe.png	buffers/captures/CSELBASE-033-probe.png
+CSELBASE	36	export	"line ""END"""	(8970, 8630)	buffers/captures/CSELBASE-035-export.png	buffers/captures/CSELBASE-036-export.png
+CSELBASE	38	export	"line ""5"""	(8970, 8630)	buffers/captures/CSELBASE-037-export.png	buffers/captures/CSELBASE-038-export.png
+CSELBASE	40	export	"line ""CSELBASE"""	(8970, 8630)	buffers/captures/CSELBASE-039-export.png	buffers/captures/CSELBASE-040-export.png
+CSELBASE	40	export	shutdown	(8970, 8630)		
+GOBUFSEL	0	boot	boot_disposable private system.img	(0, 0)		
+GOBUFSEL	2	boot	"line ""1"""	(0, 0)	buffers/captures/GOBUFSEL-001-boot.png	buffers/captures/GOBUFSEL-002-boot.png
+GOBUFSEL	4	boot	"line ""GOBUFSEL"""	(0, 0)	buffers/captures/GOBUFSEL-003-boot.png	buffers/captures/GOBUFSEL-004-boot.png
+GOBUFSEL	6	setup	"line ""MENU"""	(0, 0)	buffers/captures/GOBUFSEL-005-setup.png	buffers/captures/GOBUFSEL-006-setup.png
+GOBUFSEL	8	setup	"line ""ACAD"""	(0, 0)	buffers/captures/GOBUFSEL-007-setup.png	buffers/captures/GOBUFSEL-008-setup.png
+GOBUFSEL	10	setup	mouse_pin	(0, 0)	buffers/captures/GOBUFSEL-009-setup.png	buffers/captures/GOBUFSEL-010-setup.png
+GOBUFSEL	12	setup	"line ""LINE"""	(0, 0)	buffers/captures/GOBUFSEL-011-setup.png	buffers/captures/GOBUFSEL-012-setup.png
+GOBUFSEL	14	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	buffers/captures/GOBUFSEL-013-setup.png	buffers/captures/GOBUFSEL-014-setup.png
+GOBUFSEL	16	setup	mouse pixel=80,100 device=2560,8630 buttons=4	(2560, 8630)	buffers/captures/GOBUFSEL-015-setup.png	buffers/captures/GOBUFSEL-016-setup.png
+GOBUFSEL	17	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	buffers/captures/GOBUFSEL-016-setup.png	buffers/captures/GOBUFSEL-017-setup.png
+GOBUFSEL	19	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	buffers/captures/GOBUFSEL-018-setup.png	buffers/captures/GOBUFSEL-019-setup.png
+GOBUFSEL	21	setup	mouse pixel=480,100 device=15380,8630 buttons=4	(15380, 8630)	buffers/captures/GOBUFSEL-020-setup.png	buffers/captures/GOBUFSEL-021-setup.png
+GOBUFSEL	22	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	buffers/captures/GOBUFSEL-021-setup.png	buffers/captures/GOBUFSEL-022-setup.png
+GOBUFSEL	24	setup	"line """""	(15380, 8630)	buffers/captures/GOBUFSEL-023-setup.png	buffers/captures/GOBUFSEL-024-setup.png
+GOBUFSEL	26	setup	"line ""ERASE"""	(15380, 8630)	buffers/captures/GOBUFSEL-025-setup.png	buffers/captures/GOBUFSEL-026-setup.png
+GOBUFSEL	28	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	buffers/captures/GOBUFSEL-027-setup.png	buffers/captures/GOBUFSEL-028-setup.png
+GOBUFSEL	30	setup	mouse pixel=280,100 device=8970,8630 buttons=4	(8970, 8630)	buffers/captures/GOBUFSEL-029-setup.png	buffers/captures/GOBUFSEL-030-setup.png
+GOBUFSEL	31	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	buffers/captures/GOBUFSEL-030-setup.png	buffers/captures/GOBUFSEL-031-setup.png
+GOBUFSEL	33	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	buffers/captures/GOBUFSEL-032-probe.png	buffers/captures/GOBUFSEL-033-probe.png
+GOBUFSEL	35	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	buffers/captures/GOBUFSEL-034-probe.png	buffers/captures/GOBUFSEL-035-probe.png
+GOBUFSEL	36	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	buffers/captures/GOBUFSEL-035-probe.png	buffers/captures/GOBUFSEL-036-probe.png
+GOBUFSEL	38	continuation	"line ""POINT"""	(19230, 18930)	buffers/captures/GOBUFSEL-037-continuation.png	buffers/captures/GOBUFSEL-038-continuation.png
+GOBUFSEL	40	continuation	"line ""8,7"""	(19230, 18930)	buffers/captures/GOBUFSEL-039-continuation.png	buffers/captures/GOBUFSEL-040-continuation.png
+GOBUFSEL	43	export	"line ""END"""	(19230, 18930)	buffers/captures/GOBUFSEL-042-export.png	buffers/captures/GOBUFSEL-043-export.png
+GOBUFSEL	45	export	"line ""5"""	(19230, 18930)	buffers/captures/GOBUFSEL-044-export.png	buffers/captures/GOBUFSEL-045-export.png
+GOBUFSEL	47	export	"line ""GOBUFSEL"""	(19230, 18930)	buffers/captures/GOBUFSEL-046-export.png	buffers/captures/GOBUFSEL-047-export.png
+GOBUFSEL	47	export	shutdown	(19230, 18930)		
+GOBUFPNT	0	boot	boot_disposable private system.img	(0, 0)		
+GOBUFPNT	2	boot	"line ""1"""	(0, 0)	buffers/captures/GOBUFPNT-001-boot.png	buffers/captures/GOBUFPNT-002-boot.png
+GOBUFPNT	4	boot	"line ""GOBUFPNT"""	(0, 0)	buffers/captures/GOBUFPNT-003-boot.png	buffers/captures/GOBUFPNT-004-boot.png
+GOBUFPNT	6	setup	"line ""MENU"""	(0, 0)	buffers/captures/GOBUFPNT-005-setup.png	buffers/captures/GOBUFPNT-006-setup.png
+GOBUFPNT	8	setup	"line ""ACAD"""	(0, 0)	buffers/captures/GOBUFPNT-007-setup.png	buffers/captures/GOBUFPNT-008-setup.png
+GOBUFPNT	10	setup	mouse_pin	(0, 0)	buffers/captures/GOBUFPNT-009-setup.png	buffers/captures/GOBUFPNT-010-setup.png
+GOBUFPNT	12	setup	"line ""LINE"""	(0, 0)	buffers/captures/GOBUFPNT-011-setup.png	buffers/captures/GOBUFPNT-012-setup.png
+GOBUFPNT	14	setup	key 2 true	(0, 0)	buffers/captures/GOBUFPNT-013-setup.png	buffers/captures/GOBUFPNT-014-setup.png
+GOBUFPNT	16	setup	key 2 false	(0, 0)	buffers/captures/GOBUFPNT-015-setup.png	buffers/captures/GOBUFPNT-016-setup.png
+GOBUFPNT	18	setup	key comma true	(0, 0)	buffers/captures/GOBUFPNT-017-setup.png	buffers/captures/GOBUFPNT-018-setup.png
+GOBUFPNT	20	setup	key comma false	(0, 0)	buffers/captures/GOBUFPNT-019-setup.png	buffers/captures/GOBUFPNT-020-setup.png
+GOBUFPNT	22	setup	key 3 true	(0, 0)	buffers/captures/GOBUFPNT-021-setup.png	buffers/captures/GOBUFPNT-022-setup.png
+GOBUFPNT	24	setup	key 3 false	(0, 0)	buffers/captures/GOBUFPNT-023-setup.png	buffers/captures/GOBUFPNT-024-setup.png
+GOBUFPNT	26	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	buffers/captures/GOBUFPNT-025-probe.png	buffers/captures/GOBUFPNT-026-probe.png
+GOBUFPNT	28	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	buffers/captures/GOBUFPNT-027-probe.png	buffers/captures/GOBUFPNT-028-probe.png
+GOBUFPNT	29	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	buffers/captures/GOBUFPNT-028-probe.png	buffers/captures/GOBUFPNT-029-probe.png
+GOBUFPNT	31	continuation	"line ""4,5"""	(19230, 18930)	buffers/captures/GOBUFPNT-030-continuation.png	buffers/captures/GOBUFPNT-031-continuation.png
+GOBUFPNT	33	continuation	"line """""	(19230, 18930)	buffers/captures/GOBUFPNT-032-continuation.png	buffers/captures/GOBUFPNT-033-continuation.png
+GOBUFPNT	35	cleanup	key ctrl true	(19230, 18930)	buffers/captures/GOBUFPNT-034-cleanup.png	buffers/captures/GOBUFPNT-035-cleanup.png
+GOBUFPNT	37	cleanup	key c true	(19230, 18930)	buffers/captures/GOBUFPNT-036-cleanup.png	buffers/captures/GOBUFPNT-037-cleanup.png
+GOBUFPNT	39	cleanup	key c false	(19230, 18930)	buffers/captures/GOBUFPNT-038-cleanup.png	buffers/captures/GOBUFPNT-039-cleanup.png
+GOBUFPNT	41	cleanup	key ctrl false	(19230, 18930)	buffers/captures/GOBUFPNT-040-cleanup.png	buffers/captures/GOBUFPNT-041-cleanup.png
+GOBUFPNT	44	export	"line ""END"""	(19230, 18930)	buffers/captures/GOBUFPNT-043-export.png	buffers/captures/GOBUFPNT-044-export.png
+GOBUFPNT	46	export	"line ""5"""	(19230, 18930)	buffers/captures/GOBUFPNT-045-export.png	buffers/captures/GOBUFPNT-046-export.png
+GOBUFPNT	48	export	"line ""GOBUFPNT"""	(19230, 18930)	buffers/captures/GOBUFPNT-047-export.png	buffers/captures/GOBUFPNT-048-export.png
+GOBUFPNT	48	export	shutdown	(19230, 18930)		
+BLANKHI	0	boot	boot_disposable private system.img	(0, 0)		
+BLANKHI	2	boot	"line ""1"""	(0, 0)	buffers/captures/BLANKHI-001-boot.png	buffers/captures/BLANKHI-002-boot.png
+BLANKHI	4	boot	"line ""BLANKHI"""	(0, 0)	buffers/captures/BLANKHI-003-boot.png	buffers/captures/BLANKHI-004-boot.png
+BLANKHI	6	setup	"line ""MENU"""	(0, 0)	buffers/captures/BLANKHI-005-setup.png	buffers/captures/BLANKHI-006-setup.png
+BLANKHI	8	setup	"line ""ACAD"""	(0, 0)	buffers/captures/BLANKHI-007-setup.png	buffers/captures/BLANKHI-008-setup.png
+BLANKHI	10	setup	mouse_pin	(0, 0)	buffers/captures/BLANKHI-009-setup.png	buffers/captures/BLANKHI-010-setup.png
+BLANKHI	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	buffers/captures/BLANKHI-011-setup.png	buffers/captures/BLANKHI-012-setup.png
+BLANKHI	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	buffers/captures/BLANKHI-013-setup.png	buffers/captures/BLANKHI-014-setup.png
+BLANKHI	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	buffers/captures/BLANKHI-014-setup.png	buffers/captures/BLANKHI-015-setup.png
+BLANKHI	17	setup	"line ""LINE"""	(19230, 1770)	buffers/captures/BLANKHI-016-setup.png	buffers/captures/BLANKHI-017-setup.png
+BLANKHI	19	setup	"line ""2,3"""	(19230, 1770)	buffers/captures/BLANKHI-018-setup.png	buffers/captures/BLANKHI-019-setup.png
+BLANKHI	21	setup	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	buffers/captures/BLANKHI-020-setup.png	buffers/captures/BLANKHI-021-setup.png
+BLANKHI	23	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	buffers/captures/BLANKHI-022-probe.png	buffers/captures/BLANKHI-023-probe.png
+BLANKHI	25	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	buffers/captures/BLANKHI-024-probe.png	buffers/captures/BLANKHI-025-probe.png
+BLANKHI	26	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	buffers/captures/BLANKHI-025-probe.png	buffers/captures/BLANKHI-026-probe.png
+BLANKHI	28	continuation	"line ""POINT"""	(19230, 18930)	buffers/captures/BLANKHI-027-continuation.png	buffers/captures/BLANKHI-028-continuation.png
+BLANKHI	30	continuation	"line ""8,7"""	(19230, 18930)	buffers/captures/BLANKHI-029-continuation.png	buffers/captures/BLANKHI-030-continuation.png
+BLANKHI	32	cleanup	key ctrl true	(19230, 18930)	buffers/captures/BLANKHI-031-cleanup.png	buffers/captures/BLANKHI-032-cleanup.png
+BLANKHI	34	cleanup	key c true	(19230, 18930)	buffers/captures/BLANKHI-033-cleanup.png	buffers/captures/BLANKHI-034-cleanup.png
+BLANKHI	36	cleanup	key c false	(19230, 18930)	buffers/captures/BLANKHI-035-cleanup.png	buffers/captures/BLANKHI-036-cleanup.png
+BLANKHI	38	cleanup	key ctrl false	(19230, 18930)	buffers/captures/BLANKHI-037-cleanup.png	buffers/captures/BLANKHI-038-cleanup.png
+BLANKHI	41	export	"line ""END"""	(19230, 18930)	buffers/captures/BLANKHI-040-export.png	buffers/captures/BLANKHI-041-export.png
+BLANKHI	43	export	"line ""5"""	(19230, 18930)	buffers/captures/BLANKHI-042-export.png	buffers/captures/BLANKHI-043-export.png
+BLANKHI	45	export	"line ""BLANKHI"""	(19230, 18930)	buffers/captures/BLANKHI-044-export.png	buffers/captures/BLANKHI-045-export.png
+BLANKHI	45	export	shutdown	(19230, 18930)		
+TOPROW	0	boot	boot_disposable private system.img	(0, 0)		
+TOPROW	2	boot	"line ""1"""	(0, 0)	controls/captures/TOPROW-001-boot.png	controls/captures/TOPROW-002-boot.png
+TOPROW	4	boot	"line ""TOPROW"""	(0, 0)	controls/captures/TOPROW-003-boot.png	controls/captures/TOPROW-004-boot.png
+TOPROW	6	setup	"line ""MENU"""	(0, 0)	controls/captures/TOPROW-005-setup.png	controls/captures/TOPROW-006-setup.png
+TOPROW	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/TOPROW-007-setup.png	controls/captures/TOPROW-008-setup.png
+TOPROW	10	setup	mouse_pin	(0, 0)	controls/captures/TOPROW-009-setup.png	controls/captures/TOPROW-010-setup.png
+TOPROW	12	probe	mouse pixel=250,4 device=8010,18930 buttons=0	(8010, 18930)	controls/captures/TOPROW-011-probe.png	controls/captures/TOPROW-012-probe.png
+TOPROW	15	export	"line ""END"""	(8010, 18930)	controls/captures/TOPROW-014-export.png	controls/captures/TOPROW-015-export.png
+TOPROW	17	export	"line ""5"""	(8010, 18930)	controls/captures/TOPROW-016-export.png	controls/captures/TOPROW-017-export.png
+TOPROW	19	export	"line ""TOPROW"""	(8010, 18930)	controls/captures/TOPROW-018-export.png	controls/captures/TOPROW-019-export.png
+TOPROW	19	export	shutdown	(8010, 18930)		
+BASEON	0	boot	boot_disposable private system.img	(0, 0)		
+BASEON	2	boot	"line ""1"""	(0, 0)	controls/captures/BASEON-001-boot.png	controls/captures/BASEON-002-boot.png
+BASEON	4	boot	"line ""BASEON"""	(0, 0)	controls/captures/BASEON-003-boot.png	controls/captures/BASEON-004-boot.png
+BASEON	6	setup	"line ""MENU"""	(0, 0)	controls/captures/BASEON-005-setup.png	controls/captures/BASEON-006-setup.png
+BASEON	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/BASEON-007-setup.png	controls/captures/BASEON-008-setup.png
+BASEON	10	setup	mouse_pin	(0, 0)	controls/captures/BASEON-009-setup.png	controls/captures/BASEON-010-setup.png
+BASEON	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/BASEON-011-setup.png	controls/captures/BASEON-012-setup.png
+BASEON	14	setup	"line ""0.5"""	(0, 0)	controls/captures/BASEON-013-setup.png	controls/captures/BASEON-014-setup.png
+BASEON	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/BASEON-015-setup.png	controls/captures/BASEON-016-setup.png
+BASEON	18	setup	"line ""OFF"""	(0, 0)	controls/captures/BASEON-017-setup.png	controls/captures/BASEON-018-setup.png
+BASEON	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/BASEON-019-setup.png	controls/captures/BASEON-020-setup.png
+BASEON	22	setup	"line ""OFF"""	(0, 0)	controls/captures/BASEON-021-setup.png	controls/captures/BASEON-022-setup.png
+BASEON	24	setup	"line ""SNAP"""	(0, 0)	controls/captures/BASEON-023-setup.png	controls/captures/BASEON-024-setup.png
+BASEON	26	setup	"line ""ON"""	(0, 0)	controls/captures/BASEON-025-setup.png	controls/captures/BASEON-026-setup.png
+BASEON	28	setup	"line ""ORTHO"""	(0, 0)	controls/captures/BASEON-027-setup.png	controls/captures/BASEON-028-setup.png
+BASEON	30	setup	"line ""ON"""	(0, 0)	controls/captures/BASEON-029-setup.png	controls/captures/BASEON-030-setup.png
+BASEON	33	export	"line ""END"""	(0, 0)	controls/captures/BASEON-032-export.png	controls/captures/BASEON-033-export.png
+BASEON	35	export	"line ""5"""	(0, 0)	controls/captures/BASEON-034-export.png	controls/captures/BASEON-035-export.png
+BASEON	37	export	"line ""BASEON"""	(0, 0)	controls/captures/BASEON-036-export.png	controls/captures/BASEON-037-export.png
+BASEON	37	export	shutdown	(0, 0)		
+SCTWICE	0	boot	boot_disposable private system.img	(0, 0)		
+SCTWICE	2	boot	"line ""1"""	(0, 0)	controls/captures/SCTWICE-001-boot.png	controls/captures/SCTWICE-002-boot.png
+SCTWICE	4	boot	"line ""SCTWICE"""	(0, 0)	controls/captures/SCTWICE-003-boot.png	controls/captures/SCTWICE-004-boot.png
+SCTWICE	6	setup	"line ""MENU"""	(0, 0)	controls/captures/SCTWICE-005-setup.png	controls/captures/SCTWICE-006-setup.png
+SCTWICE	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/SCTWICE-007-setup.png	controls/captures/SCTWICE-008-setup.png
+SCTWICE	10	setup	mouse_pin	(0, 0)	controls/captures/SCTWICE-009-setup.png	controls/captures/SCTWICE-010-setup.png
+SCTWICE	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/SCTWICE-011-setup.png	controls/captures/SCTWICE-012-setup.png
+SCTWICE	14	setup	"line ""0.5"""	(0, 0)	controls/captures/SCTWICE-013-setup.png	controls/captures/SCTWICE-014-setup.png
+SCTWICE	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/SCTWICE-015-setup.png	controls/captures/SCTWICE-016-setup.png
+SCTWICE	18	setup	"line ""OFF"""	(0, 0)	controls/captures/SCTWICE-017-setup.png	controls/captures/SCTWICE-018-setup.png
+SCTWICE	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/SCTWICE-019-setup.png	controls/captures/SCTWICE-020-setup.png
+SCTWICE	22	setup	"line ""OFF"""	(0, 0)	controls/captures/SCTWICE-021-setup.png	controls/captures/SCTWICE-022-setup.png
+SCTWICE	24	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/SCTWICE-023-probe.png	controls/captures/SCTWICE-024-probe.png
+SCTWICE	26	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	controls/captures/SCTWICE-025-probe.png	controls/captures/SCTWICE-026-probe.png
+SCTWICE	27	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/SCTWICE-026-probe.png	controls/captures/SCTWICE-027-probe.png
+SCTWICE	29	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/SCTWICE-028-probe.png	controls/captures/SCTWICE-029-probe.png
+SCTWICE	31	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	controls/captures/SCTWICE-030-probe.png	controls/captures/SCTWICE-031-probe.png
+SCTWICE	32	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/SCTWICE-031-probe.png	controls/captures/SCTWICE-032-probe.png
+SCTWICE	35	export	"line ""END"""	(19230, 18070)	controls/captures/SCTWICE-034-export.png	controls/captures/SCTWICE-035-export.png
+SCTWICE	37	export	"line ""5"""	(19230, 18070)	controls/captures/SCTWICE-036-export.png	controls/captures/SCTWICE-037-export.png
+SCTWICE	39	export	"line ""SCTWICE"""	(19230, 18070)	controls/captures/SCTWICE-038-export.png	controls/captures/SCTWICE-039-export.png
+SCTWICE	39	export	shutdown	(19230, 18070)		
+SCON	0	boot	boot_disposable private system.img	(0, 0)		
+SCON	2	boot	"line ""1"""	(0, 0)	controls/captures/SCON-001-boot.png	controls/captures/SCON-002-boot.png
+SCON	4	boot	"line ""SCON"""	(0, 0)	controls/captures/SCON-003-boot.png	controls/captures/SCON-004-boot.png
+SCON	6	setup	"line ""MENU"""	(0, 0)	controls/captures/SCON-005-setup.png	controls/captures/SCON-006-setup.png
+SCON	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/SCON-007-setup.png	controls/captures/SCON-008-setup.png
+SCON	10	setup	mouse_pin	(0, 0)	controls/captures/SCON-009-setup.png	controls/captures/SCON-010-setup.png
+SCON	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/SCON-011-setup.png	controls/captures/SCON-012-setup.png
+SCON	14	setup	"line ""0.5"""	(0, 0)	controls/captures/SCON-013-setup.png	controls/captures/SCON-014-setup.png
+SCON	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/SCON-015-setup.png	controls/captures/SCON-016-setup.png
+SCON	18	setup	"line ""OFF"""	(0, 0)	controls/captures/SCON-017-setup.png	controls/captures/SCON-018-setup.png
+SCON	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/SCON-019-setup.png	controls/captures/SCON-020-setup.png
+SCON	22	setup	"line ""OFF"""	(0, 0)	controls/captures/SCON-021-setup.png	controls/captures/SCON-022-setup.png
+SCON	24	setup	"line ""SNAP"""	(0, 0)	controls/captures/SCON-023-setup.png	controls/captures/SCON-024-setup.png
+SCON	26	setup	"line ""ON"""	(0, 0)	controls/captures/SCON-025-setup.png	controls/captures/SCON-026-setup.png
+SCON	28	setup	"line ""ORTHO"""	(0, 0)	controls/captures/SCON-027-setup.png	controls/captures/SCON-028-setup.png
+SCON	30	setup	"line ""ON"""	(0, 0)	controls/captures/SCON-029-setup.png	controls/captures/SCON-030-setup.png
+SCON	32	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/SCON-031-probe.png	controls/captures/SCON-032-probe.png
+SCON	34	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	controls/captures/SCON-033-probe.png	controls/captures/SCON-034-probe.png
+SCON	35	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/SCON-034-probe.png	controls/captures/SCON-035-probe.png
+SCON	38	export	"line ""END"""	(19230, 18070)	controls/captures/SCON-037-export.png	controls/captures/SCON-038-export.png
+SCON	40	export	"line ""5"""	(19230, 18070)	controls/captures/SCON-039-export.png	controls/captures/SCON-040-export.png
+SCON	42	export	"line ""SCON"""	(19230, 18070)	controls/captures/SCON-041-export.png	controls/captures/SCON-042-export.png
+SCON	42	export	shutdown	(19230, 18070)		
+OCTWICE	0	boot	boot_disposable private system.img	(0, 0)		
+OCTWICE	2	boot	"line ""1"""	(0, 0)	controls/captures/OCTWICE-001-boot.png	controls/captures/OCTWICE-002-boot.png
+OCTWICE	4	boot	"line ""OCTWICE"""	(0, 0)	controls/captures/OCTWICE-003-boot.png	controls/captures/OCTWICE-004-boot.png
+OCTWICE	6	setup	"line ""MENU"""	(0, 0)	controls/captures/OCTWICE-005-setup.png	controls/captures/OCTWICE-006-setup.png
+OCTWICE	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/OCTWICE-007-setup.png	controls/captures/OCTWICE-008-setup.png
+OCTWICE	10	setup	mouse_pin	(0, 0)	controls/captures/OCTWICE-009-setup.png	controls/captures/OCTWICE-010-setup.png
+OCTWICE	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/OCTWICE-011-setup.png	controls/captures/OCTWICE-012-setup.png
+OCTWICE	14	setup	"line ""0.5"""	(0, 0)	controls/captures/OCTWICE-013-setup.png	controls/captures/OCTWICE-014-setup.png
+OCTWICE	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/OCTWICE-015-setup.png	controls/captures/OCTWICE-016-setup.png
+OCTWICE	18	setup	"line ""OFF"""	(0, 0)	controls/captures/OCTWICE-017-setup.png	controls/captures/OCTWICE-018-setup.png
+OCTWICE	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/OCTWICE-019-setup.png	controls/captures/OCTWICE-020-setup.png
+OCTWICE	22	setup	"line ""OFF"""	(0, 0)	controls/captures/OCTWICE-021-setup.png	controls/captures/OCTWICE-022-setup.png
+OCTWICE	24	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/OCTWICE-023-probe.png	controls/captures/OCTWICE-024-probe.png
+OCTWICE	26	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	controls/captures/OCTWICE-025-probe.png	controls/captures/OCTWICE-026-probe.png
+OCTWICE	27	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/OCTWICE-026-probe.png	controls/captures/OCTWICE-027-probe.png
+OCTWICE	29	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/OCTWICE-028-probe.png	controls/captures/OCTWICE-029-probe.png
+OCTWICE	31	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	controls/captures/OCTWICE-030-probe.png	controls/captures/OCTWICE-031-probe.png
+OCTWICE	32	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/OCTWICE-031-probe.png	controls/captures/OCTWICE-032-probe.png
+OCTWICE	35	export	"line ""END"""	(19230, 17210)	controls/captures/OCTWICE-034-export.png	controls/captures/OCTWICE-035-export.png
+OCTWICE	37	export	"line ""5"""	(19230, 17210)	controls/captures/OCTWICE-036-export.png	controls/captures/OCTWICE-037-export.png
+OCTWICE	39	export	"line ""OCTWICE"""	(19230, 17210)	controls/captures/OCTWICE-038-export.png	controls/captures/OCTWICE-039-export.png
+OCTWICE	39	export	shutdown	(19230, 17210)		
+OCON	0	boot	boot_disposable private system.img	(0, 0)		
+OCON	2	boot	"line ""1"""	(0, 0)	controls/captures/OCON-001-boot.png	controls/captures/OCON-002-boot.png
+OCON	4	boot	"line ""OCON"""	(0, 0)	controls/captures/OCON-003-boot.png	controls/captures/OCON-004-boot.png
+OCON	6	setup	"line ""MENU"""	(0, 0)	controls/captures/OCON-005-setup.png	controls/captures/OCON-006-setup.png
+OCON	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/OCON-007-setup.png	controls/captures/OCON-008-setup.png
+OCON	10	setup	mouse_pin	(0, 0)	controls/captures/OCON-009-setup.png	controls/captures/OCON-010-setup.png
+OCON	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/OCON-011-setup.png	controls/captures/OCON-012-setup.png
+OCON	14	setup	"line ""0.5"""	(0, 0)	controls/captures/OCON-013-setup.png	controls/captures/OCON-014-setup.png
+OCON	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/OCON-015-setup.png	controls/captures/OCON-016-setup.png
+OCON	18	setup	"line ""OFF"""	(0, 0)	controls/captures/OCON-017-setup.png	controls/captures/OCON-018-setup.png
+OCON	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/OCON-019-setup.png	controls/captures/OCON-020-setup.png
+OCON	22	setup	"line ""OFF"""	(0, 0)	controls/captures/OCON-021-setup.png	controls/captures/OCON-022-setup.png
+OCON	24	setup	"line ""SNAP"""	(0, 0)	controls/captures/OCON-023-setup.png	controls/captures/OCON-024-setup.png
+OCON	26	setup	"line ""ON"""	(0, 0)	controls/captures/OCON-025-setup.png	controls/captures/OCON-026-setup.png
+OCON	28	setup	"line ""ORTHO"""	(0, 0)	controls/captures/OCON-027-setup.png	controls/captures/OCON-028-setup.png
+OCON	30	setup	"line ""ON"""	(0, 0)	controls/captures/OCON-029-setup.png	controls/captures/OCON-030-setup.png
+OCON	32	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/OCON-031-probe.png	controls/captures/OCON-032-probe.png
+OCON	34	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	controls/captures/OCON-033-probe.png	controls/captures/OCON-034-probe.png
+OCON	35	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/OCON-034-probe.png	controls/captures/OCON-035-probe.png
+OCON	38	export	"line ""END"""	(19230, 17210)	controls/captures/OCON-037-export.png	controls/captures/OCON-038-export.png
+OCON	40	export	"line ""5"""	(19230, 17210)	controls/captures/OCON-039-export.png	controls/captures/OCON-040-export.png
+OCON	42	export	"line ""OCON"""	(19230, 17210)	controls/captures/OCON-041-export.png	controls/captures/OCON-042-export.png
+OCON	42	export	shutdown	(19230, 17210)		
+FSLINE	0	boot	boot_disposable private system.img	(0, 0)		
+FSLINE	2	boot	"line ""1"""	(0, 0)	controls/captures/FSLINE-001-boot.png	controls/captures/FSLINE-002-boot.png
+FSLINE	4	boot	"line ""FSLINE"""	(0, 0)	controls/captures/FSLINE-003-boot.png	controls/captures/FSLINE-004-boot.png
+FSLINE	6	setup	"line ""MENU"""	(0, 0)	controls/captures/FSLINE-005-setup.png	controls/captures/FSLINE-006-setup.png
+FSLINE	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/FSLINE-007-setup.png	controls/captures/FSLINE-008-setup.png
+FSLINE	10	setup	mouse_pin	(0, 0)	controls/captures/FSLINE-009-setup.png	controls/captures/FSLINE-010-setup.png
+FSLINE	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/FSLINE-011-setup.png	controls/captures/FSLINE-012-setup.png
+FSLINE	14	setup	"line ""0.5"""	(0, 0)	controls/captures/FSLINE-013-setup.png	controls/captures/FSLINE-014-setup.png
+FSLINE	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/FSLINE-015-setup.png	controls/captures/FSLINE-016-setup.png
+FSLINE	18	setup	"line ""OFF"""	(0, 0)	controls/captures/FSLINE-017-setup.png	controls/captures/FSLINE-018-setup.png
+FSLINE	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/FSLINE-019-setup.png	controls/captures/FSLINE-020-setup.png
+FSLINE	22	setup	"line ""OFF"""	(0, 0)	controls/captures/FSLINE-021-setup.png	controls/captures/FSLINE-022-setup.png
+FSLINE	24	setup	"line ""LINE"""	(0, 0)	controls/captures/FSLINE-023-setup.png	controls/captures/FSLINE-024-setup.png
+FSLINE	26	setup	"line ""2.1,3.15"""	(0, 0)	controls/captures/FSLINE-025-setup.png	controls/captures/FSLINE-026-setup.png
+FSLINE	28	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/FSLINE-027-probe.png	controls/captures/FSLINE-028-probe.png
+FSLINE	30	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	controls/captures/FSLINE-029-probe.png	controls/captures/FSLINE-030-probe.png
+FSLINE	31	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/FSLINE-030-probe.png	controls/captures/FSLINE-031-probe.png
+FSLINE	33	continuation	"line ""4.25,5.15"""	(19230, 18070)	controls/captures/FSLINE-032-continuation.png	controls/captures/FSLINE-033-continuation.png
+FSLINE	35	continuation	"line """""	(19230, 18070)	controls/captures/FSLINE-034-continuation.png	controls/captures/FSLINE-035-continuation.png
+FSLINE	38	export	"line ""END"""	(19230, 18070)	controls/captures/FSLINE-037-export.png	controls/captures/FSLINE-038-export.png
+FSLINE	40	export	"line ""5"""	(19230, 18070)	controls/captures/FSLINE-039-export.png	controls/captures/FSLINE-040-export.png
+FSLINE	42	export	"line ""FSLINE"""	(19230, 18070)	controls/captures/FSLINE-041-export.png	controls/captures/FSLINE-042-export.png
+FSLINE	42	export	shutdown	(19230, 18070)		
+FOLINE	0	boot	boot_disposable private system.img	(0, 0)		
+FOLINE	2	boot	"line ""1"""	(0, 0)	controls/captures/FOLINE-001-boot.png	controls/captures/FOLINE-002-boot.png
+FOLINE	4	boot	"line ""FOLINE"""	(0, 0)	controls/captures/FOLINE-003-boot.png	controls/captures/FOLINE-004-boot.png
+FOLINE	6	setup	"line ""MENU"""	(0, 0)	controls/captures/FOLINE-005-setup.png	controls/captures/FOLINE-006-setup.png
+FOLINE	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/FOLINE-007-setup.png	controls/captures/FOLINE-008-setup.png
+FOLINE	10	setup	mouse_pin	(0, 0)	controls/captures/FOLINE-009-setup.png	controls/captures/FOLINE-010-setup.png
+FOLINE	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/FOLINE-011-setup.png	controls/captures/FOLINE-012-setup.png
+FOLINE	14	setup	"line ""0.5"""	(0, 0)	controls/captures/FOLINE-013-setup.png	controls/captures/FOLINE-014-setup.png
+FOLINE	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/FOLINE-015-setup.png	controls/captures/FOLINE-016-setup.png
+FOLINE	18	setup	"line ""OFF"""	(0, 0)	controls/captures/FOLINE-017-setup.png	controls/captures/FOLINE-018-setup.png
+FOLINE	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/FOLINE-019-setup.png	controls/captures/FOLINE-020-setup.png
+FOLINE	22	setup	"line ""OFF"""	(0, 0)	controls/captures/FOLINE-021-setup.png	controls/captures/FOLINE-022-setup.png
+FOLINE	24	setup	"line ""LINE"""	(0, 0)	controls/captures/FOLINE-023-setup.png	controls/captures/FOLINE-024-setup.png
+FOLINE	26	setup	"line ""2.1,3.15"""	(0, 0)	controls/captures/FOLINE-025-setup.png	controls/captures/FOLINE-026-setup.png
+FOLINE	28	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/FOLINE-027-probe.png	controls/captures/FOLINE-028-probe.png
+FOLINE	30	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	controls/captures/FOLINE-029-probe.png	controls/captures/FOLINE-030-probe.png
+FOLINE	31	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/FOLINE-030-probe.png	controls/captures/FOLINE-031-probe.png
+FOLINE	33	continuation	"line ""4.25,5.15"""	(19230, 17210)	controls/captures/FOLINE-032-continuation.png	controls/captures/FOLINE-033-continuation.png
+FOLINE	35	continuation	"line """""	(19230, 17210)	controls/captures/FOLINE-034-continuation.png	controls/captures/FOLINE-035-continuation.png
+FOLINE	38	export	"line ""END"""	(19230, 17210)	controls/captures/FOLINE-037-export.png	controls/captures/FOLINE-038-export.png
+FOLINE	40	export	"line ""5"""	(19230, 17210)	controls/captures/FOLINE-039-export.png	controls/captures/FOLINE-040-export.png
+FOLINE	42	export	"line ""FOLINE"""	(19230, 17210)	controls/captures/FOLINE-041-export.png	controls/captures/FOLINE-042-export.png
+FOLINE	42	export	shutdown	(19230, 17210)		
+CMENU	0	boot	boot_disposable private system.img	(0, 0)		
+CMENU	2	boot	"line ""1"""	(0, 0)	controls/captures/CMENU-001-boot.png	controls/captures/CMENU-002-boot.png
+CMENU	4	boot	"line ""CMENU"""	(0, 0)	controls/captures/CMENU-003-boot.png	controls/captures/CMENU-004-boot.png
+CMENU	6	setup	"line ""MENU"""	(0, 0)	controls/captures/CMENU-005-setup.png	controls/captures/CMENU-006-setup.png
+CMENU	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/CMENU-007-setup.png	controls/captures/CMENU-008-setup.png
+CMENU	10	setup	mouse_pin	(0, 0)	controls/captures/CMENU-009-setup.png	controls/captures/CMENU-010-setup.png
+CMENU	12	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	controls/captures/CMENU-011-probe.png	controls/captures/CMENU-012-probe.png
+CMENU	14	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	controls/captures/CMENU-013-probe.png	controls/captures/CMENU-014-probe.png
+CMENU	15	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	controls/captures/CMENU-014-probe.png	controls/captures/CMENU-015-probe.png
+CMENU	17	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	controls/captures/CMENU-016-probe.png	controls/captures/CMENU-017-probe.png
+CMENU	19	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	controls/captures/CMENU-018-probe.png	controls/captures/CMENU-019-probe.png
+CMENU	20	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	controls/captures/CMENU-019-probe.png	controls/captures/CMENU-020-probe.png
+CMENU	22	continuation	"line ""POINT"""	(19230, 2630)	controls/captures/CMENU-021-continuation.png	controls/captures/CMENU-022-continuation.png
+CMENU	24	continuation	"line ""8,7"""	(19230, 2630)	controls/captures/CMENU-023-continuation.png	controls/captures/CMENU-024-continuation.png
+CMENU	27	export	"line ""END"""	(19230, 2630)	controls/captures/CMENU-026-export.png	controls/captures/CMENU-027-export.png
+CMENU	29	export	"line ""5"""	(19230, 2630)	controls/captures/CMENU-028-export.png	controls/captures/CMENU-029-export.png
+CMENU	31	export	"line ""CMENU"""	(19230, 2630)	controls/captures/CMENU-030-export.png	controls/captures/CMENU-031-export.png
+CMENU	31	export	shutdown	(19230, 2630)		
+SCIRCLE	0	boot	boot_disposable private system.img	(0, 0)		
+SCIRCLE	2	boot	"line ""1"""	(0, 0)	controls/captures/SCIRCLE-001-boot.png	controls/captures/SCIRCLE-002-boot.png
+SCIRCLE	4	boot	"line ""SCIRCLE"""	(0, 0)	controls/captures/SCIRCLE-003-boot.png	controls/captures/SCIRCLE-004-boot.png
+SCIRCLE	6	setup	"line ""MENU"""	(0, 0)	controls/captures/SCIRCLE-005-setup.png	controls/captures/SCIRCLE-006-setup.png
+SCIRCLE	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/SCIRCLE-007-setup.png	controls/captures/SCIRCLE-008-setup.png
+SCIRCLE	10	setup	mouse_pin	(0, 0)	controls/captures/SCIRCLE-009-setup.png	controls/captures/SCIRCLE-010-setup.png
+SCIRCLE	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/SCIRCLE-011-setup.png	controls/captures/SCIRCLE-012-setup.png
+SCIRCLE	14	setup	"line ""0.5"""	(0, 0)	controls/captures/SCIRCLE-013-setup.png	controls/captures/SCIRCLE-014-setup.png
+SCIRCLE	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/SCIRCLE-015-setup.png	controls/captures/SCIRCLE-016-setup.png
+SCIRCLE	18	setup	"line ""OFF"""	(0, 0)	controls/captures/SCIRCLE-017-setup.png	controls/captures/SCIRCLE-018-setup.png
+SCIRCLE	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/SCIRCLE-019-setup.png	controls/captures/SCIRCLE-020-setup.png
+SCIRCLE	22	setup	"line ""OFF"""	(0, 0)	controls/captures/SCIRCLE-021-setup.png	controls/captures/SCIRCLE-022-setup.png
+SCIRCLE	24	setup	"line ""CIRCLE"""	(0, 0)	controls/captures/SCIRCLE-023-setup.png	controls/captures/SCIRCLE-024-setup.png
+SCIRCLE	26	setup	"line ""2,3"""	(0, 0)	controls/captures/SCIRCLE-025-setup.png	controls/captures/SCIRCLE-026-setup.png
+SCIRCLE	28	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/SCIRCLE-027-probe.png	controls/captures/SCIRCLE-028-probe.png
+SCIRCLE	30	probe	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	controls/captures/SCIRCLE-029-probe.png	controls/captures/SCIRCLE-030-probe.png
+SCIRCLE	31	probe	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/SCIRCLE-030-probe.png	controls/captures/SCIRCLE-031-probe.png
+SCIRCLE	33	continuation	"line ""1.25"""	(19230, 18070)	controls/captures/SCIRCLE-032-continuation.png	controls/captures/SCIRCLE-033-continuation.png
+SCIRCLE	36	export	"line ""END"""	(19230, 18070)	controls/captures/SCIRCLE-035-export.png	controls/captures/SCIRCLE-036-export.png
+SCIRCLE	38	export	"line ""5"""	(19230, 18070)	controls/captures/SCIRCLE-037-export.png	controls/captures/SCIRCLE-038-export.png
+SCIRCLE	40	export	"line ""SCIRCLE"""	(19230, 18070)	controls/captures/SCIRCLE-039-export.png	controls/captures/SCIRCLE-040-export.png
+SCIRCLE	40	export	shutdown	(19230, 18070)		
+OCIRCLE	0	boot	boot_disposable private system.img	(0, 0)		
+OCIRCLE	2	boot	"line ""1"""	(0, 0)	controls/captures/OCIRCLE-001-boot.png	controls/captures/OCIRCLE-002-boot.png
+OCIRCLE	4	boot	"line ""OCIRCLE"""	(0, 0)	controls/captures/OCIRCLE-003-boot.png	controls/captures/OCIRCLE-004-boot.png
+OCIRCLE	6	setup	"line ""MENU"""	(0, 0)	controls/captures/OCIRCLE-005-setup.png	controls/captures/OCIRCLE-006-setup.png
+OCIRCLE	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/OCIRCLE-007-setup.png	controls/captures/OCIRCLE-008-setup.png
+OCIRCLE	10	setup	mouse_pin	(0, 0)	controls/captures/OCIRCLE-009-setup.png	controls/captures/OCIRCLE-010-setup.png
+OCIRCLE	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/OCIRCLE-011-setup.png	controls/captures/OCIRCLE-012-setup.png
+OCIRCLE	14	setup	"line ""0.5"""	(0, 0)	controls/captures/OCIRCLE-013-setup.png	controls/captures/OCIRCLE-014-setup.png
+OCIRCLE	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/OCIRCLE-015-setup.png	controls/captures/OCIRCLE-016-setup.png
+OCIRCLE	18	setup	"line ""OFF"""	(0, 0)	controls/captures/OCIRCLE-017-setup.png	controls/captures/OCIRCLE-018-setup.png
+OCIRCLE	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/OCIRCLE-019-setup.png	controls/captures/OCIRCLE-020-setup.png
+OCIRCLE	22	setup	"line ""OFF"""	(0, 0)	controls/captures/OCIRCLE-021-setup.png	controls/captures/OCIRCLE-022-setup.png
+OCIRCLE	24	setup	"line ""CIRCLE"""	(0, 0)	controls/captures/OCIRCLE-023-setup.png	controls/captures/OCIRCLE-024-setup.png
+OCIRCLE	26	setup	"line ""2,3"""	(0, 0)	controls/captures/OCIRCLE-025-setup.png	controls/captures/OCIRCLE-026-setup.png
+OCIRCLE	28	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/OCIRCLE-027-probe.png	controls/captures/OCIRCLE-028-probe.png
+OCIRCLE	30	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	controls/captures/OCIRCLE-029-probe.png	controls/captures/OCIRCLE-030-probe.png
+OCIRCLE	31	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/OCIRCLE-030-probe.png	controls/captures/OCIRCLE-031-probe.png
+OCIRCLE	33	continuation	"line ""1.25"""	(19230, 17210)	controls/captures/OCIRCLE-032-continuation.png	controls/captures/OCIRCLE-033-continuation.png
+OCIRCLE	36	export	"line ""END"""	(19230, 17210)	controls/captures/OCIRCLE-035-export.png	controls/captures/OCIRCLE-036-export.png
+OCIRCLE	38	export	"line ""5"""	(19230, 17210)	controls/captures/OCIRCLE-037-export.png	controls/captures/OCIRCLE-038-export.png
+OCIRCLE	40	export	"line ""OCIRCLE"""	(19230, 17210)	controls/captures/OCIRCLE-039-export.png	controls/captures/OCIRCLE-040-export.png
+OCIRCLE	40	export	shutdown	(19230, 17210)		
+M00	0	boot	boot_disposable private system.img	(0, 0)		
+M00	2	boot	"line ""1"""	(0, 0)	controls/captures/M00-001-boot.png	controls/captures/M00-002-boot.png
+M00	4	boot	"line ""M00"""	(0, 0)	controls/captures/M00-003-boot.png	controls/captures/M00-004-boot.png
+M00	6	setup	"line ""MENU"""	(0, 0)	controls/captures/M00-005-setup.png	controls/captures/M00-006-setup.png
+M00	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/M00-007-setup.png	controls/captures/M00-008-setup.png
+M00	10	setup	mouse_pin	(0, 0)	controls/captures/M00-009-setup.png	controls/captures/M00-010-setup.png
+M00	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/M00-011-setup.png	controls/captures/M00-012-setup.png
+M00	14	setup	"line ""0.5"""	(0, 0)	controls/captures/M00-013-setup.png	controls/captures/M00-014-setup.png
+M00	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/M00-015-setup.png	controls/captures/M00-016-setup.png
+M00	18	setup	"line ""OFF"""	(0, 0)	controls/captures/M00-017-setup.png	controls/captures/M00-018-setup.png
+M00	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/M00-019-setup.png	controls/captures/M00-020-setup.png
+M00	22	setup	"line ""OFF"""	(0, 0)	controls/captures/M00-021-setup.png	controls/captures/M00-022-setup.png
+M00	24	setup	"line ""LINE"""	(0, 0)	controls/captures/M00-023-setup.png	controls/captures/M00-024-setup.png
+M00	26	setup	"line ""2,3"""	(0, 0)	controls/captures/M00-025-setup.png	controls/captures/M00-026-setup.png
+M00	28	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	controls/captures/M00-027-probe.png	controls/captures/M00-028-probe.png
+M00	30	probe	mouse pixel=250,90 device=8010,9700 buttons=4	(8010, 9700)	controls/captures/M00-029-probe.png	controls/captures/M00-030-probe.png
+M00	31	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	controls/captures/M00-030-probe.png	controls/captures/M00-031-probe.png
+M00	33	continuation	"line """""	(8010, 9700)	controls/captures/M00-032-continuation.png	controls/captures/M00-033-continuation.png
+M00	36	export	"line ""END"""	(8010, 9700)	controls/captures/M00-035-export.png	controls/captures/M00-036-export.png
+M00	38	export	"line ""5"""	(8010, 9700)	controls/captures/M00-037-export.png	controls/captures/M00-038-export.png
+M00	40	export	"line ""M00"""	(8010, 9700)	controls/captures/M00-039-export.png	controls/captures/M00-040-export.png
+M00	40	export	shutdown	(8010, 9700)		
+M10	0	boot	boot_disposable private system.img	(0, 0)		
+M10	2	boot	"line ""1"""	(0, 0)	controls/captures/M10-001-boot.png	controls/captures/M10-002-boot.png
+M10	4	boot	"line ""M10"""	(0, 0)	controls/captures/M10-003-boot.png	controls/captures/M10-004-boot.png
+M10	6	setup	"line ""MENU"""	(0, 0)	controls/captures/M10-005-setup.png	controls/captures/M10-006-setup.png
+M10	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/M10-007-setup.png	controls/captures/M10-008-setup.png
+M10	10	setup	mouse_pin	(0, 0)	controls/captures/M10-009-setup.png	controls/captures/M10-010-setup.png
+M10	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/M10-011-setup.png	controls/captures/M10-012-setup.png
+M10	14	setup	"line ""0.5"""	(0, 0)	controls/captures/M10-013-setup.png	controls/captures/M10-014-setup.png
+M10	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/M10-015-setup.png	controls/captures/M10-016-setup.png
+M10	18	setup	"line ""OFF"""	(0, 0)	controls/captures/M10-017-setup.png	controls/captures/M10-018-setup.png
+M10	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/M10-019-setup.png	controls/captures/M10-020-setup.png
+M10	22	setup	"line ""OFF"""	(0, 0)	controls/captures/M10-021-setup.png	controls/captures/M10-022-setup.png
+M10	24	setup	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/M10-023-setup.png	controls/captures/M10-024-setup.png
+M10	26	setup	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	controls/captures/M10-025-setup.png	controls/captures/M10-026-setup.png
+M10	27	setup	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/M10-026-setup.png	controls/captures/M10-027-setup.png
+M10	29	setup	"line ""LINE"""	(19230, 18070)	controls/captures/M10-028-setup.png	controls/captures/M10-029-setup.png
+M10	31	setup	"line ""2,3"""	(19230, 18070)	controls/captures/M10-030-setup.png	controls/captures/M10-031-setup.png
+M10	33	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	controls/captures/M10-032-probe.png	controls/captures/M10-033-probe.png
+M10	35	probe	mouse pixel=250,90 device=8010,9700 buttons=4	(8010, 9700)	controls/captures/M10-034-probe.png	controls/captures/M10-035-probe.png
+M10	36	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	controls/captures/M10-035-probe.png	controls/captures/M10-036-probe.png
+M10	38	continuation	"line """""	(8010, 9700)	controls/captures/M10-037-continuation.png	controls/captures/M10-038-continuation.png
+M10	41	export	"line ""END"""	(8010, 9700)	controls/captures/M10-040-export.png	controls/captures/M10-041-export.png
+M10	43	export	"line ""5"""	(8010, 9700)	controls/captures/M10-042-export.png	controls/captures/M10-043-export.png
+M10	45	export	"line ""M10"""	(8010, 9700)	controls/captures/M10-044-export.png	controls/captures/M10-045-export.png
+M10	45	export	shutdown	(8010, 9700)		
+M01	0	boot	boot_disposable private system.img	(0, 0)		
+M01	2	boot	"line ""1"""	(0, 0)	controls/captures/M01-001-boot.png	controls/captures/M01-002-boot.png
+M01	4	boot	"line ""M01"""	(0, 0)	controls/captures/M01-003-boot.png	controls/captures/M01-004-boot.png
+M01	6	setup	"line ""MENU"""	(0, 0)	controls/captures/M01-005-setup.png	controls/captures/M01-006-setup.png
+M01	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/M01-007-setup.png	controls/captures/M01-008-setup.png
+M01	10	setup	mouse_pin	(0, 0)	controls/captures/M01-009-setup.png	controls/captures/M01-010-setup.png
+M01	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/M01-011-setup.png	controls/captures/M01-012-setup.png
+M01	14	setup	"line ""0.5"""	(0, 0)	controls/captures/M01-013-setup.png	controls/captures/M01-014-setup.png
+M01	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/M01-015-setup.png	controls/captures/M01-016-setup.png
+M01	18	setup	"line ""OFF"""	(0, 0)	controls/captures/M01-017-setup.png	controls/captures/M01-018-setup.png
+M01	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/M01-019-setup.png	controls/captures/M01-020-setup.png
+M01	22	setup	"line ""OFF"""	(0, 0)	controls/captures/M01-021-setup.png	controls/captures/M01-022-setup.png
+M01	24	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/M01-023-setup.png	controls/captures/M01-024-setup.png
+M01	26	setup	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	controls/captures/M01-025-setup.png	controls/captures/M01-026-setup.png
+M01	27	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/M01-026-setup.png	controls/captures/M01-027-setup.png
+M01	29	setup	"line ""LINE"""	(19230, 17210)	controls/captures/M01-028-setup.png	controls/captures/M01-029-setup.png
+M01	31	setup	"line ""2,3"""	(19230, 17210)	controls/captures/M01-030-setup.png	controls/captures/M01-031-setup.png
+M01	33	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	controls/captures/M01-032-probe.png	controls/captures/M01-033-probe.png
+M01	35	probe	mouse pixel=250,90 device=8010,9700 buttons=4	(8010, 9700)	controls/captures/M01-034-probe.png	controls/captures/M01-035-probe.png
+M01	36	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	controls/captures/M01-035-probe.png	controls/captures/M01-036-probe.png
+M01	38	continuation	"line """""	(8010, 9700)	controls/captures/M01-037-continuation.png	controls/captures/M01-038-continuation.png
+M01	41	export	"line ""END"""	(8010, 9700)	controls/captures/M01-040-export.png	controls/captures/M01-041-export.png
+M01	43	export	"line ""5"""	(8010, 9700)	controls/captures/M01-042-export.png	controls/captures/M01-043-export.png
+M01	45	export	"line ""M01"""	(8010, 9700)	controls/captures/M01-044-export.png	controls/captures/M01-045-export.png
+M01	45	export	shutdown	(8010, 9700)		
+M11	0	boot	boot_disposable private system.img	(0, 0)		
+M11	2	boot	"line ""1"""	(0, 0)	controls/captures/M11-001-boot.png	controls/captures/M11-002-boot.png
+M11	4	boot	"line ""M11"""	(0, 0)	controls/captures/M11-003-boot.png	controls/captures/M11-004-boot.png
+M11	6	setup	"line ""MENU"""	(0, 0)	controls/captures/M11-005-setup.png	controls/captures/M11-006-setup.png
+M11	8	setup	"line ""ACAD"""	(0, 0)	controls/captures/M11-007-setup.png	controls/captures/M11-008-setup.png
+M11	10	setup	mouse_pin	(0, 0)	controls/captures/M11-009-setup.png	controls/captures/M11-010-setup.png
+M11	12	setup	"line ""SNAP"""	(0, 0)	controls/captures/M11-011-setup.png	controls/captures/M11-012-setup.png
+M11	14	setup	"line ""0.5"""	(0, 0)	controls/captures/M11-013-setup.png	controls/captures/M11-014-setup.png
+M11	16	setup	"line ""SNAP"""	(0, 0)	controls/captures/M11-015-setup.png	controls/captures/M11-016-setup.png
+M11	18	setup	"line ""OFF"""	(0, 0)	controls/captures/M11-017-setup.png	controls/captures/M11-018-setup.png
+M11	20	setup	"line ""ORTHO"""	(0, 0)	controls/captures/M11-019-setup.png	controls/captures/M11-020-setup.png
+M11	22	setup	"line ""OFF"""	(0, 0)	controls/captures/M11-021-setup.png	controls/captures/M11-022-setup.png
+M11	24	setup	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/M11-023-setup.png	controls/captures/M11-024-setup.png
+M11	26	setup	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	controls/captures/M11-025-setup.png	controls/captures/M11-026-setup.png
+M11	27	setup	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	controls/captures/M11-026-setup.png	controls/captures/M11-027-setup.png
+M11	29	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/M11-028-setup.png	controls/captures/M11-029-setup.png
+M11	31	setup	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	controls/captures/M11-030-setup.png	controls/captures/M11-031-setup.png
+M11	32	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	controls/captures/M11-031-setup.png	controls/captures/M11-032-setup.png
+M11	34	setup	"line ""LINE"""	(19230, 17210)	controls/captures/M11-033-setup.png	controls/captures/M11-034-setup.png
+M11	36	setup	"line ""2,3"""	(19230, 17210)	controls/captures/M11-035-setup.png	controls/captures/M11-036-setup.png
+M11	38	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	controls/captures/M11-037-probe.png	controls/captures/M11-038-probe.png
+M11	40	probe	mouse pixel=250,90 device=8010,9700 buttons=4	(8010, 9700)	controls/captures/M11-039-probe.png	controls/captures/M11-040-probe.png
+M11	41	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	controls/captures/M11-040-probe.png	controls/captures/M11-041-probe.png
+M11	43	continuation	"line """""	(8010, 9700)	controls/captures/M11-042-continuation.png	controls/captures/M11-043-continuation.png
+M11	46	export	"line ""END"""	(8010, 9700)	controls/captures/M11-045-export.png	controls/captures/M11-046-export.png
+M11	48	export	"line ""5"""	(8010, 9700)	controls/captures/M11-047-export.png	controls/captures/M11-048-export.png
+M11	50	export	"line ""M11"""	(8010, 9700)	controls/captures/M11-049-export.png	controls/captures/M11-050-export.png
+M11	50	export	shutdown	(8010, 9700)		
+MASYM	0	boot	boot_disposable private system.img	(0, 0)		
+MASYM	2	boot	"line ""1"""	(0, 0)	constraints/captures/MASYM-001-boot.png	constraints/captures/MASYM-002-boot.png
+MASYM	4	boot	"line ""MASYM"""	(0, 0)	constraints/captures/MASYM-003-boot.png	constraints/captures/MASYM-004-boot.png
+MASYM	6	setup	"line ""MENU"""	(0, 0)	constraints/captures/MASYM-005-setup.png	constraints/captures/MASYM-006-setup.png
+MASYM	8	setup	"line ""ACAD"""	(0, 0)	constraints/captures/MASYM-007-setup.png	constraints/captures/MASYM-008-setup.png
+MASYM	10	setup	mouse_pin	(0, 0)	constraints/captures/MASYM-009-setup.png	constraints/captures/MASYM-010-setup.png
+MASYM	12	setup	"line ""SNAP"""	(0, 0)	constraints/captures/MASYM-011-setup.png	constraints/captures/MASYM-012-setup.png
+MASYM	14	setup	"line ""0.5"""	(0, 0)	constraints/captures/MASYM-013-setup.png	constraints/captures/MASYM-014-setup.png
+MASYM	16	setup	"line ""SNAP"""	(0, 0)	constraints/captures/MASYM-015-setup.png	constraints/captures/MASYM-016-setup.png
+MASYM	18	setup	"line ""OFF"""	(0, 0)	constraints/captures/MASYM-017-setup.png	constraints/captures/MASYM-018-setup.png
+MASYM	20	setup	"line ""ORTHO"""	(0, 0)	constraints/captures/MASYM-019-setup.png	constraints/captures/MASYM-020-setup.png
+MASYM	22	setup	"line ""OFF"""	(0, 0)	constraints/captures/MASYM-021-setup.png	constraints/captures/MASYM-022-setup.png
+MASYM	24	setup	"line ""LINE"""	(0, 0)	constraints/captures/MASYM-023-setup.png	constraints/captures/MASYM-024-setup.png
+MASYM	26	setup	"line ""2.1,3.15"""	(0, 0)	constraints/captures/MASYM-025-setup.png	constraints/captures/MASYM-026-setup.png
+MASYM	28	setup	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	constraints/captures/MASYM-027-setup.png	constraints/captures/MASYM-028-setup.png
+MASYM	30	setup	mouse pixel=260,85 device=8330,10240 buttons=4	(8330, 10240)	constraints/captures/MASYM-029-setup.png	constraints/captures/MASYM-030-setup.png
+MASYM	31	setup	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	constraints/captures/MASYM-030-setup.png	constraints/captures/MASYM-031-setup.png
+MASYM	33	setup	"line """""	(8330, 10240)	constraints/captures/MASYM-032-setup.png	constraints/captures/MASYM-033-setup.png
+MASYM	35	setup	"line ""LINE"""	(8330, 10240)	constraints/captures/MASYM-034-setup.png	constraints/captures/MASYM-035-setup.png
+MASYM	37	setup	"line ""2.1,3.15"""	(8330, 10240)	constraints/captures/MASYM-036-setup.png	constraints/captures/MASYM-037-setup.png
+MASYM	39	setup	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	constraints/captures/MASYM-038-setup.png	constraints/captures/MASYM-039-setup.png
+MASYM	41	setup	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	constraints/captures/MASYM-040-setup.png	constraints/captures/MASYM-041-setup.png
+MASYM	42	setup	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	constraints/captures/MASYM-041-setup.png	constraints/captures/MASYM-042-setup.png
+MASYM	44	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	constraints/captures/MASYM-043-setup.png	constraints/captures/MASYM-044-setup.png
+MASYM	46	setup	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	constraints/captures/MASYM-045-setup.png	constraints/captures/MASYM-046-setup.png
+MASYM	47	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	constraints/captures/MASYM-046-setup.png	constraints/captures/MASYM-047-setup.png
+MASYM	49	probe	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	constraints/captures/MASYM-048-probe.png	constraints/captures/MASYM-049-probe.png
+MASYM	51	probe	mouse pixel=260,85 device=8330,10240 buttons=4	(8330, 10240)	constraints/captures/MASYM-050-probe.png	constraints/captures/MASYM-051-probe.png
+MASYM	52	probe	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	constraints/captures/MASYM-051-probe.png	constraints/captures/MASYM-052-probe.png
+MASYM	54	continuation	"line """""	(8330, 10240)	constraints/captures/MASYM-053-continuation.png	constraints/captures/MASYM-054-continuation.png
+MASYM	56	continuation	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	constraints/captures/MASYM-055-continuation.png	constraints/captures/MASYM-056-continuation.png
+MASYM	58	continuation	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	constraints/captures/MASYM-057-continuation.png	constraints/captures/MASYM-058-continuation.png
+MASYM	59	continuation	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	constraints/captures/MASYM-058-continuation.png	constraints/captures/MASYM-059-continuation.png
+MASYM	61	continuation	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	constraints/captures/MASYM-060-continuation.png	constraints/captures/MASYM-061-continuation.png
+MASYM	63	continuation	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	constraints/captures/MASYM-062-continuation.png	constraints/captures/MASYM-063-continuation.png
+MASYM	64	continuation	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	constraints/captures/MASYM-063-continuation.png	constraints/captures/MASYM-064-continuation.png
+MASYM	66	continuation	"line ""LINE"""	(19230, 17210)	constraints/captures/MASYM-065-continuation.png	constraints/captures/MASYM-066-continuation.png
+MASYM	68	continuation	"line ""5.1,0.2"""	(19230, 17210)	constraints/captures/MASYM-067-continuation.png	constraints/captures/MASYM-068-continuation.png
+MASYM	70	continuation	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	constraints/captures/MASYM-069-continuation.png	constraints/captures/MASYM-070-continuation.png
+MASYM	72	continuation	mouse pixel=260,85 device=8330,10240 buttons=4	(8330, 10240)	constraints/captures/MASYM-071-continuation.png	constraints/captures/MASYM-072-continuation.png
+MASYM	73	continuation	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	constraints/captures/MASYM-072-continuation.png	constraints/captures/MASYM-073-continuation.png
+MASYM	75	continuation	"line """""	(8330, 10240)	constraints/captures/MASYM-074-continuation.png	constraints/captures/MASYM-075-continuation.png
+MASYM	77	continuation	"line ""LINE"""	(8330, 10240)	constraints/captures/MASYM-076-continuation.png	constraints/captures/MASYM-077-continuation.png
+MASYM	79	continuation	"line ""5.1,0.2"""	(8330, 10240)	constraints/captures/MASYM-078-continuation.png	constraints/captures/MASYM-079-continuation.png
+MASYM	81	continuation	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	constraints/captures/MASYM-080-continuation.png	constraints/captures/MASYM-081-continuation.png
+MASYM	83	continuation	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	constraints/captures/MASYM-082-continuation.png	constraints/captures/MASYM-083-continuation.png
+MASYM	84	continuation	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	constraints/captures/MASYM-083-continuation.png	constraints/captures/MASYM-084-continuation.png
+MASYM	86	continuation	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	constraints/captures/MASYM-085-continuation.png	constraints/captures/MASYM-086-continuation.png
+MASYM	88	continuation	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	constraints/captures/MASYM-087-continuation.png	constraints/captures/MASYM-088-continuation.png
+MASYM	89	continuation	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	constraints/captures/MASYM-088-continuation.png	constraints/captures/MASYM-089-continuation.png
+MASYM	91	continuation	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	constraints/captures/MASYM-090-continuation.png	constraints/captures/MASYM-091-continuation.png
+MASYM	93	continuation	mouse pixel=260,85 device=8330,10240 buttons=4	(8330, 10240)	constraints/captures/MASYM-092-continuation.png	constraints/captures/MASYM-093-continuation.png
+MASYM	94	continuation	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	constraints/captures/MASYM-093-continuation.png	constraints/captures/MASYM-094-continuation.png
+MASYM	96	continuation	"line """""	(8330, 10240)	constraints/captures/MASYM-095-continuation.png	constraints/captures/MASYM-096-continuation.png
+MASYM	99	export	"line ""END"""	(8330, 10240)	constraints/captures/MASYM-098-export.png	constraints/captures/MASYM-099-export.png
+MASYM	101	export	"line ""5"""	(8330, 10240)	constraints/captures/MASYM-100-export.png	constraints/captures/MASYM-101-export.png
+MASYM	103	export	"line ""MASYM"""	(8330, 10240)	constraints/captures/MASYM-102-export.png	constraints/captures/MASYM-103-export.png
+MASYM	103	export	shutdown	(8330, 10240)		
+MAORTHO	0	boot	boot_disposable private system.img	(0, 0)		
+MAORTHO	2	boot	"line ""1"""	(0, 0)	constraints/captures/MAORTHO-001-boot.png	constraints/captures/MAORTHO-002-boot.png
+MAORTHO	4	boot	"line ""MAORTHO"""	(0, 0)	constraints/captures/MAORTHO-003-boot.png	constraints/captures/MAORTHO-004-boot.png
+MAORTHO	6	setup	"line ""MENU"""	(0, 0)	constraints/captures/MAORTHO-005-setup.png	constraints/captures/MAORTHO-006-setup.png
+MAORTHO	8	setup	"line ""ACAD"""	(0, 0)	constraints/captures/MAORTHO-007-setup.png	constraints/captures/MAORTHO-008-setup.png
+MAORTHO	10	setup	mouse_pin	(0, 0)	constraints/captures/MAORTHO-009-setup.png	constraints/captures/MAORTHO-010-setup.png
+MAORTHO	12	setup	"line ""SNAP"""	(0, 0)	constraints/captures/MAORTHO-011-setup.png	constraints/captures/MAORTHO-012-setup.png
+MAORTHO	14	setup	"line ""0.5"""	(0, 0)	constraints/captures/MAORTHO-013-setup.png	constraints/captures/MAORTHO-014-setup.png
+MAORTHO	16	setup	"line ""SNAP"""	(0, 0)	constraints/captures/MAORTHO-015-setup.png	constraints/captures/MAORTHO-016-setup.png
+MAORTHO	18	setup	"line ""OFF"""	(0, 0)	constraints/captures/MAORTHO-017-setup.png	constraints/captures/MAORTHO-018-setup.png
+MAORTHO	20	setup	"line ""ORTHO"""	(0, 0)	constraints/captures/MAORTHO-019-setup.png	constraints/captures/MAORTHO-020-setup.png
+MAORTHO	22	setup	"line ""OFF"""	(0, 0)	constraints/captures/MAORTHO-021-setup.png	constraints/captures/MAORTHO-022-setup.png
+MAORTHO	24	setup	"line ""LINE"""	(0, 0)	constraints/captures/MAORTHO-023-setup.png	constraints/captures/MAORTHO-024-setup.png
+MAORTHO	26	setup	"line ""2.1,3.15"""	(0, 0)	constraints/captures/MAORTHO-025-setup.png	constraints/captures/MAORTHO-026-setup.png
+MAORTHO	28	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	constraints/captures/MAORTHO-027-setup.png	constraints/captures/MAORTHO-028-setup.png
+MAORTHO	30	setup	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	constraints/captures/MAORTHO-029-setup.png	constraints/captures/MAORTHO-030-setup.png
+MAORTHO	31	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	constraints/captures/MAORTHO-030-setup.png	constraints/captures/MAORTHO-031-setup.png
+MAORTHO	33	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	constraints/captures/MAORTHO-032-probe.png	constraints/captures/MAORTHO-033-probe.png
+MAORTHO	35	probe	mouse pixel=250,90 device=8010,9700 buttons=4	(8010, 9700)	constraints/captures/MAORTHO-034-probe.png	constraints/captures/MAORTHO-035-probe.png
+MAORTHO	36	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	constraints/captures/MAORTHO-035-probe.png	constraints/captures/MAORTHO-036-probe.png
+MAORTHO	38	continuation	"line """""	(8010, 9700)	constraints/captures/MAORTHO-037-continuation.png	constraints/captures/MAORTHO-038-continuation.png
+MAORTHO	41	export	"line ""END"""	(8010, 9700)	constraints/captures/MAORTHO-040-export.png	constraints/captures/MAORTHO-041-export.png
+MAORTHO	43	export	"line ""5"""	(8010, 9700)	constraints/captures/MAORTHO-042-export.png	constraints/captures/MAORTHO-043-export.png
+MAORTHO	45	export	"line ""MAORTHO"""	(8010, 9700)	constraints/captures/MAORTHO-044-export.png	constraints/captures/MAORTHO-045-export.png
+MAORTHO	45	export	shutdown	(8010, 9700)		
+CIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+CIDLE	2	boot	"line ""1"""	(0, 0)	cancel/captures/CIDLE-001-boot.png	cancel/captures/CIDLE-002-boot.png
+CIDLE	4	boot	"line ""CIDLE"""	(0, 0)	cancel/captures/CIDLE-003-boot.png	cancel/captures/CIDLE-004-boot.png
+CIDLE	6	setup	"line ""MENU"""	(0, 0)	cancel/captures/CIDLE-005-setup.png	cancel/captures/CIDLE-006-setup.png
+CIDLE	8	setup	"line ""ACAD"""	(0, 0)	cancel/captures/CIDLE-007-setup.png	cancel/captures/CIDLE-008-setup.png
+CIDLE	10	setup	mouse_pin	(0, 0)	cancel/captures/CIDLE-009-setup.png	cancel/captures/CIDLE-010-setup.png
+CIDLE	12	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CIDLE-011-probe.png	cancel/captures/CIDLE-012-probe.png
+CIDLE	14	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel/captures/CIDLE-013-probe.png	cancel/captures/CIDLE-014-probe.png
+CIDLE	15	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CIDLE-014-probe.png	cancel/captures/CIDLE-015-probe.png
+CIDLE	17	continuation	"line ""POINT"""	(19230, 2630)	cancel/captures/CIDLE-016-continuation.png	cancel/captures/CIDLE-017-continuation.png
+CIDLE	19	continuation	"line ""8,7"""	(19230, 2630)	cancel/captures/CIDLE-018-continuation.png	cancel/captures/CIDLE-019-continuation.png
+CIDLE	22	export	"line ""END"""	(19230, 2630)	cancel/captures/CIDLE-021-export.png	cancel/captures/CIDLE-022-export.png
+CIDLE	24	export	"line ""5"""	(19230, 2630)	cancel/captures/CIDLE-023-export.png	cancel/captures/CIDLE-024-export.png
+CIDLE	26	export	"line ""CIDLE"""	(19230, 2630)	cancel/captures/CIDLE-025-export.png	cancel/captures/CIDLE-026-export.png
+CIDLE	26	export	shutdown	(19230, 2630)		
+CLSTART	0	boot	boot_disposable private system.img	(0, 0)		
+CLSTART	2	boot	"line ""1"""	(0, 0)	cancel/captures/CLSTART-001-boot.png	cancel/captures/CLSTART-002-boot.png
+CLSTART	4	boot	"line ""CLSTART"""	(0, 0)	cancel/captures/CLSTART-003-boot.png	cancel/captures/CLSTART-004-boot.png
+CLSTART	6	setup	"line ""MENU"""	(0, 0)	cancel/captures/CLSTART-005-setup.png	cancel/captures/CLSTART-006-setup.png
+CLSTART	8	setup	"line ""ACAD"""	(0, 0)	cancel/captures/CLSTART-007-setup.png	cancel/captures/CLSTART-008-setup.png
+CLSTART	10	setup	mouse_pin	(0, 0)	cancel/captures/CLSTART-009-setup.png	cancel/captures/CLSTART-010-setup.png
+CLSTART	12	setup	"line ""LINE"""	(0, 0)	cancel/captures/CLSTART-011-setup.png	cancel/captures/CLSTART-012-setup.png
+CLSTART	14	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CLSTART-013-probe.png	cancel/captures/CLSTART-014-probe.png
+CLSTART	16	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel/captures/CLSTART-015-probe.png	cancel/captures/CLSTART-016-probe.png
+CLSTART	17	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CLSTART-016-probe.png	cancel/captures/CLSTART-017-probe.png
+CLSTART	19	continuation	"line ""POINT"""	(19230, 2630)	cancel/captures/CLSTART-018-continuation.png	cancel/captures/CLSTART-019-continuation.png
+CLSTART	21	continuation	"line ""8,7"""	(19230, 2630)	cancel/captures/CLSTART-020-continuation.png	cancel/captures/CLSTART-021-continuation.png
+CLSTART	24	export	"line ""END"""	(19230, 2630)	cancel/captures/CLSTART-023-export.png	cancel/captures/CLSTART-024-export.png
+CLSTART	26	export	"line ""5"""	(19230, 2630)	cancel/captures/CLSTART-025-export.png	cancel/captures/CLSTART-026-export.png
+CLSTART	28	export	"line ""CLSTART"""	(19230, 2630)	cancel/captures/CLSTART-027-export.png	cancel/captures/CLSTART-028-export.png
+CLSTART	28	export	shutdown	(19230, 2630)		
+CLSEG	0	boot	boot_disposable private system.img	(0, 0)		
+CLSEG	2	boot	"line ""1"""	(0, 0)	cancel/captures/CLSEG-001-boot.png	cancel/captures/CLSEG-002-boot.png
+CLSEG	4	boot	"line ""CLSEG"""	(0, 0)	cancel/captures/CLSEG-003-boot.png	cancel/captures/CLSEG-004-boot.png
+CLSEG	6	setup	"line ""MENU"""	(0, 0)	cancel/captures/CLSEG-005-setup.png	cancel/captures/CLSEG-006-setup.png
+CLSEG	8	setup	"line ""ACAD"""	(0, 0)	cancel/captures/CLSEG-007-setup.png	cancel/captures/CLSEG-008-setup.png
+CLSEG	10	setup	mouse_pin	(0, 0)	cancel/captures/CLSEG-009-setup.png	cancel/captures/CLSEG-010-setup.png
+CLSEG	12	setup	"line ""LINE"""	(0, 0)	cancel/captures/CLSEG-011-setup.png	cancel/captures/CLSEG-012-setup.png
+CLSEG	14	setup	"line ""2,3"""	(0, 0)	cancel/captures/CLSEG-013-setup.png	cancel/captures/CLSEG-014-setup.png
+CLSEG	16	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CLSEG-015-probe.png	cancel/captures/CLSEG-016-probe.png
+CLSEG	18	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel/captures/CLSEG-017-probe.png	cancel/captures/CLSEG-018-probe.png
+CLSEG	19	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CLSEG-018-probe.png	cancel/captures/CLSEG-019-probe.png
+CLSEG	21	continuation	"line ""POINT"""	(19230, 2630)	cancel/captures/CLSEG-020-continuation.png	cancel/captures/CLSEG-021-continuation.png
+CLSEG	23	continuation	"line ""8,7"""	(19230, 2630)	cancel/captures/CLSEG-022-continuation.png	cancel/captures/CLSEG-023-continuation.png
+CLSEG	26	export	"line ""END"""	(19230, 2630)	cancel/captures/CLSEG-025-export.png	cancel/captures/CLSEG-026-export.png
+CLSEG	28	export	"line ""5"""	(19230, 2630)	cancel/captures/CLSEG-027-export.png	cancel/captures/CLSEG-028-export.png
+CLSEG	30	export	"line ""CLSEG"""	(19230, 2630)	cancel/captures/CLSEG-029-export.png	cancel/captures/CLSEG-030-export.png
+CLSEG	30	export	shutdown	(19230, 2630)		
+CCENTER	0	boot	boot_disposable private system.img	(0, 0)		
+CCENTER	2	boot	"line ""1"""	(0, 0)	cancel/captures/CCENTER-001-boot.png	cancel/captures/CCENTER-002-boot.png
+CCENTER	4	boot	"line ""CCENTER"""	(0, 0)	cancel/captures/CCENTER-003-boot.png	cancel/captures/CCENTER-004-boot.png
+CCENTER	6	setup	"line ""MENU"""	(0, 0)	cancel/captures/CCENTER-005-setup.png	cancel/captures/CCENTER-006-setup.png
+CCENTER	8	setup	"line ""ACAD"""	(0, 0)	cancel/captures/CCENTER-007-setup.png	cancel/captures/CCENTER-008-setup.png
+CCENTER	10	setup	mouse_pin	(0, 0)	cancel/captures/CCENTER-009-setup.png	cancel/captures/CCENTER-010-setup.png
+CCENTER	12	setup	"line ""CIRCLE"""	(0, 0)	cancel/captures/CCENTER-011-setup.png	cancel/captures/CCENTER-012-setup.png
+CCENTER	14	setup	"line ""2,3"""	(0, 0)	cancel/captures/CCENTER-013-setup.png	cancel/captures/CCENTER-014-setup.png
+CCENTER	16	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CCENTER-015-probe.png	cancel/captures/CCENTER-016-probe.png
+CCENTER	18	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel/captures/CCENTER-017-probe.png	cancel/captures/CCENTER-018-probe.png
+CCENTER	19	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CCENTER-018-probe.png	cancel/captures/CCENTER-019-probe.png
+CCENTER	21	continuation	"line ""POINT"""	(19230, 2630)	cancel/captures/CCENTER-020-continuation.png	cancel/captures/CCENTER-021-continuation.png
+CCENTER	23	continuation	"line ""8,7"""	(19230, 2630)	cancel/captures/CCENTER-022-continuation.png	cancel/captures/CCENTER-023-continuation.png
+CCENTER	26	export	"line ""END"""	(19230, 2630)	cancel/captures/CCENTER-025-export.png	cancel/captures/CCENTER-026-export.png
+CCENTER	28	export	"line ""5"""	(19230, 2630)	cancel/captures/CCENTER-027-export.png	cancel/captures/CCENTER-028-export.png
+CCENTER	30	export	"line ""CCENTER"""	(19230, 2630)	cancel/captures/CCENTER-029-export.png	cancel/captures/CCENTER-030-export.png
+CCENTER	30	export	shutdown	(19230, 2630)		
+CREPEAT	0	boot	boot_disposable private system.img	(0, 0)		
+CREPEAT	2	boot	"line ""1"""	(0, 0)	cancel/captures/CREPEAT-001-boot.png	cancel/captures/CREPEAT-002-boot.png
+CREPEAT	4	boot	"line ""CREPEAT"""	(0, 0)	cancel/captures/CREPEAT-003-boot.png	cancel/captures/CREPEAT-004-boot.png
+CREPEAT	6	setup	"line ""MENU"""	(0, 0)	cancel/captures/CREPEAT-005-setup.png	cancel/captures/CREPEAT-006-setup.png
+CREPEAT	8	setup	"line ""ACAD"""	(0, 0)	cancel/captures/CREPEAT-007-setup.png	cancel/captures/CREPEAT-008-setup.png
+CREPEAT	10	setup	mouse_pin	(0, 0)	cancel/captures/CREPEAT-009-setup.png	cancel/captures/CREPEAT-010-setup.png
+CREPEAT	12	setup	"line ""REPEAT"""	(0, 0)	cancel/captures/CREPEAT-011-setup.png	cancel/captures/CREPEAT-012-setup.png
+CREPEAT	14	setup	"line ""POINT"""	(0, 0)	cancel/captures/CREPEAT-013-setup.png	cancel/captures/CREPEAT-014-setup.png
+CREPEAT	16	setup	"line ""4,5"""	(0, 0)	cancel/captures/CREPEAT-015-setup.png	cancel/captures/CREPEAT-016-setup.png
+CREPEAT	18	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CREPEAT-017-probe.png	cancel/captures/CREPEAT-018-probe.png
+CREPEAT	20	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel/captures/CREPEAT-019-probe.png	cancel/captures/CREPEAT-020-probe.png
+CREPEAT	21	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel/captures/CREPEAT-020-probe.png	cancel/captures/CREPEAT-021-probe.png
+CREPEAT	23	continuation	"line ""ENDREP"""	(19230, 2630)	cancel/captures/CREPEAT-022-continuation.png	cancel/captures/CREPEAT-023-continuation.png
+CREPEAT	25	continuation	"line ""REPEAT"""	(19230, 2630)	cancel/captures/CREPEAT-024-continuation.png	cancel/captures/CREPEAT-025-continuation.png
+CREPEAT	27	continuation	"line ""POINT"""	(19230, 2630)	cancel/captures/CREPEAT-026-continuation.png	cancel/captures/CREPEAT-027-continuation.png
+CREPEAT	29	continuation	"line ""6,5"""	(19230, 2630)	cancel/captures/CREPEAT-028-continuation.png	cancel/captures/CREPEAT-029-continuation.png
+CREPEAT	31	continuation	"line ""ENDREP"""	(19230, 2630)	cancel/captures/CREPEAT-030-continuation.png	cancel/captures/CREPEAT-031-continuation.png
+CREPEAT	33	cleanup	key ctrl true	(19230, 2630)	cancel/captures/CREPEAT-032-cleanup.png	cancel/captures/CREPEAT-033-cleanup.png
+CREPEAT	35	cleanup	key c true	(19230, 2630)	cancel/captures/CREPEAT-034-cleanup.png	cancel/captures/CREPEAT-035-cleanup.png
+CREPEAT	37	cleanup	key c false	(19230, 2630)	cancel/captures/CREPEAT-036-cleanup.png	cancel/captures/CREPEAT-037-cleanup.png
+CREPEAT	39	cleanup	key ctrl false	(19230, 2630)	cancel/captures/CREPEAT-038-cleanup.png	cancel/captures/CREPEAT-039-cleanup.png
+CREPEAT	42	export	"line ""END"""	(19230, 2630)	cancel/captures/CREPEAT-041-export.png	cancel/captures/CREPEAT-042-export.png
+CREPEAT	44	export	"line ""5"""	(19230, 2630)	cancel/captures/CREPEAT-043-export.png	cancel/captures/CREPEAT-044-export.png
+CREPEAT	46	export	"line ""CREPEAT"""	(19230, 2630)	cancel/captures/CREPEAT-045-export.png	cancel/captures/CREPEAT-046-export.png
+CREPEAT	46	export	shutdown	(19230, 2630)		
+CBIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+CBIDLE	2	boot	"line ""1"""	(0, 0)	cancel-tail/captures/CBIDLE-001-boot.png	cancel-tail/captures/CBIDLE-002-boot.png
+CBIDLE	4	boot	"line ""CBIDLE"""	(0, 0)	cancel-tail/captures/CBIDLE-003-boot.png	cancel-tail/captures/CBIDLE-004-boot.png
+CBIDLE	6	setup	"line ""MENU"""	(0, 0)	cancel-tail/captures/CBIDLE-005-setup.png	cancel-tail/captures/CBIDLE-006-setup.png
+CBIDLE	8	setup	"line ""ACAD"""	(0, 0)	cancel-tail/captures/CBIDLE-007-setup.png	cancel-tail/captures/CBIDLE-008-setup.png
+CBIDLE	10	setup	mouse_pin	(0, 0)	cancel-tail/captures/CBIDLE-009-setup.png	cancel-tail/captures/CBIDLE-010-setup.png
+CBIDLE	12	setup	key p true	(0, 0)	cancel-tail/captures/CBIDLE-011-setup.png	cancel-tail/captures/CBIDLE-012-setup.png
+CBIDLE	14	setup	key p false	(0, 0)	cancel-tail/captures/CBIDLE-013-setup.png	cancel-tail/captures/CBIDLE-014-setup.png
+CBIDLE	16	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CBIDLE-015-probe.png	cancel-tail/captures/CBIDLE-016-probe.png
+CBIDLE	18	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel-tail/captures/CBIDLE-017-probe.png	cancel-tail/captures/CBIDLE-018-probe.png
+CBIDLE	19	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CBIDLE-018-probe.png	cancel-tail/captures/CBIDLE-019-probe.png
+CBIDLE	21	continuation	"line ""POINT"""	(19230, 2630)	cancel-tail/captures/CBIDLE-020-continuation.png	cancel-tail/captures/CBIDLE-021-continuation.png
+CBIDLE	23	continuation	"line ""8,7"""	(19230, 2630)	cancel-tail/captures/CBIDLE-022-continuation.png	cancel-tail/captures/CBIDLE-023-continuation.png
+CBIDLE	26	export	"line ""END"""	(19230, 2630)	cancel-tail/captures/CBIDLE-025-export.png	cancel-tail/captures/CBIDLE-026-export.png
+CBIDLE	28	export	"line ""5"""	(19230, 2630)	cancel-tail/captures/CBIDLE-027-export.png	cancel-tail/captures/CBIDLE-028-export.png
+CBIDLE	30	export	"line ""CBIDLE"""	(19230, 2630)	cancel-tail/captures/CBIDLE-029-export.png	cancel-tail/captures/CBIDLE-030-export.png
+CBIDLE	30	export	shutdown	(19230, 2630)		
+CBPOINT	0	boot	boot_disposable private system.img	(0, 0)		
+CBPOINT	2	boot	"line ""1"""	(0, 0)	cancel-tail/captures/CBPOINT-001-boot.png	cancel-tail/captures/CBPOINT-002-boot.png
+CBPOINT	4	boot	"line ""CBPOINT"""	(0, 0)	cancel-tail/captures/CBPOINT-003-boot.png	cancel-tail/captures/CBPOINT-004-boot.png
+CBPOINT	6	setup	"line ""MENU"""	(0, 0)	cancel-tail/captures/CBPOINT-005-setup.png	cancel-tail/captures/CBPOINT-006-setup.png
+CBPOINT	8	setup	"line ""ACAD"""	(0, 0)	cancel-tail/captures/CBPOINT-007-setup.png	cancel-tail/captures/CBPOINT-008-setup.png
+CBPOINT	10	setup	mouse_pin	(0, 0)	cancel-tail/captures/CBPOINT-009-setup.png	cancel-tail/captures/CBPOINT-010-setup.png
+CBPOINT	12	setup	"line ""LINE"""	(0, 0)	cancel-tail/captures/CBPOINT-011-setup.png	cancel-tail/captures/CBPOINT-012-setup.png
+CBPOINT	14	setup	key 2 true	(0, 0)	cancel-tail/captures/CBPOINT-013-setup.png	cancel-tail/captures/CBPOINT-014-setup.png
+CBPOINT	16	setup	key 2 false	(0, 0)	cancel-tail/captures/CBPOINT-015-setup.png	cancel-tail/captures/CBPOINT-016-setup.png
+CBPOINT	18	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CBPOINT-017-probe.png	cancel-tail/captures/CBPOINT-018-probe.png
+CBPOINT	20	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel-tail/captures/CBPOINT-019-probe.png	cancel-tail/captures/CBPOINT-020-probe.png
+CBPOINT	21	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CBPOINT-020-probe.png	cancel-tail/captures/CBPOINT-021-probe.png
+CBPOINT	23	continuation	"line ""POINT"""	(19230, 2630)	cancel-tail/captures/CBPOINT-022-continuation.png	cancel-tail/captures/CBPOINT-023-continuation.png
+CBPOINT	25	continuation	"line ""8,7"""	(19230, 2630)	cancel-tail/captures/CBPOINT-024-continuation.png	cancel-tail/captures/CBPOINT-025-continuation.png
+CBPOINT	28	export	"line ""END"""	(19230, 2630)	cancel-tail/captures/CBPOINT-027-export.png	cancel-tail/captures/CBPOINT-028-export.png
+CBPOINT	30	export	"line ""5"""	(19230, 2630)	cancel-tail/captures/CBPOINT-029-export.png	cancel-tail/captures/CBPOINT-030-export.png
+CBPOINT	32	export	"line ""CBPOINT"""	(19230, 2630)	cancel-tail/captures/CBPOINT-031-export.png	cancel-tail/captures/CBPOINT-032-export.png
+CBPOINT	32	export	shutdown	(19230, 2630)		
+CBSELECT	0	boot	boot_disposable private system.img	(0, 0)		
+CBSELECT	2	boot	"line ""1"""	(0, 0)	cancel-tail/captures/CBSELECT-001-boot.png	cancel-tail/captures/CBSELECT-002-boot.png
+CBSELECT	4	boot	"line ""CBSELECT"""	(0, 0)	cancel-tail/captures/CBSELECT-003-boot.png	cancel-tail/captures/CBSELECT-004-boot.png
+CBSELECT	6	setup	"line ""MENU"""	(0, 0)	cancel-tail/captures/CBSELECT-005-setup.png	cancel-tail/captures/CBSELECT-006-setup.png
+CBSELECT	8	setup	"line ""ACAD"""	(0, 0)	cancel-tail/captures/CBSELECT-007-setup.png	cancel-tail/captures/CBSELECT-008-setup.png
+CBSELECT	10	setup	mouse_pin	(0, 0)	cancel-tail/captures/CBSELECT-009-setup.png	cancel-tail/captures/CBSELECT-010-setup.png
+CBSELECT	12	setup	"line ""ERASE"""	(0, 0)	cancel-tail/captures/CBSELECT-011-setup.png	cancel-tail/captures/CBSELECT-012-setup.png
+CBSELECT	14	setup	key 1 true	(0, 0)	cancel-tail/captures/CBSELECT-013-setup.png	cancel-tail/captures/CBSELECT-014-setup.png
+CBSELECT	16	setup	key 1 false	(0, 0)	cancel-tail/captures/CBSELECT-015-setup.png	cancel-tail/captures/CBSELECT-016-setup.png
+CBSELECT	18	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CBSELECT-017-probe.png	cancel-tail/captures/CBSELECT-018-probe.png
+CBSELECT	20	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel-tail/captures/CBSELECT-019-probe.png	cancel-tail/captures/CBSELECT-020-probe.png
+CBSELECT	21	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CBSELECT-020-probe.png	cancel-tail/captures/CBSELECT-021-probe.png
+CBSELECT	23	continuation	"line ""POINT"""	(19230, 2630)	cancel-tail/captures/CBSELECT-022-continuation.png	cancel-tail/captures/CBSELECT-023-continuation.png
+CBSELECT	25	continuation	"line ""8,7"""	(19230, 2630)	cancel-tail/captures/CBSELECT-024-continuation.png	cancel-tail/captures/CBSELECT-025-continuation.png
+CBSELECT	28	export	"line ""END"""	(19230, 2630)	cancel-tail/captures/CBSELECT-027-export.png	cancel-tail/captures/CBSELECT-028-export.png
+CBSELECT	30	export	"line ""5"""	(19230, 2630)	cancel-tail/captures/CBSELECT-029-export.png	cancel-tail/captures/CBSELECT-030-export.png
+CBSELECT	32	export	"line ""CBSELECT"""	(19230, 2630)	cancel-tail/captures/CBSELECT-031-export.png	cancel-tail/captures/CBSELECT-032-export.png
+CBSELECT	32	export	shutdown	(19230, 2630)		
+CPAGE1	0	boot	boot_disposable private system.img	(0, 0)		
+CPAGE1	2	boot	"line ""1"""	(0, 0)	cancel-tail/captures/CPAGE1-001-boot.png	cancel-tail/captures/CPAGE1-002-boot.png
+CPAGE1	4	boot	"line ""CPAGE1"""	(0, 0)	cancel-tail/captures/CPAGE1-003-boot.png	cancel-tail/captures/CPAGE1-004-boot.png
+CPAGE1	6	setup	"line ""MENU"""	(0, 0)	cancel-tail/captures/CPAGE1-005-setup.png	cancel-tail/captures/CPAGE1-006-setup.png
+CPAGE1	8	setup	"line ""ACAD"""	(0, 0)	cancel-tail/captures/CPAGE1-007-setup.png	cancel-tail/captures/CPAGE1-008-setup.png
+CPAGE1	10	setup	mouse_pin	(0, 0)	cancel-tail/captures/CPAGE1-009-setup.png	cancel-tail/captures/CPAGE1-010-setup.png
+CPAGE1	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	cancel-tail/captures/CPAGE1-011-setup.png	cancel-tail/captures/CPAGE1-012-setup.png
+CPAGE1	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	cancel-tail/captures/CPAGE1-013-setup.png	cancel-tail/captures/CPAGE1-014-setup.png
+CPAGE1	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	cancel-tail/captures/CPAGE1-014-setup.png	cancel-tail/captures/CPAGE1-015-setup.png
+CPAGE1	17	setup	"line ""LINE"""	(19230, 1770)	cancel-tail/captures/CPAGE1-016-setup.png	cancel-tail/captures/CPAGE1-017-setup.png
+CPAGE1	19	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CPAGE1-018-probe.png	cancel-tail/captures/CPAGE1-019-probe.png
+CPAGE1	21	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel-tail/captures/CPAGE1-020-probe.png	cancel-tail/captures/CPAGE1-021-probe.png
+CPAGE1	22	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CPAGE1-021-probe.png	cancel-tail/captures/CPAGE1-022-probe.png
+CPAGE1	24	continuation	"line ""POINT"""	(19230, 2630)	cancel-tail/captures/CPAGE1-023-continuation.png	cancel-tail/captures/CPAGE1-024-continuation.png
+CPAGE1	26	continuation	"line ""8,7"""	(19230, 2630)	cancel-tail/captures/CPAGE1-025-continuation.png	cancel-tail/captures/CPAGE1-026-continuation.png
+CPAGE1	29	export	"line ""END"""	(19230, 2630)	cancel-tail/captures/CPAGE1-028-export.png	cancel-tail/captures/CPAGE1-029-export.png
+CPAGE1	31	export	"line ""5"""	(19230, 2630)	cancel-tail/captures/CPAGE1-030-export.png	cancel-tail/captures/CPAGE1-031-export.png
+CPAGE1	33	export	"line ""CPAGE1"""	(19230, 2630)	cancel-tail/captures/CPAGE1-032-export.png	cancel-tail/captures/CPAGE1-033-export.png
+CPAGE1	33	export	shutdown	(19230, 2630)		
+CPAGE2	0	boot	boot_disposable private system.img	(0, 0)		
+CPAGE2	2	boot	"line ""1"""	(0, 0)	cancel-tail/captures/CPAGE2-001-boot.png	cancel-tail/captures/CPAGE2-002-boot.png
+CPAGE2	4	boot	"line ""CPAGE2"""	(0, 0)	cancel-tail/captures/CPAGE2-003-boot.png	cancel-tail/captures/CPAGE2-004-boot.png
+CPAGE2	6	setup	"line ""MENU"""	(0, 0)	cancel-tail/captures/CPAGE2-005-setup.png	cancel-tail/captures/CPAGE2-006-setup.png
+CPAGE2	8	setup	"line ""ACAD"""	(0, 0)	cancel-tail/captures/CPAGE2-007-setup.png	cancel-tail/captures/CPAGE2-008-setup.png
+CPAGE2	10	setup	mouse_pin	(0, 0)	cancel-tail/captures/CPAGE2-009-setup.png	cancel-tail/captures/CPAGE2-010-setup.png
+CPAGE2	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	cancel-tail/captures/CPAGE2-011-setup.png	cancel-tail/captures/CPAGE2-012-setup.png
+CPAGE2	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	cancel-tail/captures/CPAGE2-013-setup.png	cancel-tail/captures/CPAGE2-014-setup.png
+CPAGE2	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	cancel-tail/captures/CPAGE2-014-setup.png	cancel-tail/captures/CPAGE2-015-setup.png
+CPAGE2	17	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	cancel-tail/captures/CPAGE2-016-setup.png	cancel-tail/captures/CPAGE2-017-setup.png
+CPAGE2	19	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	cancel-tail/captures/CPAGE2-018-setup.png	cancel-tail/captures/CPAGE2-019-setup.png
+CPAGE2	20	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	cancel-tail/captures/CPAGE2-019-setup.png	cancel-tail/captures/CPAGE2-020-setup.png
+CPAGE2	22	setup	"line ""LINE"""	(19230, 1770)	cancel-tail/captures/CPAGE2-021-setup.png	cancel-tail/captures/CPAGE2-022-setup.png
+CPAGE2	24	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CPAGE2-023-probe.png	cancel-tail/captures/CPAGE2-024-probe.png
+CPAGE2	26	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	cancel-tail/captures/CPAGE2-025-probe.png	cancel-tail/captures/CPAGE2-026-probe.png
+CPAGE2	27	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	cancel-tail/captures/CPAGE2-026-probe.png	cancel-tail/captures/CPAGE2-027-probe.png
+CPAGE2	29	continuation	"line ""POINT"""	(19230, 2630)	cancel-tail/captures/CPAGE2-028-continuation.png	cancel-tail/captures/CPAGE2-029-continuation.png
+CPAGE2	31	continuation	"line ""8,7"""	(19230, 2630)	cancel-tail/captures/CPAGE2-030-continuation.png	cancel-tail/captures/CPAGE2-031-continuation.png
+CPAGE2	34	export	"line ""END"""	(19230, 2630)	cancel-tail/captures/CPAGE2-033-export.png	cancel-tail/captures/CPAGE2-034-export.png
+CPAGE2	36	export	"line ""5"""	(19230, 2630)	cancel-tail/captures/CPAGE2-035-export.png	cancel-tail/captures/CPAGE2-036-export.png
+CPAGE2	38	export	"line ""CPAGE2"""	(19230, 2630)	cancel-tail/captures/CPAGE2-037-export.png	cancel-tail/captures/CPAGE2-038-export.png
+CPAGE2	38	export	shutdown	(19230, 2630)		
+MAXIS	0	boot	boot_disposable private system.img	(0, 0)		
+MAXIS	2	boot	"line ""1"""	(0, 0)	axis/captures/MAXIS-001-boot.png	axis/captures/MAXIS-002-boot.png
+MAXIS	4	boot	"line ""MAXIS"""	(0, 0)	axis/captures/MAXIS-003-boot.png	axis/captures/MAXIS-004-boot.png
+MAXIS	6	setup	"line ""MENU"""	(0, 0)	axis/captures/MAXIS-005-setup.png	axis/captures/MAXIS-006-setup.png
+MAXIS	8	setup	"line ""ACAD"""	(0, 0)	axis/captures/MAXIS-007-setup.png	axis/captures/MAXIS-008-setup.png
+MAXIS	10	setup	mouse_pin	(0, 0)	axis/captures/MAXIS-009-setup.png	axis/captures/MAXIS-010-setup.png
+MAXIS	12	setup	"line ""SNAP"""	(0, 0)	axis/captures/MAXIS-011-setup.png	axis/captures/MAXIS-012-setup.png
+MAXIS	14	setup	"line ""0.5"""	(0, 0)	axis/captures/MAXIS-013-setup.png	axis/captures/MAXIS-014-setup.png
+MAXIS	16	setup	"line ""SNAP"""	(0, 0)	axis/captures/MAXIS-015-setup.png	axis/captures/MAXIS-016-setup.png
+MAXIS	18	setup	"line ""OFF"""	(0, 0)	axis/captures/MAXIS-017-setup.png	axis/captures/MAXIS-018-setup.png
+MAXIS	20	setup	"line ""ORTHO"""	(0, 0)	axis/captures/MAXIS-019-setup.png	axis/captures/MAXIS-020-setup.png
+MAXIS	22	setup	"line ""OFF"""	(0, 0)	axis/captures/MAXIS-021-setup.png	axis/captures/MAXIS-022-setup.png
+MAXIS	24	probe	"line ""LINE"""	(0, 0)	axis/captures/MAXIS-023-probe.png	axis/captures/MAXIS-024-probe.png
+MAXIS	26	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-025-probe.png	axis/captures/MAXIS-026-probe.png
+MAXIS	28	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	axis/captures/MAXIS-027-probe.png	axis/captures/MAXIS-028-probe.png
+MAXIS	29	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-028-probe.png	axis/captures/MAXIS-029-probe.png
+MAXIS	31	probe	mouse pixel=260,60 device=8330,12920 buttons=0	(8330, 12920)	axis/captures/MAXIS-030-probe.png	axis/captures/MAXIS-031-probe.png
+MAXIS	33	probe	mouse pixel=260,60 device=8330,12920 buttons=4	(8330, 12920)	axis/captures/MAXIS-032-probe.png	axis/captures/MAXIS-033-probe.png
+MAXIS	34	probe	mouse pixel=260,60 device=8330,12920 buttons=0	(8330, 12920)	axis/captures/MAXIS-033-probe.png	axis/captures/MAXIS-034-probe.png
+MAXIS	36	probe	"line """""	(8330, 12920)	axis/captures/MAXIS-035-probe.png	axis/captures/MAXIS-036-probe.png
+MAXIS	38	probe	"line ""LINE"""	(8330, 12920)	axis/captures/MAXIS-037-probe.png	axis/captures/MAXIS-038-probe.png
+MAXIS	40	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-039-probe.png	axis/captures/MAXIS-040-probe.png
+MAXIS	42	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	axis/captures/MAXIS-041-probe.png	axis/captures/MAXIS-042-probe.png
+MAXIS	43	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-042-probe.png	axis/captures/MAXIS-043-probe.png
+MAXIS	45	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-044-probe.png	axis/captures/MAXIS-045-probe.png
+MAXIS	47	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	axis/captures/MAXIS-046-probe.png	axis/captures/MAXIS-047-probe.png
+MAXIS	48	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-047-probe.png	axis/captures/MAXIS-048-probe.png
+MAXIS	50	probe	mouse pixel=260,60 device=8330,12920 buttons=0	(8330, 12920)	axis/captures/MAXIS-049-probe.png	axis/captures/MAXIS-050-probe.png
+MAXIS	52	probe	mouse pixel=260,60 device=8330,12920 buttons=4	(8330, 12920)	axis/captures/MAXIS-051-probe.png	axis/captures/MAXIS-052-probe.png
+MAXIS	53	probe	mouse pixel=260,60 device=8330,12920 buttons=0	(8330, 12920)	axis/captures/MAXIS-052-probe.png	axis/captures/MAXIS-053-probe.png
+MAXIS	55	probe	"line """""	(8330, 12920)	axis/captures/MAXIS-054-probe.png	axis/captures/MAXIS-055-probe.png
+MAXIS	57	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-056-probe.png	axis/captures/MAXIS-057-probe.png
+MAXIS	59	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	axis/captures/MAXIS-058-probe.png	axis/captures/MAXIS-059-probe.png
+MAXIS	60	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-059-probe.png	axis/captures/MAXIS-060-probe.png
+MAXIS	62	probe	"line ""LINE"""	(19230, 17210)	axis/captures/MAXIS-061-probe.png	axis/captures/MAXIS-062-probe.png
+MAXIS	64	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-063-probe.png	axis/captures/MAXIS-064-probe.png
+MAXIS	66	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	axis/captures/MAXIS-065-probe.png	axis/captures/MAXIS-066-probe.png
+MAXIS	67	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-066-probe.png	axis/captures/MAXIS-067-probe.png
+MAXIS	69	probe	mouse pixel=260,79 device=8330,10880 buttons=0	(8330, 10880)	axis/captures/MAXIS-068-probe.png	axis/captures/MAXIS-069-probe.png
+MAXIS	71	probe	mouse pixel=260,79 device=8330,10880 buttons=4	(8330, 10880)	axis/captures/MAXIS-070-probe.png	axis/captures/MAXIS-071-probe.png
+MAXIS	72	probe	mouse pixel=260,79 device=8330,10880 buttons=0	(8330, 10880)	axis/captures/MAXIS-071-probe.png	axis/captures/MAXIS-072-probe.png
+MAXIS	74	probe	"line """""	(8330, 10880)	axis/captures/MAXIS-073-probe.png	axis/captures/MAXIS-074-probe.png
+MAXIS	76	probe	"line ""LINE"""	(8330, 10880)	axis/captures/MAXIS-075-probe.png	axis/captures/MAXIS-076-probe.png
+MAXIS	78	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-077-probe.png	axis/captures/MAXIS-078-probe.png
+MAXIS	80	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	axis/captures/MAXIS-079-probe.png	axis/captures/MAXIS-080-probe.png
+MAXIS	81	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-080-probe.png	axis/captures/MAXIS-081-probe.png
+MAXIS	83	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-082-probe.png	axis/captures/MAXIS-083-probe.png
+MAXIS	85	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	axis/captures/MAXIS-084-probe.png	axis/captures/MAXIS-085-probe.png
+MAXIS	86	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-085-probe.png	axis/captures/MAXIS-086-probe.png
+MAXIS	88	probe	mouse pixel=260,79 device=8330,10880 buttons=0	(8330, 10880)	axis/captures/MAXIS-087-probe.png	axis/captures/MAXIS-088-probe.png
+MAXIS	90	probe	mouse pixel=260,79 device=8330,10880 buttons=4	(8330, 10880)	axis/captures/MAXIS-089-probe.png	axis/captures/MAXIS-090-probe.png
+MAXIS	91	probe	mouse pixel=260,79 device=8330,10880 buttons=0	(8330, 10880)	axis/captures/MAXIS-090-probe.png	axis/captures/MAXIS-091-probe.png
+MAXIS	93	probe	"line """""	(8330, 10880)	axis/captures/MAXIS-092-probe.png	axis/captures/MAXIS-093-probe.png
+MAXIS	95	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-094-probe.png	axis/captures/MAXIS-095-probe.png
+MAXIS	97	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	axis/captures/MAXIS-096-probe.png	axis/captures/MAXIS-097-probe.png
+MAXIS	98	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-097-probe.png	axis/captures/MAXIS-098-probe.png
+MAXIS	100	probe	"line ""LINE"""	(19230, 17210)	axis/captures/MAXIS-099-probe.png	axis/captures/MAXIS-100-probe.png
+MAXIS	102	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-101-probe.png	axis/captures/MAXIS-102-probe.png
+MAXIS	104	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	axis/captures/MAXIS-103-probe.png	axis/captures/MAXIS-104-probe.png
+MAXIS	105	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-104-probe.png	axis/captures/MAXIS-105-probe.png
+MAXIS	107	probe	mouse pixel=260,74 device=8330,11420 buttons=0	(8330, 11420)	axis/captures/MAXIS-106-probe.png	axis/captures/MAXIS-107-probe.png
+MAXIS	109	probe	mouse pixel=260,74 device=8330,11420 buttons=4	(8330, 11420)	axis/captures/MAXIS-108-probe.png	axis/captures/MAXIS-109-probe.png
+MAXIS	110	probe	mouse pixel=260,74 device=8330,11420 buttons=0	(8330, 11420)	axis/captures/MAXIS-109-probe.png	axis/captures/MAXIS-110-probe.png
+MAXIS	112	probe	"line """""	(8330, 11420)	axis/captures/MAXIS-111-probe.png	axis/captures/MAXIS-112-probe.png
+MAXIS	114	probe	"line ""LINE"""	(8330, 11420)	axis/captures/MAXIS-113-probe.png	axis/captures/MAXIS-114-probe.png
+MAXIS	116	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-115-probe.png	axis/captures/MAXIS-116-probe.png
+MAXIS	118	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	axis/captures/MAXIS-117-probe.png	axis/captures/MAXIS-118-probe.png
+MAXIS	119	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	axis/captures/MAXIS-118-probe.png	axis/captures/MAXIS-119-probe.png
+MAXIS	121	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-120-probe.png	axis/captures/MAXIS-121-probe.png
+MAXIS	123	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	axis/captures/MAXIS-122-probe.png	axis/captures/MAXIS-123-probe.png
+MAXIS	124	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-123-probe.png	axis/captures/MAXIS-124-probe.png
+MAXIS	126	probe	mouse pixel=260,74 device=8330,11420 buttons=0	(8330, 11420)	axis/captures/MAXIS-125-probe.png	axis/captures/MAXIS-126-probe.png
+MAXIS	128	probe	mouse pixel=260,74 device=8330,11420 buttons=4	(8330, 11420)	axis/captures/MAXIS-127-probe.png	axis/captures/MAXIS-128-probe.png
+MAXIS	129	probe	mouse pixel=260,74 device=8330,11420 buttons=0	(8330, 11420)	axis/captures/MAXIS-128-probe.png	axis/captures/MAXIS-129-probe.png
+MAXIS	131	probe	"line """""	(8330, 11420)	axis/captures/MAXIS-130-probe.png	axis/captures/MAXIS-131-probe.png
+MAXIS	133	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-132-probe.png	axis/captures/MAXIS-133-probe.png
+MAXIS	135	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	axis/captures/MAXIS-134-probe.png	axis/captures/MAXIS-135-probe.png
+MAXIS	136	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	axis/captures/MAXIS-135-probe.png	axis/captures/MAXIS-136-probe.png
+MAXIS	139	export	"line ""END"""	(19230, 17210)	axis/captures/MAXIS-138-export.png	axis/captures/MAXIS-139-export.png
+MAXIS	141	export	"line ""5"""	(19230, 17210)	axis/captures/MAXIS-140-export.png	axis/captures/MAXIS-141-export.png
+MAXIS	143	export	"line ""MAXIS"""	(19230, 17210)	axis/captures/MAXIS-142-export.png	axis/captures/MAXIS-143-export.png
+MAXIS	143	export	shutdown	(19230, 17210)		

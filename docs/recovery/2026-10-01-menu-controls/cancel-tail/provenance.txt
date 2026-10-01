@@ -1,0 +1,6 @@
+commit=35248a082e880a5e322963f70d0d051e99af6218
+qemu=QEMU emulator version 11.0.1
+Copyright (c) 2003-2026 Fabrice Bellard and the QEMU Project developers
+system_sha256=7848be12b368cb3f11b28fe285bf28b486a0e909f299c32006be9f790f8931b1  /Users/dmytro/github/autorust/.worktrees/menu-controls/crates/acad-oracle/../../corpus/raw/Autodesk AutoCAD 1.4 (5.25)/System.img
+selected=CBIDLE,CBPOINT,CBSELECT,CPAGE1,CPAGE2
+launch=-machine isapc -m 16 -d nochain; disposable copied floppy

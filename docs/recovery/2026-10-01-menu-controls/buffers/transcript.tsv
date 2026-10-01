@@ -1,0 +1,102 @@
+case	sequence	phase	input	pointer_mirrored	before_artifact	after_artifact
+CSELBASE	0	boot	boot_disposable private system.img	(0, 0)		
+CSELBASE	2	boot	line "1"	(0, 0)	captures/CSELBASE-001-boot.png	captures/CSELBASE-002-boot.png
+CSELBASE	4	boot	line "CSELBASE"	(0, 0)	captures/CSELBASE-003-boot.png	captures/CSELBASE-004-boot.png
+CSELBASE	6	setup	line "MENU"	(0, 0)	captures/CSELBASE-005-setup.png	captures/CSELBASE-006-setup.png
+CSELBASE	8	setup	line "ACAD"	(0, 0)	captures/CSELBASE-007-setup.png	captures/CSELBASE-008-setup.png
+CSELBASE	10	setup	mouse_pin	(0, 0)	captures/CSELBASE-009-setup.png	captures/CSELBASE-010-setup.png
+CSELBASE	12	setup	line "LINE"	(0, 0)	captures/CSELBASE-011-setup.png	captures/CSELBASE-012-setup.png
+CSELBASE	14	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	captures/CSELBASE-013-setup.png	captures/CSELBASE-014-setup.png
+CSELBASE	16	setup	mouse pixel=80,100 device=2560,8630 buttons=4	(2560, 8630)	captures/CSELBASE-015-setup.png	captures/CSELBASE-016-setup.png
+CSELBASE	17	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	captures/CSELBASE-016-setup.png	captures/CSELBASE-017-setup.png
+CSELBASE	19	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	captures/CSELBASE-018-setup.png	captures/CSELBASE-019-setup.png
+CSELBASE	21	setup	mouse pixel=480,100 device=15380,8630 buttons=4	(15380, 8630)	captures/CSELBASE-020-setup.png	captures/CSELBASE-021-setup.png
+CSELBASE	22	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	captures/CSELBASE-021-setup.png	captures/CSELBASE-022-setup.png
+CSELBASE	24	setup	line ""	(15380, 8630)	captures/CSELBASE-023-setup.png	captures/CSELBASE-024-setup.png
+CSELBASE	26	setup	line "ERASE"	(15380, 8630)	captures/CSELBASE-025-setup.png	captures/CSELBASE-026-setup.png
+CSELBASE	28	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	captures/CSELBASE-027-setup.png	captures/CSELBASE-028-setup.png
+CSELBASE	30	setup	mouse pixel=280,100 device=8970,8630 buttons=4	(8970, 8630)	captures/CSELBASE-029-setup.png	captures/CSELBASE-030-setup.png
+CSELBASE	31	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	captures/CSELBASE-030-setup.png	captures/CSELBASE-031-setup.png
+CSELBASE	33	probe	line ""	(8970, 8630)	captures/CSELBASE-032-probe.png	captures/CSELBASE-033-probe.png
+CSELBASE	36	export	line "END"	(8970, 8630)	captures/CSELBASE-035-export.png	captures/CSELBASE-036-export.png
+CSELBASE	38	export	line "5"	(8970, 8630)	captures/CSELBASE-037-export.png	captures/CSELBASE-038-export.png
+CSELBASE	40	export	line "CSELBASE"	(8970, 8630)	captures/CSELBASE-039-export.png	captures/CSELBASE-040-export.png
+CSELBASE	40	export	shutdown	(8970, 8630)		
+GOBUFSEL	0	boot	boot_disposable private system.img	(0, 0)		
+GOBUFSEL	2	boot	line "1"	(0, 0)	captures/GOBUFSEL-001-boot.png	captures/GOBUFSEL-002-boot.png
+GOBUFSEL	4	boot	line "GOBUFSEL"	(0, 0)	captures/GOBUFSEL-003-boot.png	captures/GOBUFSEL-004-boot.png
+GOBUFSEL	6	setup	line "MENU"	(0, 0)	captures/GOBUFSEL-005-setup.png	captures/GOBUFSEL-006-setup.png
+GOBUFSEL	8	setup	line "ACAD"	(0, 0)	captures/GOBUFSEL-007-setup.png	captures/GOBUFSEL-008-setup.png
+GOBUFSEL	10	setup	mouse_pin	(0, 0)	captures/GOBUFSEL-009-setup.png	captures/GOBUFSEL-010-setup.png
+GOBUFSEL	12	setup	line "LINE"	(0, 0)	captures/GOBUFSEL-011-setup.png	captures/GOBUFSEL-012-setup.png
+GOBUFSEL	14	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	captures/GOBUFSEL-013-setup.png	captures/GOBUFSEL-014-setup.png
+GOBUFSEL	16	setup	mouse pixel=80,100 device=2560,8630 buttons=4	(2560, 8630)	captures/GOBUFSEL-015-setup.png	captures/GOBUFSEL-016-setup.png
+GOBUFSEL	17	setup	mouse pixel=80,100 device=2560,8630 buttons=0	(2560, 8630)	captures/GOBUFSEL-016-setup.png	captures/GOBUFSEL-017-setup.png
+GOBUFSEL	19	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	captures/GOBUFSEL-018-setup.png	captures/GOBUFSEL-019-setup.png
+GOBUFSEL	21	setup	mouse pixel=480,100 device=15380,8630 buttons=4	(15380, 8630)	captures/GOBUFSEL-020-setup.png	captures/GOBUFSEL-021-setup.png
+GOBUFSEL	22	setup	mouse pixel=480,100 device=15380,8630 buttons=0	(15380, 8630)	captures/GOBUFSEL-021-setup.png	captures/GOBUFSEL-022-setup.png
+GOBUFSEL	24	setup	line ""	(15380, 8630)	captures/GOBUFSEL-023-setup.png	captures/GOBUFSEL-024-setup.png
+GOBUFSEL	26	setup	line "ERASE"	(15380, 8630)	captures/GOBUFSEL-025-setup.png	captures/GOBUFSEL-026-setup.png
+GOBUFSEL	28	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	captures/GOBUFSEL-027-setup.png	captures/GOBUFSEL-028-setup.png
+GOBUFSEL	30	setup	mouse pixel=280,100 device=8970,8630 buttons=4	(8970, 8630)	captures/GOBUFSEL-029-setup.png	captures/GOBUFSEL-030-setup.png
+GOBUFSEL	31	setup	mouse pixel=280,100 device=8970,8630 buttons=0	(8970, 8630)	captures/GOBUFSEL-030-setup.png	captures/GOBUFSEL-031-setup.png
+GOBUFSEL	33	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOBUFSEL-032-probe.png	captures/GOBUFSEL-033-probe.png
+GOBUFSEL	35	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOBUFSEL-034-probe.png	captures/GOBUFSEL-035-probe.png
+GOBUFSEL	36	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOBUFSEL-035-probe.png	captures/GOBUFSEL-036-probe.png
+GOBUFSEL	38	continuation	line "POINT"	(19230, 18930)	captures/GOBUFSEL-037-continuation.png	captures/GOBUFSEL-038-continuation.png
+GOBUFSEL	40	continuation	line "8,7"	(19230, 18930)	captures/GOBUFSEL-039-continuation.png	captures/GOBUFSEL-040-continuation.png
+GOBUFSEL	43	export	line "END"	(19230, 18930)	captures/GOBUFSEL-042-export.png	captures/GOBUFSEL-043-export.png
+GOBUFSEL	45	export	line "5"	(19230, 18930)	captures/GOBUFSEL-044-export.png	captures/GOBUFSEL-045-export.png
+GOBUFSEL	47	export	line "GOBUFSEL"	(19230, 18930)	captures/GOBUFSEL-046-export.png	captures/GOBUFSEL-047-export.png
+GOBUFSEL	47	export	shutdown	(19230, 18930)		
+GOBUFPNT	0	boot	boot_disposable private system.img	(0, 0)		
+GOBUFPNT	2	boot	line "1"	(0, 0)	captures/GOBUFPNT-001-boot.png	captures/GOBUFPNT-002-boot.png
+GOBUFPNT	4	boot	line "GOBUFPNT"	(0, 0)	captures/GOBUFPNT-003-boot.png	captures/GOBUFPNT-004-boot.png
+GOBUFPNT	6	setup	line "MENU"	(0, 0)	captures/GOBUFPNT-005-setup.png	captures/GOBUFPNT-006-setup.png
+GOBUFPNT	8	setup	line "ACAD"	(0, 0)	captures/GOBUFPNT-007-setup.png	captures/GOBUFPNT-008-setup.png
+GOBUFPNT	10	setup	mouse_pin	(0, 0)	captures/GOBUFPNT-009-setup.png	captures/GOBUFPNT-010-setup.png
+GOBUFPNT	12	setup	line "LINE"	(0, 0)	captures/GOBUFPNT-011-setup.png	captures/GOBUFPNT-012-setup.png
+GOBUFPNT	14	setup	key 2 true	(0, 0)	captures/GOBUFPNT-013-setup.png	captures/GOBUFPNT-014-setup.png
+GOBUFPNT	16	setup	key 2 false	(0, 0)	captures/GOBUFPNT-015-setup.png	captures/GOBUFPNT-016-setup.png
+GOBUFPNT	18	setup	key comma true	(0, 0)	captures/GOBUFPNT-017-setup.png	captures/GOBUFPNT-018-setup.png
+GOBUFPNT	20	setup	key comma false	(0, 0)	captures/GOBUFPNT-019-setup.png	captures/GOBUFPNT-020-setup.png
+GOBUFPNT	22	setup	key 3 true	(0, 0)	captures/GOBUFPNT-021-setup.png	captures/GOBUFPNT-022-setup.png
+GOBUFPNT	24	setup	key 3 false	(0, 0)	captures/GOBUFPNT-023-setup.png	captures/GOBUFPNT-024-setup.png
+GOBUFPNT	26	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOBUFPNT-025-probe.png	captures/GOBUFPNT-026-probe.png
+GOBUFPNT	28	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOBUFPNT-027-probe.png	captures/GOBUFPNT-028-probe.png
+GOBUFPNT	29	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOBUFPNT-028-probe.png	captures/GOBUFPNT-029-probe.png
+GOBUFPNT	31	continuation	line "4,5"	(19230, 18930)	captures/GOBUFPNT-030-continuation.png	captures/GOBUFPNT-031-continuation.png
+GOBUFPNT	33	continuation	line ""	(19230, 18930)	captures/GOBUFPNT-032-continuation.png	captures/GOBUFPNT-033-continuation.png
+GOBUFPNT	35	cleanup	key ctrl true	(19230, 18930)	captures/GOBUFPNT-034-cleanup.png	captures/GOBUFPNT-035-cleanup.png
+GOBUFPNT	37	cleanup	key c true	(19230, 18930)	captures/GOBUFPNT-036-cleanup.png	captures/GOBUFPNT-037-cleanup.png
+GOBUFPNT	39	cleanup	key c false	(19230, 18930)	captures/GOBUFPNT-038-cleanup.png	captures/GOBUFPNT-039-cleanup.png
+GOBUFPNT	41	cleanup	key ctrl false	(19230, 18930)	captures/GOBUFPNT-040-cleanup.png	captures/GOBUFPNT-041-cleanup.png
+GOBUFPNT	44	export	line "END"	(19230, 18930)	captures/GOBUFPNT-043-export.png	captures/GOBUFPNT-044-export.png
+GOBUFPNT	46	export	line "5"	(19230, 18930)	captures/GOBUFPNT-045-export.png	captures/GOBUFPNT-046-export.png
+GOBUFPNT	48	export	line "GOBUFPNT"	(19230, 18930)	captures/GOBUFPNT-047-export.png	captures/GOBUFPNT-048-export.png
+GOBUFPNT	48	export	shutdown	(19230, 18930)		
+BLANKHI	0	boot	boot_disposable private system.img	(0, 0)		
+BLANKHI	2	boot	line "1"	(0, 0)	captures/BLANKHI-001-boot.png	captures/BLANKHI-002-boot.png
+BLANKHI	4	boot	line "BLANKHI"	(0, 0)	captures/BLANKHI-003-boot.png	captures/BLANKHI-004-boot.png
+BLANKHI	6	setup	line "MENU"	(0, 0)	captures/BLANKHI-005-setup.png	captures/BLANKHI-006-setup.png
+BLANKHI	8	setup	line "ACAD"	(0, 0)	captures/BLANKHI-007-setup.png	captures/BLANKHI-008-setup.png
+BLANKHI	10	setup	mouse_pin	(0, 0)	captures/BLANKHI-009-setup.png	captures/BLANKHI-010-setup.png
+BLANKHI	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/BLANKHI-011-setup.png	captures/BLANKHI-012-setup.png
+BLANKHI	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	captures/BLANKHI-013-setup.png	captures/BLANKHI-014-setup.png
+BLANKHI	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/BLANKHI-014-setup.png	captures/BLANKHI-015-setup.png
+BLANKHI	17	setup	line "LINE"	(19230, 1770)	captures/BLANKHI-016-setup.png	captures/BLANKHI-017-setup.png
+BLANKHI	19	setup	line "2,3"	(19230, 1770)	captures/BLANKHI-018-setup.png	captures/BLANKHI-019-setup.png
+BLANKHI	21	setup	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/BLANKHI-020-setup.png	captures/BLANKHI-021-setup.png
+BLANKHI	23	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANKHI-022-probe.png	captures/BLANKHI-023-probe.png
+BLANKHI	25	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/BLANKHI-024-probe.png	captures/BLANKHI-025-probe.png
+BLANKHI	26	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANKHI-025-probe.png	captures/BLANKHI-026-probe.png
+BLANKHI	28	continuation	line "POINT"	(19230, 18930)	captures/BLANKHI-027-continuation.png	captures/BLANKHI-028-continuation.png
+BLANKHI	30	continuation	line "8,7"	(19230, 18930)	captures/BLANKHI-029-continuation.png	captures/BLANKHI-030-continuation.png
+BLANKHI	32	cleanup	key ctrl true	(19230, 18930)	captures/BLANKHI-031-cleanup.png	captures/BLANKHI-032-cleanup.png
+BLANKHI	34	cleanup	key c true	(19230, 18930)	captures/BLANKHI-033-cleanup.png	captures/BLANKHI-034-cleanup.png
+BLANKHI	36	cleanup	key c false	(19230, 18930)	captures/BLANKHI-035-cleanup.png	captures/BLANKHI-036-cleanup.png
+BLANKHI	38	cleanup	key ctrl false	(19230, 18930)	captures/BLANKHI-037-cleanup.png	captures/BLANKHI-038-cleanup.png
+BLANKHI	41	export	line "END"	(19230, 18930)	captures/BLANKHI-040-export.png	captures/BLANKHI-041-export.png
+BLANKHI	43	export	line "5"	(19230, 18930)	captures/BLANKHI-042-export.png	captures/BLANKHI-043-export.png
+BLANKHI	45	export	line "BLANKHI"	(19230, 18930)	captures/BLANKHI-044-export.png	captures/BLANKHI-045-export.png
+BLANKHI	45	export	shutdown	(19230, 18930)		

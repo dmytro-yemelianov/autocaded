@@ -1,0 +1,3 @@
+Offline transcription of collector failure (no full Header/Items snapshot):
+REPEAT at offset 0x202 has no ENDREP
+Native DWG/DXF exported and copied before parse failure.

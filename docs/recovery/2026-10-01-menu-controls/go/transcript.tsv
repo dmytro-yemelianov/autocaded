@@ -1,0 +1,192 @@
+case	sequence	phase	input	pointer_mirrored	before_artifact	after_artifact
+GOFRESH	0	boot	boot_disposable private system.img	(0, 0)		
+GOFRESH	2	boot	line "1"	(0, 0)	captures/GOFRESH-001-boot.png	captures/GOFRESH-002-boot.png
+GOFRESH	4	boot	line "GOFRESH"	(0, 0)	captures/GOFRESH-003-boot.png	captures/GOFRESH-004-boot.png
+GOFRESH	6	setup	mouse_pin	(0, 0)	captures/GOFRESH-005-setup.png	captures/GOFRESH-006-setup.png
+GOFRESH	8	setup	mouse pixel=100,40 device=3210,15070 buttons=0	(3210, 15070)	captures/GOFRESH-007-setup.png	captures/GOFRESH-008-setup.png
+GOFRESH	10	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOFRESH-009-probe.png	captures/GOFRESH-010-probe.png
+GOFRESH	12	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOFRESH-011-probe.png	captures/GOFRESH-012-probe.png
+GOFRESH	13	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOFRESH-012-probe.png	captures/GOFRESH-013-probe.png
+GOFRESH	15	continuation	mouse pixel=450,130 device=14420,5410 buttons=0	(14420, 5410)	captures/GOFRESH-014-continuation.png	captures/GOFRESH-015-continuation.png
+GOFRESH	17	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOFRESH-016-continuation.png	captures/GOFRESH-017-continuation.png
+GOFRESH	19	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOFRESH-018-continuation.png	captures/GOFRESH-019-continuation.png
+GOFRESH	20	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOFRESH-019-continuation.png	captures/GOFRESH-020-continuation.png
+GOFRESH	23	export	line "END"	(19230, 18930)	captures/GOFRESH-022-export.png	captures/GOFRESH-023-export.png
+GOFRESH	25	export	line "5"	(19230, 18930)	captures/GOFRESH-024-export.png	captures/GOFRESH-025-export.png
+GOFRESH	27	export	line "GOFRESH"	(19230, 18930)	captures/GOFRESH-026-export.png	captures/GOFRESH-027-export.png
+GOFRESH	27	export	shutdown	(19230, 18930)		
+RTFRESH	0	boot	boot_disposable private system.img	(0, 0)		
+RTFRESH	2	boot	line "1"	(0, 0)	captures/RTFRESH-001-boot.png	captures/RTFRESH-002-boot.png
+RTFRESH	4	boot	line "RTFRESH"	(0, 0)	captures/RTFRESH-003-boot.png	captures/RTFRESH-004-boot.png
+RTFRESH	6	setup	mouse_pin	(0, 0)	captures/RTFRESH-005-setup.png	captures/RTFRESH-006-setup.png
+RTFRESH	8	probe	key ret true	(0, 0)	captures/RTFRESH-007-probe.png	captures/RTFRESH-008-probe.png
+RTFRESH	10	probe	key ret false	(0, 0)	captures/RTFRESH-009-probe.png	captures/RTFRESH-010-probe.png
+RTFRESH	13	export	line "END"	(0, 0)	captures/RTFRESH-012-export.png	captures/RTFRESH-013-export.png
+RTFRESH	15	export	line "5"	(0, 0)	captures/RTFRESH-014-export.png	captures/RTFRESH-015-export.png
+RTFRESH	17	export	line "RTFRESH"	(0, 0)	captures/RTFRESH-016-export.png	captures/RTFRESH-017-export.png
+RTFRESH	17	export	shutdown	(0, 0)		
+GOHIST	0	boot	boot_disposable private system.img	(0, 0)		
+GOHIST	2	boot	line "1"	(0, 0)	captures/GOHIST-001-boot.png	captures/GOHIST-002-boot.png
+GOHIST	4	boot	line "GOHIST"	(0, 0)	captures/GOHIST-003-boot.png	captures/GOHIST-004-boot.png
+GOHIST	6	setup	line "MENU"	(0, 0)	captures/GOHIST-005-setup.png	captures/GOHIST-006-setup.png
+GOHIST	8	setup	line "ACAD"	(0, 0)	captures/GOHIST-007-setup.png	captures/GOHIST-008-setup.png
+GOHIST	10	setup	mouse_pin	(0, 0)	captures/GOHIST-009-setup.png	captures/GOHIST-010-setup.png
+GOHIST	12	setup	line "POINT"	(0, 0)	captures/GOHIST-011-setup.png	captures/GOHIST-012-setup.png
+GOHIST	14	setup	line "8,7"	(0, 0)	captures/GOHIST-013-setup.png	captures/GOHIST-014-setup.png
+GOHIST	16	setup	mouse pixel=100,40 device=3210,15070 buttons=0	(3210, 15070)	captures/GOHIST-015-setup.png	captures/GOHIST-016-setup.png
+GOHIST	18	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOHIST-017-probe.png	captures/GOHIST-018-probe.png
+GOHIST	20	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOHIST-019-probe.png	captures/GOHIST-020-probe.png
+GOHIST	21	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOHIST-020-probe.png	captures/GOHIST-021-probe.png
+GOHIST	23	continuation	key ctrl true	(19230, 18930)	captures/GOHIST-022-continuation.png	captures/GOHIST-023-continuation.png
+GOHIST	25	continuation	key c true	(19230, 18930)	captures/GOHIST-024-continuation.png	captures/GOHIST-025-continuation.png
+GOHIST	27	continuation	key c false	(19230, 18930)	captures/GOHIST-026-continuation.png	captures/GOHIST-027-continuation.png
+GOHIST	29	continuation	key ctrl false	(19230, 18930)	captures/GOHIST-028-continuation.png	captures/GOHIST-029-continuation.png
+GOHIST	31	continuation	mouse pixel=450,130 device=14420,5410 buttons=0	(14420, 5410)	captures/GOHIST-030-continuation.png	captures/GOHIST-031-continuation.png
+GOHIST	33	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOHIST-032-continuation.png	captures/GOHIST-033-continuation.png
+GOHIST	35	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOHIST-034-continuation.png	captures/GOHIST-035-continuation.png
+GOHIST	36	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOHIST-035-continuation.png	captures/GOHIST-036-continuation.png
+GOHIST	38	cleanup	key ctrl true	(19230, 18930)	captures/GOHIST-037-cleanup.png	captures/GOHIST-038-cleanup.png
+GOHIST	40	cleanup	key c true	(19230, 18930)	captures/GOHIST-039-cleanup.png	captures/GOHIST-040-cleanup.png
+GOHIST	42	cleanup	key c false	(19230, 18930)	captures/GOHIST-041-cleanup.png	captures/GOHIST-042-cleanup.png
+GOHIST	44	cleanup	key ctrl false	(19230, 18930)	captures/GOHIST-043-cleanup.png	captures/GOHIST-044-cleanup.png
+GOHIST	47	export	line "END"	(19230, 18930)	captures/GOHIST-046-export.png	captures/GOHIST-047-export.png
+GOHIST	49	export	line "5"	(19230, 18930)	captures/GOHIST-048-export.png	captures/GOHIST-049-export.png
+GOHIST	51	export	line "GOHIST"	(19230, 18930)	captures/GOHIST-050-export.png	captures/GOHIST-051-export.png
+GOHIST	51	export	shutdown	(19230, 18930)		
+GOFIRST	0	boot	boot_disposable private system.img	(0, 0)		
+GOFIRST	2	boot	line "1"	(0, 0)	captures/GOFIRST-001-boot.png	captures/GOFIRST-002-boot.png
+GOFIRST	4	boot	line "GOFIRST"	(0, 0)	captures/GOFIRST-003-boot.png	captures/GOFIRST-004-boot.png
+GOFIRST	6	setup	line "MENU"	(0, 0)	captures/GOFIRST-005-setup.png	captures/GOFIRST-006-setup.png
+GOFIRST	8	setup	line "ACAD"	(0, 0)	captures/GOFIRST-007-setup.png	captures/GOFIRST-008-setup.png
+GOFIRST	10	setup	mouse_pin	(0, 0)	captures/GOFIRST-009-setup.png	captures/GOFIRST-010-setup.png
+GOFIRST	12	setup	line "LINE"	(0, 0)	captures/GOFIRST-011-setup.png	captures/GOFIRST-012-setup.png
+GOFIRST	14	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOFIRST-013-probe.png	captures/GOFIRST-014-probe.png
+GOFIRST	16	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOFIRST-015-probe.png	captures/GOFIRST-016-probe.png
+GOFIRST	17	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOFIRST-016-probe.png	captures/GOFIRST-017-probe.png
+GOFIRST	19	continuation	line "2,3"	(19230, 18930)	captures/GOFIRST-018-continuation.png	captures/GOFIRST-019-continuation.png
+GOFIRST	21	continuation	line "4,5"	(19230, 18930)	captures/GOFIRST-020-continuation.png	captures/GOFIRST-021-continuation.png
+GOFIRST	23	continuation	line ""	(19230, 18930)	captures/GOFIRST-022-continuation.png	captures/GOFIRST-023-continuation.png
+GOFIRST	25	cleanup	key ctrl true	(19230, 18930)	captures/GOFIRST-024-cleanup.png	captures/GOFIRST-025-cleanup.png
+GOFIRST	27	cleanup	key c true	(19230, 18930)	captures/GOFIRST-026-cleanup.png	captures/GOFIRST-027-cleanup.png
+GOFIRST	29	cleanup	key c false	(19230, 18930)	captures/GOFIRST-028-cleanup.png	captures/GOFIRST-029-cleanup.png
+GOFIRST	31	cleanup	key ctrl false	(19230, 18930)	captures/GOFIRST-030-cleanup.png	captures/GOFIRST-031-cleanup.png
+GOFIRST	34	export	line "END"	(19230, 18930)	captures/GOFIRST-033-export.png	captures/GOFIRST-034-export.png
+GOFIRST	36	export	line "5"	(19230, 18930)	captures/GOFIRST-035-export.png	captures/GOFIRST-036-export.png
+GOFIRST	38	export	line "GOFIRST"	(19230, 18930)	captures/GOFIRST-037-export.png	captures/GOFIRST-038-export.png
+GOFIRST	38	export	shutdown	(19230, 18930)		
+GONEXT	0	boot	boot_disposable private system.img	(0, 0)		
+GONEXT	2	boot	line "1"	(0, 0)	captures/GONEXT-001-boot.png	captures/GONEXT-002-boot.png
+GONEXT	4	boot	line "GONEXT"	(0, 0)	captures/GONEXT-003-boot.png	captures/GONEXT-004-boot.png
+GONEXT	6	setup	line "MENU"	(0, 0)	captures/GONEXT-005-setup.png	captures/GONEXT-006-setup.png
+GONEXT	8	setup	line "ACAD"	(0, 0)	captures/GONEXT-007-setup.png	captures/GONEXT-008-setup.png
+GONEXT	10	setup	mouse_pin	(0, 0)	captures/GONEXT-009-setup.png	captures/GONEXT-010-setup.png
+GONEXT	12	setup	line "LINE"	(0, 0)	captures/GONEXT-011-setup.png	captures/GONEXT-012-setup.png
+GONEXT	14	setup	line "2,3"	(0, 0)	captures/GONEXT-013-setup.png	captures/GONEXT-014-setup.png
+GONEXT	16	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GONEXT-015-probe.png	captures/GONEXT-016-probe.png
+GONEXT	18	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GONEXT-017-probe.png	captures/GONEXT-018-probe.png
+GONEXT	19	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GONEXT-018-probe.png	captures/GONEXT-019-probe.png
+GONEXT	21	continuation	line "4,5"	(19230, 18930)	captures/GONEXT-020-continuation.png	captures/GONEXT-021-continuation.png
+GONEXT	23	continuation	line ""	(19230, 18930)	captures/GONEXT-022-continuation.png	captures/GONEXT-023-continuation.png
+GONEXT	25	cleanup	key ctrl true	(19230, 18930)	captures/GONEXT-024-cleanup.png	captures/GONEXT-025-cleanup.png
+GONEXT	27	cleanup	key c true	(19230, 18930)	captures/GONEXT-026-cleanup.png	captures/GONEXT-027-cleanup.png
+GONEXT	29	cleanup	key c false	(19230, 18930)	captures/GONEXT-028-cleanup.png	captures/GONEXT-029-cleanup.png
+GONEXT	31	cleanup	key ctrl false	(19230, 18930)	captures/GONEXT-030-cleanup.png	captures/GONEXT-031-cleanup.png
+GONEXT	34	export	line "END"	(19230, 18930)	captures/GONEXT-033-export.png	captures/GONEXT-034-export.png
+GONEXT	36	export	line "5"	(19230, 18930)	captures/GONEXT-035-export.png	captures/GONEXT-036-export.png
+GONEXT	38	export	line "GONEXT"	(19230, 18930)	captures/GONEXT-037-export.png	captures/GONEXT-038-export.png
+GONEXT	38	export	shutdown	(19230, 18930)		
+GORADIUS	0	boot	boot_disposable private system.img	(0, 0)		
+GORADIUS	2	boot	line "1"	(0, 0)	captures/GORADIUS-001-boot.png	captures/GORADIUS-002-boot.png
+GORADIUS	4	boot	line "GORADIUS"	(0, 0)	captures/GORADIUS-003-boot.png	captures/GORADIUS-004-boot.png
+GORADIUS	6	setup	line "MENU"	(0, 0)	captures/GORADIUS-005-setup.png	captures/GORADIUS-006-setup.png
+GORADIUS	8	setup	line "ACAD"	(0, 0)	captures/GORADIUS-007-setup.png	captures/GORADIUS-008-setup.png
+GORADIUS	10	setup	mouse_pin	(0, 0)	captures/GORADIUS-009-setup.png	captures/GORADIUS-010-setup.png
+GORADIUS	12	setup	line "CIRCLE"	(0, 0)	captures/GORADIUS-011-setup.png	captures/GORADIUS-012-setup.png
+GORADIUS	14	setup	line "2,3"	(0, 0)	captures/GORADIUS-013-setup.png	captures/GORADIUS-014-setup.png
+GORADIUS	16	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GORADIUS-015-probe.png	captures/GORADIUS-016-probe.png
+GORADIUS	18	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GORADIUS-017-probe.png	captures/GORADIUS-018-probe.png
+GORADIUS	19	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GORADIUS-018-probe.png	captures/GORADIUS-019-probe.png
+GORADIUS	21	continuation	line "1.25"	(19230, 18930)	captures/GORADIUS-020-continuation.png	captures/GORADIUS-021-continuation.png
+GORADIUS	23	cleanup	key ctrl true	(19230, 18930)	captures/GORADIUS-022-cleanup.png	captures/GORADIUS-023-cleanup.png
+GORADIUS	25	cleanup	key c true	(19230, 18930)	captures/GORADIUS-024-cleanup.png	captures/GORADIUS-025-cleanup.png
+GORADIUS	27	cleanup	key c false	(19230, 18930)	captures/GORADIUS-026-cleanup.png	captures/GORADIUS-027-cleanup.png
+GORADIUS	29	cleanup	key ctrl false	(19230, 18930)	captures/GORADIUS-028-cleanup.png	captures/GORADIUS-029-cleanup.png
+GORADIUS	32	export	line "END"	(19230, 18930)	captures/GORADIUS-031-export.png	captures/GORADIUS-032-export.png
+GORADIUS	34	export	line "5"	(19230, 18930)	captures/GORADIUS-033-export.png	captures/GORADIUS-034-export.png
+GORADIUS	36	export	line "GORADIUS"	(19230, 18930)	captures/GORADIUS-035-export.png	captures/GORADIUS-036-export.png
+GORADIUS	36	export	shutdown	(19230, 18930)		
+GOSELECT	0	boot	boot_disposable private system.img	(0, 0)		
+GOSELECT	2	boot	line "1"	(0, 0)	captures/GOSELECT-001-boot.png	captures/GOSELECT-002-boot.png
+GOSELECT	4	boot	line "GOSELECT"	(0, 0)	captures/GOSELECT-003-boot.png	captures/GOSELECT-004-boot.png
+GOSELECT	6	setup	line "MENU"	(0, 0)	captures/GOSELECT-005-setup.png	captures/GOSELECT-006-setup.png
+GOSELECT	8	setup	line "ACAD"	(0, 0)	captures/GOSELECT-007-setup.png	captures/GOSELECT-008-setup.png
+GOSELECT	10	setup	mouse_pin	(0, 0)	captures/GOSELECT-009-setup.png	captures/GOSELECT-010-setup.png
+GOSELECT	12	setup	line "LINE"	(0, 0)	captures/GOSELECT-011-setup.png	captures/GOSELECT-012-setup.png
+GOSELECT	14	setup	line "2,3"	(0, 0)	captures/GOSELECT-013-setup.png	captures/GOSELECT-014-setup.png
+GOSELECT	16	setup	line "4,5"	(0, 0)	captures/GOSELECT-015-setup.png	captures/GOSELECT-016-setup.png
+GOSELECT	18	setup	line ""	(0, 0)	captures/GOSELECT-017-setup.png	captures/GOSELECT-018-setup.png
+GOSELECT	20	setup	line "ERASE"	(0, 0)	captures/GOSELECT-019-setup.png	captures/GOSELECT-020-setup.png
+GOSELECT	22	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOSELECT-021-probe.png	captures/GOSELECT-022-probe.png
+GOSELECT	24	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/GOSELECT-023-probe.png	captures/GOSELECT-024-probe.png
+GOSELECT	25	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/GOSELECT-024-probe.png	captures/GOSELECT-025-probe.png
+GOSELECT	27	cleanup	key ctrl true	(19230, 18930)	captures/GOSELECT-026-cleanup.png	captures/GOSELECT-027-cleanup.png
+GOSELECT	29	cleanup	key c true	(19230, 18930)	captures/GOSELECT-028-cleanup.png	captures/GOSELECT-029-cleanup.png
+GOSELECT	31	cleanup	key c false	(19230, 18930)	captures/GOSELECT-030-cleanup.png	captures/GOSELECT-031-cleanup.png
+GOSELECT	33	cleanup	key ctrl false	(19230, 18930)	captures/GOSELECT-032-cleanup.png	captures/GOSELECT-033-cleanup.png
+GOSELECT	36	export	line "END"	(19230, 18930)	captures/GOSELECT-035-export.png	captures/GOSELECT-036-export.png
+GOSELECT	38	export	line "5"	(19230, 18930)	captures/GOSELECT-037-export.png	captures/GOSELECT-038-export.png
+GOSELECT	40	export	line "GOSELECT"	(19230, 18930)	captures/GOSELECT-039-export.png	captures/GOSELECT-040-export.png
+GOSELECT	40	export	shutdown	(19230, 18930)		
+BLANK1	0	boot	boot_disposable private system.img	(0, 0)		
+BLANK1	2	boot	line "1"	(0, 0)	captures/BLANK1-001-boot.png	captures/BLANK1-002-boot.png
+BLANK1	4	boot	line "BLANK1"	(0, 0)	captures/BLANK1-003-boot.png	captures/BLANK1-004-boot.png
+BLANK1	6	setup	line "MENU"	(0, 0)	captures/BLANK1-005-setup.png	captures/BLANK1-006-setup.png
+BLANK1	8	setup	line "ACAD"	(0, 0)	captures/BLANK1-007-setup.png	captures/BLANK1-008-setup.png
+BLANK1	10	setup	mouse_pin	(0, 0)	captures/BLANK1-009-setup.png	captures/BLANK1-010-setup.png
+BLANK1	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/BLANK1-011-setup.png	captures/BLANK1-012-setup.png
+BLANK1	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	captures/BLANK1-013-setup.png	captures/BLANK1-014-setup.png
+BLANK1	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/BLANK1-014-setup.png	captures/BLANK1-015-setup.png
+BLANK1	17	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANK1-016-probe.png	captures/BLANK1-017-probe.png
+BLANK1	19	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/BLANK1-018-probe.png	captures/BLANK1-019-probe.png
+BLANK1	20	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANK1-019-probe.png	captures/BLANK1-020-probe.png
+BLANK1	22	continuation	line "LINE"	(19230, 18930)	captures/BLANK1-021-continuation.png	captures/BLANK1-022-continuation.png
+BLANK1	24	continuation	line "2,3"	(19230, 18930)	captures/BLANK1-023-continuation.png	captures/BLANK1-024-continuation.png
+BLANK1	26	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANK1-025-continuation.png	captures/BLANK1-026-continuation.png
+BLANK1	28	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/BLANK1-027-continuation.png	captures/BLANK1-028-continuation.png
+BLANK1	29	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANK1-028-continuation.png	captures/BLANK1-029-continuation.png
+BLANK1	31	cleanup	key ctrl true	(19230, 18930)	captures/BLANK1-030-cleanup.png	captures/BLANK1-031-cleanup.png
+BLANK1	33	cleanup	key c true	(19230, 18930)	captures/BLANK1-032-cleanup.png	captures/BLANK1-033-cleanup.png
+BLANK1	35	cleanup	key c false	(19230, 18930)	captures/BLANK1-034-cleanup.png	captures/BLANK1-035-cleanup.png
+BLANK1	37	cleanup	key ctrl false	(19230, 18930)	captures/BLANK1-036-cleanup.png	captures/BLANK1-037-cleanup.png
+BLANK1	40	export	line "END"	(19230, 18930)	captures/BLANK1-039-export.png	captures/BLANK1-040-export.png
+BLANK1	42	export	line "5"	(19230, 18930)	captures/BLANK1-041-export.png	captures/BLANK1-042-export.png
+BLANK1	44	export	line "BLANK1"	(19230, 18930)	captures/BLANK1-043-export.png	captures/BLANK1-044-export.png
+BLANK1	44	export	shutdown	(19230, 18930)		
+BLANK2	0	boot	boot_disposable private system.img	(0, 0)		
+BLANK2	2	boot	line "1"	(0, 0)	captures/BLANK2-001-boot.png	captures/BLANK2-002-boot.png
+BLANK2	4	boot	line "BLANK2"	(0, 0)	captures/BLANK2-003-boot.png	captures/BLANK2-004-boot.png
+BLANK2	6	setup	line "MENU"	(0, 0)	captures/BLANK2-005-setup.png	captures/BLANK2-006-setup.png
+BLANK2	8	setup	line "ACAD"	(0, 0)	captures/BLANK2-007-setup.png	captures/BLANK2-008-setup.png
+BLANK2	10	setup	mouse_pin	(0, 0)	captures/BLANK2-009-setup.png	captures/BLANK2-010-setup.png
+BLANK2	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/BLANK2-011-setup.png	captures/BLANK2-012-setup.png
+BLANK2	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	captures/BLANK2-013-setup.png	captures/BLANK2-014-setup.png
+BLANK2	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/BLANK2-014-setup.png	captures/BLANK2-015-setup.png
+BLANK2	17	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/BLANK2-016-setup.png	captures/BLANK2-017-setup.png
+BLANK2	19	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	captures/BLANK2-018-setup.png	captures/BLANK2-019-setup.png
+BLANK2	20	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/BLANK2-019-setup.png	captures/BLANK2-020-setup.png
+BLANK2	22	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANK2-021-probe.png	captures/BLANK2-022-probe.png
+BLANK2	24	probe	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/BLANK2-023-probe.png	captures/BLANK2-024-probe.png
+BLANK2	25	probe	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANK2-024-probe.png	captures/BLANK2-025-probe.png
+BLANK2	27	continuation	line "LINE"	(19230, 18930)	captures/BLANK2-026-continuation.png	captures/BLANK2-027-continuation.png
+BLANK2	29	continuation	line "2,3"	(19230, 18930)	captures/BLANK2-028-continuation.png	captures/BLANK2-029-continuation.png
+BLANK2	31	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANK2-030-continuation.png	captures/BLANK2-031-continuation.png
+BLANK2	33	continuation	mouse pixel=600,4 device=19230,18930 buttons=4	(19230, 18930)	captures/BLANK2-032-continuation.png	captures/BLANK2-033-continuation.png
+BLANK2	34	continuation	mouse pixel=600,4 device=19230,18930 buttons=0	(19230, 18930)	captures/BLANK2-033-continuation.png	captures/BLANK2-034-continuation.png
+BLANK2	36	cleanup	key ctrl true	(19230, 18930)	captures/BLANK2-035-cleanup.png	captures/BLANK2-036-cleanup.png
+BLANK2	38	cleanup	key c true	(19230, 18930)	captures/BLANK2-037-cleanup.png	captures/BLANK2-038-cleanup.png
+BLANK2	40	cleanup	key c false	(19230, 18930)	captures/BLANK2-039-cleanup.png	captures/BLANK2-040-cleanup.png
+BLANK2	42	cleanup	key ctrl false	(19230, 18930)	captures/BLANK2-041-cleanup.png	captures/BLANK2-042-cleanup.png
+BLANK2	45	export	line "END"	(19230, 18930)	captures/BLANK2-044-export.png	captures/BLANK2-045-export.png
+BLANK2	47	export	line "5"	(19230, 18930)	captures/BLANK2-046-export.png	captures/BLANK2-047-export.png
+BLANK2	49	export	line "BLANK2"	(19230, 18930)	captures/BLANK2-048-export.png	captures/BLANK2-049-export.png
+BLANK2	49	export	shutdown	(19230, 18930)		

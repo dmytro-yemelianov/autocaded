@@ -1,0 +1,83 @@
+case	sequence	phase	input	pointer_mirrored	before_artifact	after_artifact
+MAXIS	0	boot	boot_disposable private system.img	(0, 0)		
+MAXIS	2	boot	line "1"	(0, 0)	captures/MAXIS-001-boot.png	captures/MAXIS-002-boot.png
+MAXIS	4	boot	line "MAXIS"	(0, 0)	captures/MAXIS-003-boot.png	captures/MAXIS-004-boot.png
+MAXIS	6	setup	line "MENU"	(0, 0)	captures/MAXIS-005-setup.png	captures/MAXIS-006-setup.png
+MAXIS	8	setup	line "ACAD"	(0, 0)	captures/MAXIS-007-setup.png	captures/MAXIS-008-setup.png
+MAXIS	10	setup	mouse_pin	(0, 0)	captures/MAXIS-009-setup.png	captures/MAXIS-010-setup.png
+MAXIS	12	setup	line "SNAP"	(0, 0)	captures/MAXIS-011-setup.png	captures/MAXIS-012-setup.png
+MAXIS	14	setup	line "0.5"	(0, 0)	captures/MAXIS-013-setup.png	captures/MAXIS-014-setup.png
+MAXIS	16	setup	line "SNAP"	(0, 0)	captures/MAXIS-015-setup.png	captures/MAXIS-016-setup.png
+MAXIS	18	setup	line "OFF"	(0, 0)	captures/MAXIS-017-setup.png	captures/MAXIS-018-setup.png
+MAXIS	20	setup	line "ORTHO"	(0, 0)	captures/MAXIS-019-setup.png	captures/MAXIS-020-setup.png
+MAXIS	22	setup	line "OFF"	(0, 0)	captures/MAXIS-021-setup.png	captures/MAXIS-022-setup.png
+MAXIS	24	probe	line "LINE"	(0, 0)	captures/MAXIS-023-probe.png	captures/MAXIS-024-probe.png
+MAXIS	26	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-025-probe.png	captures/MAXIS-026-probe.png
+MAXIS	28	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	captures/MAXIS-027-probe.png	captures/MAXIS-028-probe.png
+MAXIS	29	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-028-probe.png	captures/MAXIS-029-probe.png
+MAXIS	31	probe	mouse pixel=260,60 device=8330,12920 buttons=0	(8330, 12920)	captures/MAXIS-030-probe.png	captures/MAXIS-031-probe.png
+MAXIS	33	probe	mouse pixel=260,60 device=8330,12920 buttons=4	(8330, 12920)	captures/MAXIS-032-probe.png	captures/MAXIS-033-probe.png
+MAXIS	34	probe	mouse pixel=260,60 device=8330,12920 buttons=0	(8330, 12920)	captures/MAXIS-033-probe.png	captures/MAXIS-034-probe.png
+MAXIS	36	probe	line ""	(8330, 12920)	captures/MAXIS-035-probe.png	captures/MAXIS-036-probe.png
+MAXIS	38	probe	line "LINE"	(8330, 12920)	captures/MAXIS-037-probe.png	captures/MAXIS-038-probe.png
+MAXIS	40	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-039-probe.png	captures/MAXIS-040-probe.png
+MAXIS	42	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	captures/MAXIS-041-probe.png	captures/MAXIS-042-probe.png
+MAXIS	43	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-042-probe.png	captures/MAXIS-043-probe.png
+MAXIS	45	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-044-probe.png	captures/MAXIS-045-probe.png
+MAXIS	47	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MAXIS-046-probe.png	captures/MAXIS-047-probe.png
+MAXIS	48	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-047-probe.png	captures/MAXIS-048-probe.png
+MAXIS	50	probe	mouse pixel=260,60 device=8330,12920 buttons=0	(8330, 12920)	captures/MAXIS-049-probe.png	captures/MAXIS-050-probe.png
+MAXIS	52	probe	mouse pixel=260,60 device=8330,12920 buttons=4	(8330, 12920)	captures/MAXIS-051-probe.png	captures/MAXIS-052-probe.png
+MAXIS	53	probe	mouse pixel=260,60 device=8330,12920 buttons=0	(8330, 12920)	captures/MAXIS-052-probe.png	captures/MAXIS-053-probe.png
+MAXIS	55	probe	line ""	(8330, 12920)	captures/MAXIS-054-probe.png	captures/MAXIS-055-probe.png
+MAXIS	57	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-056-probe.png	captures/MAXIS-057-probe.png
+MAXIS	59	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MAXIS-058-probe.png	captures/MAXIS-059-probe.png
+MAXIS	60	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-059-probe.png	captures/MAXIS-060-probe.png
+MAXIS	62	probe	line "LINE"	(19230, 17210)	captures/MAXIS-061-probe.png	captures/MAXIS-062-probe.png
+MAXIS	64	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-063-probe.png	captures/MAXIS-064-probe.png
+MAXIS	66	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	captures/MAXIS-065-probe.png	captures/MAXIS-066-probe.png
+MAXIS	67	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-066-probe.png	captures/MAXIS-067-probe.png
+MAXIS	69	probe	mouse pixel=260,79 device=8330,10880 buttons=0	(8330, 10880)	captures/MAXIS-068-probe.png	captures/MAXIS-069-probe.png
+MAXIS	71	probe	mouse pixel=260,79 device=8330,10880 buttons=4	(8330, 10880)	captures/MAXIS-070-probe.png	captures/MAXIS-071-probe.png
+MAXIS	72	probe	mouse pixel=260,79 device=8330,10880 buttons=0	(8330, 10880)	captures/MAXIS-071-probe.png	captures/MAXIS-072-probe.png
+MAXIS	74	probe	line ""	(8330, 10880)	captures/MAXIS-073-probe.png	captures/MAXIS-074-probe.png
+MAXIS	76	probe	line "LINE"	(8330, 10880)	captures/MAXIS-075-probe.png	captures/MAXIS-076-probe.png
+MAXIS	78	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-077-probe.png	captures/MAXIS-078-probe.png
+MAXIS	80	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	captures/MAXIS-079-probe.png	captures/MAXIS-080-probe.png
+MAXIS	81	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-080-probe.png	captures/MAXIS-081-probe.png
+MAXIS	83	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-082-probe.png	captures/MAXIS-083-probe.png
+MAXIS	85	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MAXIS-084-probe.png	captures/MAXIS-085-probe.png
+MAXIS	86	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-085-probe.png	captures/MAXIS-086-probe.png
+MAXIS	88	probe	mouse pixel=260,79 device=8330,10880 buttons=0	(8330, 10880)	captures/MAXIS-087-probe.png	captures/MAXIS-088-probe.png
+MAXIS	90	probe	mouse pixel=260,79 device=8330,10880 buttons=4	(8330, 10880)	captures/MAXIS-089-probe.png	captures/MAXIS-090-probe.png
+MAXIS	91	probe	mouse pixel=260,79 device=8330,10880 buttons=0	(8330, 10880)	captures/MAXIS-090-probe.png	captures/MAXIS-091-probe.png
+MAXIS	93	probe	line ""	(8330, 10880)	captures/MAXIS-092-probe.png	captures/MAXIS-093-probe.png
+MAXIS	95	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-094-probe.png	captures/MAXIS-095-probe.png
+MAXIS	97	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MAXIS-096-probe.png	captures/MAXIS-097-probe.png
+MAXIS	98	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-097-probe.png	captures/MAXIS-098-probe.png
+MAXIS	100	probe	line "LINE"	(19230, 17210)	captures/MAXIS-099-probe.png	captures/MAXIS-100-probe.png
+MAXIS	102	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-101-probe.png	captures/MAXIS-102-probe.png
+MAXIS	104	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	captures/MAXIS-103-probe.png	captures/MAXIS-104-probe.png
+MAXIS	105	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-104-probe.png	captures/MAXIS-105-probe.png
+MAXIS	107	probe	mouse pixel=260,74 device=8330,11420 buttons=0	(8330, 11420)	captures/MAXIS-106-probe.png	captures/MAXIS-107-probe.png
+MAXIS	109	probe	mouse pixel=260,74 device=8330,11420 buttons=4	(8330, 11420)	captures/MAXIS-108-probe.png	captures/MAXIS-109-probe.png
+MAXIS	110	probe	mouse pixel=260,74 device=8330,11420 buttons=0	(8330, 11420)	captures/MAXIS-109-probe.png	captures/MAXIS-110-probe.png
+MAXIS	112	probe	line ""	(8330, 11420)	captures/MAXIS-111-probe.png	captures/MAXIS-112-probe.png
+MAXIS	114	probe	line "LINE"	(8330, 11420)	captures/MAXIS-113-probe.png	captures/MAXIS-114-probe.png
+MAXIS	116	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-115-probe.png	captures/MAXIS-116-probe.png
+MAXIS	118	probe	mouse pixel=200,100 device=6410,8630 buttons=4	(6410, 8630)	captures/MAXIS-117-probe.png	captures/MAXIS-118-probe.png
+MAXIS	119	probe	mouse pixel=200,100 device=6410,8630 buttons=0	(6410, 8630)	captures/MAXIS-118-probe.png	captures/MAXIS-119-probe.png
+MAXIS	121	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-120-probe.png	captures/MAXIS-121-probe.png
+MAXIS	123	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MAXIS-122-probe.png	captures/MAXIS-123-probe.png
+MAXIS	124	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-123-probe.png	captures/MAXIS-124-probe.png
+MAXIS	126	probe	mouse pixel=260,74 device=8330,11420 buttons=0	(8330, 11420)	captures/MAXIS-125-probe.png	captures/MAXIS-126-probe.png
+MAXIS	128	probe	mouse pixel=260,74 device=8330,11420 buttons=4	(8330, 11420)	captures/MAXIS-127-probe.png	captures/MAXIS-128-probe.png
+MAXIS	129	probe	mouse pixel=260,74 device=8330,11420 buttons=0	(8330, 11420)	captures/MAXIS-128-probe.png	captures/MAXIS-129-probe.png
+MAXIS	131	probe	line ""	(8330, 11420)	captures/MAXIS-130-probe.png	captures/MAXIS-131-probe.png
+MAXIS	133	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-132-probe.png	captures/MAXIS-133-probe.png
+MAXIS	135	probe	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MAXIS-134-probe.png	captures/MAXIS-135-probe.png
+MAXIS	136	probe	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAXIS-135-probe.png	captures/MAXIS-136-probe.png
+MAXIS	139	export	line "END"	(19230, 17210)	captures/MAXIS-138-export.png	captures/MAXIS-139-export.png
+MAXIS	141	export	line "5"	(19230, 17210)	captures/MAXIS-140-export.png	captures/MAXIS-141-export.png
+MAXIS	143	export	line "MAXIS"	(19230, 17210)	captures/MAXIS-142-export.png	captures/MAXIS-143-export.png
+MAXIS	143	export	shutdown	(19230, 17210)		

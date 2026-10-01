@@ -1,0 +1,84 @@
+case	sequence	phase	input	pointer_mirrored	before_artifact	after_artifact
+MASYM	0	boot	boot_disposable private system.img	(0, 0)		
+MASYM	2	boot	line "1"	(0, 0)	captures/MASYM-001-boot.png	captures/MASYM-002-boot.png
+MASYM	4	boot	line "MASYM"	(0, 0)	captures/MASYM-003-boot.png	captures/MASYM-004-boot.png
+MASYM	6	setup	line "MENU"	(0, 0)	captures/MASYM-005-setup.png	captures/MASYM-006-setup.png
+MASYM	8	setup	line "ACAD"	(0, 0)	captures/MASYM-007-setup.png	captures/MASYM-008-setup.png
+MASYM	10	setup	mouse_pin	(0, 0)	captures/MASYM-009-setup.png	captures/MASYM-010-setup.png
+MASYM	12	setup	line "SNAP"	(0, 0)	captures/MASYM-011-setup.png	captures/MASYM-012-setup.png
+MASYM	14	setup	line "0.5"	(0, 0)	captures/MASYM-013-setup.png	captures/MASYM-014-setup.png
+MASYM	16	setup	line "SNAP"	(0, 0)	captures/MASYM-015-setup.png	captures/MASYM-016-setup.png
+MASYM	18	setup	line "OFF"	(0, 0)	captures/MASYM-017-setup.png	captures/MASYM-018-setup.png
+MASYM	20	setup	line "ORTHO"	(0, 0)	captures/MASYM-019-setup.png	captures/MASYM-020-setup.png
+MASYM	22	setup	line "OFF"	(0, 0)	captures/MASYM-021-setup.png	captures/MASYM-022-setup.png
+MASYM	24	setup	line "LINE"	(0, 0)	captures/MASYM-023-setup.png	captures/MASYM-024-setup.png
+MASYM	26	setup	line "2.1,3.15"	(0, 0)	captures/MASYM-025-setup.png	captures/MASYM-026-setup.png
+MASYM	28	setup	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	captures/MASYM-027-setup.png	captures/MASYM-028-setup.png
+MASYM	30	setup	mouse pixel=260,85 device=8330,10240 buttons=4	(8330, 10240)	captures/MASYM-029-setup.png	captures/MASYM-030-setup.png
+MASYM	31	setup	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	captures/MASYM-030-setup.png	captures/MASYM-031-setup.png
+MASYM	33	setup	line ""	(8330, 10240)	captures/MASYM-032-setup.png	captures/MASYM-033-setup.png
+MASYM	35	setup	line "LINE"	(8330, 10240)	captures/MASYM-034-setup.png	captures/MASYM-035-setup.png
+MASYM	37	setup	line "2.1,3.15"	(8330, 10240)	captures/MASYM-036-setup.png	captures/MASYM-037-setup.png
+MASYM	39	setup	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/MASYM-038-setup.png	captures/MASYM-039-setup.png
+MASYM	41	setup	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	captures/MASYM-040-setup.png	captures/MASYM-041-setup.png
+MASYM	42	setup	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/MASYM-041-setup.png	captures/MASYM-042-setup.png
+MASYM	44	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MASYM-043-setup.png	captures/MASYM-044-setup.png
+MASYM	46	setup	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MASYM-045-setup.png	captures/MASYM-046-setup.png
+MASYM	47	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MASYM-046-setup.png	captures/MASYM-047-setup.png
+MASYM	49	probe	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	captures/MASYM-048-probe.png	captures/MASYM-049-probe.png
+MASYM	51	probe	mouse pixel=260,85 device=8330,10240 buttons=4	(8330, 10240)	captures/MASYM-050-probe.png	captures/MASYM-051-probe.png
+MASYM	52	probe	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	captures/MASYM-051-probe.png	captures/MASYM-052-probe.png
+MASYM	54	continuation	line ""	(8330, 10240)	captures/MASYM-053-continuation.png	captures/MASYM-054-continuation.png
+MASYM	56	continuation	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/MASYM-055-continuation.png	captures/MASYM-056-continuation.png
+MASYM	58	continuation	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	captures/MASYM-057-continuation.png	captures/MASYM-058-continuation.png
+MASYM	59	continuation	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/MASYM-058-continuation.png	captures/MASYM-059-continuation.png
+MASYM	61	continuation	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MASYM-060-continuation.png	captures/MASYM-061-continuation.png
+MASYM	63	continuation	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MASYM-062-continuation.png	captures/MASYM-063-continuation.png
+MASYM	64	continuation	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MASYM-063-continuation.png	captures/MASYM-064-continuation.png
+MASYM	66	continuation	line "LINE"	(19230, 17210)	captures/MASYM-065-continuation.png	captures/MASYM-066-continuation.png
+MASYM	68	continuation	line "5.1,0.2"	(19230, 17210)	captures/MASYM-067-continuation.png	captures/MASYM-068-continuation.png
+MASYM	70	continuation	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	captures/MASYM-069-continuation.png	captures/MASYM-070-continuation.png
+MASYM	72	continuation	mouse pixel=260,85 device=8330,10240 buttons=4	(8330, 10240)	captures/MASYM-071-continuation.png	captures/MASYM-072-continuation.png
+MASYM	73	continuation	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	captures/MASYM-072-continuation.png	captures/MASYM-073-continuation.png
+MASYM	75	continuation	line ""	(8330, 10240)	captures/MASYM-074-continuation.png	captures/MASYM-075-continuation.png
+MASYM	77	continuation	line "LINE"	(8330, 10240)	captures/MASYM-076-continuation.png	captures/MASYM-077-continuation.png
+MASYM	79	continuation	line "5.1,0.2"	(8330, 10240)	captures/MASYM-078-continuation.png	captures/MASYM-079-continuation.png
+MASYM	81	continuation	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/MASYM-080-continuation.png	captures/MASYM-081-continuation.png
+MASYM	83	continuation	mouse pixel=600,12 device=19230,18070 buttons=4	(19230, 18070)	captures/MASYM-082-continuation.png	captures/MASYM-083-continuation.png
+MASYM	84	continuation	mouse pixel=600,12 device=19230,18070 buttons=0	(19230, 18070)	captures/MASYM-083-continuation.png	captures/MASYM-084-continuation.png
+MASYM	86	continuation	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MASYM-085-continuation.png	captures/MASYM-086-continuation.png
+MASYM	88	continuation	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MASYM-087-continuation.png	captures/MASYM-088-continuation.png
+MASYM	89	continuation	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MASYM-088-continuation.png	captures/MASYM-089-continuation.png
+MASYM	91	continuation	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	captures/MASYM-090-continuation.png	captures/MASYM-091-continuation.png
+MASYM	93	continuation	mouse pixel=260,85 device=8330,10240 buttons=4	(8330, 10240)	captures/MASYM-092-continuation.png	captures/MASYM-093-continuation.png
+MASYM	94	continuation	mouse pixel=260,85 device=8330,10240 buttons=0	(8330, 10240)	captures/MASYM-093-continuation.png	captures/MASYM-094-continuation.png
+MASYM	96	continuation	line ""	(8330, 10240)	captures/MASYM-095-continuation.png	captures/MASYM-096-continuation.png
+MASYM	99	export	line "END"	(8330, 10240)	captures/MASYM-098-export.png	captures/MASYM-099-export.png
+MASYM	101	export	line "5"	(8330, 10240)	captures/MASYM-100-export.png	captures/MASYM-101-export.png
+MASYM	103	export	line "MASYM"	(8330, 10240)	captures/MASYM-102-export.png	captures/MASYM-103-export.png
+MASYM	103	export	shutdown	(8330, 10240)		
+MAORTHO	0	boot	boot_disposable private system.img	(0, 0)		
+MAORTHO	2	boot	line "1"	(0, 0)	captures/MAORTHO-001-boot.png	captures/MAORTHO-002-boot.png
+MAORTHO	4	boot	line "MAORTHO"	(0, 0)	captures/MAORTHO-003-boot.png	captures/MAORTHO-004-boot.png
+MAORTHO	6	setup	line "MENU"	(0, 0)	captures/MAORTHO-005-setup.png	captures/MAORTHO-006-setup.png
+MAORTHO	8	setup	line "ACAD"	(0, 0)	captures/MAORTHO-007-setup.png	captures/MAORTHO-008-setup.png
+MAORTHO	10	setup	mouse_pin	(0, 0)	captures/MAORTHO-009-setup.png	captures/MAORTHO-010-setup.png
+MAORTHO	12	setup	line "SNAP"	(0, 0)	captures/MAORTHO-011-setup.png	captures/MAORTHO-012-setup.png
+MAORTHO	14	setup	line "0.5"	(0, 0)	captures/MAORTHO-013-setup.png	captures/MAORTHO-014-setup.png
+MAORTHO	16	setup	line "SNAP"	(0, 0)	captures/MAORTHO-015-setup.png	captures/MAORTHO-016-setup.png
+MAORTHO	18	setup	line "OFF"	(0, 0)	captures/MAORTHO-017-setup.png	captures/MAORTHO-018-setup.png
+MAORTHO	20	setup	line "ORTHO"	(0, 0)	captures/MAORTHO-019-setup.png	captures/MAORTHO-020-setup.png
+MAORTHO	22	setup	line "OFF"	(0, 0)	captures/MAORTHO-021-setup.png	captures/MAORTHO-022-setup.png
+MAORTHO	24	setup	line "LINE"	(0, 0)	captures/MAORTHO-023-setup.png	captures/MAORTHO-024-setup.png
+MAORTHO	26	setup	line "2.1,3.15"	(0, 0)	captures/MAORTHO-025-setup.png	captures/MAORTHO-026-setup.png
+MAORTHO	28	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAORTHO-027-setup.png	captures/MAORTHO-028-setup.png
+MAORTHO	30	setup	mouse pixel=600,20 device=19230,17210 buttons=4	(19230, 17210)	captures/MAORTHO-029-setup.png	captures/MAORTHO-030-setup.png
+MAORTHO	31	setup	mouse pixel=600,20 device=19230,17210 buttons=0	(19230, 17210)	captures/MAORTHO-030-setup.png	captures/MAORTHO-031-setup.png
+MAORTHO	33	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	captures/MAORTHO-032-probe.png	captures/MAORTHO-033-probe.png
+MAORTHO	35	probe	mouse pixel=250,90 device=8010,9700 buttons=4	(8010, 9700)	captures/MAORTHO-034-probe.png	captures/MAORTHO-035-probe.png
+MAORTHO	36	probe	mouse pixel=250,90 device=8010,9700 buttons=0	(8010, 9700)	captures/MAORTHO-035-probe.png	captures/MAORTHO-036-probe.png
+MAORTHO	38	continuation	line ""	(8010, 9700)	captures/MAORTHO-037-continuation.png	captures/MAORTHO-038-continuation.png
+MAORTHO	41	export	line "END"	(8010, 9700)	captures/MAORTHO-040-export.png	captures/MAORTHO-041-export.png
+MAORTHO	43	export	line "5"	(8010, 9700)	captures/MAORTHO-042-export.png	captures/MAORTHO-043-export.png
+MAORTHO	45	export	line "MAORTHO"	(8010, 9700)	captures/MAORTHO-044-export.png	captures/MAORTHO-045-export.png
+MAORTHO	45	export	shutdown	(8010, 9700)		

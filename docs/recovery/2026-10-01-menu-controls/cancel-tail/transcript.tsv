@@ -1,0 +1,95 @@
+case	sequence	phase	input	pointer_mirrored	before_artifact	after_artifact
+CBIDLE	0	boot	boot_disposable private system.img	(0, 0)		
+CBIDLE	2	boot	line "1"	(0, 0)	captures/CBIDLE-001-boot.png	captures/CBIDLE-002-boot.png
+CBIDLE	4	boot	line "CBIDLE"	(0, 0)	captures/CBIDLE-003-boot.png	captures/CBIDLE-004-boot.png
+CBIDLE	6	setup	line "MENU"	(0, 0)	captures/CBIDLE-005-setup.png	captures/CBIDLE-006-setup.png
+CBIDLE	8	setup	line "ACAD"	(0, 0)	captures/CBIDLE-007-setup.png	captures/CBIDLE-008-setup.png
+CBIDLE	10	setup	mouse_pin	(0, 0)	captures/CBIDLE-009-setup.png	captures/CBIDLE-010-setup.png
+CBIDLE	12	setup	key p true	(0, 0)	captures/CBIDLE-011-setup.png	captures/CBIDLE-012-setup.png
+CBIDLE	14	setup	key p false	(0, 0)	captures/CBIDLE-013-setup.png	captures/CBIDLE-014-setup.png
+CBIDLE	16	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CBIDLE-015-probe.png	captures/CBIDLE-016-probe.png
+CBIDLE	18	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CBIDLE-017-probe.png	captures/CBIDLE-018-probe.png
+CBIDLE	19	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CBIDLE-018-probe.png	captures/CBIDLE-019-probe.png
+CBIDLE	21	continuation	line "POINT"	(19230, 2630)	captures/CBIDLE-020-continuation.png	captures/CBIDLE-021-continuation.png
+CBIDLE	23	continuation	line "8,7"	(19230, 2630)	captures/CBIDLE-022-continuation.png	captures/CBIDLE-023-continuation.png
+CBIDLE	26	export	line "END"	(19230, 2630)	captures/CBIDLE-025-export.png	captures/CBIDLE-026-export.png
+CBIDLE	28	export	line "5"	(19230, 2630)	captures/CBIDLE-027-export.png	captures/CBIDLE-028-export.png
+CBIDLE	30	export	line "CBIDLE"	(19230, 2630)	captures/CBIDLE-029-export.png	captures/CBIDLE-030-export.png
+CBIDLE	30	export	shutdown	(19230, 2630)		
+CBPOINT	0	boot	boot_disposable private system.img	(0, 0)		
+CBPOINT	2	boot	line "1"	(0, 0)	captures/CBPOINT-001-boot.png	captures/CBPOINT-002-boot.png
+CBPOINT	4	boot	line "CBPOINT"	(0, 0)	captures/CBPOINT-003-boot.png	captures/CBPOINT-004-boot.png
+CBPOINT	6	setup	line "MENU"	(0, 0)	captures/CBPOINT-005-setup.png	captures/CBPOINT-006-setup.png
+CBPOINT	8	setup	line "ACAD"	(0, 0)	captures/CBPOINT-007-setup.png	captures/CBPOINT-008-setup.png
+CBPOINT	10	setup	mouse_pin	(0, 0)	captures/CBPOINT-009-setup.png	captures/CBPOINT-010-setup.png
+CBPOINT	12	setup	line "LINE"	(0, 0)	captures/CBPOINT-011-setup.png	captures/CBPOINT-012-setup.png
+CBPOINT	14	setup	key 2 true	(0, 0)	captures/CBPOINT-013-setup.png	captures/CBPOINT-014-setup.png
+CBPOINT	16	setup	key 2 false	(0, 0)	captures/CBPOINT-015-setup.png	captures/CBPOINT-016-setup.png
+CBPOINT	18	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CBPOINT-017-probe.png	captures/CBPOINT-018-probe.png
+CBPOINT	20	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CBPOINT-019-probe.png	captures/CBPOINT-020-probe.png
+CBPOINT	21	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CBPOINT-020-probe.png	captures/CBPOINT-021-probe.png
+CBPOINT	23	continuation	line "POINT"	(19230, 2630)	captures/CBPOINT-022-continuation.png	captures/CBPOINT-023-continuation.png
+CBPOINT	25	continuation	line "8,7"	(19230, 2630)	captures/CBPOINT-024-continuation.png	captures/CBPOINT-025-continuation.png
+CBPOINT	28	export	line "END"	(19230, 2630)	captures/CBPOINT-027-export.png	captures/CBPOINT-028-export.png
+CBPOINT	30	export	line "5"	(19230, 2630)	captures/CBPOINT-029-export.png	captures/CBPOINT-030-export.png
+CBPOINT	32	export	line "CBPOINT"	(19230, 2630)	captures/CBPOINT-031-export.png	captures/CBPOINT-032-export.png
+CBPOINT	32	export	shutdown	(19230, 2630)		
+CBSELECT	0	boot	boot_disposable private system.img	(0, 0)		
+CBSELECT	2	boot	line "1"	(0, 0)	captures/CBSELECT-001-boot.png	captures/CBSELECT-002-boot.png
+CBSELECT	4	boot	line "CBSELECT"	(0, 0)	captures/CBSELECT-003-boot.png	captures/CBSELECT-004-boot.png
+CBSELECT	6	setup	line "MENU"	(0, 0)	captures/CBSELECT-005-setup.png	captures/CBSELECT-006-setup.png
+CBSELECT	8	setup	line "ACAD"	(0, 0)	captures/CBSELECT-007-setup.png	captures/CBSELECT-008-setup.png
+CBSELECT	10	setup	mouse_pin	(0, 0)	captures/CBSELECT-009-setup.png	captures/CBSELECT-010-setup.png
+CBSELECT	12	setup	line "ERASE"	(0, 0)	captures/CBSELECT-011-setup.png	captures/CBSELECT-012-setup.png
+CBSELECT	14	setup	key 1 true	(0, 0)	captures/CBSELECT-013-setup.png	captures/CBSELECT-014-setup.png
+CBSELECT	16	setup	key 1 false	(0, 0)	captures/CBSELECT-015-setup.png	captures/CBSELECT-016-setup.png
+CBSELECT	18	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CBSELECT-017-probe.png	captures/CBSELECT-018-probe.png
+CBSELECT	20	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CBSELECT-019-probe.png	captures/CBSELECT-020-probe.png
+CBSELECT	21	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CBSELECT-020-probe.png	captures/CBSELECT-021-probe.png
+CBSELECT	23	continuation	line "POINT"	(19230, 2630)	captures/CBSELECT-022-continuation.png	captures/CBSELECT-023-continuation.png
+CBSELECT	25	continuation	line "8,7"	(19230, 2630)	captures/CBSELECT-024-continuation.png	captures/CBSELECT-025-continuation.png
+CBSELECT	28	export	line "END"	(19230, 2630)	captures/CBSELECT-027-export.png	captures/CBSELECT-028-export.png
+CBSELECT	30	export	line "5"	(19230, 2630)	captures/CBSELECT-029-export.png	captures/CBSELECT-030-export.png
+CBSELECT	32	export	line "CBSELECT"	(19230, 2630)	captures/CBSELECT-031-export.png	captures/CBSELECT-032-export.png
+CBSELECT	32	export	shutdown	(19230, 2630)		
+CPAGE1	0	boot	boot_disposable private system.img	(0, 0)		
+CPAGE1	2	boot	line "1"	(0, 0)	captures/CPAGE1-001-boot.png	captures/CPAGE1-002-boot.png
+CPAGE1	4	boot	line "CPAGE1"	(0, 0)	captures/CPAGE1-003-boot.png	captures/CPAGE1-004-boot.png
+CPAGE1	6	setup	line "MENU"	(0, 0)	captures/CPAGE1-005-setup.png	captures/CPAGE1-006-setup.png
+CPAGE1	8	setup	line "ACAD"	(0, 0)	captures/CPAGE1-007-setup.png	captures/CPAGE1-008-setup.png
+CPAGE1	10	setup	mouse_pin	(0, 0)	captures/CPAGE1-009-setup.png	captures/CPAGE1-010-setup.png
+CPAGE1	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/CPAGE1-011-setup.png	captures/CPAGE1-012-setup.png
+CPAGE1	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	captures/CPAGE1-013-setup.png	captures/CPAGE1-014-setup.png
+CPAGE1	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/CPAGE1-014-setup.png	captures/CPAGE1-015-setup.png
+CPAGE1	17	setup	line "LINE"	(19230, 1770)	captures/CPAGE1-016-setup.png	captures/CPAGE1-017-setup.png
+CPAGE1	19	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CPAGE1-018-probe.png	captures/CPAGE1-019-probe.png
+CPAGE1	21	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CPAGE1-020-probe.png	captures/CPAGE1-021-probe.png
+CPAGE1	22	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CPAGE1-021-probe.png	captures/CPAGE1-022-probe.png
+CPAGE1	24	continuation	line "POINT"	(19230, 2630)	captures/CPAGE1-023-continuation.png	captures/CPAGE1-024-continuation.png
+CPAGE1	26	continuation	line "8,7"	(19230, 2630)	captures/CPAGE1-025-continuation.png	captures/CPAGE1-026-continuation.png
+CPAGE1	29	export	line "END"	(19230, 2630)	captures/CPAGE1-028-export.png	captures/CPAGE1-029-export.png
+CPAGE1	31	export	line "5"	(19230, 2630)	captures/CPAGE1-030-export.png	captures/CPAGE1-031-export.png
+CPAGE1	33	export	line "CPAGE1"	(19230, 2630)	captures/CPAGE1-032-export.png	captures/CPAGE1-033-export.png
+CPAGE1	33	export	shutdown	(19230, 2630)		
+CPAGE2	0	boot	boot_disposable private system.img	(0, 0)		
+CPAGE2	2	boot	line "1"	(0, 0)	captures/CPAGE2-001-boot.png	captures/CPAGE2-002-boot.png
+CPAGE2	4	boot	line "CPAGE2"	(0, 0)	captures/CPAGE2-003-boot.png	captures/CPAGE2-004-boot.png
+CPAGE2	6	setup	line "MENU"	(0, 0)	captures/CPAGE2-005-setup.png	captures/CPAGE2-006-setup.png
+CPAGE2	8	setup	line "ACAD"	(0, 0)	captures/CPAGE2-007-setup.png	captures/CPAGE2-008-setup.png
+CPAGE2	10	setup	mouse_pin	(0, 0)	captures/CPAGE2-009-setup.png	captures/CPAGE2-010-setup.png
+CPAGE2	12	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/CPAGE2-011-setup.png	captures/CPAGE2-012-setup.png
+CPAGE2	14	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	captures/CPAGE2-013-setup.png	captures/CPAGE2-014-setup.png
+CPAGE2	15	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/CPAGE2-014-setup.png	captures/CPAGE2-015-setup.png
+CPAGE2	17	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/CPAGE2-016-setup.png	captures/CPAGE2-017-setup.png
+CPAGE2	19	setup	mouse pixel=600,164 device=19230,1770 buttons=4	(19230, 1770)	captures/CPAGE2-018-setup.png	captures/CPAGE2-019-setup.png
+CPAGE2	20	setup	mouse pixel=600,164 device=19230,1770 buttons=0	(19230, 1770)	captures/CPAGE2-019-setup.png	captures/CPAGE2-020-setup.png
+CPAGE2	22	setup	line "LINE"	(19230, 1770)	captures/CPAGE2-021-setup.png	captures/CPAGE2-022-setup.png
+CPAGE2	24	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CPAGE2-023-probe.png	captures/CPAGE2-024-probe.png
+CPAGE2	26	probe	mouse pixel=600,156 device=19230,2630 buttons=4	(19230, 2630)	captures/CPAGE2-025-probe.png	captures/CPAGE2-026-probe.png
+CPAGE2	27	probe	mouse pixel=600,156 device=19230,2630 buttons=0	(19230, 2630)	captures/CPAGE2-026-probe.png	captures/CPAGE2-027-probe.png
+CPAGE2	29	continuation	line "POINT"	(19230, 2630)	captures/CPAGE2-028-continuation.png	captures/CPAGE2-029-continuation.png
+CPAGE2	31	continuation	line "8,7"	(19230, 2630)	captures/CPAGE2-030-continuation.png	captures/CPAGE2-031-continuation.png
+CPAGE2	34	export	line "END"	(19230, 2630)	captures/CPAGE2-033-export.png	captures/CPAGE2-034-export.png
+CPAGE2	36	export	line "5"	(19230, 2630)	captures/CPAGE2-035-export.png	captures/CPAGE2-036-export.png
+CPAGE2	38	export	line "CPAGE2"	(19230, 2630)	captures/CPAGE2-037-export.png	captures/CPAGE2-038-export.png
+CPAGE2	38	export	shutdown	(19230, 2630)		
