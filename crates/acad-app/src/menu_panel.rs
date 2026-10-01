@@ -140,33 +140,58 @@ const FONT: [[u8; 8]; 96] = [
     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
     // 0x60 '`' (not encoded)
     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-    // 0x61-0x7E: lowercase and DEL (all not encoded, left as blank)
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x61
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x62
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x63
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x64
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x65
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x66
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x67
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x68
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x69
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x6A
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x6B
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x6C
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x6D
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x6E
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x6F
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x70
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x71
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x72
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x73
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x74
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x75
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x76
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x77
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x78
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x79
-    [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x7A
+    // 0x61 'a' (lowercase)
+    [0x00, 0x00, 0x3C, 0x02, 0x3E, 0x42, 0x3E, 0x00],
+    // 0x62 'b' (lowercase)
+    [0x40, 0x40, 0x7C, 0x42, 0x42, 0x42, 0x7C, 0x00],
+    // 0x63 'c' (lowercase)
+    [0x00, 0x00, 0x3C, 0x40, 0x40, 0x42, 0x3C, 0x00],
+    // 0x64 'd' (lowercase)
+    [0x02, 0x02, 0x3E, 0x42, 0x42, 0x42, 0x3E, 0x00],
+    // 0x65 'e' (lowercase)
+    [0x00, 0x00, 0x3C, 0x42, 0x7E, 0x40, 0x3C, 0x00],
+    // 0x66 'f' (lowercase)
+    [0x0C, 0x12, 0x10, 0x7C, 0x10, 0x10, 0x10, 0x00],
+    // 0x67 'g' (lowercase)
+    [0x00, 0x00, 0x3E, 0x42, 0x42, 0x3E, 0x02, 0x3C],
+    // 0x68 'h' (lowercase)
+    [0x40, 0x40, 0x7C, 0x42, 0x42, 0x42, 0x42, 0x00],
+    // 0x69 'i' (lowercase)
+    [0x08, 0x00, 0x18, 0x08, 0x08, 0x08, 0x1C, 0x00],
+    // 0x6A 'j' (lowercase)
+    [0x04, 0x00, 0x0C, 0x04, 0x04, 0x04, 0x44, 0x38],
+    // 0x6B 'k' (lowercase)
+    [0x40, 0x40, 0x44, 0x48, 0x70, 0x48, 0x44, 0x00],
+    // 0x6C 'l' (lowercase)
+    [0x18, 0x08, 0x08, 0x08, 0x08, 0x08, 0x1C, 0x00],
+    // 0x6D 'm' (lowercase)
+    [0x00, 0x00, 0x6C, 0x52, 0x52, 0x52, 0x52, 0x00],
+    // 0x6E 'n' (lowercase)
+    [0x00, 0x00, 0x7C, 0x42, 0x42, 0x42, 0x42, 0x00],
+    // 0x6F 'o' (lowercase)
+    [0x00, 0x00, 0x3C, 0x42, 0x42, 0x42, 0x3C, 0x00],
+    // 0x70 'p' (lowercase)
+    [0x00, 0x00, 0x7C, 0x42, 0x42, 0x7C, 0x40, 0x40],
+    // 0x71 'q' (lowercase)
+    [0x00, 0x00, 0x3E, 0x42, 0x42, 0x3E, 0x02, 0x02],
+    // 0x72 'r' (lowercase)
+    [0x00, 0x00, 0x5C, 0x62, 0x40, 0x40, 0x40, 0x00],
+    // 0x73 's' (lowercase)
+    [0x00, 0x00, 0x3E, 0x40, 0x3C, 0x02, 0x7C, 0x00],
+    // 0x74 't' (lowercase)
+    [0x10, 0x10, 0x7C, 0x10, 0x10, 0x12, 0x0C, 0x00],
+    // 0x75 'u' (lowercase)
+    [0x00, 0x00, 0x42, 0x42, 0x42, 0x46, 0x3A, 0x00],
+    // 0x76 'v' (lowercase)
+    [0x00, 0x00, 0x42, 0x42, 0x42, 0x24, 0x18, 0x00],
+    // 0x77 'w' (lowercase)
+    [0x00, 0x00, 0x42, 0x42, 0x52, 0x52, 0x2C, 0x00],
+    // 0x78 'x' (lowercase)
+    [0x00, 0x00, 0x42, 0x24, 0x18, 0x24, 0x42, 0x00],
+    // 0x79 'y' (lowercase)
+    [0x00, 0x00, 0x42, 0x42, 0x42, 0x3E, 0x02, 0x3C],
+    // 0x7A 'z' (lowercase)
+    [0x00, 0x00, 0x7E, 0x04, 0x18, 0x20, 0x7E, 0x00],
     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x7B
     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x7C
     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x7D
@@ -291,6 +316,17 @@ pub(crate) struct PanelLayout {
     pub row_height: usize,
 }
 
+impl PanelLayout {
+    /// Blank slots and the divider are panel chrome too.
+    pub(crate) fn contains(&self, x: f64, y: f64) -> bool {
+        let (left, top, width, height) = self.rect;
+        x >= left as f64
+            && y >= top as f64
+            && x < (left + width) as f64
+            && y < (top + height) as f64
+    }
+}
+
 /// Returns `menu`'s entries with the single `Header`-kind entry (if any)
 /// stripped off the front. The header (`[< GO >];`) is a fixed title-row
 /// slot, not a numbered page item, so it is never part of any page's item
@@ -353,6 +389,40 @@ fn max_items_per_page(items: &[MenuEntry], starts: &[usize]) -> usize {
         .unwrap_or(0)
 }
 
+/// Complete panel dimensions in physical client pixels, shared by layout
+/// and the loaded-menu window minimum. No row compression or new pagination.
+pub(crate) fn required_panel_size(menu: &MenuFile) -> (u32, u32) {
+    let scale = 2; // matches draw_text's internal 2x glyph scale
+    let row_height = GLYPH_HEIGHT * scale;
+
+    let items = item_entries(menu);
+    let starts = page_starts(items);
+    let max_items = max_items_per_page(items, &starts);
+
+    // Fixed-height region, matching Task 1's recovered 21-row panel
+    // (1 header/blank row + up to 19 item rows + 1 synthetic NEXT row for
+    // `ACAD.MNU`, generalized here to `max_items` instead of the literal
+    // 19 so a differently-shaped `.MNU` still lays out consistently):
+    // every page occupies the same total height regardless of its own
+    // item count.
+    let total_rows = 1 + max_items + 1;
+    let panel_height = total_rows * row_height;
+
+    // Fixed-width column: wide enough for the longest label across every
+    // page (so the panel doesn't change width when `NEXT` is clicked),
+    // plus one glyph-cell of padding on each side.
+    let longest = items
+        .iter()
+        .map(|entry| entry.label.chars().count())
+        .chain([GO_LABEL.chars().count(), NEXT_LABEL.chars().count()])
+        .max()
+        .unwrap_or(0);
+    let padding = GLYPH_WIDTH * scale;
+    let panel_width = longest * GLYPH_WIDTH * scale + 2 * padding;
+
+    (panel_width as u32, panel_height as u32)
+}
+
 /// Computes the current page's panel rectangle and row height. Pure and
 /// cheap enough to call fresh every frame — callers must not cache the
 /// result across frames, since the window can resize at any time.
@@ -372,33 +442,10 @@ pub(crate) fn layout_for(
     window_width: u32,
     window_height: u32,
 ) -> PanelLayout {
-    let scale = 2; // matches draw_text's internal 2x glyph scale
-    let row_height = GLYPH_HEIGHT * scale;
-
-    let items = item_entries(menu);
-    let starts = page_starts(items);
-    let max_items = max_items_per_page(items, &starts);
-
-    // Fixed-height region, matching Task 1's recovered 21-row panel
-    // (1 header/blank row + up to 19 item rows + 1 synthetic NEXT row for
-    // `ACAD.MNU`, generalized here to `max_items` instead of the literal
-    // 19 so a differently-shaped `.MNU` still lays out consistently):
-    // every page occupies the same total height regardless of its own
-    // item count.
-    let total_rows = 1 + max_items + 1;
-    let panel_height = (total_rows * row_height).min(window_height as usize);
-
-    // Fixed-width column: wide enough for the longest label across every
-    // page (so the panel doesn't change width when `NEXT` is clicked),
-    // plus one glyph-cell of padding on each side.
-    let longest = items
-        .iter()
-        .map(|entry| entry.label.chars().count())
-        .chain([GO_LABEL.chars().count(), NEXT_LABEL.chars().count()])
-        .max()
-        .unwrap_or(0);
-    let padding = GLYPH_WIDTH * scale;
-    let panel_width = (longest * GLYPH_WIDTH * scale + 2 * padding).min(window_width as usize);
+    let (required_width, required_height) = required_panel_size(menu);
+    let panel_width = required_width.min(window_width) as usize;
+    let panel_height = required_height.min(window_height) as usize;
+    let row_height = GLYPH_HEIGHT * 2;
 
     let x = (window_width as usize).saturating_sub(panel_width);
     PanelLayout {
@@ -535,12 +582,8 @@ pub(crate) fn entry_at(
     x: f64,
     y: f64,
 ) -> Option<PanelHit> {
-    let (rect_x, rect_y, rect_w, rect_h) = layout.rect;
-    if x < rect_x as f64
-        || y < rect_y as f64
-        || x >= (rect_x + rect_w) as f64
-        || y >= (rect_y + rect_h) as f64
-    {
+    let (_, rect_y, _, _) = layout.rect;
+    if !layout.contains(x, y) {
         return None;
     }
     if layout.row_height == 0 {
@@ -613,6 +656,70 @@ pub(crate) fn page_count(menu: &MenuFile) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_nonspace_character_in_shipped_labels_renders_on_every_page() {
+        let menu = acad_mnu();
+        let (width, height) = required_panel_size(&menu);
+        let items = item_entries(&menu);
+        let starts = page_starts(items);
+        let max_items = max_items_per_page(items, &starts);
+        for page in 0..starts.len() {
+            let layout = layout_for(&menu, page, width, height);
+            let mut buffer = vec![0; width as usize * height as usize];
+            draw_panel(&mut buffer, width, height, &menu, page, &layout);
+            let page_items = page_slice(items, &starts, page);
+            let labels = page_items.iter().enumerate().map(|(offset, entry)| {
+                (
+                    1 + max_items - page_items.len() + offset,
+                    entry.label.as_str(),
+                )
+            });
+            let header = has_header(&menu, page).then_some((0, GO_LABEL));
+            for (row, label) in labels.chain(header).chain([(1 + max_items, NEXT_LABEL)]) {
+                for (column, ch) in label.chars().enumerate().filter(|(_, ch)| *ch != ' ') {
+                    let left = layout.rect.0 + GLYPH_WIDTH + column * GLYPH_WIDTH * 2;
+                    let top = row * layout.row_height;
+                    assert!(
+                        (top..top + layout.row_height).any(|y| {
+                            (left..left + GLYPH_WIDTH * 2)
+                                .any(|x| buffer[y * width as usize + x] == 0x00ff_ffff)
+                        }),
+                        "page {page} label {label:?}: missing {ch:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_full_lowercase_label_renders_each_letter_without_uppercasing() {
+        let label = "abcdefghijklmnopqrstuvwxyz";
+        let width = label.len() * GLYPH_WIDTH * 2;
+        let height = GLYPH_HEIGHT * 2;
+        let mut buffer = vec![0; width * height];
+        draw_text(&mut buffer, width, 0, 0, label, 1);
+        for (column, ch) in label.chars().enumerate() {
+            let left = column * GLYPH_WIDTH * 2;
+            assert!(
+                (0..height).any(|y| {
+                    (left..left + GLYPH_WIDTH * 2).any(|x| buffer[y * width + x] == 1)
+                }),
+                "missing lowercase {ch}"
+            );
+        }
+        // Lowercase 'a' starts below the cap height and has a curved bowl;
+        // this checks the encoded shape, rather than a fallback to uppercase.
+        assert!(
+            buffer[..2 * width].contains(&1),
+            "ascenders elsewhere in the alphabet must remain visible"
+        );
+        assert!((0..4).all(|y| buffer[y * width..y * width + 16].iter().all(|&p| p == 0)));
+        assert_eq!(
+            &buffer[4 * width..4 * width + 16],
+            &[0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
+        );
+    }
 
     #[test]
     fn draw_rect_fills_only_the_requested_area_and_clips_at_buffer_edges() {

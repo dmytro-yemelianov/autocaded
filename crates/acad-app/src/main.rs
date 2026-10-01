@@ -93,13 +93,13 @@ impl App {
     /// Dispatches a left-click against the rendered screen-menu panel, if
     /// one is loaded and the click lands inside it. Returns `true` when the
     /// click was handled (including as a documented no-op for a
-    /// control-byte entry) so the caller skips the ordinary
+    /// control-byte entry or a blank panel slot) so the caller skips the ordinary
     /// `submit_mouse_point`/`pick_mouse_entity` dispatch; returns `false`
     /// when there is no menu, no cursor position, or the click fell outside
     /// the panel rect, so the caller should fall through as usual.
     ///
     /// Separator resolution (brief Task 4 Step 1, revised by Task 5's QEMU
-    /// differential test): `Editor::submit` (`crates/acad-cmd/src/dispatch.rs:23-27`)
+    /// differential test): `Editor::submit` (`crates/acad-cmd/src/dispatch.rs`)
     /// trims its input and, while in `InputState::Command`, passes the
     /// *entire* trimmed string straight to `self.command(line)` with no scan
     /// for `;` or whitespace anywhere in `submit`/`command`. `command`'s
@@ -112,17 +112,18 @@ impl App {
     /// nor, were it to reach `InputState::Zoom` some other way, the `"A"`/`"ALL"`
     /// sub-match there — confirmed by Task 5's QEMU recovery, where the
     /// native command line echoes `zoom` and `a` as two separate pieces of
-    /// input (`Command: zoom Magnification or type (ACELPW): a`), exactly
-    /// like pressing Enter (or Space, which classic AutoCAD treats the same
-    /// as Enter outside text-string entry) between them. So this method
-    /// splits the decoded macro text on `;` *and* ASCII whitespace and calls
-    /// `self.editor.submit(...)` once per non-empty piece — a bare `;` still
-    /// yields a harmless empty-piece no-op per `command`'s own `"" => {}` arm,
-    /// but a run of whitespace must not (an all-whitespace/empty piece from
-    /// splitting on space is never a deliberate blank Enter in a macro, only
-    /// a side effect of how the label's own action text happens to be
-    /// spaced).
-    fn handle_panel_click(&mut self, el: &ActiveEventLoop, width: u32, height: u32) -> bool {
+    /// input (`Command: zoom Magnification or type (ACELPW): a`). For that
+    /// shipped command-prompt macro, the space separates submissions. This method
+    /// splits decoded macro text on `;` and Rust's Unicode whitespace.
+    /// Each semicolon-delimited piece with no words (empty or all whitespace)
+    /// yields one blank submission. This preserves the existing splitter;
+    /// context-sensitive text and native whitespace semantics are unrecovered.
+    fn handle_panel_click(
+        &mut self,
+        width: u32,
+        height: u32,
+        handle_result: &mut impl FnMut(&mut Self, Result<acad_cmd::Effect, String>),
+    ) -> bool {
         let Some(menu) = self.menu.clone() else {
             return false;
         };
@@ -130,8 +131,11 @@ impl App {
             return false;
         };
         let layout = menu_panel::layout_for(&menu, self.menu_page, width, height);
-        let Some(hit) = menu_panel::entry_at(&menu, self.menu_page, &layout, x, y) else {
+        if !layout.contains(x, y) {
             return false;
+        }
+        let Some(hit) = menu_panel::entry_at(&menu, self.menu_page, &layout, x, y) else {
+            return true;
         };
         match hit {
             menu_panel::PanelHit::Entry(index) => {
@@ -151,7 +155,7 @@ impl App {
                 };
                 for piece in split_macro_pieces(text) {
                     let result = self.editor.submit(piece);
-                    self.handle_result(el, result);
+                    handle_result(self, result);
                 }
                 true
             }
@@ -162,7 +166,30 @@ impl App {
         }
     }
 
-    fn submit_mouse_point(&mut self, el: &ActiveEventLoop, width: u32, height: u32) {
+    /// The real MouseInput routing seam. Only effect handling needs an event
+    /// loop; tests can observe effects while exercising this entire route.
+    fn handle_left_click(
+        &mut self,
+        width: u32,
+        height: u32,
+        mut handle_result: impl FnMut(&mut Self, Result<acad_cmd::Effect, String>),
+    ) {
+        if !self.handle_panel_click(width, height, &mut handle_result) {
+            if self.editor.accepts_mouse_point() {
+                self.input.clear();
+                self.submit_mouse_point(width, height, &mut handle_result);
+            } else {
+                self.pick_mouse_entity(width, height);
+            }
+        }
+    }
+
+    fn submit_mouse_point(
+        &mut self,
+        width: u32,
+        height: u32,
+        handle_result: &mut impl FnMut(&mut Self, Result<acad_cmd::Effect, String>),
+    ) {
         if !self.editor.accepts_mouse_point() {
             return;
         }
@@ -173,7 +200,7 @@ impl App {
         let world = vp.to_world(acad_model::Point { x, y });
         self.status.clear();
         let result = self.editor.submit_mouse_point(world);
-        self.handle_result(el, result);
+        handle_result(self, result);
     }
 
     fn pick_mouse_entity(&mut self, width: u32, height: u32) {
@@ -234,6 +261,9 @@ impl App {
                     self.status = format!("Loaded {} menu entries from {}", items, path.display());
                     self.menu = Some(menu);
                     self.menu_page = 0;
+                    if let Some((window, _)) = &self.state {
+                        self.apply_menu_window_size(window);
+                    }
                 }
                 Err(error) => self.status = error,
             },
@@ -249,6 +279,18 @@ impl App {
                 self.status = "Report printed to terminal".into();
             }
             Err(e) => self.status = e,
+        }
+    }
+
+    /// Refresh physical limits after menu load/resume/DPI changes, and grow
+    /// an existing undersized client rather than leaving NEXT inaccessible.
+    fn apply_menu_window_size(&self, window: &Window) {
+        let minimum = menu_min_inner_size(self.menu.as_ref());
+        window.set_min_inner_size(minimum);
+        let current = window.inner_size();
+        let supported = supported_client_size(self.menu.as_ref(), current);
+        if supported != current {
+            let _ = window.request_inner_size(supported);
         }
     }
 
@@ -268,20 +310,14 @@ impl App {
     }
 }
 
-/// Splits a decoded macro's text on `;` *and* ASCII whitespace into the
-/// individual pieces that get submitted to `Editor::submit` one at a time
-/// (both stand for pressing Enter in `.MNU` macro syntax — see
-/// `handle_panel_click`'s doc comment for why `submit`/`command` do not do
-/// this splitting themselves, and why whitespace needed to be added to this
-/// function alongside `;`). Pulled out as a free function so it is testable
-/// without an `ActiveEventLoop`.
+/// Splits on semicolons and Unicode whitespace (`str::split_whitespace`).
+/// An empty or all-whitespace semicolon-delimited piece yields one blank
+/// submission; repeated whitespace between words does not. This is the
+/// existing command-macro policy, not recovered general TEXT semantics.
 fn split_macro_pieces(text: &str) -> impl Iterator<Item = &str> {
     text.split(';').flat_map(|piece| {
-        // `split_whitespace` drops empty/all-whitespace pieces entirely, but
-        // a piece that was empty because of the `;` split itself (e.g.
-        // `"end;"`'s trailing piece) is a deliberate blank Enter that must
-        // still reach `Editor::submit` once, matching this function's
-        // pre-whitespace-splitting behavior exactly.
+        // Preserve one blank Enter for every piece containing no words,
+        // including a trailing semicolon or an all-whitespace piece.
         let mut words: Vec<&str> = piece.split_whitespace().collect();
         if words.is_empty() {
             words.push("");
@@ -290,12 +326,34 @@ fn split_macro_pieces(text: &str) -> impl Iterator<Item = &str> {
     })
 }
 
+/// A loaded menu alone imposes a minimum; use physical client pixels so
+/// the policy matches both the raster and cursor coordinates on every DPI.
+fn menu_min_inner_size(
+    menu: Option<&acad_cmd::menu::MenuFile>,
+) -> Option<winit::dpi::PhysicalSize<u32>> {
+    menu.map(|menu| {
+        let (width, height) = menu_panel::required_panel_size(menu);
+        winit::dpi::PhysicalSize::new(width, height)
+    })
+}
+
+fn supported_client_size(
+    menu: Option<&acad_cmd::menu::MenuFile>,
+    current: winit::dpi::PhysicalSize<u32>,
+) -> winit::dpi::PhysicalSize<u32> {
+    match menu_min_inner_size(menu) {
+        Some(minimum) => winit::dpi::PhysicalSize::new(
+            current.width.max(minimum.width),
+            current.height.max(minimum.height),
+        ),
+        None => current,
+    }
+}
+
 /// Computes the next `menu_page` for a `PanelHit::Next` or `PanelHit::Go`
 /// click. Pulled out as a free function (rather than inlined in
-/// `handle_panel_click`) so the page-advancing logic is testable without an
-/// `ActiveEventLoop`, which `handle_panel_click`'s `Entry` branch otherwise
-/// requires (to route `Effect::Quit` through `el.exit()` via
-/// `handle_result`).
+/// `handle_panel_click`) so page navigation remains independently testable.
+/// The App routes submission effects through its result handler.
 fn advance_menu_page(
     current_page: usize,
     menu: &acad_cmd::menu::MenuFile,
@@ -354,6 +412,7 @@ impl ApplicationHandler for App {
         let attrs = Window::default_attributes().with_title("AutoCAD 1.4");
         let window = Rc::new(el.create_window(attrs).unwrap());
         window.set_title("AutoCAD 1.4 — Command");
+        self.apply_menu_window_size(&window);
         let context = softbuffer::Context::new(window.clone()).unwrap();
         let surface = softbuffer::Surface::new(&context, window.clone()).unwrap();
         self.state = Some((window, surface));
@@ -397,15 +456,14 @@ impl ApplicationHandler for App {
                 ..
             } => {
                 let size = window.inner_size();
-                if !self.handle_panel_click(el, size.width, size.height) {
-                    if self.editor.accepts_mouse_point() {
-                        self.input.clear();
-                        self.submit_mouse_point(el, size.width, size.height);
-                    } else {
-                        self.pick_mouse_entity(size.width, size.height);
-                    }
-                }
+                self.handle_left_click(size.width, size.height, |app, result| {
+                    app.handle_result(el, result);
+                });
                 self.update_title(&window);
+                window.request_redraw();
+            }
+            WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
+                self.apply_menu_window_size(&window);
                 window.request_redraw();
             }
             WindowEvent::RedrawRequested => {
@@ -991,32 +1049,174 @@ mod tests {
         assert_eq!(advance_menu_page(0, &menu, menu_panel::PanelHit::Go), 0);
     }
 
-    #[test]
-    fn handle_panel_click_resolves_a_click_on_the_point_entry_and_sends_it_through_submit() {
-        // End-to-end exercise of the index-space fix: clicking page 1's
-        // first visible item row must submit "POINT" through the real
-        // Editor (entering InputState::Point), not some unrelated entry.
-        let menu =
-            acad_cmd::menu::parse_menu(include_bytes!("../../../corpus/System/ACAD.MNU")).unwrap();
-        let (width, height) = (640u32, 480u32);
-        let layout = menu_panel::layout_for(&menu, 1, width, height);
-        let (rect_x, rect_y, _, _) = layout.rect;
-        let row_2_y = rect_y + 2 * layout.row_height + 2;
-        let hit =
-            menu_panel::entry_at(&menu, 1, &layout, (rect_x + 2) as f64, row_2_y as f64).unwrap();
-        let menu_panel::PanelHit::Entry(index) = hit else {
-            panic!("expected an Entry hit, got {hit:?}");
-        };
-        let entry = menu_panel::resolve_entry(&menu, 1, index).unwrap();
-        assert_eq!(entry.label, "POINT");
-
-        let mut editor = acad_cmd::Editor::default();
-        for piece in split_macro_pieces(std::str::from_utf8(&entry.action).unwrap()) {
-            editor.submit(piece).unwrap();
+    fn menu_app(page: usize) -> App {
+        App {
+            editor: acad_cmd::Editor::default(),
+            libraries: Libraries::default(),
+            menu: Some(load_menu_file("ACAD").unwrap().1),
+            menu_page: page,
+            reported: Default::default(),
+            state: None,
+            input: String::new(),
+            status: String::new(),
+            cursor: None,
         }
-        // Submitting "POINT" put the editor into InputState::Point, which
-        // accepts a mouse point next — confirming the click really drove a
-        // command, not a no-op.
-        assert!(editor.accepts_mouse_point());
+    }
+
+    fn click(app: &mut App, width: u32, height: u32) {
+        app.handle_left_click(width, height, |app, result| {
+            assert!(matches!(result.unwrap(), acad_cmd::Effect::Continue));
+            app.status = app.editor.status().to_owned();
+        });
+    }
+
+    #[test]
+    fn app_mouse_route_consumes_every_blank_slot_during_point_and_selection_prompts() {
+        let (width, height) = (640, 480);
+        for (page, blank_rows) in [(1, vec![0, 1]), (2, vec![0])] {
+            for row in blank_rows {
+                let mut app = menu_app(page);
+                let layout =
+                    menu_panel::layout_for(app.menu.as_ref().unwrap(), page, width, height);
+                app.cursor = Some((
+                    (layout.rect.0 + 2) as f64,
+                    (row * layout.row_height + 2) as f64,
+                ));
+                app.editor.submit("POINT").unwrap();
+                app.input = "pending input".into();
+                app.status = "unchanged".into();
+                click(&mut app, width, height);
+                assert!(app.editor.accepts_mouse_point());
+                assert_eq!(app.editor.drawing().entities().count(), 0);
+                assert_eq!(app.input, "pending input");
+                assert_eq!(app.status, "unchanged");
+
+                // Put an entity under the blank panel slot. A leaked click
+                // would now select it, rather than merely finding no entity.
+                let (x, y) = app.cursor.unwrap();
+                let world = viewport_for(app.editor.drawing(), width, height)
+                    .to_world(acad_model::Point { x, y });
+                let original_header = app.editor.drawing().header.clone();
+                app.editor.submit_mouse_point(world).unwrap();
+                let mut drawing = app.editor.drawing().clone();
+                drawing.header = original_header;
+                app.editor = acad_cmd::Editor::new(drawing);
+                assert_eq!(app.editor.pick_entity_at(world, 0.00001), Some(1));
+                app.editor.submit("ERASE").unwrap();
+                assert!(app.editor.accepts_mouse_selection());
+                app.input.clear();
+                click(&mut app, width, height);
+                assert!(app.input.is_empty(), "blank row selected a hidden entity");
+                assert_eq!(app.status, "unchanged");
+            }
+        }
+    }
+
+    #[test]
+    fn app_mouse_route_preserves_outside_panel_point_conversion_and_selection() {
+        let (width, height) = (640, 480);
+        let mut app = menu_app(1);
+        app.cursor = Some((100.0, 200.0));
+        let expected = viewport_for(app.editor.drawing(), width, height)
+            .to_world(acad_model::Point { x: 100.0, y: 200.0 });
+        app.editor.submit("POINT").unwrap();
+        app.input = "pending input".into();
+        click(&mut app, width, height);
+        assert!(app.input.is_empty());
+        assert_eq!(app.editor.drawing().entities().count(), 1);
+        // Prove the submitted point used the drawing's coordinate conversion.
+        // First-entity creation changes the view, so pick its new screen position.
+        assert_eq!(app.editor.pick_entity_at(expected, 0.00001), Some(1));
+        let screen = viewport_for(app.editor.drawing(), width, height).to_screen(expected);
+        app.cursor = Some((screen.x, screen.y));
+        app.editor.submit("ERASE").unwrap();
+        assert!(app.editor.accepts_mouse_selection());
+        click(&mut app, width, height);
+        assert_eq!(app.input, "1");
+        assert_eq!(app.status, "Selected entity 1");
+    }
+
+    #[test]
+    fn app_mouse_route_dispatches_point_and_consumes_control_entries() {
+        let (width, height) = (640, 480);
+        let mut app = menu_app(1);
+        let layout = menu_panel::layout_for(app.menu.as_ref().unwrap(), 1, width, height);
+        app.cursor = Some((
+            (layout.rect.0 + 2) as f64,
+            (2 * layout.row_height + 2) as f64,
+        ));
+        click(&mut app, width, height);
+        assert!(
+            app.editor.accepts_mouse_point(),
+            "POINT row must submit its macro"
+        );
+        app.menu_page = 0;
+        app.cursor = Some(((layout.rect.0 + 2) as f64, (layout.row_height + 2) as f64));
+        click(&mut app, width, height);
+        assert!(app.editor.accepts_mouse_point());
+        assert_eq!(app.editor.drawing().entities().count(), 0);
+        assert!(app.status.contains("^Snap") && app.status.contains("0x02"));
+    }
+
+    #[test]
+    fn loaded_menu_minimum_keeps_next_rendered_and_routable_at_supported_sizes() {
+        use winit::dpi::PhysicalSize;
+        let mut app = menu_app(0);
+        let menu = app.menu.as_ref().unwrap();
+        let minimum = menu_min_inner_size(Some(menu)).unwrap();
+        assert_eq!(minimum, PhysicalSize::new(160, 336));
+        for requested_height in [335, 336, 337] {
+            let requested = PhysicalSize::new(640, requested_height);
+            let supported = supported_client_size(Some(menu), requested);
+            assert_eq!(supported.height, requested_height.max(336));
+            assert_eq!(supported_client_size(None, requested), requested);
+            for page in 0..3 {
+                let layout = menu_panel::layout_for(menu, page, supported.width, supported.height);
+                assert_eq!(layout.rect.3, minimum.height as usize);
+                let next_y = (layout.rect.3 - layout.row_height + 2) as f64;
+                assert_eq!(
+                    menu_panel::entry_at(menu, page, &layout, (layout.rect.0 + 2) as f64, next_y),
+                    Some(menu_panel::PanelHit::Next)
+                );
+                let mut buffer = vec![0; supported.width as usize * supported.height as usize];
+                menu_panel::draw_panel(
+                    &mut buffer,
+                    supported.width,
+                    supported.height,
+                    menu,
+                    page,
+                    &layout,
+                );
+                let text_x = layout.rect.0 + menu_panel::GLYPH_WIDTH;
+                assert!(
+                    ((layout.rect.3 - layout.row_height)..layout.rect.3).any(|y| {
+                        (text_x..text_x + 16)
+                            .any(|x| buffer[y * supported.width as usize + x] == 0x00ff_ffff)
+                    })
+                );
+            }
+        }
+        assert_eq!(menu_min_inner_size(None), None);
+        assert_eq!(
+            supported_client_size(Some(menu), PhysicalSize::new(159, 335)),
+            minimum
+        );
+        // At the smallest supported physical client size, actual App routing
+        // still cycles all recovered pages through the visible NEXT slot.
+        for expected_page in [1, 2, 0] {
+            app.cursor = Some((2.0, 322.0));
+            click(&mut app, minimum.width, minimum.height);
+            assert_eq!(app.menu_page, expected_page);
+        }
+    }
+
+    #[test]
+    fn app_mouse_route_has_no_panel_without_a_loaded_menu() {
+        let mut app = menu_app(1);
+        app.menu = None;
+        app.cursor = Some((482.0, 2.0));
+        app.editor.submit("POINT").unwrap();
+        click(&mut app, 640, 480);
+        assert_eq!(app.editor.drawing().entities().count(), 1);
     }
 }
