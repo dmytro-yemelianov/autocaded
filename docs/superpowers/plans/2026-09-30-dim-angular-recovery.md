@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **⚠️ Superseded premise, read before anything else:** this plan's title and Goal assume `DIM`'s `A` letter means "Angular" dimensioning, by analogy with later AutoCAD versions. Task 1's Step 3 (Revision 3) recovered, by direct visual capture, that `A` in this 1983 AutoCAD 1.4 build instead answers `"Dimension arrow size:"` — a global numeric DIM setting, not a dimension-type sub-mode. There is no evidence angular dimensioning exists behind this letter at all. See Step 3 for the full account and a corrected recommended next step (recovering `B`/`C`/`T` instead, with the same proven technique).
+> **⚠️ Superseded premise, read before anything else:** this plan's title and Goal assume `DIM`'s `A` letter means "Angular" dimensioning, by analogy with later AutoCAD versions. Task 1's Step 3 recovered, by direct visual capture, that it does not: `A` sets **arrow size**, `B`/`C` are (very likely) **Baseline**/**Continue** dimension-chaining, and `T` toggles **text** orientation — four global DIM settings/conveniences, not dimension-type sub-modes, and none of them open an angular-dimensioning flow. There is no evidence angular dimensioning exists in this AutoCAD 1.4 (1983) build at all. See Step 3's Revisions 3-4 for the full account and recommended next steps.
 
 **Goal:** Recover, from the native AutoCAD 1.4 oracle under QEMU, the exact prompt sequence and output geometry for `DIM`'s `A` (angular) sub-letter, and add one QEMU differential regression case proving the Rust editor reproduces it — the project's next-smallest step per `docs/HANDOVER-2026-09-30.md`'s "Known limits and next work" item 1.
 
@@ -154,9 +154,29 @@ This is a complete, internally consistent explanation requiring no further infer
 - Whether AutoCAD 1.4 (1983) has an angular/radial/diameter dimensioning mode *at all* remains unknown, but historically plausible period documentation suggests those dimension types were added in later AutoCAD releases — this plan cannot confirm or rule that out, only that it is not hiding behind the `A` letter.
 - A valid numeric answer at `Dimension arrow size:` was not tested (only the invalid `0,0`) — whether that returns to the normal `First extension line origin` flow afterward, and whether it's a one-time-per-drawing setting or re-askable, is unrecovered.
 
-**What was NOT recovered**: the valid-input behavior of the `Dimension arrow size:` prompt, and the behavior of `B`, `C`, `T`. Lowercase `a` was not re-tested with this method.
+**What was NOT recovered (at the time Revision 3 was written)**: the valid-input behavior of the `Dimension arrow size:` prompt, and the behavior of `B`, `C`, `T`. Lowercase `a` was not re-tested with this method.
 
-**Recommended next step**: this plan's original goal (recover an "angular DIM mode") was based on a false premise and should not be pursued further as originally framed. A more accurately-scoped follow-up plan would be titled around recovering `DIM`'s `B`/`C`/`T` global-setting letters and the valid-arrow-size follow-on flow, using the exact same `capture_each_step` technique already proven working in this task — no new tooling is needed, only new candidate sequences.
+**Revision 4 (current): `B`, `C`, and `T` recovered, completing the `ABCT` picture.** Using the same `capture_each_step` technique (now generalized over a list of candidates in `main()`, each a fresh drawing with just `["DIM", <letter>]`), all three remaining letters were probed directly:
+
+| Letter | Captured screen after typing it |
+|---|---|
+| `B` | `First extension line origin or (ABCT): B` / `*Invalid*` / `Command:` — rejected outright, no sub-prompt at all |
+| `C` | `First extension line origin or (ABCT): C` / `*Invalid*` / `Command:` — rejected outright, identical to `B` |
+| `T` | `First extension line origin or (ABCT): T` / `Text within the dimension can be drawn along the dimension or horizontally.` / `Do you want it horizontal? <Y>` — recognized, with a full descriptive prompt and a yes/no default |
+
+**Interpretation, now well-supported rather than speculative:** `B` and `C` being rejected specifically in a *fresh* drawing with no dimension yet placed is consistent with them meaning **Baseline** and **Continue** — real AutoCAD dimensioning conveniences (both present in AutoCAD from an early release) that continue a new dimension from the extension line of the *previous* dimension, and therefore require one to already exist. This was not directly confirmed (doing so needs a candidate that places one linear dimension first, then retries `B`/`C`), but it is a strong, named, testable hypothesis rather than a guess with no shape. `T` is fully recovered and unambiguous: it toggles whether the dimension text is drawn horizontal or aligned with the dimension line, defaulting to horizontal (`<Y>`) — a real global DIM text-orientation setting, not a dimension-type mode either.
+
+**The complete, current picture of `DIM`'s `(ABCT)` options in AutoCAD 1.4:**
+- `A` — set dimension **arrow size** (a number)
+- `B` — **Baseline**: continue from the previous dimension's baseline (needs a prior dimension in the drawing; untested with one present)
+- `C` — **Continue**: continue from the previous dimension's second extension line (needs a prior dimension in the drawing; untested with one present)
+- `T` — toggle dimension **text** orientation, horizontal (default) or aligned
+
+None of the four are an "angular dimensioning" mode, and none of the four open a new multi-point geometry-entry flow the way the plain linear `DIM` path does — `A` and `T` are immediate settings answered with a number or a yes/no, and `B`/`C` (so far as observed) require pre-existing context this plan's test drawings didn't have.
+
+**What is still NOT recovered**: a valid numeric answer's effect at `Dimension arrow size:` (only the invalid `0,0` was tried); `B`/`C`'s actual behavior when a prior dimension genuinely exists to chain from; and whether AutoCAD 1.4 has any angular/radial/diameter dimensioning capability at all (this plan found no evidence it does, but absence of evidence here is not proof of absence).
+
+**Recommended next step**: if dimension-chaining (`B`/`C`) behavior is wanted, place one linear dimension first (e.g. `DIM`, `1,1`, `5,1`, `3,2`, `""` — the existing `DIMSHORT` case), then retry `B` and `C` with the same `capture_each_step` technique. If the arrow-size setting's effect on rendered dimensions is wanted, answer `Dimension arrow size:` with a real number and observe the resulting entity geometry via `generate_pair` (not just a screen capture) to see whether/how the arrow size changes the exported LINE/SOLID primitives. Either is a small, well-scoped follow-up using tooling this plan has already built and proven — no new infrastructure needed.
 
 - [x] **Step 4: Commit the recovery tool and findings**
 

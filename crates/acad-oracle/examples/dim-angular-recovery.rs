@@ -1,6 +1,6 @@
 //! One-shot recovery tool: drives native AutoCAD 1.4 under QEMU through
-//! candidate `DIM` `A` (angular mode) input sequences, then captures and
-//! renders the drawing editor's CGA framebuffer as a PNG so the actual
+//! `DIM`'s `(ABCT)` sub-letters and captures a PNG of the drawing editor's
+//! CGA framebuffer after every individual typed line, so the actual
 //! on-screen prompt text can be read by eye. `Session::text_screen()` does
 //! not work here — it only decodes a genuine 80x25 alpha-text page, and
 //! AutoCAD's drawing editor draws its own prompt text as bitmap graphics
@@ -8,6 +8,13 @@
 //! font match cannot be assumed to apply. Rendering the raw bitmap and
 //! reading it directly avoids needing to reverse-engineer AutoCAD's own
 //! on-screen font.
+//!
+//! `A` was already recovered this way (see
+//! `docs/superpowers/plans/2026-09-30-dim-angular-recovery.md`): it
+//! answers "Dimension arrow size:", not an angular-dimensioning sub-mode.
+//! This run probes `B`, `C`, and `T` the same way, each from a fresh
+//! drawing, to see whether they follow the same "global DIM setting"
+//! pattern or do something else.
 //!
 //! Not a test — there is nothing to assert yet, only to observe.
 //! Run with: `cargo run -p acad-oracle --example dim-angular-recovery`
@@ -72,42 +79,45 @@ fn main() {
         return;
     }
 
-    // DIMANG1's full 5-point guess from the prior revision, now captured
-    // after every individual line instead of once at the end, to see
-    // exactly where (if anywhere) the screen stops changing.
-    let name = "DIMSTEP";
-    let inputs: &[&str] = &[
-        "LINE", "0,0", "5,0", "", "LINE", "0,0", "0,5", "", "DIM", "A", "0,0", "5,0", "0,0", "0,5",
-        "3,3", "",
+    // Each of B, C, T from a fresh drawing: just DIM then the letter,
+    // mirroring exactly the sequence that revealed A's real meaning
+    // ("Dimension arrow size:") in one step.
+    let candidates: [(&str, &[&str]); 3] = [
+        ("DIMLETB", &["DIM", "B"]),
+        ("DIMLETC", &["DIM", "C"]),
+        ("DIMLETT", &["DIM", "T"]),
     ];
 
-    println!("=== {name}: {inputs:?} ===");
-    match capture_each_step(&disk, name, inputs) {
-        Ok(frames) => {
-            for (step, cga) in frames.iter().enumerate() {
-                match Frame::new(cga) {
-                    Ok(frame) => {
-                        let label = if inputs[step].is_empty() {
-                            "blank".to_owned()
-                        } else {
-                            inputs[step].replace([',', ' '], "_")
-                        };
-                        let path = std::env::temp_dir()
-                            .join(format!("dim-angular-{name}-{step:02}-{label}.png"));
-                        save_png(&frame, &path);
-                        println!(
-                            "  step {step:02} ({:?}): wrote {}",
-                            inputs[step],
-                            path.display()
-                        );
+    for (name, inputs) in candidates {
+        println!("=== {name}: {inputs:?} ===");
+        match capture_each_step(&disk, name, inputs) {
+            Ok(frames) => {
+                for (step, cga) in frames.iter().enumerate() {
+                    match Frame::new(cga) {
+                        Ok(frame) => {
+                            let label = if inputs[step].is_empty() {
+                                "blank".to_owned()
+                            } else {
+                                inputs[step].replace([',', ' '], "_")
+                            };
+                            let path = std::env::temp_dir()
+                                .join(format!("dim-angular-{name}-{step:02}-{label}.png"));
+                            save_png(&frame, &path);
+                            println!(
+                                "  step {step:02} ({:?}): wrote {}",
+                                inputs[step],
+                                path.display()
+                            );
+                        }
+                        Err(error) => println!(
+                            "  step {step:02} ({:?}): frame decode failed: {error}",
+                            inputs[step]
+                        ),
                     }
-                    Err(error) => println!(
-                        "  step {step:02} ({:?}): frame decode failed: {error}",
-                        inputs[step]
-                    ),
                 }
             }
+            Err(error) => println!("  capture failed: {error}"),
         }
-        Err(error) => println!("  capture failed: {error}"),
+        println!();
     }
 }
