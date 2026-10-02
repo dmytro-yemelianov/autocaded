@@ -174,6 +174,8 @@ pub enum Expression {
     Binary(Binary, Value, Value),
     Segment(Value, Value),
     Load(Value),
+    In(Value),
+    Swi(Value),
 }
 #[derive(Debug, Clone, Serialize)]
 pub enum Operation {
@@ -205,6 +207,18 @@ pub enum Operation {
     Jump {
         target: u64,
     },
+    CallIndirect {
+        target: Value,
+    },
+    JumpIndirect {
+        target: Value,
+    },
+    Out {
+        port: Value,
+        value: Value,
+    },
+    Lock,
+    Unlock,
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct Instruction {
@@ -641,8 +655,24 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                     .collect::<Result<_, _>>()?;
                 let expected = match op.op.as_str() {
                     "COPY" | "INT_ZEXT" | "INT_SEXT" | "BOOL_NEGATE" | "POPCOUNT" | "RETURN"
-                    | "CALL" | "BRANCH" | "INT_2COMP" | "INT_NEGATE" => 1,
-                    "CALLOTHER" | "STORE" => 3,
+                    | "CALL" | "BRANCH" | "INT_2COMP" | "INT_NEGATE" | "CALLIND" | "BRANCHIND" => 1,
+                    "STORE" => 3,
+                    "CALLOTHER" => {
+                        if inputs.is_empty() {
+                            return Err("CALLOTHER requires at least 1 input".into());
+                        }
+                        match inputs[0].offset {
+                            17 | 18 => 1,
+                            1 | 16 => 2,
+                            0 | 2 => 3,
+                            _ => {
+                                return Err(format!(
+                                    "unsupported CALLOTHER userop {}",
+                                    inputs[0].offset
+                                ))
+                            }
+                        }
+                    }
                     "CBRANCH" | "LOAD" | "INT_ADD" | "INT_SUB" | "INT_MULT" | "INT_AND"
                     | "INT_OR" | "INT_XOR" | "INT_LEFT" | "INT_RIGHT" | "INT_REM" | "INT_EQUAL"
                     | "INT_NOTEQUAL" | "INT_LESS" | "INT_SLESS" | "INT_SBORROW" | "BOOL_OR"
@@ -655,7 +685,10 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                 }
                 let a = || value(inputs[0], &temps, &defined);
                 let b = || value(inputs[1], &temps, &defined);
-                let control = matches!(op.op.as_str(), "CBRANCH" | "RETURN" | "CALL" | "BRANCH");
+                let control = matches!(
+                    op.op.as_str(),
+                    "CBRANCH" | "RETURN" | "CALL" | "BRANCH" | "CALLIND" | "BRANCHIND"
+                );
                 if op.op == "STORE" {
                     if op.out.is_some() {
                         return Err("STORE must not have an output".into());
@@ -693,7 +726,7 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                         operations.push(Operation::Jump {
                             target: inputs[0].offset as u64,
                         });
-                    } else {
+                    } else if op.op == "CBRANCH" {
                         if (inputs[0].space != "ram" && inputs[0].space != raw.block)
                             || inputs[0].offset < 0
                             || !addresses.contains(&(inputs[0].offset as u64))
@@ -707,26 +740,68 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                             condition: b()?,
                             target: inputs[0].offset as u64,
                         });
+                    } else if op.op == "CALLIND" {
+                        if inputs[0].size != 4 {
+                            return Err("CALLIND target width must be 4".into());
+                        }
+                        operations.push(Operation::CallIndirect { target: a()? });
+                    } else if op.op == "BRANCHIND" {
+                        if inputs[0].size != 4 {
+                            return Err("BRANCHIND target width must be 4".into());
+                        }
+                        operations.push(Operation::JumpIndirect { target: a()? });
+                    }
+                    continue;
+                }
+                if op.op == "CALLOTHER" && op.out.is_none() {
+                    match inputs[0].offset {
+                        2 => {
+                            let port = b()?;
+                            let val = value(inputs[2], &temps, &defined)?;
+                            operations.push(Operation::Out { port, value: val });
+                        }
+                        17 => operations.push(Operation::Lock),
+                        18 => operations.push(Operation::Unlock),
+                        _ => {
+                            return Err(format!(
+                                "unsupported outputless CALLOTHER {}",
+                                inputs[0].offset
+                            ))
+                        }
                     }
                     continue;
                 }
                 let output = op.out.as_ref().ok_or("missing Pcode output")?;
                 let destination = place(output, &temps)?;
                 let expression = match op.op.as_str() {
-                    "CALLOTHER" => {
-                        constant(inputs[0], 0)?;
-                        if architecture.userops.first().map(String::as_str) != Some("segment")
-                            || inputs[1].size != 2
-                            || inputs[2].size != 2
-                            || output.size != 4
-                        {
-                            return Err("unverified segment userop contract".into());
+                    "CALLOTHER" => match inputs[0].offset {
+                        0 => {
+                            if architecture.userops.first().map(String::as_str) != Some("segment")
+                                || inputs[1].size != 2
+                                || inputs[2].size != 2
+                                || output.size != 4
+                            {
+                                return Err("unverified segment userop contract".into());
+                            }
+                            Expression::Segment(
+                                value(inputs[1], &temps, &defined)?,
+                                value(inputs[2], &temps, &defined)?,
+                            )
                         }
-                        Expression::Segment(
-                            value(inputs[1], &temps, &defined)?,
-                            value(inputs[2], &temps, &defined)?,
-                        )
-                    }
+                        1 => Expression::In(value(inputs[1], &temps, &defined)?),
+                        16 => {
+                            if output.size != 4 {
+                                return Err("swi userop contract".into());
+                            }
+                            Expression::Swi(value(inputs[1], &temps, &defined)?)
+                        }
+                        _ => {
+                            return Err(format!(
+                                "unsupported output CALLOTHER {}",
+                                inputs[0].offset
+                            ))
+                        }
+                    },
                     "LOAD" => {
                         constant(inputs[0], architecture.ram_space_id)?;
                         Expression::Load(b()?)
@@ -847,7 +922,10 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
             fallthrough = if matches!(
                 operations.last(),
                 Some(
-                    Operation::Return { .. } | Operation::TailCall { .. } | Operation::Jump { .. }
+                    Operation::Return { .. }
+                        | Operation::TailCall { .. }
+                        | Operation::Jump { .. }
+                        | Operation::JumpIndirect { .. }
                 )
             ) {
                 None

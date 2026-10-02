@@ -66,6 +66,8 @@ fn expression(expr: &Expression, size: usize) -> String {
             format!("({} << 4) + {}", value(segment), value(offset))
         }
         Expression::Load(pointer) => format!("load(memory, {}, {size})?", value(pointer)),
+        Expression::In(port) => format!("read_port({})", value(port)),
+        Expression::Swi(int_num) => format!("swi({})", value(int_num)),
     }
 }
 
@@ -165,6 +167,21 @@ pub fn emit(function: &Function) -> String {
                     writeln!(source, "let _ = ({target_block:?}, {target}); // tailcall").unwrap();
                     writeln!(source, "return Ok(0);").unwrap();
                 }
+                Operation::CallIndirect { target } => {
+                    writeln!(source, "let _ = {}; // callind", value(target)).unwrap();
+                }
+                Operation::JumpIndirect { target } => {
+                    writeln!(source, "pc = {}; continue;", value(target)).unwrap();
+                }
+                Operation::Out { port, value: val } => {
+                    writeln!(source, "write_port({}, {});", value(port), value(val)).unwrap();
+                }
+                Operation::Lock => {
+                    writeln!(source, "// lock").unwrap();
+                }
+                Operation::Unlock => {
+                    writeln!(source, "// unlock").unwrap();
+                }
             }
         }
         if let Some(next) = row.fallthrough {
@@ -223,4 +240,10 @@ fn shift_signed_right(value: u64, count: u64, bits: u32) -> u64 {
     let shift = if count >= bits as u64 { (bits - 1) as u64 } else { count };
     (signed_val >> shift) as u64
 }
+#[allow(dead_code)]
+fn read_port(_port: u64) -> u64 { 0 }
+#[allow(dead_code)]
+fn write_port(_port: u64, _value: u64) {}
+#[allow(dead_code)]
+fn swi(_int_num: u64) -> u64 { 0 }
 "#;

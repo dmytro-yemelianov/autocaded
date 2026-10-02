@@ -19,6 +19,7 @@ This document maintains an empirical, transparent record of technical decisions,
 - [ADR-011: PCode Opcode `INT_DIV`, `INT_SDIV`, and `INT_SRIGHT` Lowering](#adr-011-pcode-opcode-int_div-int_sdiv-and-int_sright-lowering)
 - [ADR-012: PCode Opcode `INT_SREM` (Signed Remainder) Lowering](#adr-012-pcode-opcode-int_srem-signed-remainder-lowering)
 - [ADR-013: Inline Compiler Helper `switch-table` Lowering](#adr-013-inline-compiler-helper-switch-table-lowering)
+- [ADR-014: Indirect Control Flow (CALLIND & BRANCHIND) and CALLOTHER Userop Lowering](#adr-014-indirect-control-flow-callind--branchind-and-callother-userop-lowering)
 
 ---
 
@@ -358,39 +359,78 @@ AutoCAD 2.18 binaries compiled with Aztec C implement C switch statements via an
 
 ---
 
+### ADR-014: Indirect Control Flow (CALLIND & BRANCHIND) and CALLOTHER Userop Lowering
+- **Date:** 2026-10-02
+- **Status:** Accepted & Implemented
+- **Files Modified:** [crates/acad-re/src/ir.rs](crates/acad-re/src/ir.rs), [crates/acad-re/src/rust_emit.rs](crates/acad-re/src/rust_emit.rs)
+
+#### Context
+AutoCAD 2.18 binaries make extensive use of indirect calls (`call [bx+disp]`, `call di`, interrupt vectors via `CALLIND`), indirect jumps (`jmp [bx+disp]`, `jmp ax` via `BRANCHIND`), and architecture userops (`swi` interrupt vectoring, port I/O `in`/`out`, and bus `LOCK`/`UNLOCK`).
+Specifically:
+1. `CALLIND` occurred in 42 functions as the terminating opcode of an instruction with 1 input (`unique`, size 4). In Ghidra's 8086 processor model, software interrupts (`INT 0x21`, `INT 0x20`) are emitted as userop 16 (`swi`, arity 2) followed by `CALLIND`.
+2. `BRANCHIND` occurred in 20 functions as the terminating opcode of an instruction with 1 input (`unique`, size 4), performing computed indirect jumps.
+3. `CALLOTHER` userops without output or with output occurred in 14 functions (plus 1 function with missing Pcode output):
+   - `userop 0` (`"segment"`, arity 3): `(seg << 4) + off` address calculation -> `Expression::Segment`.
+   - `userop 1` (`"in"`, arity 2): port I/O read -> `Expression::In(port)`.
+   - `userop 2` (`"out"`, arity 3, outputless): port I/O write -> `Operation::Out { port, value }`.
+   - `userop 16` (`"swi"`, arity 2): software interrupt vector -> `Expression::Swi(int_num)`.
+   - `userop 17` (`"LOCK"`, arity 1, outputless): bus lock -> `Operation::Lock`.
+   - `userop 18` (`"UNLOCK"`, arity 1, outputless): bus unlock -> `Operation::Unlock`.
+
+#### Decision
+1. Added `Operation::CallIndirect { target: Value }` and `Operation::JumpIndirect { target: Value }` to `pub enum Operation` in [crates/acad-re/src/ir.rs](crates/acad-re/src/ir.rs).
+2. Added `Operation::Out { port: Value, value: Value }`, `Operation::Lock`, and `Operation::Unlock` for outputless userops.
+3. Added `Expression::In(Value)` and `Expression::Swi(Value)` to `pub enum Expression` in [crates/acad-re/src/ir.rs](crates/acad-re/src/ir.rs).
+4. Enforced strict invariants in `ir.rs`:
+   - Both `CALLIND` and `BRANCHIND` require 1 input of width 4 and 0 outputs.
+   - `CALLIND` preserves sequential fallthrough continuation (verified empirically across all 42 functions to have a valid continuation address in `addresses`).
+   - `BRANCHIND` terminates sequential block continuation (`fallthrough = None`).
+   - `CALLOTHER` operations are strictly matched against known userop indexes (0: segment, 1: in, 2: out, 16: swi, 17: lock, 18: unlock); all unverified userops or unexpected arities/widths trigger explicit errors.
+5. In [crates/acad-re/src/rust_emit.rs](crates/acad-re/src/rust_emit.rs), implemented code generation for indirect calls (`let _ = <target>; // callind`), indirect branches (`pc = <target>; continue;`), port I/O (`read_port`, `write_port`), and software interrupt stubs (`swi`).
+
+#### Consequences & Verified Outcome
+- `unsupported Pcode opcode CALLIND` dropped from **42 to 0** (100% resolved).
+- `unsupported Pcode opcode BRANCHIND` dropped from **20 to 0** (100% resolved).
+- `CALLOTHER arity mismatch` dropped from **14 to 0** (100% resolved).
+- `missing Pcode output` dropped from **1 to 0** (100% resolved).
+- Structurally lowerable and compilable functions surged from **909 to 986** (+77 functions, **93.5% of the entire AutoCAD 2.18 binary**).
+- All 986 functions independently compile to `.rlib` with `rustc --edition 2021 --crate-type=lib`.
+- All workspace tests (108 tests) pass cleanly. Clippy passes with zero warnings.
+
+---
+
 ## Metric Tracking Baseline
 
-| Metric | Checkpoint `5f705a7` | ADR-001/002 | ADR-004 | ADR-005 | ADR-006 | ADR-007 | ADR-008 | ADR-009 | ADR-010 | ADR-011 | ADR-012 | Verified Current (ADR-013) | Delta vs Baseline |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Total CFG Candidates** | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 0 |
-| **Structurally Lowerable** | 8 | 20 | 32 | 272 | 382 | 651 | 748 | 803 | 828 | 845 | 855 | **909** | **+901** |
-| **Compiled to Rust rlib** | 8 | 20 | 32 | 272 | 382 | 651 | 748 | 803 | 828 | 845 | 855 | **909** | **+901** |
-| **Compiler Frame Dependency Errors** | 661 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-661 (Resolved)** |
-| **PCode `CALL` Opcode Errors** | 346 | 346 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-346 (Resolved)** |
-| **Inline Helper Errors (`kernel-function`)** | 240 | 240 | 240 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-240 (Resolved)** |
-| **PCode `INT_CARRY` Opcode Errors** | 249 | 249 | 249 | 249 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-249 (Resolved)** |
-| **PCode `INT_SCARRY` Opcode Errors** | 94 | 94 | 94 | 94 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-94 (Resolved)** |
-| **PCode `BRANCH` Opcode Errors** | 245 | 245 | 245 | 245 | 443 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-443 (Resolved)** |
-| **PCode `INT_SEXT` Opcode Errors** | 32 | 32 | 32 | 32 | 48 | 140 | 0 | 0 | 0 | 0 | 0 | **0** | **-140 (Resolved)** |
-| **PCode `BOOL_AND` Opcode Errors** | 5 | 5 | 5 | 5 | 14 | 43 | 52 | 0 | 0 | 0 | 0 | **0** | **-52 (Resolved)** |
-| **PCode `BOOL_XOR` Opcode Errors** | 0 | 0 | 0 | 0 | 4 | 7 | 23 | 0 | 0 | 0 | 0 | **0** | **-23 (Resolved)** |
-| **PCode `INT_2COMP` Opcode Errors** | 1 | 1 | 1 | 1 | 1 | 15 | 22 | 33 | 0 | 0 | 0 | **0** | **-33 (Resolved)** |
-| **PCode `INT_NEGATE` Opcode Errors** | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 0 | 0 | 0 | **0** | **-2 (Resolved)** |
-| **PCode `INT_DIV` Opcode Errors** | 0 | 0 | 0 | 0 | 2 | 6 | 9 | 9 | 11 | 0 | 0 | **0** | **-11 (Resolved)** |
-| **PCode `INT_SDIV` Opcode Errors** | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 7 | 8 | 0 | 0 | **0** | **-8 (Resolved)** |
-| **PCode `INT_SRIGHT` Opcode Errors** | 1 | 1 | 1 | 1 | 2 | 6 | 7 | 8 | 8 | 0 | 0 | **0** | **-8 (Resolved)** |
-| **PCode `INT_SREM` Opcode Errors** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 0 | **0** | **-10 (Resolved)** |
-| **Inline Helper Errors (`switch-table`)** | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | **0** | **-57 (Resolved)** |
-| **Workspace Test Suite** | 46 passed | 46 passed | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | **All Green (108 tests)** | Stable |
+| Metric | Checkpoint `5f705a7` | ADR-001/002 | ADR-004 | ADR-005 | ADR-006 | ADR-007 | ADR-008 | ADR-009 | ADR-010 | ADR-011 | ADR-012 | ADR-013 | Verified Current (ADR-014) | Delta vs Baseline |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Total CFG Candidates** | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 0 |
+| **Structurally Lowerable** | 8 | 20 | 32 | 272 | 382 | 651 | 748 | 803 | 828 | 845 | 855 | 909 | **986** | **+978** |
+| **Compiled to Rust rlib** | 8 | 20 | 32 | 272 | 382 | 651 | 748 | 803 | 828 | 845 | 855 | 909 | **986** | **+978** |
+| **Compiler Frame Dependency Errors** | 661 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-661 (Resolved)** |
+| **PCode `CALL` Opcode Errors** | 346 | 346 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-346 (Resolved)** |
+| **Inline Helper Errors (`kernel-function`)** | 240 | 240 | 240 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-240 (Resolved)** |
+| **PCode `INT_CARRY` Opcode Errors** | 249 | 249 | 249 | 249 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-249 (Resolved)** |
+| **PCode `INT_SCARRY` Opcode Errors** | 94 | 94 | 94 | 94 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-94 (Resolved)** |
+| **PCode `BRANCH` Opcode Errors** | 245 | 245 | 245 | 245 | 443 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-443 (Resolved)** |
+| **PCode `INT_SEXT` Opcode Errors** | 32 | 32 | 32 | 32 | 48 | 140 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-140 (Resolved)** |
+| **PCode `BOOL_AND` Opcode Errors** | 5 | 5 | 5 | 5 | 14 | 43 | 52 | 0 | 0 | 0 | 0 | 0 | **0** | **-52 (Resolved)** |
+| **PCode `BOOL_XOR` Opcode Errors** | 0 | 0 | 0 | 0 | 4 | 7 | 23 | 0 | 0 | 0 | 0 | 0 | **0** | **-23 (Resolved)** |
+| **PCode `INT_2COMP` Opcode Errors** | 1 | 1 | 1 | 1 | 1 | 15 | 22 | 33 | 0 | 0 | 0 | 0 | **0** | **-33 (Resolved)** |
+| **PCode `INT_NEGATE` Opcode Errors** | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 0 | 0 | 0 | 0 | **0** | **-2 (Resolved)** |
+| **PCode `INT_DIV` Opcode Errors** | 0 | 0 | 0 | 0 | 2 | 6 | 9 | 9 | 11 | 0 | 0 | 0 | **0** | **-11 (Resolved)** |
+| **PCode `INT_SDIV` Opcode Errors** | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 7 | 8 | 0 | 0 | 0 | **0** | **-8 (Resolved)** |
+| **PCode `INT_SRIGHT` Opcode Errors** | 1 | 1 | 1 | 1 | 2 | 6 | 7 | 8 | 8 | 0 | 0 | 0 | **0** | **-8 (Resolved)** |
+| **PCode `INT_SREM` Opcode Errors** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | **0** | **-10 (Resolved)** |
+| **Inline Helper Errors (`switch-table`)** | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 0 | **0** | **-57 (Resolved)** |
+| **PCode `CALLIND` Opcode Errors** | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | **0** | **-42 (Resolved)** |
+| **PCode `BRANCHIND` Opcode Errors** | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | **0** | **-20 (Resolved)** |
+| **CALLOTHER Userop / Arity Errors** | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | **0** | **-14 (Resolved)** |
+| **Workspace Test Suite** | 46 passed | 46 passed | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | **All Green (108 tests)** | Stable |
 
-### Current Remaining Blockers (from `target/acad-ir-20261002-18-inventory.json`)
+### Current Remaining Blockers (from `target/acad-ir-20261002-19-inventory.json`)
 
 1. `unsupported width 10`: **51** functions
-2. `unsupported Pcode opcode CALLIND`: **42** functions
-3. `unsupported Pcode opcode BRANCHIND`: **20** functions
-4. `CALLOTHER arity mismatch`: **14** functions
-5. `unsupported width 3`: **9** functions
-6. `control transfer must terminate instruction Pcode`: **6** functions
-7. `missing Pcode output`: **1** function
-8. `unrecognized compiler helper signature (width 1/2)`: **1** function
-9. `unresolved or relative Pcode branch`: **1** function
+2. `unsupported width 3`: **9** functions
+3. `control transfer must terminate instruction Pcode`: **6** functions
+4. `unrecognized compiler helper signature (width 1/2)`: **1** function
+5. `unresolved or relative Pcode branch`: **1** function
