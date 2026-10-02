@@ -39,6 +39,6 @@ def read_bytes(program, addr, n):
     """
     import jpype
 
-    buf = jpype.JArray(jpype.JByte)(n)
+    buf = jpype.JArray(jpype.JByte)(int(n))
     got = program.getMemory().getBytes(addr, buf)
     return bytes((b & 0xFF) for b in buf[:got])

@@ -135,6 +135,16 @@ def main(map_path, project_dir, out_dir):
         api.analyzeAll(program)
         print("analysis complete: %d functions" % program.getFunctionManager().getFunctionCount())
         export(program, out_dir)
+        from recover_flow import recover
+
+        recovered = recover(program, m, sys.modules[__name__])
+        for name, doc in (("analysis-map.json", m), ("recovered-cfg.json", recovered)):
+            with open(os.path.join(out_dir, name), "w") as fh:
+                json.dump(doc, fh, indent=1)
+                fh.write("\n")
+        errors = sum(bool(f["errors"]) for f in recovered["functions"])
+        print("recovered CFG: %d candidate functions, %d with decode errors"
+              % (len(recovered["functions"]), errors))
 
 
 if __name__ == "__main__":

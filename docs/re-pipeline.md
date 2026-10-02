@@ -29,12 +29,64 @@ Outputs land in `build/`:
 | `ast-pcode.json` | High P-Code, SSA form, keyed by function address |
 | `ast-clang.json` | Clang markup, a C AST linked back to P-Code varnodes |
 | `re-report.json` | The §8 decision-gate metrics |
+| `analysis-map.json` | Synthetic layout preserving native 16-bit IPs |
+| `recovered-cfg.json` | Instruction P-code, file offsets, inline operands, and recovered control flow |
 
 ## Why the format is decoded in Rust
 
 `acad-re` owns the `ACAD.OVL` container format and emits `ovl-map.json`. The
 PyGhidra scripts only place bytes where that file says. One implementation, one
 set of tests, and the layout stays covered by `cargo test`.
+
+## Corrected lifting — 2026-10-02
+
+The pipeline now converts JPype instruction lengths to Python integers and
+normalizes code addresses explicitly. Resident code begins at logical IP
+`0x0100`, as specified by the MZ header. The synthetic image-load segment is
+`0x1010`, resident CS is `0x1000`, DS/SS is `0x1E25`, and overlay analysis CS is
+`0x2000`. These are analysis addresses, not measured DOS allocation addresses.
+Aligning CS preserves the 16-bit relative-call wrap and saved return IP in
+Ghidra's x86 P-code. The original container map remains separate.
+
+`recovered-cfg.json` follows compiler conventions that the automatic listing
+misses: inline byte/word stack sizes, embedded switch tables, and kernel-call
+thunks whose operands are resident function offsets. Each instruction records
+its original EXE/OVL file offset and verified bytes. Indirect flow remains an
+explicit edge. A kernel thunk reads the function word and transfers through
+DS:4D76/4D78; the initialized offset and resident dispatcher recover the bridge
+at native IP `0x8F80`.
+
+Entry 2's dispatch wrappers select entries 3–7, load their low code ranges, then
+near-call their entry offsets under the same CS. Their writes stop before entry
+2's high code range. This establishes shared helpers on that dispatch path;
+DIM's inline stack size `0x82` at IP `0x0107` is data, and execution continues at
+`0x0108`. Directory entries 8/9 and 10 have byte-identical code **and data**
+subranges of entries 2 and 1 respectively. Recovery canonicalizes those views;
+it does not invent standalone runtime states for them.
+
+The exercised final flow pass recovered **1,054 candidate functions**, **68,631
+distinct instructions**, **329 inline stack sizes**, **62 switch tables**, and
+**240 kernel-call sites**. There were zero decode errors, original-byte
+mismatches, cross-function instruction overlaps, or instruction/inline-data
+overlaps. Six focused offline regression tests passed. The normal export entry
+point was also executed on a fresh project; the final directory-view refinement
+was executed against a separate copy of that normalized project.
+
+The first rerun's 30 high-P-code boundary flags comprise 19 shared tails/entry
+wrappers, ten incorrect instruction streams, and one data-segment phantom
+function. They are classified in the recovery ledger. Legacy high-P-code/Clang
+exports remain candidate decompiler output; their marker count is not proof of
+semantic correctness. Use the reconstructed CFG and compiler operands for the
+next IR work. Indirect targets, memory semantics, entity structures, and Rust
+lowering still need work; the older decision gate below is historical.
+
+Recorded runs and receipts are under
+`target/acad-recovery-pipeline-20261002-01/` and
+`target/acad-flow-recovery-20261002-03/`. Re-run the focused checks with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/ghidra -p test_recover_flow.py -v
+```
 
 ## Results — 2026-09-28
 

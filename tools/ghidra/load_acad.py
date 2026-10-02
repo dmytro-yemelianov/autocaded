@@ -16,6 +16,7 @@ import os
 import shutil
 import sys
 import tempfile
+from analysis_layout import normalize_layout
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ghidra_common as gc  # noqa: E402
@@ -28,7 +29,7 @@ from java.math import BigInteger  # noqa: E402
 
 def read_map(map_path):
     with open(map_path) as fh:
-        return json.load(fh)
+        return normalize_layout(json.load(fh))
 
 
 def set_segment_registers(ctx, block, code_seg, data_seg):
@@ -51,6 +52,14 @@ def set_segment_registers(ctx, block, code_seg, data_seg):
 
 def prepare(program, m):
     """Split the EXE into code and data, set the segment registers, verify."""
+    normalized = normalize_layout(m)
+    if normalized is not m:
+        m.clear()
+        m.update(normalized)
+    with open(m["exe"], "rb") as fh:
+        header = fh.read(32)
+    if header[:2] != b"MZ" or header[20:24] != bytes.fromhex("0001f0ff"):
+        raise ValueError("native-IP normalization requires the recovered MZ CS/IP")
     exe_code = next(b for b in m["blocks"] if b["name"] == "EXE_CODE")
     exe_data = next(b for b in m["blocks"] if b["name"] == "EXE_DATA")
     mem = program.getMemory()
@@ -60,6 +69,13 @@ def prepare(program, m):
     # without that, every string reference resolves to the wrong place.
     flat = gc.block_by_name(program, "CODE_0")
     if flat is not None:
+        wanted_start = gc.seg_addr(program, exe_code["seg"], exe_code["off"])
+        delta = wanted_start.subtract(flat.getStart())
+        if delta:
+            base = int(program.getImageBase().getOffset()) + int(delta)
+            if base & 15:
+                raise ValueError("normalized image base is not paragraph-aligned")
+            program.setImageBase(gc.seg_addr(program, base >> 4, 0), True)
         split_at = gc.seg_addr(program, exe_data["seg"], 0)
         mem.split(flat, split_at)
         mem.getBlock(flat.getStart()).setName("EXE_CODE")
@@ -82,7 +98,8 @@ def prepare(program, m):
     # resolve.
     for block in program.getMemory().getBlocks():
         if block.getName().startswith("OVL") and block.getName().endswith("_CODE"):
-            set_segment_registers(ctx, block, exe_code["seg"], exe_data["seg"])
+            overlay_spec = next(b for b in m["blocks"] if b["name"] == block.getName())
+            set_segment_registers(ctx, block, overlay_spec["seg"], exe_data["seg"])
 
     seeded = seed_entry_points(program, m)
     assert seeded == 11, "expected 11 overlay entry points, seeded %d" % seeded
