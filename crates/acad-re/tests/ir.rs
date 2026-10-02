@@ -1,5 +1,5 @@
 use acad_re::{
-    ir::{lower, verify_source, RecoveredExport},
+    ir::{lower, verify_source, CompilerFrame, InlineData, RecoveredDependency, RecoveredExport},
     rust_emit,
 };
 use std::{
@@ -25,16 +25,30 @@ fn rejects_unsafe_or_incomplete_inputs() {
                 .push(serde_json::json!("decode error"))
         },
         |e| {
-            e.functions[0]
-                .dependencies
-                .push(serde_json::json!("unresolved"))
+            e.functions[0].dependencies.push(RecoveredDependency {
+                block: "A".into(),
+                offset: 0,
+                kind: ("test".into(), None),
+                status: "test".into(),
+                signature_bytes: "".into(),
+            })
         },
         |e| {
-            e.functions[0]
-                .inline_data
-                .push(serde_json::json!("operand"))
+            e.functions[0].inline_data.push(InlineData {
+                offset: 0,
+                bytes: "".into(),
+                kind: "test".into(),
+                call: 0,
+                status: "test".into(),
+            })
         },
-        |e| e.functions[0].instructions[0].compiler_frame = Some(serde_json::json!({})),
+        |e| {
+            e.functions[0].instructions[0].compiler_frame = Some(CompilerFrame {
+                local_bytes: 0,
+                continuation: 0,
+                status: "test".into(),
+            })
+        },
         |e| e.functions[0].instructions[0].ops[0].op = "FLOAT_ADD".into(),
         |e| {
             e.functions[0].instructions[0].ops[0]
@@ -76,10 +90,8 @@ fn rejects_unsafe_or_incomplete_inputs() {
     for (index, mutate) in mutations.iter().enumerate() {
         let mut e = fixture();
         mutate(&mut e);
-        assert!(
-            lower(&e.architecture, &e.functions[0]).is_err(),
-            "mutation {index} accepted"
-        );
+        let res = lower(&e.architecture, &e.functions[0]);
+        assert!(res.is_err(), "mutation {index} accepted: {res:?}");
     }
 }
 

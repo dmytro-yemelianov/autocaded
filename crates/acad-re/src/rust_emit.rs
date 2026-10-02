@@ -21,10 +21,14 @@ fn expression(expr: &Expression, size: usize) -> String {
     match expr {
         Expression::Unary(op, input) => {
             let a = value(input);
+            let bits = input.width().bytes() * 8;
             match op {
                 Unary::Copy | Unary::ZeroExtend => a,
+                Unary::SignExtend => format!("(({a} as i{bits}) as u64)"),
                 Unary::BoolNegate => format!("u64::from({a} == 0)"),
                 Unary::Popcount => format!("({a}).count_ones() as u64"),
+                Unary::TwoComplement => format!("(0u64).wrapping_sub({a})"),
+                Unary::BitwiseNegate => format!("!{a}"),
             }
         }
         Expression::Binary(op, left, right) => {
@@ -35,18 +39,26 @@ fn expression(expr: &Expression, size: usize) -> String {
                 Binary::Add => format!("({a}).wrapping_add({b})"),
                 Binary::Sub => format!("({a}).wrapping_sub({b})"),
                 Binary::Multiply => format!("({a}).wrapping_mul({b})"),
+                Binary::Divide => format!("({a}).checked_div({b}).ok_or(Trap::DivisionByZero)?"),
+                Binary::SignedDivide => format!("(({a} as i{bits}).checked_div({b} as i{bits}).ok_or(Trap::DivisionByZero)? as u64)"),
                 Binary::And => format!("{a} & {b}"),
                 Binary::Or => format!("{a} | {b}"),
                 Binary::Xor => format!("{a} ^ {b}"),
                 Binary::Left => format!("shift_left({a}, {b})"),
                 Binary::Right => format!("shift_right({a}, {b})"),
+                Binary::SignedRight => format!("shift_signed_right({a}, {b}, {bits})"),
                 Binary::Remainder => format!("({a}).checked_rem({b}).ok_or(Trap::DivisionByZero)?"),
+                Binary::SignedRemainder => format!("(({a} as i{bits}).checked_rem({b} as i{bits}).ok_or(Trap::DivisionByZero)? as u64)"),
                 Binary::Equal => format!("u64::from({a} == {b})"),
                 Binary::NotEqual => format!("u64::from({a} != {b})"),
                 Binary::Less => format!("u64::from({a} < {b})"),
                 Binary::SignedLess => format!("u64::from(signed({a}, {bits}) < signed({b}, {bits}))"),
                 Binary::SignedBorrow => format!("u64::from((({a} ^ {b}) & ({a} ^ ({a}).wrapping_sub({b}))) & (1u64 << {}) != 0)", bits - 1),
+                Binary::Carry => format!("u64::from(({a} as u{bits}).overflowing_add({b} as u{bits}).1)"),
+                Binary::SignedCarry => format!("u64::from(({a} as i{bits}).overflowing_add({b} as i{bits}).1)"),
                 Binary::BoolOr => format!("u64::from({a} != 0 || {b} != 0)"),
+                Binary::BoolAnd => format!("u64::from({a} != 0 && {b} != 0)"),
+                Binary::BoolXor => format!("u64::from(({a} != 0) ^ ({b} != 0))"),
                 Binary::Subpiece => format!("shift_right({a}, ({b}).saturating_mul(8))"),
             }
         }
@@ -119,6 +131,12 @@ pub fn emit(function: &Function) -> String {
                 Operation::Return { target } => {
                     writeln!(source, "return Ok({});", value(target)).unwrap();
                 }
+                Operation::Jump { target } => {
+                    writeln!(source, "pc = {target}; continue;").unwrap();
+                }
+                Operation::Call { target } => {
+                    writeln!(source, "let _ = {target}; // call").unwrap();
+                }
                 Operation::Store {
                     pointer,
                     value: input,
@@ -131,6 +149,21 @@ pub fn emit(function: &Function) -> String {
                         input.width().bytes()
                     )
                     .unwrap();
+                }
+                Operation::Trap { condition } => {
+                    writeln!(
+                        source,
+                        "if {} != 0 {{ return Err(Trap::StackOverflow); }}",
+                        value(condition)
+                    )
+                    .unwrap();
+                }
+                Operation::TailCall {
+                    target_block,
+                    target,
+                } => {
+                    writeln!(source, "let _ = ({target_block:?}, {target}); // tailcall").unwrap();
+                    writeln!(source, "return Ok(0);").unwrap();
                 }
             }
         }
@@ -145,7 +178,7 @@ pub fn emit(function: &Function) -> String {
 
 const RUNTIME: &str = r#"// Generated from raw Pcode through acad-re's bounded integer IR.
 #[derive(Debug, PartialEq, Eq)]
-pub enum Trap { Memory, DivisionByZero, InvalidPc, Budget }
+pub enum Trap { Memory, DivisionByZero, InvalidPc, Budget, StackOverflow }
 #[allow(dead_code)]
 fn read(bank: &[u8], offset: usize, size: usize) -> u64 {
     bank[offset..offset + size].iter().enumerate()
@@ -183,5 +216,11 @@ fn shift_left(value: u64, count: u64) -> u64 {
 #[allow(dead_code)]
 fn shift_right(value: u64, count: u64) -> u64 {
     if count >= 64 { 0 } else { value >> count }
+}
+#[allow(dead_code)]
+fn shift_signed_right(value: u64, count: u64, bits: u32) -> u64 {
+    let signed_val = signed(value, bits);
+    let shift = if count >= bits as u64 { (bits - 1) as u64 } else { count };
+    (signed_val >> shift) as u64
 }
 "#;
