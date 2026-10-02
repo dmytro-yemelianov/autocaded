@@ -316,7 +316,15 @@ def recover(program, spec, exporter):
             rejected.append({"block": f["block"], "entry": f["entry"], "inline": reason})
         else:
             retained.append(f)
-    return {"functions": retained, "rejected_inline_seeds": rejected,
+    language = program.getLanguage()
+    architecture = {
+        "language": str(language.getLanguageID()),
+        "ram_space_id": int(program.getAddressFactory().getDefaultAddressSpace().getSpaceID()),
+        "userops": [str(language.getUserDefinedOpName(i))
+                    for i in range(language.getNumberOfUserDefinedOpNames())],
+    }
+    return {"architecture": architecture,
+            "functions": retained, "rejected_inline_seeds": rejected,
             "directory_views": views,
             "shared_dispatch_proofs": shared_dispatch,
             "kernel_bridge": {"native_ip": bridge_ip, "resident_offset": bridge,

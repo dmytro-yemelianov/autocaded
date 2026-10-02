@@ -1,0 +1,353 @@
+{
+  "architecture": {
+    "language": "x86:LE:16:Real Mode",
+    "ram_space_id": 497,
+    "userops": [
+      "segment"
+    ]
+  },
+  "functions": [
+    {
+      "block": "OVL04_CODE",
+      "entry": 6008,
+      "instructions": [
+        {
+          "offset": 6008,
+          "address": "OVL04_CODE::021778",
+          "bytes": "e30e",
+          "file": "ACAD.OVL",
+          "file_offset": 82296,
+          "instruction": "JCXZ 0x021788",
+          "ops": [
+            {"op":"INT_EQUAL","out":{"space":"unique","offset":497920,"size":1,"unique":true},"in":[{"space":"register","offset":4,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"CBRANCH","out":null,"in":[{"space":"ram","offset":137096,"size":4,"unique":false},{"space":"unique","offset":497920,"size":1,"unique":true}]}
+          ]
+        },
+        {
+          "offset": 6010,
+          "address": "OVL04_CODE::02177a",
+          "bytes": "83f920",
+          "file": "ACAD.OVL",
+          "file_offset": 82298,
+          "instruction": "CMP CX,0x20",
+          "ops": [
+            {"op":"COPY","out":{"space":"unique","offset":399360,"size":2,"unique":true},"in":[{"space":"register","offset":4,"size":2,"unique":false}]},
+            {"op":"INT_LESS","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"unique","offset":399360,"size":2,"unique":true},{"space":"const","offset":32,"size":2,"unique":false}]},
+            {"op":"INT_SBORROW","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"unique","offset":399360,"size":2,"unique":true},{"space":"const","offset":32,"size":2,"unique":false}]},
+            {"op":"INT_SUB","out":{"space":"unique","offset":399872,"size":2,"unique":true},"in":[{"space":"unique","offset":399360,"size":2,"unique":true},{"space":"const","offset":32,"size":2,"unique":false}]},
+            {"op":"INT_SLESS","out":{"space":"register","offset":519,"size":1,"unique":false},"in":[{"space":"unique","offset":399872,"size":2,"unique":true},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":518,"size":1,"unique":false},"in":[{"space":"unique","offset":399872,"size":2,"unique":true},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301056,"size":2,"unique":true},"in":[{"space":"unique","offset":399872,"size":2,"unique":true},{"space":"const","offset":255,"size":2,"unique":false}]},
+            {"op":"POPCOUNT","out":{"space":"unique","offset":301312,"size":1,"unique":true},"in":[{"space":"unique","offset":301056,"size":2,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301568,"size":1,"unique":true},"in":[{"space":"unique","offset":301312,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":514,"size":1,"unique":false},"in":[{"space":"unique","offset":301568,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 6013,
+          "address": "OVL04_CODE::02177d",
+          "bytes": "7603",
+          "file": "ACAD.OVL",
+          "file_offset": 82301,
+          "instruction": "JBE 0x021782",
+          "ops": [
+            {"op":"BOOL_OR","out":{"space":"unique","offset":97792,"size":1,"unique":true},"in":[{"space":"register","offset":512,"size":1,"unique":false},{"space":"register","offset":518,"size":1,"unique":false}]},
+            {"op":"CBRANCH","out":null,"in":[{"space":"ram","offset":137090,"size":4,"unique":false},{"space":"unique","offset":97792,"size":1,"unique":true}]}
+          ]
+        },
+        {
+          "offset": 6015,
+          "address": "OVL04_CODE::02177f",
+          "bytes": "b92000",
+          "file": "ACAD.OVL",
+          "file_offset": 82303,
+          "instruction": "MOV CX,0x20",
+          "ops": [
+            {"op":"COPY","out":{"space":"register","offset":4,"size":2,"unique":false},"in":[{"space":"const","offset":32,"size":2,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 6018,
+          "address": "OVL04_CODE::021782",
+          "bytes": "d1e0",
+          "file": "ACAD.OVL",
+          "file_offset": 82306,
+          "instruction": "SHL AX,0x1",
+          "ops": [
+            {"op":"INT_SLESS","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_LEFT","out":{"space":"register","offset":0,"size":2,"unique":false},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":1,"size":4,"unique":false}]},
+            {"op":"INT_SLESS","out":{"space":"unique","offset":630016,"size":1,"unique":true},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_XOR","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"register","offset":512,"size":1,"unique":false},{"space":"unique","offset":630016,"size":1,"unique":true}]},
+            {"op":"INT_SLESS","out":{"space":"register","offset":519,"size":1,"unique":false},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":518,"size":1,"unique":false},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301056,"size":2,"unique":true},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":255,"size":2,"unique":false}]},
+            {"op":"POPCOUNT","out":{"space":"unique","offset":301312,"size":1,"unique":true},"in":[{"space":"unique","offset":301056,"size":2,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301568,"size":1,"unique":true},"in":[{"space":"unique","offset":301312,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":514,"size":1,"unique":false},"in":[{"space":"unique","offset":301568,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 6020,
+          "address": "OVL04_CODE::021784",
+          "bytes": "d1d2",
+          "file": "ACAD.OVL",
+          "file_offset": 82308,
+          "instruction": "RCL DX,0x1",
+          "ops": [
+            {"op":"INT_AND","out":{"space":"unique","offset":546560,"size":1,"unique":true},"in":[{"space":"const","offset":1,"size":1,"unique":false},{"space":"const","offset":31,"size":1,"unique":false}]},
+            {"op":"INT_REM","out":{"space":"unique","offset":547072,"size":1,"unique":true},"in":[{"space":"unique","offset":546560,"size":1,"unique":true},{"space":"const","offset":17,"size":1,"unique":false}]},
+            {"op":"INT_ZEXT","out":{"space":"unique","offset":547328,"size":4,"unique":true},"in":[{"space":"register","offset":512,"size":1,"unique":false}]},
+            {"op":"INT_LEFT","out":{"space":"unique","offset":547584,"size":4,"unique":true},"in":[{"space":"unique","offset":547328,"size":4,"unique":true},{"space":"const","offset":16,"size":4,"unique":false}]},
+            {"op":"INT_ZEXT","out":{"space":"unique","offset":547840,"size":4,"unique":true},"in":[{"space":"register","offset":8,"size":2,"unique":false}]},
+            {"op":"INT_OR","out":{"space":"unique","offset":548352,"size":4,"unique":true},"in":[{"space":"unique","offset":547584,"size":4,"unique":true},{"space":"unique","offset":547840,"size":4,"unique":true}]},
+            {"op":"INT_LEFT","out":{"space":"unique","offset":548608,"size":4,"unique":true},"in":[{"space":"unique","offset":548352,"size":4,"unique":true},{"space":"unique","offset":547072,"size":1,"unique":true}]},
+            {"op":"INT_SUB","out":{"space":"unique","offset":548864,"size":1,"unique":true},"in":[{"space":"const","offset":17,"size":1,"unique":false},{"space":"unique","offset":547072,"size":1,"unique":true}]},
+            {"op":"INT_RIGHT","out":{"space":"unique","offset":549120,"size":4,"unique":true},"in":[{"space":"unique","offset":548352,"size":4,"unique":true},{"space":"unique","offset":548864,"size":1,"unique":true}]},
+            {"op":"INT_OR","out":{"space":"unique","offset":548352,"size":4,"unique":true},"in":[{"space":"unique","offset":548608,"size":4,"unique":true},{"space":"unique","offset":549120,"size":4,"unique":true}]},
+            {"op":"SUBPIECE","out":{"space":"register","offset":8,"size":2,"unique":false},"in":[{"space":"unique","offset":548352,"size":4,"unique":true},{"space":"const","offset":0,"size":4,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"unique","offset":549888,"size":1,"unique":true},"in":[{"space":"unique","offset":547072,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":550144,"size":4,"unique":true},"in":[{"space":"unique","offset":548352,"size":4,"unique":true},{"space":"const","offset":65536,"size":4,"unique":false}]},
+            {"op":"INT_NOTEQUAL","out":{"space":"unique","offset":550400,"size":1,"unique":true},"in":[{"space":"unique","offset":550144,"size":4,"unique":true},{"space":"const","offset":0,"size":4,"unique":false}]},
+            {"op":"COPY","out":{"space":"unique","offset":0,"size":1,"unique":true},"in":[{"space":"unique","offset":549888,"size":1,"unique":true}]},
+            {"op":"INT_MULT","out":{"space":"unique","offset":256,"size":1,"unique":true},"in":[{"space":"unique","offset":0,"size":1,"unique":true},{"space":"register","offset":512,"size":1,"unique":false}]},
+            {"op":"BOOL_NEGATE","out":{"space":"unique","offset":512,"size":1,"unique":true},"in":[{"space":"unique","offset":549888,"size":1,"unique":true}]},
+            {"op":"COPY","out":{"space":"unique","offset":768,"size":1,"unique":true},"in":[{"space":"unique","offset":512,"size":1,"unique":true}]},
+            {"op":"INT_MULT","out":{"space":"unique","offset":1024,"size":1,"unique":true},"in":[{"space":"unique","offset":768,"size":1,"unique":true},{"space":"unique","offset":550400,"size":1,"unique":true}]},
+            {"op":"INT_OR","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"unique","offset":256,"size":1,"unique":true},{"space":"unique","offset":1024,"size":1,"unique":true}]},
+            {"op":"INT_EQUAL","out":{"space":"unique","offset":550656,"size":1,"unique":true},"in":[{"space":"unique","offset":547072,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_SLESS","out":{"space":"unique","offset":550912,"size":1,"unique":true},"in":[{"space":"register","offset":8,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_XOR","out":{"space":"unique","offset":551168,"size":1,"unique":true},"in":[{"space":"register","offset":512,"size":1,"unique":false},{"space":"unique","offset":550912,"size":1,"unique":true}]},
+            {"op":"COPY","out":{"space":"unique","offset":0,"size":1,"unique":true},"in":[{"space":"unique","offset":550656,"size":1,"unique":true}]},
+            {"op":"INT_MULT","out":{"space":"unique","offset":256,"size":1,"unique":true},"in":[{"space":"unique","offset":0,"size":1,"unique":true},{"space":"unique","offset":551168,"size":1,"unique":true}]},
+            {"op":"BOOL_NEGATE","out":{"space":"unique","offset":512,"size":1,"unique":true},"in":[{"space":"unique","offset":550656,"size":1,"unique":true}]},
+            {"op":"COPY","out":{"space":"unique","offset":768,"size":1,"unique":true},"in":[{"space":"unique","offset":512,"size":1,"unique":true}]},
+            {"op":"INT_MULT","out":{"space":"unique","offset":1024,"size":1,"unique":true},"in":[{"space":"unique","offset":768,"size":1,"unique":true},{"space":"register","offset":523,"size":1,"unique":false}]},
+            {"op":"INT_OR","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"unique","offset":256,"size":1,"unique":true},{"space":"unique","offset":1024,"size":1,"unique":true}]}
+          ]
+        },
+        {
+          "offset": 6022,
+          "address": "OVL04_CODE::021786",
+          "bytes": "e2fa",
+          "file": "ACAD.OVL",
+          "file_offset": 82310,
+          "instruction": "LOOP 0x021782",
+          "ops": [
+            {"op":"INT_SUB","out":{"space":"register","offset":4,"size":2,"unique":false},"in":[{"space":"register","offset":4,"size":2,"unique":false},{"space":"const","offset":1,"size":2,"unique":false}]},
+            {"op":"INT_NOTEQUAL","out":{"space":"unique","offset":515072,"size":1,"unique":true},"in":[{"space":"register","offset":4,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"CBRANCH","out":null,"in":[{"space":"ram","offset":137090,"size":4,"unique":false},{"space":"unique","offset":515072,"size":1,"unique":true}]}
+          ]
+        },
+        {
+          "offset": 6024,
+          "address": "OVL04_CODE::021788",
+          "bytes": "c3",
+          "file": "ACAD.OVL",
+          "file_offset": 82312,
+          "instruction": "RET",
+          "ops": [
+            {"op":"CALLOTHER","out":{"space":"unique","offset":269312,"size":4,"unique":true},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":260,"size":2,"unique":false},{"space":"register","offset":16,"size":2,"unique":false}]},
+            {"op":"LOAD","out":{"space":"register","offset":644,"size":2,"unique":false},"in":[{"space":"const","offset":497,"size":8,"unique":false},{"space":"unique","offset":269312,"size":4,"unique":true}]},
+            {"op":"INT_ADD","out":{"space":"register","offset":16,"size":2,"unique":false},"in":[{"space":"register","offset":16,"size":2,"unique":false},{"space":"const","offset":2,"size":2,"unique":false}]},
+            {"op":"CALLOTHER","out":{"space":"register","offset":644,"size":4,"unique":false},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":258,"size":2,"unique":false},{"space":"register","offset":644,"size":2,"unique":false}]},
+            {"op":"RETURN","out":null,"in":[{"space":"register","offset":644,"size":4,"unique":false}]}
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": 6008,
+          "kind": "branch",
+          "to": 6024
+        },
+        {
+          "from": 6013,
+          "kind": "branch",
+          "to": 6018
+        },
+        {
+          "from": 6022,
+          "kind": "branch",
+          "to": 6018
+        }
+      ],
+      "inline_data": [],
+      "dependencies": [],
+      "errors": []
+    },
+    {
+      "block": "OVL01_CODE",
+      "entry": 20280,
+      "instructions": [
+        {
+          "offset": 20280,
+          "address": "OVL01_CODE::024f38",
+          "bytes": "e30e",
+          "file": "ACAD.OVL",
+          "file_offset": 57784,
+          "instruction": "JCXZ 0x024f48",
+          "ops": [
+            {"op":"INT_EQUAL","out":{"space":"unique","offset":497920,"size":1,"unique":true},"in":[{"space":"register","offset":4,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"CBRANCH","out":null,"in":[{"space":"ram","offset":151368,"size":4,"unique":false},{"space":"unique","offset":497920,"size":1,"unique":true}]}
+          ]
+        },
+        {
+          "offset": 20282,
+          "address": "OVL01_CODE::024f3a",
+          "bytes": "83f920",
+          "file": "ACAD.OVL",
+          "file_offset": 57786,
+          "instruction": "CMP CX,0x20",
+          "ops": [
+            {"op":"COPY","out":{"space":"unique","offset":399360,"size":2,"unique":true},"in":[{"space":"register","offset":4,"size":2,"unique":false}]},
+            {"op":"INT_LESS","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"unique","offset":399360,"size":2,"unique":true},{"space":"const","offset":32,"size":2,"unique":false}]},
+            {"op":"INT_SBORROW","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"unique","offset":399360,"size":2,"unique":true},{"space":"const","offset":32,"size":2,"unique":false}]},
+            {"op":"INT_SUB","out":{"space":"unique","offset":399872,"size":2,"unique":true},"in":[{"space":"unique","offset":399360,"size":2,"unique":true},{"space":"const","offset":32,"size":2,"unique":false}]},
+            {"op":"INT_SLESS","out":{"space":"register","offset":519,"size":1,"unique":false},"in":[{"space":"unique","offset":399872,"size":2,"unique":true},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":518,"size":1,"unique":false},"in":[{"space":"unique","offset":399872,"size":2,"unique":true},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301056,"size":2,"unique":true},"in":[{"space":"unique","offset":399872,"size":2,"unique":true},{"space":"const","offset":255,"size":2,"unique":false}]},
+            {"op":"POPCOUNT","out":{"space":"unique","offset":301312,"size":1,"unique":true},"in":[{"space":"unique","offset":301056,"size":2,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301568,"size":1,"unique":true},"in":[{"space":"unique","offset":301312,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":514,"size":1,"unique":false},"in":[{"space":"unique","offset":301568,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 20285,
+          "address": "OVL01_CODE::024f3d",
+          "bytes": "7603",
+          "file": "ACAD.OVL",
+          "file_offset": 57789,
+          "instruction": "JBE 0x024f42",
+          "ops": [
+            {"op":"BOOL_OR","out":{"space":"unique","offset":97792,"size":1,"unique":true},"in":[{"space":"register","offset":512,"size":1,"unique":false},{"space":"register","offset":518,"size":1,"unique":false}]},
+            {"op":"CBRANCH","out":null,"in":[{"space":"ram","offset":151362,"size":4,"unique":false},{"space":"unique","offset":97792,"size":1,"unique":true}]}
+          ]
+        },
+        {
+          "offset": 20287,
+          "address": "OVL01_CODE::024f3f",
+          "bytes": "b92000",
+          "file": "ACAD.OVL",
+          "file_offset": 57791,
+          "instruction": "MOV CX,0x20",
+          "ops": [
+            {"op":"COPY","out":{"space":"register","offset":4,"size":2,"unique":false},"in":[{"space":"const","offset":32,"size":2,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 20290,
+          "address": "OVL01_CODE::024f42",
+          "bytes": "d1e0",
+          "file": "ACAD.OVL",
+          "file_offset": 57794,
+          "instruction": "SHL AX,0x1",
+          "ops": [
+            {"op":"INT_SLESS","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_LEFT","out":{"space":"register","offset":0,"size":2,"unique":false},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":1,"size":4,"unique":false}]},
+            {"op":"INT_SLESS","out":{"space":"unique","offset":630016,"size":1,"unique":true},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_XOR","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"register","offset":512,"size":1,"unique":false},{"space":"unique","offset":630016,"size":1,"unique":true}]},
+            {"op":"INT_SLESS","out":{"space":"register","offset":519,"size":1,"unique":false},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":518,"size":1,"unique":false},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301056,"size":2,"unique":true},"in":[{"space":"register","offset":0,"size":2,"unique":false},{"space":"const","offset":255,"size":2,"unique":false}]},
+            {"op":"POPCOUNT","out":{"space":"unique","offset":301312,"size":1,"unique":true},"in":[{"space":"unique","offset":301056,"size":2,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301568,"size":1,"unique":true},"in":[{"space":"unique","offset":301312,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":514,"size":1,"unique":false},"in":[{"space":"unique","offset":301568,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 20292,
+          "address": "OVL01_CODE::024f44",
+          "bytes": "d1d2",
+          "file": "ACAD.OVL",
+          "file_offset": 57796,
+          "instruction": "RCL DX,0x1",
+          "ops": [
+            {"op":"INT_AND","out":{"space":"unique","offset":546560,"size":1,"unique":true},"in":[{"space":"const","offset":1,"size":1,"unique":false},{"space":"const","offset":31,"size":1,"unique":false}]},
+            {"op":"INT_REM","out":{"space":"unique","offset":547072,"size":1,"unique":true},"in":[{"space":"unique","offset":546560,"size":1,"unique":true},{"space":"const","offset":17,"size":1,"unique":false}]},
+            {"op":"INT_ZEXT","out":{"space":"unique","offset":547328,"size":4,"unique":true},"in":[{"space":"register","offset":512,"size":1,"unique":false}]},
+            {"op":"INT_LEFT","out":{"space":"unique","offset":547584,"size":4,"unique":true},"in":[{"space":"unique","offset":547328,"size":4,"unique":true},{"space":"const","offset":16,"size":4,"unique":false}]},
+            {"op":"INT_ZEXT","out":{"space":"unique","offset":547840,"size":4,"unique":true},"in":[{"space":"register","offset":8,"size":2,"unique":false}]},
+            {"op":"INT_OR","out":{"space":"unique","offset":548352,"size":4,"unique":true},"in":[{"space":"unique","offset":547584,"size":4,"unique":true},{"space":"unique","offset":547840,"size":4,"unique":true}]},
+            {"op":"INT_LEFT","out":{"space":"unique","offset":548608,"size":4,"unique":true},"in":[{"space":"unique","offset":548352,"size":4,"unique":true},{"space":"unique","offset":547072,"size":1,"unique":true}]},
+            {"op":"INT_SUB","out":{"space":"unique","offset":548864,"size":1,"unique":true},"in":[{"space":"const","offset":17,"size":1,"unique":false},{"space":"unique","offset":547072,"size":1,"unique":true}]},
+            {"op":"INT_RIGHT","out":{"space":"unique","offset":549120,"size":4,"unique":true},"in":[{"space":"unique","offset":548352,"size":4,"unique":true},{"space":"unique","offset":548864,"size":1,"unique":true}]},
+            {"op":"INT_OR","out":{"space":"unique","offset":548352,"size":4,"unique":true},"in":[{"space":"unique","offset":548608,"size":4,"unique":true},{"space":"unique","offset":549120,"size":4,"unique":true}]},
+            {"op":"SUBPIECE","out":{"space":"register","offset":8,"size":2,"unique":false},"in":[{"space":"unique","offset":548352,"size":4,"unique":true},{"space":"const","offset":0,"size":4,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"unique","offset":549888,"size":1,"unique":true},"in":[{"space":"unique","offset":547072,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":550144,"size":4,"unique":true},"in":[{"space":"unique","offset":548352,"size":4,"unique":true},{"space":"const","offset":65536,"size":4,"unique":false}]},
+            {"op":"INT_NOTEQUAL","out":{"space":"unique","offset":550400,"size":1,"unique":true},"in":[{"space":"unique","offset":550144,"size":4,"unique":true},{"space":"const","offset":0,"size":4,"unique":false}]},
+            {"op":"COPY","out":{"space":"unique","offset":0,"size":1,"unique":true},"in":[{"space":"unique","offset":549888,"size":1,"unique":true}]},
+            {"op":"INT_MULT","out":{"space":"unique","offset":256,"size":1,"unique":true},"in":[{"space":"unique","offset":0,"size":1,"unique":true},{"space":"register","offset":512,"size":1,"unique":false}]},
+            {"op":"BOOL_NEGATE","out":{"space":"unique","offset":512,"size":1,"unique":true},"in":[{"space":"unique","offset":549888,"size":1,"unique":true}]},
+            {"op":"COPY","out":{"space":"unique","offset":768,"size":1,"unique":true},"in":[{"space":"unique","offset":512,"size":1,"unique":true}]},
+            {"op":"INT_MULT","out":{"space":"unique","offset":1024,"size":1,"unique":true},"in":[{"space":"unique","offset":768,"size":1,"unique":true},{"space":"unique","offset":550400,"size":1,"unique":true}]},
+            {"op":"INT_OR","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"unique","offset":256,"size":1,"unique":true},{"space":"unique","offset":1024,"size":1,"unique":true}]},
+            {"op":"INT_EQUAL","out":{"space":"unique","offset":550656,"size":1,"unique":true},"in":[{"space":"unique","offset":547072,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_SLESS","out":{"space":"unique","offset":550912,"size":1,"unique":true},"in":[{"space":"register","offset":8,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_XOR","out":{"space":"unique","offset":551168,"size":1,"unique":true},"in":[{"space":"register","offset":512,"size":1,"unique":false},{"space":"unique","offset":550912,"size":1,"unique":true}]},
+            {"op":"COPY","out":{"space":"unique","offset":0,"size":1,"unique":true},"in":[{"space":"unique","offset":550656,"size":1,"unique":true}]},
+            {"op":"INT_MULT","out":{"space":"unique","offset":256,"size":1,"unique":true},"in":[{"space":"unique","offset":0,"size":1,"unique":true},{"space":"unique","offset":551168,"size":1,"unique":true}]},
+            {"op":"BOOL_NEGATE","out":{"space":"unique","offset":512,"size":1,"unique":true},"in":[{"space":"unique","offset":550656,"size":1,"unique":true}]},
+            {"op":"COPY","out":{"space":"unique","offset":768,"size":1,"unique":true},"in":[{"space":"unique","offset":512,"size":1,"unique":true}]},
+            {"op":"INT_MULT","out":{"space":"unique","offset":1024,"size":1,"unique":true},"in":[{"space":"unique","offset":768,"size":1,"unique":true},{"space":"register","offset":523,"size":1,"unique":false}]},
+            {"op":"INT_OR","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"unique","offset":256,"size":1,"unique":true},{"space":"unique","offset":1024,"size":1,"unique":true}]}
+          ]
+        },
+        {
+          "offset": 20294,
+          "address": "OVL01_CODE::024f46",
+          "bytes": "e2fa",
+          "file": "ACAD.OVL",
+          "file_offset": 57798,
+          "instruction": "LOOP 0x024f42",
+          "ops": [
+            {"op":"INT_SUB","out":{"space":"register","offset":4,"size":2,"unique":false},"in":[{"space":"register","offset":4,"size":2,"unique":false},{"space":"const","offset":1,"size":2,"unique":false}]},
+            {"op":"INT_NOTEQUAL","out":{"space":"unique","offset":515072,"size":1,"unique":true},"in":[{"space":"register","offset":4,"size":2,"unique":false},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"CBRANCH","out":null,"in":[{"space":"ram","offset":151362,"size":4,"unique":false},{"space":"unique","offset":515072,"size":1,"unique":true}]}
+          ]
+        },
+        {
+          "offset": 20296,
+          "address": "OVL01_CODE::024f48",
+          "bytes": "c3",
+          "file": "ACAD.OVL",
+          "file_offset": 57800,
+          "instruction": "RET",
+          "ops": [
+            {"op":"CALLOTHER","out":{"space":"unique","offset":269312,"size":4,"unique":true},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":260,"size":2,"unique":false},{"space":"register","offset":16,"size":2,"unique":false}]},
+            {"op":"LOAD","out":{"space":"register","offset":644,"size":2,"unique":false},"in":[{"space":"const","offset":497,"size":8,"unique":false},{"space":"unique","offset":269312,"size":4,"unique":true}]},
+            {"op":"INT_ADD","out":{"space":"register","offset":16,"size":2,"unique":false},"in":[{"space":"register","offset":16,"size":2,"unique":false},{"space":"const","offset":2,"size":2,"unique":false}]},
+            {"op":"CALLOTHER","out":{"space":"register","offset":644,"size":4,"unique":false},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":258,"size":2,"unique":false},{"space":"register","offset":644,"size":2,"unique":false}]},
+            {"op":"RETURN","out":null,"in":[{"space":"register","offset":644,"size":4,"unique":false}]}
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": 20280,
+          "kind": "branch",
+          "to": 20296
+        },
+        {
+          "from": 20285,
+          "kind": "branch",
+          "to": 20290
+        },
+        {
+          "from": 20294,
+          "kind": "branch",
+          "to": 20290
+        }
+      ],
+      "inline_data": [],
+      "dependencies": [],
+      "errors": []
+    }
+  ],
+  "provenance": {
+    "cfg_sha256": "07148cae6cf6a0f4df13eb487037154129161878c0192f302eb756bde16b4e45",
+    "source_sha256": "c2e1ee5b538e53df022dbb8aba6ab65a3946b8a332438bdaf39a3938a43e0da8",
+    "scope": "DIM overlay bounded 32-bit left-shift leaf; machine-state translation only",
+    "userops_scope": "Only referenced userop index 0 retained; full names read from the same Ghidra program."
+  }
+}

@@ -4,6 +4,8 @@
 pub mod analysis;
 pub mod ast;
 pub mod error;
+pub mod ir;
 pub mod ovl;
+pub mod rust_emit;
 
 pub use error::ReError;

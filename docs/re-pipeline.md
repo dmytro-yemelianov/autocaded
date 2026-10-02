@@ -1,7 +1,8 @@
 # Reverse-engineering pipeline
 
-Reproduces the Ghidra analysis of AutoCAD 1.4 from the raw disk images. Nothing
-it produces is committed; everything it produces is regenerable.
+Reproduces the Ghidra analysis of AutoCAD 1.4 from the raw disk images.
+Full exports stay in ignored artifact directories. Small regression excerpts
+are committed under `crates/acad-re/tests/fixtures/` with source provenance.
 
 ## Prerequisites
 
@@ -87,6 +88,74 @@ Recorded runs and receipts are under
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/ghidra -p test_recover_flow.py -v
 ```
+
+## Bounded CFG → IR → Rust — 2026-10-02
+
+`acad-re::ir` lowers original-byte-checked instruction Pcode to a typed integer
+machine-state IR. `acad-re::rust_emit` emits standalone Rust from that IR; it does
+not substitute a manually written implementation. The export must include
+measured language, RAM-space ID, and userop names. `CALLOTHER` is accepted only
+for the verified x86 real-mode `segment` operation. No shipped crate depends on
+this code, and the historical whole-port decision below remains historical.
+
+The first supported subset has 1/2/4/8-byte integer values, byte-addressed
+registers preserving aliases, temporary storage with checked definitions,
+conditional branches, LOAD/STORE, and returns. All instruction targets must
+resolve within the selected function. Unsupported operations, compiler inline
+data, call dependencies, or incomplete flow fail before emission. `re-inventory`
+checks original bytes for every candidate and reports the first lowering
+rejection for each; it does not certify behavior.
+
+Generated `run` takes a Ghidra register bank (`[u8; 1024]`), mutable linear RAM,
+and an instruction budget. Memory accesses are little-endian and bounds checked;
+segment addresses are `(segment << 4) + offset`. There is no implicit A20 wrap or
+DOS relocation claim. Register and pointer arithmetic retain their Pcode widths.
+A budget or memory trap can occur after earlier effects; execution is not a
+transaction. Calls, indirect transfers, x87 values, and general microbranches
+are still unsupported.
+
+A fresh read-only recovery pass on a copied normalized project completed in
+13.27 seconds, preserving the 1,054 candidates and adding architecture metadata.
+Artifacts are in `target/acad-ir-20261002-01/`: `export/recovered-cfg.json`,
+`execution.json`, `ir-inventory-final.json`, `translation-execution.json`, and
+`functions/`. Eight functions were lowered and compiled as standalone Rust
+libraries with warnings denied. Four copies have independent instruction-level
+reference checks:
+
+- `OVL04_CODE:1778` and `OVL01_CODE:4F38`: shift DX:AX left by unsigned CX,
+  capped at 32; 76,544 cases per copy, including every CX value.
+- `OVL02_CODE:F332` and `EXE_CODE:B12A`: test the word at DS:(SP+8) against
+  `7FF0`, conditionally XOR the byte at DS:(SP+9) with `80`; 65,581 cases per
+  copy, including every word value and segment/offset boundaries.
+
+Checks compare complete register banks, flags, return addresses and memory.
+They compile and run the emitted Rust; the reference never evaluates Pcode or
+IR. Committed fixtures retain original CFG/image hashes and only the referenced
+userop name. The other four accepted functions have compilation validation
+only. No fresh native differential execution or DIM geometry parity is claimed.
+
+Replay a committed slice against the preserved original images:
+
+```sh
+cargo run -p acad-re --bin re-lower -- \
+  crates/acad-re/tests/fixtures/dim-shift-cfg.json OVL04_CODE 1778 \
+  target/acad-ir-20261002-01/input target/dim-shift-rust-replay
+rustc --edition=2021 --crate-type lib -D warnings \
+  target/dim-shift-rust-replay/function.rs -o target/dim-shift-rust-replay/function.rlib
+cargo test -p acad-re --test ir
+```
+
+The output directory must be new. For a complete inventory:
+
+```sh
+cargo run -p acad-re --bin re-inventory -- \
+  target/acad-ir-20261002-01/export/recovered-cfg.json \
+  target/acad-ir-20261002-01/input target/ir-inventory-replay.json
+```
+
+The report file must be new. Next work is compiler helper/call lowering, followed
+by unresolved control flow and the integer/x87 operations required by the chosen
+geometry routines. Structural inventory counts do not replace semantic tests.
 
 ## Results — 2026-09-28
 

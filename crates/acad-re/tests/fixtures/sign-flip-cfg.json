@@ -1,0 +1,222 @@
+{
+  "architecture": {
+    "language": "x86:LE:16:Real Mode",
+    "ram_space_id": 497,
+    "userops": [
+      "segment"
+    ]
+  },
+  "functions": [
+    {
+      "block": "OVL02_CODE",
+      "entry": 62258,
+      "instructions": [
+        {
+          "offset": 62258,
+          "address": "OVL02_CODE::02f332",
+          "bytes": "8bdc",
+          "file": "ACAD.OVL",
+          "file_offset": 168386,
+          "instruction": "MOV BX,SP",
+          "ops": [
+            {"op":"COPY","out":{"space":"register","offset":12,"size":2,"unique":false},"in":[{"space":"register","offset":16,"size":2,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 62260,
+          "address": "OVL02_CODE::02f334",
+          "bytes": "f74708f07f",
+          "file": "ACAD.OVL",
+          "file_offset": 168388,
+          "instruction": "TEST word ptr [BX + 0x8],0x7ff0",
+          "ops": [
+            {"op":"INT_ADD","out":{"space":"unique","offset":20480,"size":2,"unique":true},"in":[{"space":"register","offset":12,"size":2,"unique":false},{"space":"const","offset":8,"size":2,"unique":false}]},
+            {"op":"CALLOTHER","out":{"space":"unique","offset":39424,"size":4,"unique":true},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":262,"size":2,"unique":false},{"space":"unique","offset":20480,"size":2,"unique":true}]},
+            {"op":"COPY","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"COPY","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"LOAD","out":{"space":"unique","offset":94464,"size":2,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":667136,"size":2,"unique":true},"in":[{"space":"unique","offset":94464,"size":2,"unique":true},{"space":"const","offset":32752,"size":2,"unique":false}]},
+            {"op":"INT_SLESS","out":{"space":"register","offset":519,"size":1,"unique":false},"in":[{"space":"unique","offset":667136,"size":2,"unique":true},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":518,"size":1,"unique":false},"in":[{"space":"unique","offset":667136,"size":2,"unique":true},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301056,"size":2,"unique":true},"in":[{"space":"unique","offset":667136,"size":2,"unique":true},{"space":"const","offset":255,"size":2,"unique":false}]},
+            {"op":"POPCOUNT","out":{"space":"unique","offset":301312,"size":1,"unique":true},"in":[{"space":"unique","offset":301056,"size":2,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301568,"size":1,"unique":true},"in":[{"space":"unique","offset":301312,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":514,"size":1,"unique":false},"in":[{"space":"unique","offset":301568,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 62265,
+          "address": "OVL02_CODE::02f339",
+          "bytes": "7404",
+          "file": "ACAD.OVL",
+          "file_offset": 168393,
+          "instruction": "JZ 0x02f33f",
+          "ops": [
+            {"op":"CBRANCH","out":null,"in":[{"space":"ram","offset":193343,"size":4,"unique":false},{"space":"register","offset":518,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 62267,
+          "address": "OVL02_CODE::02f33b",
+          "bytes": "80770980",
+          "file": "ACAD.OVL",
+          "file_offset": 168395,
+          "instruction": "XOR byte ptr [BX + 0x9],0x80",
+          "ops": [
+            {"op":"INT_ADD","out":{"space":"unique","offset":20480,"size":2,"unique":true},"in":[{"space":"register","offset":12,"size":2,"unique":false},{"space":"const","offset":9,"size":2,"unique":false}]},
+            {"op":"CALLOTHER","out":{"space":"unique","offset":39424,"size":4,"unique":true},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":262,"size":2,"unique":false},{"space":"unique","offset":20480,"size":2,"unique":true}]},
+            {"op":"COPY","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"COPY","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"LOAD","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_XOR","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"unique","offset":41216,"size":1,"unique":true},{"space":"const","offset":128,"size":1,"unique":false}]},
+            {"op":"STORE","out":null,"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true},{"space":"unique","offset":41216,"size":1,"unique":true}]},
+            {"op":"LOAD","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_SLESS","out":{"space":"register","offset":519,"size":1,"unique":false},"in":[{"space":"unique","offset":41216,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"LOAD","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":518,"size":1,"unique":false},"in":[{"space":"unique","offset":41216,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"LOAD","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301056,"size":1,"unique":true},"in":[{"space":"unique","offset":41216,"size":1,"unique":true},{"space":"const","offset":255,"size":1,"unique":false}]},
+            {"op":"POPCOUNT","out":{"space":"unique","offset":301312,"size":1,"unique":true},"in":[{"space":"unique","offset":301056,"size":1,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301568,"size":1,"unique":true},"in":[{"space":"unique","offset":301312,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":514,"size":1,"unique":false},"in":[{"space":"unique","offset":301568,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 62271,
+          "address": "OVL02_CODE::02f33f",
+          "bytes": "c3",
+          "file": "ACAD.OVL",
+          "file_offset": 168399,
+          "instruction": "RET",
+          "ops": [
+            {"op":"CALLOTHER","out":{"space":"unique","offset":269312,"size":4,"unique":true},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":260,"size":2,"unique":false},{"space":"register","offset":16,"size":2,"unique":false}]},
+            {"op":"LOAD","out":{"space":"register","offset":644,"size":2,"unique":false},"in":[{"space":"const","offset":497,"size":8,"unique":false},{"space":"unique","offset":269312,"size":4,"unique":true}]},
+            {"op":"INT_ADD","out":{"space":"register","offset":16,"size":2,"unique":false},"in":[{"space":"register","offset":16,"size":2,"unique":false},{"space":"const","offset":2,"size":2,"unique":false}]},
+            {"op":"CALLOTHER","out":{"space":"register","offset":644,"size":4,"unique":false},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":258,"size":2,"unique":false},{"space":"register","offset":644,"size":2,"unique":false}]},
+            {"op":"RETURN","out":null,"in":[{"space":"register","offset":644,"size":4,"unique":false}]}
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": 62265,
+          "kind": "branch",
+          "to": 62271
+        }
+      ],
+      "inline_data": [],
+      "dependencies": [],
+      "errors": []
+    },
+    {
+      "block": "EXE_CODE",
+      "entry": 45354,
+      "instructions": [
+        {
+          "offset": 45354,
+          "address": "1010:b02a",
+          "bytes": "8bdc",
+          "file": "ACAD.EXE",
+          "file_offset": 45610,
+          "instruction": "MOV BX,SP",
+          "ops": [
+            {"op":"COPY","out":{"space":"register","offset":12,"size":2,"unique":false},"in":[{"space":"register","offset":16,"size":2,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 45356,
+          "address": "1010:b02c",
+          "bytes": "f74708f07f",
+          "file": "ACAD.EXE",
+          "file_offset": 45612,
+          "instruction": "TEST word ptr [BX + 0x8],0x7ff0",
+          "ops": [
+            {"op":"INT_ADD","out":{"space":"unique","offset":20480,"size":2,"unique":true},"in":[{"space":"register","offset":12,"size":2,"unique":false},{"space":"const","offset":8,"size":2,"unique":false}]},
+            {"op":"CALLOTHER","out":{"space":"unique","offset":39424,"size":4,"unique":true},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":262,"size":2,"unique":false},{"space":"unique","offset":20480,"size":2,"unique":true}]},
+            {"op":"COPY","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"COPY","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"LOAD","out":{"space":"unique","offset":94464,"size":2,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":667136,"size":2,"unique":true},"in":[{"space":"unique","offset":94464,"size":2,"unique":true},{"space":"const","offset":32752,"size":2,"unique":false}]},
+            {"op":"INT_SLESS","out":{"space":"register","offset":519,"size":1,"unique":false},"in":[{"space":"unique","offset":667136,"size":2,"unique":true},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":518,"size":1,"unique":false},"in":[{"space":"unique","offset":667136,"size":2,"unique":true},{"space":"const","offset":0,"size":2,"unique":false}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301056,"size":2,"unique":true},"in":[{"space":"unique","offset":667136,"size":2,"unique":true},{"space":"const","offset":255,"size":2,"unique":false}]},
+            {"op":"POPCOUNT","out":{"space":"unique","offset":301312,"size":1,"unique":true},"in":[{"space":"unique","offset":301056,"size":2,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301568,"size":1,"unique":true},"in":[{"space":"unique","offset":301312,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":514,"size":1,"unique":false},"in":[{"space":"unique","offset":301568,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 45361,
+          "address": "1010:b031",
+          "bytes": "7404",
+          "file": "ACAD.EXE",
+          "file_offset": 45617,
+          "instruction": "JZ 0x1000:b137",
+          "ops": [
+            {"op":"CBRANCH","out":null,"in":[{"space":"ram","offset":110903,"size":4,"unique":false},{"space":"register","offset":518,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 45363,
+          "address": "1010:b033",
+          "bytes": "80770980",
+          "file": "ACAD.EXE",
+          "file_offset": 45619,
+          "instruction": "XOR byte ptr [BX + 0x9],0x80",
+          "ops": [
+            {"op":"INT_ADD","out":{"space":"unique","offset":20480,"size":2,"unique":true},"in":[{"space":"register","offset":12,"size":2,"unique":false},{"space":"const","offset":9,"size":2,"unique":false}]},
+            {"op":"CALLOTHER","out":{"space":"unique","offset":39424,"size":4,"unique":true},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":262,"size":2,"unique":false},{"space":"unique","offset":20480,"size":2,"unique":true}]},
+            {"op":"COPY","out":{"space":"register","offset":512,"size":1,"unique":false},"in":[{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"COPY","out":{"space":"register","offset":523,"size":1,"unique":false},"in":[{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"LOAD","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_XOR","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"unique","offset":41216,"size":1,"unique":true},{"space":"const","offset":128,"size":1,"unique":false}]},
+            {"op":"STORE","out":null,"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true},{"space":"unique","offset":41216,"size":1,"unique":true}]},
+            {"op":"LOAD","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_SLESS","out":{"space":"register","offset":519,"size":1,"unique":false},"in":[{"space":"unique","offset":41216,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"LOAD","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":518,"size":1,"unique":false},"in":[{"space":"unique","offset":41216,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]},
+            {"op":"LOAD","out":{"space":"unique","offset":41216,"size":1,"unique":true},"in":[{"space":"const","offset":497,"size":4,"unique":false},{"space":"unique","offset":39424,"size":4,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301056,"size":1,"unique":true},"in":[{"space":"unique","offset":41216,"size":1,"unique":true},{"space":"const","offset":255,"size":1,"unique":false}]},
+            {"op":"POPCOUNT","out":{"space":"unique","offset":301312,"size":1,"unique":true},"in":[{"space":"unique","offset":301056,"size":1,"unique":true}]},
+            {"op":"INT_AND","out":{"space":"unique","offset":301568,"size":1,"unique":true},"in":[{"space":"unique","offset":301312,"size":1,"unique":true},{"space":"const","offset":1,"size":1,"unique":false}]},
+            {"op":"INT_EQUAL","out":{"space":"register","offset":514,"size":1,"unique":false},"in":[{"space":"unique","offset":301568,"size":1,"unique":true},{"space":"const","offset":0,"size":1,"unique":false}]}
+          ]
+        },
+        {
+          "offset": 45367,
+          "address": "1010:b037",
+          "bytes": "c3",
+          "file": "ACAD.EXE",
+          "file_offset": 45623,
+          "instruction": "RET",
+          "ops": [
+            {"op":"CALLOTHER","out":{"space":"unique","offset":269312,"size":4,"unique":true},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":260,"size":2,"unique":false},{"space":"register","offset":16,"size":2,"unique":false}]},
+            {"op":"LOAD","out":{"space":"register","offset":644,"size":2,"unique":false},"in":[{"space":"const","offset":497,"size":8,"unique":false},{"space":"unique","offset":269312,"size":4,"unique":true}]},
+            {"op":"INT_ADD","out":{"space":"register","offset":16,"size":2,"unique":false},"in":[{"space":"register","offset":16,"size":2,"unique":false},{"space":"const","offset":2,"size":2,"unique":false}]},
+            {"op":"CALLOTHER","out":{"space":"register","offset":644,"size":4,"unique":false},"in":[{"space":"const","offset":0,"size":4,"unique":false},{"space":"register","offset":258,"size":2,"unique":false},{"space":"register","offset":644,"size":2,"unique":false}]},
+            {"op":"RETURN","out":null,"in":[{"space":"register","offset":644,"size":4,"unique":false}]}
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": 45361,
+          "kind": "branch",
+          "to": 45367
+        }
+      ],
+      "inline_data": [],
+      "dependencies": [],
+      "errors": []
+    }
+  ],
+  "provenance": {
+    "cfg_sha256": "45fa698d17c0a827f542efd3b58f17e88e078c5fdeee62020874579139c1573c",
+    "source_sha256": {
+      "ACAD.EXE": "0080e343930b6fad30b588f05bacb6fb65783d7d560cdf2f116ca09fc70b45b1",
+      "ACAD.OVL": "c2e1ee5b538e53df022dbb8aba6ab65a3946b8a332438bdaf39a3938a43e0da8"
+    },
+    "scope": "bitwise conditional sign flip; no floating-point arithmetic",
+    "userops_scope": "Only referenced userop index 0 retained; full names read from the same Ghidra program."
+  }
+}
