@@ -500,3 +500,37 @@ Following ADR-015, exactly 53 functions remained blocked across the entire AutoC
 ### Current Remaining Blockers (from `target/acad-ir-20261003-05-inventory.json`)
 
 **None. 100.0% of recovered functions (1,054 / 1,054) are structurally lowerable and independently compiling.**
+
+---
+
+### ADR-017: Whole-Program Static Call Linker and Multi-Module Crate Emission (`re-emit-all`)
+- **Date:** 2026-10-03
+- **Status:** Accepted & Implemented
+- **Files Modified / Added:** [crates/acad-re/src/lib.rs](crates/acad-re/src/lib.rs), [crates/acad-re/src/whole_program.rs](crates/acad-re/src/whole_program.rs), [crates/acad-re/src/bin/re-emit-all.rs](crates/acad-re/src/bin/re-emit-all.rs), [crates/acad-re/tests/whole_program.rs](crates/acad-re/tests/whole_program.rs), [docs/spec-phase2-whole-program.md](docs/spec-phase2-whole-program.md)
+
+#### Context
+Following ADR-016 (100% structural lowering milestone), each of the 1,054 recovered functions compiled independently into a standalone `.rlib` with mock call stubs (`let _ = target;`). Phase 2 was initiated to transition from single-function lowering to a fully linked, executable whole-program Rust codebase and execution engine.
+
+#### Decision
+1. **Whole-Program Call Graph & Linker (`whole_program.rs`):**
+   - Implemented `SymbolTable` indexing all 1,054 `(block, entry)` pairs across `ACAD.EXE` and all overlays.
+   - Enforced empirical 3-tier call resolution hierarchy:
+     1. Intra-block target `(caller_block, target & 0xffff)`
+     2. Resident kernel target `("EXE_CODE", target & 0xffff)`
+     3. Shared overlay helper target `("OVL02_CODE", target & 0xffff)`
+   - Verified that 100.0% of all 11,975 `CALL` sites, 240 `kernel-function` thunks, and 4 external branch trampolines resolve statically to concrete Rust function symbols.
+   - Linked function signatures: `pub fn {fn_name}(registers: &mut [u8; 8192], memory: &mut [u8], budget: &mut usize) -> Result<u64, crate::runtime::Trap>`. The execution budget is passed by `&mut usize`, ensuring cross-frame budget consumption and deterministic termination.
+2. **Whole-Program Crate Synthesis (`re-emit-all`):**
+   - Implemented `emit_translated_crate` and CLI binary `re-emit-all`:
+     * Validates original byte ranges for all 1,054 functions against `ACAD.EXE` and `ACAD.OVL`.
+     * Lowers all 1,054 functions into IR.
+     * Emits a standalone, self-contained crate `target/acad-translated/` containing `Cargo.toml`, `src/runtime.rs` (memory, 80-bit float conversions, host interrupt routing), 9 block modules (`src/exe_code.rs`, `src/ovl00_code.rs` through `src/ovl07_code.rs`), and `src/lib.rs` with a global 1,054-entry `dispatch` router and `run_entry` wrapper.
+
+#### Consequences & Verified Outcome
+- Emitted full translated crate to `target/acad-translated`: **35.3 MB of generated Rust code across 1,054 functions and 9 block modules**.
+- Executed `cargo check` inside `target/acad-translated`: **compiled cleanly with exit code 0 in 4.89s with zero errors and zero missing symbols**.
+- All 50 unit and integration tests in `crates/acad-re` pass cleanly.
+- Clippy passes with zero warnings (`cargo clippy -p acad-re --all-targets -- -D warnings`).
+- Formatting passes cleanly (`cargo fmt --check`).
+- Zero relaxed preconditions or wildcards. All fallible operations propagate `Result`.
+

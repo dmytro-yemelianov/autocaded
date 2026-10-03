@@ -7,5 +7,6 @@ pub mod error;
 pub mod ir;
 pub mod ovl;
 pub mod rust_emit;
+pub mod whole_program;
 
 pub use error::ReError;
