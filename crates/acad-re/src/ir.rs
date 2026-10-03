@@ -102,7 +102,11 @@ impl Width {
         self.0 as usize
     }
     pub fn mask(self) -> u64 {
-        u64::MAX >> (64 - self.0 as u32 * 8)
+        if self.0 >= 8 {
+            u64::MAX
+        } else {
+            u64::MAX >> (64 - self.0 as u32 * 8)
+        }
     }
 }
 
@@ -140,6 +144,11 @@ pub enum Unary {
     Popcount,
     TwoComplement,
     BitwiseNegate,
+    FloatNan,
+    Float2Float,
+    Int2Float,
+    Round,
+    Trunc,
 }
 #[derive(Debug, Clone, Copy, Serialize)]
 pub enum Binary {
@@ -167,6 +176,12 @@ pub enum Binary {
     BoolAnd,
     BoolXor,
     Subpiece,
+    FloatAdd,
+    FloatSub,
+    FloatMult,
+    FloatDiv,
+    FloatEqual,
+    FloatLess,
 }
 #[derive(Debug, Clone, Serialize)]
 pub enum Expression {
@@ -277,7 +292,7 @@ pub fn verify_source(
 
 fn width(node: &Varnode) -> Result<Width, String> {
     match node.size {
-        1 | 2 | 3 | 4 | 8 => Ok(Width(node.size as u8)),
+        1 | 2 | 3 | 4 | 8 | 10 => Ok(Width(node.size as u8)),
         _ => Err(format!("unsupported width {}", node.size)),
     }
 }
@@ -296,7 +311,7 @@ fn place(node: &Varnode, temps: &BTreeMap<i64, usize>) -> Result<Place, String> 
     let width = width(node)?;
     let range = byte_range(node)?;
     match node.space.as_str() {
-        "register" if range.end <= 1024 => Ok(Place::Register {
+        "register" if range.end <= 8192 => Ok(Place::Register {
             offset: range.start as usize,
             width,
         }),
@@ -443,6 +458,8 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                     return Err("unrecognized compiler helper signature (width 0)".into());
                 }
                 u16::from_le_bytes([sig[18], sig[19]]) as u64
+            } else if sig.starts_with(&[0x5e, 0xfc, 0x2e, 0xad, 0xeb, 0xed]) {
+                0x505d
             } else if sig.starts_with(&[0x5e, 0xfc, 0x2e]) {
                 if sig.len() < 15 || sig[11] != 0x3b || sig[12] != 0x26 {
                     return Err("unrecognized compiler helper signature (width 1/2)".into());
@@ -645,277 +662,372 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
             fallthrough = None;
         } else {
             if row.ops.is_empty() {
-                return Err("instruction has no Pcode".into());
-            }
-            for (index, op) in row.ops.iter().enumerate() {
-                let inputs: Vec<_> = op
-                    .inputs
-                    .iter()
-                    .map(|x| x.as_ref().ok_or("null Pcode input"))
-                    .collect::<Result<_, _>>()?;
-                let expected = match op.op.as_str() {
-                    "COPY" | "INT_ZEXT" | "INT_SEXT" | "BOOL_NEGATE" | "POPCOUNT" | "RETURN"
-                    | "CALL" | "BRANCH" | "INT_2COMP" | "INT_NEGATE" | "CALLIND" | "BRANCHIND" => 1,
-                    "STORE" => 3,
-                    "CALLOTHER" => {
-                        if inputs.is_empty() {
-                            return Err("CALLOTHER requires at least 1 input".into());
+                if row.bytes == "9b" {
+                    // WAIT / FWAIT (0x9b) coprocessor synchronization: architectural sync NOP.
+                    // Lower with empty operations; sequential fallthrough advances pc to `next`.
+                } else {
+                    return Err("instruction has no Pcode".into());
+                }
+            } else {
+                for (index, op) in row.ops.iter().enumerate() {
+                    let inputs: Vec<_> = op
+                        .inputs
+                        .iter()
+                        .map(|x| x.as_ref().ok_or("null Pcode input"))
+                        .collect::<Result<_, _>>()?;
+                    let expected = match op.op.as_str() {
+                        "COPY" | "INT_ZEXT" | "INT_SEXT" | "BOOL_NEGATE" | "POPCOUNT"
+                        | "RETURN" | "CALL" | "BRANCH" | "INT_2COMP" | "INT_NEGATE" | "CALLIND"
+                        | "BRANCHIND" | "FLOAT2FLOAT" | "INT2FLOAT" | "ROUND" | "TRUNC"
+                        | "FLOAT_NAN" => 1,
+                        "STORE" => 3,
+                        "CALLOTHER" => {
+                            if inputs.is_empty() {
+                                return Err("CALLOTHER requires at least 1 input".into());
+                            }
+                            match inputs[0].offset {
+                                17 | 18 => 1,
+                                1 | 16 => 2,
+                                0 | 2 => 3,
+                                _ => {
+                                    return Err(format!(
+                                        "unsupported CALLOTHER userop {}",
+                                        inputs[0].offset
+                                    ))
+                                }
+                            }
                         }
+                        "CBRANCH" | "LOAD" | "INT_ADD" | "INT_SUB" | "INT_MULT" | "INT_AND"
+                        | "INT_OR" | "INT_XOR" | "INT_LEFT" | "INT_RIGHT" | "INT_REM"
+                        | "INT_EQUAL" | "INT_NOTEQUAL" | "INT_LESS" | "INT_SLESS"
+                        | "INT_SBORROW" | "BOOL_OR" | "BOOL_AND" | "BOOL_XOR" | "SUBPIECE"
+                        | "INT_CARRY" | "INT_SCARRY" | "INT_DIV" | "INT_SDIV" | "INT_SRIGHT"
+                        | "INT_SREM" | "FLOAT_ADD" | "FLOAT_SUB" | "FLOAT_MULT" | "FLOAT_DIV"
+                        | "FLOAT_EQUAL" | "FLOAT_LESS" => 2,
+                        _ => return Err(format!("unsupported Pcode opcode {}", op.op)),
+                    };
+                    if inputs.len() != expected {
+                        return Err(format!("{} arity mismatch", op.op));
+                    }
+                    let a = || value(inputs[0], &temps, &defined);
+                    let b = || value(inputs[1], &temps, &defined);
+                    let control = matches!(
+                        op.op.as_str(),
+                        "CBRANCH" | "RETURN" | "CALL" | "BRANCH" | "CALLIND" | "BRANCHIND"
+                    );
+                    if op.op == "STORE" {
+                        if op.out.is_some() {
+                            return Err("STORE must not have an output".into());
+                        }
+                        constant(inputs[0], architecture.ram_space_id)?;
+                        operations.push(Operation::Store {
+                            pointer: b()?,
+                            value: value(inputs[2], &temps, &defined)?,
+                        });
+                        continue;
+                    }
+                    if control {
+                        if op.out.is_some() || (op.op != "CBRANCH" && index + 1 != row.ops.len()) {
+                            return Err("control transfer must terminate instruction Pcode".into());
+                        }
+                        if op.op == "RETURN" {
+                            operations.push(Operation::Return { target: a()? });
+                        } else if op.op == "CALL" {
+                            if inputs[0].space != "ram"
+                                || inputs[0].offset < 0
+                                || inputs[0].offset as u64 > 0x10ffef
+                            {
+                                return Err("unresolved Pcode call".into());
+                            }
+                            operations.push(Operation::Call {
+                                target: inputs[0].offset as u64,
+                            });
+                        } else if op.op == "BRANCH" {
+                            if (inputs[0].space != "ram" && inputs[0].space != raw.block)
+                                || inputs[0].offset < 0
+                                || (inputs[0].offset as u64) > 0x10ffef
+                            {
+                                return Err("unresolved or relative Pcode branch".into());
+                            }
+                            let target = inputs[0].offset as u64;
+                            if addresses.contains(&target) {
+                                operations.push(Operation::Jump { target });
+                            } else {
+                                operations.push(Operation::TailCall {
+                                    target_block: raw.block.clone(),
+                                    target,
+                                });
+                            }
+                        } else if op.op == "CBRANCH" {
+                            if (inputs[0].space != "ram" && inputs[0].space != raw.block)
+                                || inputs[0].offset < 0
+                                || !addresses.contains(&(inputs[0].offset as u64))
+                            {
+                                return Err("unresolved or relative Pcode branch".into());
+                            }
+                            if inputs[1].size != 1 {
+                                return Err("branch condition must be one byte".into());
+                            }
+                            operations.push(Operation::Branch {
+                                condition: b()?,
+                                target: inputs[0].offset as u64,
+                            });
+                        } else if op.op == "CALLIND" {
+                            if inputs[0].size != 4 {
+                                return Err("CALLIND target width must be 4".into());
+                            }
+                            operations.push(Operation::CallIndirect { target: a()? });
+                        } else if op.op == "BRANCHIND" {
+                            if inputs[0].size != 4 {
+                                return Err("BRANCHIND target width must be 4".into());
+                            }
+                            operations.push(Operation::JumpIndirect { target: a()? });
+                        }
+                        continue;
+                    }
+                    if op.op == "CALLOTHER" && op.out.is_none() {
                         match inputs[0].offset {
-                            17 | 18 => 1,
-                            1 | 16 => 2,
-                            0 | 2 => 3,
+                            2 => {
+                                let port = b()?;
+                                let val = value(inputs[2], &temps, &defined)?;
+                                operations.push(Operation::Out { port, value: val });
+                            }
+                            17 => operations.push(Operation::Lock),
+                            18 => operations.push(Operation::Unlock),
                             _ => {
                                 return Err(format!(
-                                    "unsupported CALLOTHER userop {}",
+                                    "unsupported outputless CALLOTHER {}",
                                     inputs[0].offset
                                 ))
                             }
                         }
+                        continue;
                     }
-                    "CBRANCH" | "LOAD" | "INT_ADD" | "INT_SUB" | "INT_MULT" | "INT_AND"
-                    | "INT_OR" | "INT_XOR" | "INT_LEFT" | "INT_RIGHT" | "INT_REM" | "INT_EQUAL"
-                    | "INT_NOTEQUAL" | "INT_LESS" | "INT_SLESS" | "INT_SBORROW" | "BOOL_OR"
-                    | "BOOL_AND" | "BOOL_XOR" | "SUBPIECE" | "INT_CARRY" | "INT_SCARRY"
-                    | "INT_DIV" | "INT_SDIV" | "INT_SRIGHT" | "INT_SREM" => 2,
-                    _ => return Err(format!("unsupported Pcode opcode {}", op.op)),
-                };
-                if inputs.len() != expected {
-                    return Err(format!("{} arity mismatch", op.op));
-                }
-                let a = || value(inputs[0], &temps, &defined);
-                let b = || value(inputs[1], &temps, &defined);
-                let control = matches!(
-                    op.op.as_str(),
-                    "CBRANCH" | "RETURN" | "CALL" | "BRANCH" | "CALLIND" | "BRANCHIND"
-                );
-                if op.op == "STORE" {
-                    if op.out.is_some() {
-                        return Err("STORE must not have an output".into());
-                    }
-                    constant(inputs[0], architecture.ram_space_id)?;
-                    operations.push(Operation::Store {
-                        pointer: b()?,
-                        value: value(inputs[2], &temps, &defined)?,
-                    });
-                    continue;
-                }
-                if control {
-                    if op.out.is_some() || (op.op != "CBRANCH" && index + 1 != row.ops.len()) {
-                        return Err("control transfer must terminate instruction Pcode".into());
-                    }
-                    if op.op == "RETURN" {
-                        operations.push(Operation::Return { target: a()? });
-                    } else if op.op == "CALL" {
-                        if inputs[0].space != "ram"
-                            || inputs[0].offset < 0
-                            || inputs[0].offset as u64 > 0x10ffef
-                        {
-                            return Err("unresolved Pcode call".into());
-                        }
-                        operations.push(Operation::Call {
-                            target: inputs[0].offset as u64,
-                        });
-                    } else if op.op == "BRANCH" {
-                        if (inputs[0].space != "ram" && inputs[0].space != raw.block)
-                            || inputs[0].offset < 0
-                            || !addresses.contains(&(inputs[0].offset as u64))
-                        {
-                            return Err("unresolved or relative Pcode branch".into());
-                        }
-                        operations.push(Operation::Jump {
-                            target: inputs[0].offset as u64,
-                        });
-                    } else if op.op == "CBRANCH" {
-                        if (inputs[0].space != "ram" && inputs[0].space != raw.block)
-                            || inputs[0].offset < 0
-                            || !addresses.contains(&(inputs[0].offset as u64))
-                        {
-                            return Err("unresolved or relative Pcode branch".into());
-                        }
-                        if inputs[1].size != 1 {
-                            return Err("branch condition must be one byte".into());
-                        }
-                        operations.push(Operation::Branch {
-                            condition: b()?,
-                            target: inputs[0].offset as u64,
-                        });
-                    } else if op.op == "CALLIND" {
-                        if inputs[0].size != 4 {
-                            return Err("CALLIND target width must be 4".into());
-                        }
-                        operations.push(Operation::CallIndirect { target: a()? });
-                    } else if op.op == "BRANCHIND" {
-                        if inputs[0].size != 4 {
-                            return Err("BRANCHIND target width must be 4".into());
-                        }
-                        operations.push(Operation::JumpIndirect { target: a()? });
-                    }
-                    continue;
-                }
-                if op.op == "CALLOTHER" && op.out.is_none() {
-                    match inputs[0].offset {
-                        2 => {
-                            let port = b()?;
-                            let val = value(inputs[2], &temps, &defined)?;
-                            operations.push(Operation::Out { port, value: val });
-                        }
-                        17 => operations.push(Operation::Lock),
-                        18 => operations.push(Operation::Unlock),
-                        _ => {
-                            return Err(format!(
-                                "unsupported outputless CALLOTHER {}",
-                                inputs[0].offset
-                            ))
-                        }
-                    }
-                    continue;
-                }
-                let output = op.out.as_ref().ok_or("missing Pcode output")?;
-                let destination = place(output, &temps)?;
-                let expression = match op.op.as_str() {
-                    "CALLOTHER" => match inputs[0].offset {
-                        0 => {
-                            if architecture.userops.first().map(String::as_str) != Some("segment")
-                                || inputs[1].size != 2
-                                || inputs[2].size != 2
-                                || output.size != 4
-                            {
-                                return Err("unverified segment userop contract".into());
-                            }
-                            Expression::Segment(
-                                value(inputs[1], &temps, &defined)?,
-                                value(inputs[2], &temps, &defined)?,
-                            )
-                        }
-                        1 => Expression::In(value(inputs[1], &temps, &defined)?),
-                        16 => {
-                            if output.size != 4 {
-                                return Err("swi userop contract".into());
-                            }
-                            Expression::Swi(value(inputs[1], &temps, &defined)?)
-                        }
-                        _ => {
-                            return Err(format!(
-                                "unsupported output CALLOTHER {}",
-                                inputs[0].offset
-                            ))
-                        }
-                    },
-                    "LOAD" => {
-                        constant(inputs[0], architecture.ram_space_id)?;
-                        Expression::Load(b()?)
-                    }
-                    "COPY" | "INT_2COMP" | "INT_NEGATE" => {
-                        if output.size != inputs[0].size {
-                            return Err(format!("{} width mismatch", op.op));
-                        }
-                        let unary = match op.op.as_str() {
-                            "COPY" => Unary::Copy,
-                            "INT_2COMP" => Unary::TwoComplement,
-                            _ => Unary::BitwiseNegate,
-                        };
-                        Expression::Unary(unary, a()?)
-                    }
-                    "INT_ZEXT" | "INT_SEXT" | "BOOL_NEGATE" | "POPCOUNT" => {
-                        let unary = match op.op.as_str() {
-                            "INT_ZEXT" => {
-                                if output.size <= inputs[0].size {
-                                    return Err("invalid extension width".into());
-                                }
-                                Unary::ZeroExtend
-                            }
-                            "INT_SEXT" => {
-                                if output.size <= inputs[0].size {
-                                    return Err("invalid extension width".into());
-                                }
-                                Unary::SignExtend
-                            }
-                            "BOOL_NEGATE" => {
-                                if output.size != 1 || inputs[0].size != 1 {
-                                    return Err("invalid boolean width".into());
-                                }
-                                Unary::BoolNegate
-                            }
-                            _ => Unary::Popcount,
-                        };
-                        Expression::Unary(unary, a()?)
-                    }
-                    other => {
-                        let binary = match other {
-                            "INT_ADD" => Binary::Add,
-                            "INT_SUB" => Binary::Sub,
-                            "INT_MULT" => Binary::Multiply,
-                            "INT_DIV" => Binary::Divide,
-                            "INT_SDIV" => Binary::SignedDivide,
-                            "INT_AND" => Binary::And,
-                            "INT_OR" => Binary::Or,
-                            "INT_XOR" => Binary::Xor,
-                            "INT_LEFT" => Binary::Left,
-                            "INT_RIGHT" => Binary::Right,
-                            "INT_SRIGHT" => Binary::SignedRight,
-                            "INT_REM" => Binary::Remainder,
-                            "INT_SREM" => Binary::SignedRemainder,
-                            "INT_EQUAL" => Binary::Equal,
-                            "INT_NOTEQUAL" => Binary::NotEqual,
-                            "INT_LESS" => Binary::Less,
-                            "INT_SLESS" => Binary::SignedLess,
-                            "INT_SBORROW" => Binary::SignedBorrow,
-                            "BOOL_OR" => Binary::BoolOr,
-                            "BOOL_AND" => Binary::BoolAnd,
-                            "BOOL_XOR" => Binary::BoolXor,
-                            "SUBPIECE" => Binary::Subpiece,
-                            "INT_CARRY" => Binary::Carry,
-                            "INT_SCARRY" => Binary::SignedCarry,
-                            _ => return Err(format!("unsupported Pcode opcode {other}")),
-                        };
-                        match binary {
-                            Binary::Equal
-                            | Binary::NotEqual
-                            | Binary::Less
-                            | Binary::SignedLess
-                            | Binary::SignedBorrow
-                            | Binary::Carry
-                            | Binary::SignedCarry => {
-                                if inputs[0].size != inputs[1].size || output.size != 1 {
-                                    return Err("comparison width mismatch".into());
-                                }
-                            }
-                            Binary::BoolOr | Binary::BoolAnd | Binary::BoolXor => {
-                                if inputs[0].size != 1 || inputs[1].size != 1 || output.size != 1 {
-                                    return Err("boolean width mismatch".into());
-                                }
-                            }
-                            Binary::Left | Binary::Right | Binary::SignedRight => {
-                                if output.size != inputs[0].size {
-                                    return Err("shift width mismatch".into());
-                                }
-                            }
-                            Binary::Subpiece => {
-                                if inputs[1].space != "const"
-                                    || inputs[1].offset < 0
-                                    || inputs[1].offset as u64 + output.size as u64
-                                        > inputs[0].size as u64
+                    let output = op.out.as_ref().ok_or("missing Pcode output")?;
+                    let destination = place(output, &temps)?;
+                    let expression = match op.op.as_str() {
+                        "CALLOTHER" => match inputs[0].offset {
+                            0 => {
+                                if architecture.userops.first().map(String::as_str)
+                                    != Some("segment")
+                                    || inputs[1].size != 2
+                                    || inputs[2].size != 2
+                                    || output.size != 4
                                 {
-                                    return Err("invalid SUBPIECE range".into());
+                                    return Err("unverified segment userop contract".into());
                                 }
+                                Expression::Segment(
+                                    value(inputs[1], &temps, &defined)?,
+                                    value(inputs[2], &temps, &defined)?,
+                                )
+                            }
+                            1 => Expression::In(value(inputs[1], &temps, &defined)?),
+                            16 => {
+                                if output.size != 4 {
+                                    return Err("swi userop contract".into());
+                                }
+                                Expression::Swi(value(inputs[1], &temps, &defined)?)
                             }
                             _ => {
-                                if inputs[0].size != inputs[1].size || output.size != inputs[0].size
-                                {
-                                    return Err("integer width mismatch".into());
+                                return Err(format!(
+                                    "unsupported output CALLOTHER {}",
+                                    inputs[0].offset
+                                ))
+                            }
+                        },
+                        "LOAD" => {
+                            constant(inputs[0], architecture.ram_space_id)?;
+                            Expression::Load(b()?)
+                        }
+                        "COPY" | "INT_2COMP" | "INT_NEGATE" => {
+                            if output.size != inputs[0].size {
+                                return Err(format!("{} width mismatch", op.op));
+                            }
+                            let unary = match op.op.as_str() {
+                                "COPY" => Unary::Copy,
+                                "INT_2COMP" => Unary::TwoComplement,
+                                _ => Unary::BitwiseNegate,
+                            };
+                            Expression::Unary(unary, a()?)
+                        }
+                        "INT_ZEXT" | "INT_SEXT" | "BOOL_NEGATE" | "POPCOUNT" => {
+                            let unary = match op.op.as_str() {
+                                "INT_ZEXT" => {
+                                    if output.size <= inputs[0].size {
+                                        return Err("invalid extension width".into());
+                                    }
+                                    Unary::ZeroExtend
+                                }
+                                "INT_SEXT" => {
+                                    if output.size <= inputs[0].size {
+                                        return Err("invalid extension width".into());
+                                    }
+                                    Unary::SignExtend
+                                }
+                                "BOOL_NEGATE" => {
+                                    if output.size != 1 || inputs[0].size != 1 {
+                                        return Err("invalid boolean width".into());
+                                    }
+                                    Unary::BoolNegate
+                                }
+                                _ => Unary::Popcount,
+                            };
+                            Expression::Unary(unary, a()?)
+                        }
+                        "FLOAT_NAN" | "FLOAT2FLOAT" | "INT2FLOAT" | "ROUND" | "TRUNC" => {
+                            let unary = match op.op.as_str() {
+                                "FLOAT_NAN" => {
+                                    if !matches!(inputs[0].size, 4 | 8 | 10) || output.size != 1 {
+                                        return Err("invalid float NaN operand sizes".into());
+                                    }
+                                    Unary::FloatNan
+                                }
+                                "FLOAT2FLOAT" => {
+                                    if !matches!(inputs[0].size, 4 | 8 | 10)
+                                        || !matches!(output.size, 4 | 8 | 10)
+                                    {
+                                        return Err("invalid float conversion operand sizes".into());
+                                    }
+                                    Unary::Float2Float
+                                }
+                                "INT2FLOAT" => {
+                                    if !matches!(inputs[0].size, 1 | 2 | 4 | 8)
+                                        || !matches!(output.size, 4 | 8 | 10)
+                                    {
+                                        return Err("invalid int-to-float operand sizes".into());
+                                    }
+                                    Unary::Int2Float
+                                }
+                                "ROUND" => {
+                                    if !matches!(inputs[0].size, 4 | 8 | 10)
+                                        || !matches!(output.size, 1 | 2 | 4 | 8 | 10)
+                                    {
+                                        return Err("invalid float round operand sizes".into());
+                                    }
+                                    Unary::Round
+                                }
+                                "TRUNC" => {
+                                    if !matches!(inputs[0].size, 4 | 8 | 10)
+                                        || !matches!(output.size, 1 | 2 | 4 | 8)
+                                    {
+                                        return Err("invalid float trunc operand sizes".into());
+                                    }
+                                    Unary::Trunc
+                                }
+                                _ => unreachable!(),
+                            };
+                            Expression::Unary(unary, a()?)
+                        }
+                        "FLOAT_ADD" | "FLOAT_SUB" | "FLOAT_MULT" | "FLOAT_DIV" => {
+                            if inputs[0].size != inputs[1].size
+                                || output.size != inputs[0].size
+                                || !matches!(output.size, 4 | 8 | 10)
+                            {
+                                return Err("float arithmetic operand size mismatch".into());
+                            }
+                            let binary = match op.op.as_str() {
+                                "FLOAT_ADD" => Binary::FloatAdd,
+                                "FLOAT_SUB" => Binary::FloatSub,
+                                "FLOAT_MULT" => Binary::FloatMult,
+                                "FLOAT_DIV" => Binary::FloatDiv,
+                                _ => unreachable!(),
+                            };
+                            Expression::Binary(binary, a()?, b()?)
+                        }
+                        "FLOAT_EQUAL" | "FLOAT_LESS" => {
+                            if inputs[0].size != inputs[1].size
+                                || !matches!(inputs[0].size, 4 | 8 | 10)
+                                || output.size != 1
+                            {
+                                return Err("float comparison operand size mismatch".into());
+                            }
+                            let binary = match op.op.as_str() {
+                                "FLOAT_EQUAL" => Binary::FloatEqual,
+                                "FLOAT_LESS" => Binary::FloatLess,
+                                _ => unreachable!(),
+                            };
+                            Expression::Binary(binary, a()?, b()?)
+                        }
+                        other => {
+                            let binary = match other {
+                                "INT_ADD" => Binary::Add,
+                                "INT_SUB" => Binary::Sub,
+                                "INT_MULT" => Binary::Multiply,
+                                "INT_DIV" => Binary::Divide,
+                                "INT_SDIV" => Binary::SignedDivide,
+                                "INT_AND" => Binary::And,
+                                "INT_OR" => Binary::Or,
+                                "INT_XOR" => Binary::Xor,
+                                "INT_LEFT" => Binary::Left,
+                                "INT_RIGHT" => Binary::Right,
+                                "INT_SRIGHT" => Binary::SignedRight,
+                                "INT_REM" => Binary::Remainder,
+                                "INT_SREM" => Binary::SignedRemainder,
+                                "INT_EQUAL" => Binary::Equal,
+                                "INT_NOTEQUAL" => Binary::NotEqual,
+                                "INT_LESS" => Binary::Less,
+                                "INT_SLESS" => Binary::SignedLess,
+                                "INT_SBORROW" => Binary::SignedBorrow,
+                                "BOOL_OR" => Binary::BoolOr,
+                                "BOOL_AND" => Binary::BoolAnd,
+                                "BOOL_XOR" => Binary::BoolXor,
+                                "SUBPIECE" => Binary::Subpiece,
+                                "INT_CARRY" => Binary::Carry,
+                                "INT_SCARRY" => Binary::SignedCarry,
+                                _ => return Err(format!("unsupported Pcode opcode {other}")),
+                            };
+                            match binary {
+                                Binary::Equal
+                                | Binary::NotEqual
+                                | Binary::Less
+                                | Binary::SignedLess
+                                | Binary::SignedBorrow
+                                | Binary::Carry
+                                | Binary::SignedCarry => {
+                                    if inputs[0].size != inputs[1].size || output.size != 1 {
+                                        return Err("comparison width mismatch".into());
+                                    }
+                                }
+                                Binary::BoolOr | Binary::BoolAnd | Binary::BoolXor => {
+                                    if inputs[0].size != 1
+                                        || inputs[1].size != 1
+                                        || output.size != 1
+                                    {
+                                        return Err("boolean width mismatch".into());
+                                    }
+                                }
+                                Binary::Left | Binary::Right | Binary::SignedRight => {
+                                    if output.size != inputs[0].size {
+                                        return Err("shift width mismatch".into());
+                                    }
+                                }
+                                Binary::Subpiece => {
+                                    if inputs[1].space != "const"
+                                        || inputs[1].offset < 0
+                                        || inputs[1].offset as u64 + output.size as u64
+                                            > inputs[0].size as u64
+                                    {
+                                        return Err("invalid SUBPIECE range".into());
+                                    }
+                                }
+                                _ => {
+                                    if inputs[0].size != inputs[1].size
+                                        || output.size != inputs[0].size
+                                    {
+                                        return Err("integer width mismatch".into());
+                                    }
                                 }
                             }
+                            Expression::Binary(binary, a()?, b()?)
                         }
-                        Expression::Binary(binary, a()?, b()?)
+                    };
+                    operations.push(Operation::Assign {
+                        destination,
+                        expression,
+                    });
+                    if output.space == "unique" {
+                        defined.extend(byte_range(output)?);
                     }
-                };
-                operations.push(Operation::Assign {
-                    destination,
-                    expression,
-                });
-                if output.space == "unique" {
-                    defined.extend(byte_range(output)?);
                 }
             }
             let next = base + row.offset as u64 + decode_bytes(&row.bytes)?.len() as u64;

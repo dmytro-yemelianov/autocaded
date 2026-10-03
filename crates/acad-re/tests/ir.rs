@@ -1,5 +1,9 @@
 use acad_re::{
-    ir::{lower, verify_source, CompilerFrame, InlineData, RecoveredDependency, RecoveredExport},
+    ast::Varnode,
+    ir::{
+        lower, verify_source, Architecture, CompilerFrame, InlineData, Operation, RawOp,
+        RecoveredDependency, RecoveredExport, RecoveredFunction, RecoveredInstruction,
+    },
     rust_emit,
 };
 use std::{
@@ -86,6 +90,39 @@ fn rejects_unsafe_or_incomplete_inputs() {
         |e| e.functions[0].instructions[0].address = "OVL09_CODE::021778".into(),
         |e| e.functions[0].instructions[0].address = "OVL04_CODE::ffffffffffffffff".into(),
         |e| e.functions[0].instructions[1].bytes = "83f92000".into(),
+        |e| {
+            e.functions[0].instructions[0].ops[0].op = "FLOAT_NAN".into();
+            e.functions[0].instructions[0].ops[0].inputs.truncate(1);
+        },
+        |e| {
+            e.functions[0].instructions[0].ops[0].op = "FLOAT2FLOAT".into();
+            e.functions[0].instructions[0].ops[0].inputs.truncate(1);
+        },
+        |e| {
+            e.functions[0].instructions[0].ops[0].op = "INT2FLOAT".into();
+            e.functions[0].instructions[0].ops[0].inputs.truncate(1);
+        },
+        |e| {
+            e.functions[0].instructions[0].ops[0].op = "ROUND".into();
+            e.functions[0].instructions[0].ops[0].inputs.truncate(1);
+        },
+        |e| {
+            e.functions[0].instructions[0].ops[0].op = "TRUNC".into();
+            e.functions[0].instructions[0].ops[0].inputs.truncate(1);
+        },
+        |e| {
+            e.functions[0].instructions[0].ops[0].op = "FLOAT_EQUAL".into();
+        },
+        |e| {
+            if let Some(out) = e.functions[0].instructions[0].ops[0].out.as_mut() {
+                out.space = "register".into();
+                out.offset = 8192;
+                out.size = 2;
+            }
+        },
+        |e| {
+            e.functions[0].instructions[0].ops.clear();
+        },
     ];
     for (index, mutate) in mutations.iter().enumerate() {
         let mut e = fixture();
@@ -179,4 +216,408 @@ fn compile_and_check(ir: &acad_re::ir::Function, reference: &str) {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
+}
+
+#[test]
+fn x87_80bit_float_lowering_and_execution() {
+    let arch = Architecture {
+        language: "x86:LE:16:Real Mode".into(),
+        ram_space_id: 497,
+        userops: vec!["segment".into()],
+    };
+    let v_reg = |offset: i64, size: u32| Varnode {
+        space: "register".into(),
+        offset,
+        size,
+        unique: false,
+    };
+    let v_uniq = |offset: i64, size: u32| Varnode {
+        space: "unique".into(),
+        offset,
+        size,
+        unique: true,
+    };
+    let v_const = |offset: i64, size: u32| Varnode {
+        space: "const".into(),
+        offset,
+        size,
+        unique: false,
+    };
+    let raw_fn = RecoveredFunction {
+        block: "EXE_CODE".into(),
+        entry: 0,
+        instructions: vec![RecoveredInstruction {
+            offset: 0,
+            address: "0100:0000".into(),
+            bytes: "90".into(),
+            file: "ACAD.EXE".into(),
+            file_offset: 0,
+            instruction: "NOP".into(),
+            ops: vec![
+                // 1. INT2FLOAT: in: reg 0 (i16=42), out: unique 100 (f80)
+                RawOp {
+                    op: "INT2FLOAT".into(),
+                    out: Some(v_uniq(100, 10)),
+                    inputs: vec![Some(v_reg(0, 2))],
+                },
+                // 2. FLOAT_ADD: in: [unique 100, unique 100], out: unique 200 (f80=84)
+                RawOp {
+                    op: "FLOAT_ADD".into(),
+                    out: Some(v_uniq(200, 10)),
+                    inputs: vec![Some(v_uniq(100, 10)), Some(v_uniq(100, 10))],
+                },
+                // 3. FLOAT_SUB: in: [unique 200, unique 100], out: unique 300 (f80=42)
+                RawOp {
+                    op: "FLOAT_SUB".into(),
+                    out: Some(v_uniq(300, 10)),
+                    inputs: vec![Some(v_uniq(200, 10)), Some(v_uniq(100, 10))],
+                },
+                // 4. FLOAT_MULT: in: [unique 300, unique 100], out: unique 400 (f80=1764)
+                RawOp {
+                    op: "FLOAT_MULT".into(),
+                    out: Some(v_uniq(400, 10)),
+                    inputs: vec![Some(v_uniq(300, 10)), Some(v_uniq(100, 10))],
+                },
+                // 5. FLOAT_DIV: in: [unique 400, unique 100], out: unique 500 (f80=42)
+                RawOp {
+                    op: "FLOAT_DIV".into(),
+                    out: Some(v_uniq(500, 10)),
+                    inputs: vec![Some(v_uniq(400, 10)), Some(v_uniq(100, 10))],
+                },
+                // 6. FLOAT_EQUAL: in: [unique 500, unique 100], out: unique 600 (bool=1)
+                RawOp {
+                    op: "FLOAT_EQUAL".into(),
+                    out: Some(v_uniq(600, 1)),
+                    inputs: vec![Some(v_uniq(500, 10)), Some(v_uniq(100, 10))],
+                },
+                // 7. FLOAT_LESS: in: [unique 100, unique 200], out: unique 700 (bool=1)
+                RawOp {
+                    op: "FLOAT_LESS".into(),
+                    out: Some(v_uniq(700, 1)),
+                    inputs: vec![Some(v_uniq(100, 10)), Some(v_uniq(200, 10))],
+                },
+                // 8. FLOAT_NAN: in: [unique 100], out: unique 800 (bool=0)
+                RawOp {
+                    op: "FLOAT_NAN".into(),
+                    out: Some(v_uniq(800, 1)),
+                    inputs: vec![Some(v_uniq(100, 10))],
+                },
+                // 9. FLOAT2FLOAT: in: unique 100 (f80), out: unique 900 (f64)
+                RawOp {
+                    op: "FLOAT2FLOAT".into(),
+                    out: Some(v_uniq(900, 8)),
+                    inputs: vec![Some(v_uniq(100, 10))],
+                },
+                // 10. ROUND: in: unique 100 (f80=42), out: unique 1000 (i16)
+                RawOp {
+                    op: "ROUND".into(),
+                    out: Some(v_uniq(1000, 2)),
+                    inputs: vec![Some(v_uniq(100, 10))],
+                },
+                // 10b. ROUND to float (FRNDINT): in: unique 100 (f80=42), out: unique 1050 (f80)
+                RawOp {
+                    op: "ROUND".into(),
+                    out: Some(v_uniq(1050, 10)),
+                    inputs: vec![Some(v_uniq(100, 10))],
+                },
+                // 11. TRUNC: in: unique 100 (f80=42), out: unique 1100 (i16)
+                RawOp {
+                    op: "TRUNC".into(),
+                    out: Some(v_uniq(1100, 2)),
+                    inputs: vec![Some(v_uniq(100, 10))],
+                },
+                // Store results into high registers (>= 1024 to also test expanded bounds):
+                // reg 2048 (size 10) = unique 500 (f80)
+                RawOp {
+                    op: "COPY".into(),
+                    out: Some(v_reg(2048, 10)),
+                    inputs: vec![Some(v_uniq(500, 10))],
+                },
+                // reg 2060 (size 1) = unique 600 (eq)
+                RawOp {
+                    op: "COPY".into(),
+                    out: Some(v_reg(2060, 1)),
+                    inputs: vec![Some(v_uniq(600, 1))],
+                },
+                // reg 2061 (size 1) = unique 700 (lt)
+                RawOp {
+                    op: "COPY".into(),
+                    out: Some(v_reg(2061, 1)),
+                    inputs: vec![Some(v_uniq(700, 1))],
+                },
+                // reg 2062 (size 1) = unique 800 (nan)
+                RawOp {
+                    op: "COPY".into(),
+                    out: Some(v_reg(2062, 1)),
+                    inputs: vec![Some(v_uniq(800, 1))],
+                },
+                // reg 2064 (size 2) = unique 1000 (round)
+                RawOp {
+                    op: "COPY".into(),
+                    out: Some(v_reg(2064, 2)),
+                    inputs: vec![Some(v_uniq(1000, 2))],
+                },
+                // reg 2066 (size 2) = unique 1100 (trunc)
+                RawOp {
+                    op: "COPY".into(),
+                    out: Some(v_reg(2066, 2)),
+                    inputs: vec![Some(v_uniq(1100, 2))],
+                },
+                // reg 2070 (size 10) = unique 1050 (frndint f80)
+                RawOp {
+                    op: "COPY".into(),
+                    out: Some(v_reg(2070, 10)),
+                    inputs: vec![Some(v_uniq(1050, 10))],
+                },
+                // RETURN const 0x1234
+                RawOp {
+                    op: "RETURN".into(),
+                    out: None,
+                    inputs: vec![Some(v_const(0x1234, 2))],
+                },
+            ],
+            compiler_frame: None,
+            kernel_tailcall: None,
+        }],
+        inline_data: vec![],
+        dependencies: vec![],
+        edges: vec![],
+        errors: vec![],
+    };
+
+    let ir = lower(&arch, &raw_fn).expect("lowering failed");
+    let test_ref = r#"
+#[test]
+fn run_float_test() {
+    let mut registers = [0u8; 8192];
+    registers[0..2].copy_from_slice(&42u16.to_le_bytes());
+    let mut memory = [0u8; 16];
+    let ret = run(&mut registers, &mut memory, 10).unwrap();
+    assert_eq!(ret, 0x1234);
+    assert_eq!(registers[2060], 1, "FLOAT_EQUAL should be true");
+    assert_eq!(registers[2061], 1, "FLOAT_LESS should be true");
+    assert_eq!(registers[2062], 0, "FLOAT_NAN should be false");
+    let round_val = u16::from_le_bytes([registers[2064], registers[2065]]);
+    assert_eq!(round_val, 42, "ROUND should be 42");
+    let trunc_val = u16::from_le_bytes([registers[2066], registers[2067]]);
+    assert_eq!(trunc_val, 42, "TRUNC should be 42");
+    let mant = u64::from_le_bytes(registers[2048..2056].try_into().unwrap());
+    let exp = u16::from_le_bytes(registers[2056..2058].try_into().unwrap());
+    assert_eq!(mant, 0xa800_0000_0000_0000);
+    assert_eq!(exp, 0x4004);
+    let frnd_mant = u64::from_le_bytes(registers[2070..2078].try_into().unwrap());
+    let frnd_exp = u16::from_le_bytes(registers[2078..2080].try_into().unwrap());
+    assert_eq!(frnd_mant, 0xa800_0000_0000_0000);
+    assert_eq!(frnd_exp, 0x4004);
+}
+"#;
+    compile_and_check(&ir, test_ref);
+}
+
+#[test]
+fn wait_instruction_lowers_empty_ops_with_fallthrough() {
+    let arch = Architecture {
+        language: "x86:LE:16:Real Mode".into(),
+        ram_space_id: 497,
+        userops: vec!["segment".into()],
+    };
+    let v_const = |offset: i64, size: u32| Varnode {
+        space: "const".into(),
+        offset,
+        size,
+        unique: false,
+    };
+    let raw_fn = RecoveredFunction {
+        block: "EXE_CODE".into(),
+        entry: 0,
+        instructions: vec![
+            RecoveredInstruction {
+                offset: 0,
+                address: "0100:0000".into(),
+                bytes: "9b".into(),
+                file: "ACAD.EXE".into(),
+                file_offset: 0,
+                instruction: "WAIT".into(),
+                ops: vec![],
+                compiler_frame: None,
+                kernel_tailcall: None,
+            },
+            RecoveredInstruction {
+                offset: 1,
+                address: "0100:0001".into(),
+                bytes: "c3".into(),
+                file: "ACAD.EXE".into(),
+                file_offset: 1,
+                instruction: "RET".into(),
+                ops: vec![RawOp {
+                    op: "RETURN".into(),
+                    out: None,
+                    inputs: vec![Some(v_const(0, 2))],
+                }],
+                compiler_frame: None,
+                kernel_tailcall: None,
+            },
+        ],
+        inline_data: vec![],
+        dependencies: vec![],
+        edges: vec![],
+        errors: vec![],
+    };
+
+    let ir = lower(&arch, &raw_fn).expect("lowering failed");
+    assert_eq!(ir.instructions.len(), 2);
+    assert_eq!(ir.instructions[0].assembly, "WAIT");
+    assert!(ir.instructions[0].operations.is_empty());
+    assert_eq!(ir.instructions[0].fallthrough, Some(0x1000 + 1));
+}
+
+#[test]
+fn non_wait_instruction_with_empty_ops_is_rejected() {
+    let arch = Architecture {
+        language: "x86:LE:16:Real Mode".into(),
+        ram_space_id: 497,
+        userops: vec!["segment".into()],
+    };
+    let raw_fn = RecoveredFunction {
+        block: "EXE_CODE".into(),
+        entry: 0,
+        instructions: vec![RecoveredInstruction {
+            offset: 0,
+            address: "0100:0000".into(),
+            bytes: "90".into(),
+            file: "ACAD.EXE".into(),
+            file_offset: 0,
+            instruction: "NOP".into(),
+            ops: vec![],
+            compiler_frame: None,
+            kernel_tailcall: None,
+        }],
+        inline_data: vec![],
+        dependencies: vec![],
+        edges: vec![],
+        errors: vec![],
+    };
+
+    let err = lower(&arch, &raw_fn).unwrap_err();
+    assert_eq!(err, "instruction has no Pcode");
+}
+
+#[test]
+fn inter_function_branch_lowers_to_tail_call() {
+    let arch = Architecture {
+        language: "x86:LE:16:Real Mode".into(),
+        ram_space_id: 497,
+        userops: vec!["segment".into()],
+    };
+    let v_ram = |offset: i64, size: u32| Varnode {
+        space: "ram".into(),
+        offset,
+        size,
+        unique: false,
+    };
+    let raw_fn = RecoveredFunction {
+        block: "EXE_CODE".into(),
+        entry: 0,
+        instructions: vec![RecoveredInstruction {
+            offset: 0,
+            address: "0100:0000".into(),
+            bytes: "e90010".into(),
+            file: "ACAD.EXE".into(),
+            file_offset: 0,
+            instruction: "JMP 0x2003".into(),
+            ops: vec![RawOp {
+                op: "BRANCH".into(),
+                out: None,
+                inputs: vec![Some(v_ram(0x2003, 4))],
+            }],
+            compiler_frame: None,
+            kernel_tailcall: None,
+        }],
+        inline_data: vec![],
+        dependencies: vec![],
+        edges: vec![],
+        errors: vec![],
+    };
+
+    let ir = lower(&arch, &raw_fn).expect("lowering failed");
+    assert_eq!(ir.instructions.len(), 1);
+    assert!(matches!(
+        &ir.instructions[0].operations[0],
+        Operation::TailCall {
+            target_block,
+            target: 0x2003,
+        } if target_block == "EXE_CODE"
+    ));
+    assert_eq!(ir.instructions[0].fallthrough, None);
+}
+
+#[test]
+fn aztec_compiler_frame_helper_with_signature_lowers_limit() {
+    let arch = Architecture {
+        language: "x86:LE:16:Real Mode".into(),
+        ram_space_id: 497,
+        userops: vec!["segment".into()],
+    };
+    let raw_fn = RecoveredFunction {
+        block: "OVL07_CODE".into(),
+        entry: 0,
+        instructions: vec![
+            RecoveredInstruction {
+                offset: 0,
+                address: "OVL07_CODE::001000".into(),
+                bytes: "e80500".into(),
+                file: "ACAD.OVL".into(),
+                file_offset: 0,
+                instruction: "CALL 0x0008".into(),
+                ops: vec![],
+                compiler_frame: Some(CompilerFrame {
+                    local_bytes: 4,
+                    continuation: 3,
+                    status: "ok".into(),
+                }),
+                kernel_tailcall: None,
+            },
+            RecoveredInstruction {
+                offset: 3,
+                address: "OVL07_CODE::001003".into(),
+                bytes: "c3".into(),
+                file: "ACAD.OVL".into(),
+                file_offset: 3,
+                instruction: "RET".into(),
+                ops: vec![RawOp {
+                    op: "RETURN".into(),
+                    out: None,
+                    inputs: vec![Some(Varnode {
+                        space: "const".into(),
+                        offset: 0,
+                        size: 2,
+                        unique: false,
+                    })],
+                }],
+                compiler_frame: None,
+                kernel_tailcall: None,
+            },
+        ],
+        inline_data: vec![],
+        dependencies: vec![RecoveredDependency {
+            block: "OVL07_CODE".into(),
+            offset: 8,
+            kind: ("frame".into(), None),
+            status: "ok".into(),
+            signature_bytes: "5efc2eadebed".into(),
+        }],
+        edges: vec![],
+        errors: vec![],
+    };
+
+    let ir = lower(&arch, &raw_fn).expect("lowering failed");
+    assert_eq!(ir.instructions.len(), 2);
+    assert!(ir.instructions[0].operations.iter().any(|op| {
+        if let Operation::Assign { expression, .. } = op {
+            format!("{expression:?}").contains("0x505d")
+                || format!("{expression:?}").contains("20573")
+        } else {
+            false
+        }
+    }));
 }

@@ -3,7 +3,7 @@ fn put16(bank: &mut [u8], offset: usize, value: u16) {
     bank[offset..offset + 2].copy_from_slice(&value.to_le_bytes());
 }
 fn reference_case(word: u16, sp: u16, ds: u16, ss: u16, cs: u16) {
-    let mut actual = [0xa5; 1024];
+    let mut actual = [0xa5; 8192];
     put16(&mut actual, 16, sp);
     put16(&mut actual, 258, cs);
     put16(&mut actual, 260, ss);

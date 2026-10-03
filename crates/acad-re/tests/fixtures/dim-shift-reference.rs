@@ -3,7 +3,7 @@ fn put16(bank: &mut [u8], offset: usize, value: u16) {
     bank[offset..offset + 2].copy_from_slice(&value.to_le_bytes());
 }
 fn reference_case(bits: u32, count: u16, flags: u8, sp: u16, cs: u16, ss: u16) {
-    let mut actual = [0xa5; 1024];
+    let mut actual = [0xa5; 8192];
     put16(&mut actual, 0, bits as u16);
     put16(&mut actual, 8, (bits >> 16) as u16);
     put16(&mut actual, 4, count);
@@ -62,7 +62,7 @@ fn every_count_and_boundary_patterns() {
 
 #[test]
 fn bounds_and_budget_are_explicit() {
-    let mut registers = [0; 1024];
+    let mut registers = [0; 8192];
     assert_eq!(run(&mut registers, &mut [], 0), Err(Trap::Budget));
     assert_eq!(run(&mut registers, &mut [], 1), Err(Trap::Budget));
     assert_eq!(run(&mut registers, &mut [], 2), Err(Trap::Memory));

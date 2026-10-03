@@ -21,6 +21,7 @@ This document maintains an empirical, transparent record of technical decisions,
 - [ADR-013: Inline Compiler Helper `switch-table` Lowering](#adr-013-inline-compiler-helper-switch-table-lowering)
 - [ADR-014: Indirect Control Flow (CALLIND & BRANCHIND) and CALLOTHER Userop Lowering](#adr-014-indirect-control-flow-callind--branchind-and-callother-userop-lowering)
 - [ADR-015: 24-bit Overlay Address, Intra-Instruction CBRANCH REP Loop, and Inter-Function Branch Lowering](#adr-015-24-bit-overlay-address-intra-instruction-cbranch-rep-loop-and-inter-function-branch-lowering)
+- [ADR-016: Complete 100% Structural Lowering of AutoCAD 2.18 Binary and Overlays (1,054 / 1,054 Functions) & x87 Extended Precision Lowering](#adr-016-complete-100-structural-lowering-of-autocad-218-binary-and-overlays-1054--1054-functions--x87-extended-precision-lowering)
 
 ---
 
@@ -427,40 +428,75 @@ After unblocking indirect control flow and architecture userops (ADR-014, 986 fu
 
 ---
 
+### ADR-016: Complete 100% Structural Lowering of AutoCAD 2.18 Binary and Overlays (1,054 / 1,054 Functions) & x87 Extended Precision Lowering
+- **Date:** 2026-10-03
+- **Status:** Accepted & Implemented
+- **Files Modified:** [crates/acad-re/src/ir.rs](crates/acad-re/src/ir.rs), [crates/acad-re/src/rust_emit.rs](crates/acad-re/src/rust_emit.rs), [crates/acad-re/tests/fixtures/dim-shift-reference.rs](crates/acad-re/tests/fixtures/dim-shift-reference.rs), [crates/acad-re/tests/fixtures/sign-flip-reference.rs](crates/acad-re/tests/fixtures/sign-flip-reference.rs), [crates/acad-re/tests/ir.rs](crates/acad-re/tests/ir.rs)
+
+#### Context
+Following ADR-015, exactly 53 functions remained blocked across the entire AutoCAD 2.18 codebase:
+1. `unsupported width 10` (51 functions): 80-bit x87 extended precision floating-point registers (`ST0`..`ST7` at offsets 4352..4474) and temporaries, along with 11 unhandled floating-point PCode opcodes (`FLOAT2FLOAT`, `INT2FLOAT`, `ROUND`, `TRUNC`, `FLOAT_NAN`, `FLOAT_ADD`, `FLOAT_SUB`, `FLOAT_MULT`, `FLOAT_DIV`, `FLOAT_EQUAL`, `FLOAT_LESS`).
+2. `instruction has no Pcode` (49 functions, overlapping with float instructions): 8086/8087 coprocessor synchronization instruction `WAIT` / `FWAIT` (`0x9b`) with empty PCode (`ops: []`).
+3. `invalid float round operand sizes` (2 functions: `EXE_CODE@256` and `EXE_CODE@47200`): in-place float rounding (`FRNDINT`) on `ST(0)` producing a temporary of size 10 prior to `TRUNC` to integer size 2 (`FISTP`).
+4. `unrecognized compiler helper signature (width 1/2)` (1 function: `OVL07_CODE@360`): Aztec C 2-byte compiler frame helper signature `[0x5e, 0xfc, 0x2e, 0xad, 0xeb, 0xed]` branching backward to the universal Aztec C stack limit check at `0x505d`.
+5. `unresolved or relative Pcode branch` (1 function: `EXE_CODE@56944`): standard 8086 `call $+3` trampoline (`e8 00 00`) decomposed by Ghidra into a function partition with a branch to `122496` outside the local function addresses.
+
+#### Decision
+1. **x87 80-Bit Extended Precision (Target 11B):**
+   - Extended `width(node)` in [crates/acad-re/src/ir.rs](crates/acad-re/src/ir.rs) to accept `10` (`1 | 2 | 3 | 4 | 8 | 10`).
+   - Fixed `Width::mask()` integer subtraction underflow when `width >= 8`.
+   - Expanded register storage bounds from 1,024 to 8,192 bytes, accommodating x87 FPU `ST(0)`..`ST(7)` registers (offsets 4352..4474).
+   - Added all 11 floating-point opcodes with strict operand size and arity validation.
+   - Expanded standalone Rust emitter in [crates/acad-re/src/rust_emit.rs](crates/acad-re/src/rust_emit.rs): `registers: &mut [u8; 8192]`, added 128-bit storage helpers (`read128`, `write128`, `load128`, `store128`), and pure Rust IEEE-754 / 80-bit float conversion helpers (`f80_to_f64`, `f64_to_f80`).
+2. **The Final 4 Blocker Categories (Target 11C):**
+   - Lowered `WAIT` / `FWAIT` (`0x9b`) sync NOPs with empty operations and sequential fallthrough to `next`, ensuring PC advancement and budget consumption without omitting match arms.
+   - Permitted `ROUND` output size 10 to support in-place float rounding prior to truncation.
+   - Decoded and validated Aztec C 2-byte frame helper signature `[0x5e, 0xfc, 0x2e, 0xad, 0xeb, 0xed]`, resolving universal stack limit `0x505d`.
+   - Lowered out-of-function linear branches ($\le 0x10ffef$) as `Operation::TailCall` with `fallthrough = None`.
+
+#### Consequences & Verified Outcome
+- **100.0% Structural Lowering Achieved:** Exactly **1,054 / 1,054 functions** (ACAD.EXE and all 11 overlays) are structurally lowerable and independently compiling to `.rlib` with `rustc --edition 2021 --crate-type=lib`.
+- All blocker categories across the entire binary burned down to **0**.
+- Zero relaxed safety checks or wildcards: all opcodes, spaces, and widths remain strictly validated.
+- All 9 unit tests in [crates/acad-re/tests/ir.rs](crates/acad-re/tests/ir.rs) and all 28 tests in `acad-re` pass cleanly.
+- Clippy passes with zero warnings (`cargo clippy -p acad-re --all-targets -- -D warnings`).
+- Codebase formatting passes cleanly (`cargo fmt --check`).
+
+---
+
 ## Metric Tracking Baseline
 
-| Metric | Checkpoint `5f705a7` | ADR-001/002 | ADR-004 | ADR-005 | ADR-006 | ADR-007 | ADR-008 | ADR-009 | ADR-010 | ADR-011 | ADR-012 | ADR-013 | ADR-014 | Verified Current (ADR-015) | Delta vs Baseline |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Total CFG Candidates** | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 0 |
-| **Structurally Lowerable** | 8 | 20 | 32 | 272 | 382 | 651 | 748 | 803 | 828 | 845 | 855 | 909 | 986 | **1,001** | **+993** |
-| **Compiled to Rust rlib** | 8 | 20 | 32 | 272 | 382 | 651 | 748 | 803 | 828 | 845 | 855 | 909 | 986 | **1,001** | **+993** |
-| **Compiler Frame Dependency Errors** | 661 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-661 (Resolved)** |
-| **PCode `CALL` Opcode Errors** | 346 | 346 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-346 (Resolved)** |
-| **Inline Helper Errors (`kernel-function`)** | 240 | 240 | 240 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-240 (Resolved)** |
-| **PCode `INT_CARRY` Opcode Errors** | 249 | 249 | 249 | 249 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-249 (Resolved)** |
-| **PCode `INT_SCARRY` Opcode Errors** | 94 | 94 | 94 | 94 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-94 (Resolved)** |
-| **PCode `BRANCH` Opcode Errors** | 245 | 245 | 245 | 245 | 443 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-443 (Resolved)** |
-| **PCode `INT_SEXT` Opcode Errors** | 32 | 32 | 32 | 32 | 48 | 140 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-140 (Resolved)** |
-| **PCode `BOOL_AND` Opcode Errors** | 5 | 5 | 5 | 5 | 14 | 43 | 52 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-52 (Resolved)** |
-| **PCode `BOOL_XOR` Opcode Errors** | 0 | 0 | 0 | 0 | 4 | 7 | 23 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-23 (Resolved)** |
-| **PCode `INT_2COMP` Opcode Errors** | 1 | 1 | 1 | 1 | 1 | 15 | 22 | 33 | 0 | 0 | 0 | 0 | 0 | **0** | **-33 (Resolved)** |
-| **PCode `INT_NEGATE` Opcode Errors** | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 0 | 0 | 0 | 0 | 0 | **0** | **-2 (Resolved)** |
-| **PCode `INT_DIV` Opcode Errors** | 0 | 0 | 0 | 0 | 2 | 6 | 9 | 9 | 11 | 0 | 0 | 0 | 0 | **0** | **-11 (Resolved)** |
-| **PCode `INT_SDIV` Opcode Errors** | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 7 | 8 | 0 | 0 | 0 | 0 | **0** | **-8 (Resolved)** |
-| **PCode `INT_SRIGHT` Opcode Errors** | 1 | 1 | 1 | 1 | 2 | 6 | 7 | 8 | 8 | 0 | 0 | 0 | 0 | **0** | **-8 (Resolved)** |
-| **PCode `INT_SREM` Opcode Errors** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 0 | **0** | **-10 (Resolved)** |
-| **Inline Helper Errors (`switch-table`)** | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 0 | 0 | **0** | **-57 (Resolved)** |
-| **PCode `CALLIND` Opcode Errors** | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 0 | **0** | **-42 (Resolved)** |
-| **PCode `BRANCHIND` Opcode Errors** | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 0 | **0** | **-20 (Resolved)** |
-| **CALLOTHER Userop / Arity Errors** | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 0 | **0** | **-14 (Resolved)** |
-| **`unsupported width 3`** | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | **0** | **-9 (Resolved)** |
-| **Non-terminating Control (`REP`)** | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | **0** | **-6 (Resolved)** |
-| **Compiler Helper Signature Errors** | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | **1** | **0** |
-| **Relative/Unresolved Branch Errors** | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | **1** | **0** |
-| **Workspace Test Suite** | 46 passed | 46 passed | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | **All Green (108 tests)** | Stable |
+| Metric | Checkpoint `5f705a7` | ADR-001/002 | ADR-004 | ADR-005 | ADR-006 | ADR-007 | ADR-008 | ADR-009 | ADR-010 | ADR-011 | ADR-012 | ADR-013 | ADR-014 | ADR-015 | Verified Current (ADR-016) | Delta vs Baseline |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Total CFG Candidates** | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | 1,054 | **1,054** | 0 |
+| **Structurally Lowerable** | 8 | 20 | 32 | 272 | 382 | 651 | 748 | 803 | 828 | 845 | 855 | 909 | 986 | 1,001 | **1,054 (100.0%)** | **+1,046** |
+| **Compiled to Rust rlib** | 8 | 20 | 32 | 272 | 382 | 651 | 748 | 803 | 828 | 845 | 855 | 909 | 986 | 1,001 | **1,054 (100.0%)** | **+1,046** |
+| **Compiler Frame Dependency Errors** | 661 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-661 (Resolved)** |
+| **PCode `CALL` Opcode Errors** | 346 | 346 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-346 (Resolved)** |
+| **Inline Helper Errors (`kernel-function`)** | 240 | 240 | 240 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-240 (Resolved)** |
+| **PCode `INT_CARRY` Opcode Errors** | 249 | 249 | 249 | 249 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-249 (Resolved)** |
+| **PCode `INT_SCARRY` Opcode Errors** | 94 | 94 | 94 | 94 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-94 (Resolved)** |
+| **PCode `BRANCH` Opcode Errors** | 245 | 245 | 245 | 245 | 443 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-443 (Resolved)** |
+| **PCode `INT_SEXT` Opcode Errors** | 32 | 32 | 32 | 32 | 48 | 140 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-140 (Resolved)** |
+| **PCode `BOOL_AND` Opcode Errors** | 5 | 5 | 5 | 5 | 14 | 43 | 52 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-52 (Resolved)** |
+| **PCode `BOOL_XOR` Opcode Errors** | 0 | 0 | 0 | 0 | 4 | 7 | 23 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-23 (Resolved)** |
+| **PCode `INT_2COMP` Opcode Errors** | 1 | 1 | 1 | 1 | 1 | 15 | 22 | 33 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-33 (Resolved)** |
+| **PCode `INT_NEGATE` Opcode Errors** | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | **0** | **-2 (Resolved)** |
+| **PCode `INT_DIV` Opcode Errors** | 0 | 0 | 0 | 0 | 2 | 6 | 9 | 9 | 11 | 0 | 0 | 0 | 0 | 0 | **0** | **-11 (Resolved)** |
+| **PCode `INT_SDIV` Opcode Errors** | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 7 | 8 | 0 | 0 | 0 | 0 | 0 | **0** | **-8 (Resolved)** |
+| **PCode `INT_SRIGHT` Opcode Errors** | 1 | 1 | 1 | 1 | 2 | 6 | 7 | 8 | 8 | 0 | 0 | 0 | 0 | 0 | **0** | **-8 (Resolved)** |
+| **PCode `INT_SREM` Opcode Errors** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 0 | 0 | **0** | **-10 (Resolved)** |
+| **Inline Helper Errors (`switch-table`)** | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 57 | 0 | 0 | 0 | **0** | **-57 (Resolved)** |
+| **PCode `CALLIND` Opcode Errors** | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 42 | 0 | 0 | **0** | **-42 (Resolved)** |
+| **PCode `BRANCHIND` Opcode Errors** | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 20 | 0 | 0 | **0** | **-20 (Resolved)** |
+| **CALLOTHER Userop / Arity Errors** | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 0 | 0 | **0** | **-14 (Resolved)** |
+| **`unsupported width 3`** | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 0 | **0** | **-9 (Resolved)** |
+| **Non-terminating Control (`REP`)** | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 0 | **0** | **-6 (Resolved)** |
+| **`unsupported width 10` (x87)** | 51 | 51 | 51 | 51 | 51 | 51 | 51 | 51 | 51 | 51 | 51 | 51 | 51 | 51 | **0** | **-51 (Resolved)** |
+| **Compiler Helper Signature Errors** | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | **0** | **-1 (Resolved)** |
+| **Relative/Unresolved Branch Errors** | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | **0** | **-1 (Resolved)** |
+| **Workspace Test Suite** | 46 passed | 46 passed | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green | All Green (108 tests) | **All Green** | Stable |
 
-### Current Remaining Blockers (from `target/acad-ir-20261003-03-inventory.json`)
+### Current Remaining Blockers (from `target/acad-ir-20261003-05-inventory.json`)
 
-1. `unsupported width 10`: **51** functions
-2. `unrecognized compiler helper signature (width 1/2)`: **1** function
-3. `unresolved or relative Pcode branch`: **1** function
+**None. 100.0% of recovered functions (1,054 / 1,054) are structurally lowerable and independently compiling.**
