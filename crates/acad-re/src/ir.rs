@@ -277,7 +277,7 @@ pub fn verify_source(
 
 fn width(node: &Varnode) -> Result<Width, String> {
     match node.size {
-        1 | 2 | 4 | 8 => Ok(Width(node.size as u8)),
+        1 | 2 | 3 | 4 | 8 => Ok(Width(node.size as u8)),
         _ => Err(format!("unsupported width {}", node.size)),
     }
 }
@@ -701,7 +701,7 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                     continue;
                 }
                 if control {
-                    if op.out.is_some() || index + 1 != row.ops.len() {
+                    if op.out.is_some() || (op.op != "CBRANCH" && index + 1 != row.ops.len()) {
                         return Err("control transfer must terminate instruction Pcode".into());
                     }
                     if op.op == "RETURN" {
