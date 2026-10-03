@@ -473,6 +473,14 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                 offset: 16,
                 width: Width(2),
             };
+            let ss_place = Place::Register {
+                offset: 260,
+                width: Width(2),
+            };
+            let ds_place = Place::Register {
+                offset: 262,
+                width: Width(2),
+            };
             operations.push(Operation::Assign {
                 destination: sp_place.clone(),
                 expression: Expression::Binary(
@@ -488,8 +496,20 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                 offset: 20,
                 width: Width(2),
             });
+            let t_sp_ptr = Place::Temporary {
+                offset: next_temp,
+                width: Width(4),
+            };
+            next_temp += 4;
+            operations.push(Operation::Assign {
+                destination: t_sp_ptr.clone(),
+                expression: Expression::Segment(
+                    Value::Read(ss_place),
+                    Value::Read(sp_place.clone()),
+                ),
+            });
             operations.push(Operation::Store {
-                pointer: Value::Read(sp_place.clone()),
+                pointer: Value::Read(t_sp_ptr),
                 value: bp_read,
             });
             let bp_place = Place::Register {
@@ -528,6 +548,22 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                 });
             }
 
+            let t_limit_ptr = Place::Temporary {
+                offset: next_temp,
+                width: Width(4),
+            };
+            next_temp += 4;
+            operations.push(Operation::Assign {
+                destination: t_limit_ptr.clone(),
+                expression: Expression::Segment(
+                    Value::Read(ds_place),
+                    Value::Constant {
+                        value: limit_addr,
+                        width: Width(2),
+                    },
+                ),
+            });
+
             let t_limit = Place::Temporary {
                 offset: next_temp,
                 width: Width(2),
@@ -535,10 +571,7 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
             next_temp += 2;
             operations.push(Operation::Assign {
                 destination: t_limit.clone(),
-                expression: Expression::Load(Value::Constant {
-                    value: limit_addr,
-                    width: Width(2),
-                }),
+                expression: Expression::Load(Value::Read(t_limit_ptr)),
             });
 
             let t_less = Place::Temporary {
