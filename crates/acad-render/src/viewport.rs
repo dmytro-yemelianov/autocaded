@@ -71,6 +71,21 @@ impl Viewport {
             y: (self.height as f64 / 2.0 - p.y) / self.scale + self.offset.y,
         }
     }
+
+    /// The world-space extents currently visible within this viewport's window.
+    pub fn visible_world_extents(&self) -> Extents {
+        let top_left = self.to_world(Point { x: 0.0, y: 0.0 });
+        let bottom_right = self.to_world(Point {
+            x: self.width as f64,
+            y: self.height as f64,
+        });
+        Extents {
+            xmin: top_left.x.min(bottom_right.x),
+            xmax: top_left.x.max(bottom_right.x),
+            ymin: top_left.y.min(bottom_right.y),
+            ymax: top_left.y.max(bottom_right.y),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -160,5 +175,15 @@ mod tests {
         let vp = Viewport::checked_from_view(origin, 1e-308, 400, 1).unwrap();
         assert_eq!(vp.to_screen(origin), Point { x: 200.0, y: 0.5 });
         assert!(Viewport::checked_from_view(huge, 1e300, 400, 222).is_ok());
+    }
+
+    #[test]
+    fn visible_world_extents_covers_visible_window() {
+        let vp = Viewport::from_view(Point { x: 10.0, y: 10.0 }, 20.0, 200, 100);
+        let ext = vp.visible_world_extents();
+        assert_eq!(ext.ymin, 0.0);
+        assert_eq!(ext.ymax, 20.0);
+        assert!(ext.contains_point(Point { x: 10.0, y: 10.0 }));
+        assert!(!ext.contains_point(Point { x: 10.0, y: 25.0 }));
     }
 }

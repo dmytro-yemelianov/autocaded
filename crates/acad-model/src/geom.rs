@@ -22,6 +22,17 @@ impl Extents {
     pub fn is_degenerate(&self) -> bool {
         self.width() <= 0.0 || self.height() <= 0.0
     }
+
+    pub fn contains_point(&self, p: Point) -> bool {
+        p.x >= self.xmin && p.x <= self.xmax && p.y >= self.ymin && p.y <= self.ymax
+    }
+
+    pub fn intersects(&self, other: &Extents) -> bool {
+        self.xmin <= other.xmax
+            && self.xmax >= other.xmin
+            && self.ymin <= other.ymax
+            && self.ymax >= other.ymin
+    }
 }
 
 #[cfg(test)]
@@ -50,5 +61,32 @@ mod tests {
             ymax: 4.0,
         };
         assert!(e.is_degenerate());
+    }
+
+    #[test]
+    fn extents_containment_and_intersection() {
+        let box1 = Extents {
+            xmin: 0.0,
+            xmax: 10.0,
+            ymin: 0.0,
+            ymax: 10.0,
+        };
+        let box2 = Extents {
+            xmin: 5.0,
+            xmax: 15.0,
+            ymin: 5.0,
+            ymax: 15.0,
+        };
+        let box3 = Extents {
+            xmin: 20.0,
+            xmax: 30.0,
+            ymin: 20.0,
+            ymax: 30.0,
+        };
+        assert!(box1.contains_point(Point { x: 5.0, y: 5.0 }));
+        assert!(!box1.contains_point(Point { x: 15.0, y: 5.0 }));
+        assert!(box1.intersects(&box2));
+        assert!(box2.intersects(&box1));
+        assert!(!box1.intersects(&box3));
     }
 }
