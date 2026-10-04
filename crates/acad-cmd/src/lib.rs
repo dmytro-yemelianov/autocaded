@@ -1,5 +1,7 @@
 //! Interactive command state machine for the 1983 editor.
+pub mod error;
 pub mod menu;
+pub use error::{CmdError, CmdErrorKind};
 
 mod change;
 mod curve_history;

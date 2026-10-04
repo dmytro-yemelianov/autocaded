@@ -32,6 +32,17 @@ fn fresh_editor_limits_and_view_match_the_recovered_native_defaults() {
 }
 
 #[test]
+fn execute_returns_structured_cmd_errors() {
+    let mut editor = Editor::default();
+    let err = editor.execute("NOT_A_VALID_COMMAND").unwrap_err();
+    assert_eq!(err.kind, acad_cmd::CmdErrorKind::UnknownCommand);
+
+    editor.execute("LINE").unwrap();
+    let err_pt = editor.execute("not_a_point").unwrap_err();
+    assert_eq!(err_pt.kind, acad_cmd::CmdErrorKind::InvalidPoint);
+}
+
+#[test]
 fn new_editor_preserves_a_supplied_drawing_header() {
     let mut drawing = Editor::default().drawing().clone();
     drawing.header.limits = acad_model::Extents {

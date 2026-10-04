@@ -175,6 +175,11 @@ impl Editor {
         result
     }
 
+    /// Execute one complete line of keyboard input, returning a structured `CmdError`.
+    pub fn execute(&mut self, input: &str) -> Result<Effect, crate::CmdError> {
+        self.submit(input).map_err(crate::CmdError::from)
+    }
+
     /// Submit one complete line of keyboard input. Coordinates use AutoCAD's
     /// `x,y`, `@dx,dy`, or `@distance<angle` notation where a prior point exists.
     /// A `LINE` remains active until an empty line is entered.
