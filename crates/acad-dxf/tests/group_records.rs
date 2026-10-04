@@ -27,7 +27,9 @@ fn groups_cannot_cross_block_boundaries_or_exceed_depth() {
     for source in [
         "REPEAT,1\r\nPOINT,1\r\n1,2\r\nBLOCK,1\r\n0,0\r\nB\r\nENDREP,1\r\n1,1,0,0\r\nENDBLK,1\r\n",
         "BLOCK,1\r\n0,0\r\nB\r\nREPEAT,1\r\nPOINT,1\r\n1,2\r\nENDBLK,1\r\nENDREP,1\r\n1,1,0,0\r\n",
-        "REPEAT,1\r\nENDREP,1\r\n1,1,0,0\r\n",
+        // An empty pair is valid (R6, tests/empty_repeat.rs); zero
+        // dimensions are not.
+        "REPEAT,1\r\nENDREP,1\r\n0,1,0,0\r\n",
         "REPEAT,256\r\nPOINT,1\r\n1,2\r\nENDREP,1\r\n1,1,0,0\r\n",
         "REPEAT,1\r\nPOINT,1\r\n1,2\r\nENDREP,1\r\n1,1,NaN,0\r\n",
         "REPEAT,1\r\nREPEAT,1\r\nPOINT,1\r\n1,2\r\nENDREP,1\r\n1,1,0,0\r\n",

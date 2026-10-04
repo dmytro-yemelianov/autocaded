@@ -169,11 +169,24 @@ pub(crate) fn transform_item(item: &mut Item, transform: Transform) {
     }
 }
 
-/// REPEAT has no persisted owner-layer field: CHANGE applies to every stored
-/// descendant record, including metadata, for either top-level representation.
+/// REPEAT has no owner layer in AutoCAD 1.4: CHANGE layer rewrites every
+/// stored descendant record and leaves the REPEAT/ENDREP marker layers alone
+/// (oracle `repeat_layer.rs`). An explicit native owner wrapper is dropped, as
+/// it would only repeat the members' new layer, so the session holds the same
+/// group a saved file reopens to.
 pub(crate) fn change_entity_layer(entity: &mut Entity, layer: u8) {
     match entity {
         Entity::Erased(entity) => change_entity_layer(entity, layer),
+        Entity::OnLayer { entity: inner, .. } if matches!(inner.as_ref(), Entity::Repeat(_)) => {
+            let mut group = std::mem::replace(
+                inner.as_mut(),
+                Entity::Load {
+                    name: String::new(),
+                },
+            );
+            change_entity_layer(&mut group, layer);
+            *entity = group;
+        }
         Entity::OnLayer {
             layer: current,
             entity,

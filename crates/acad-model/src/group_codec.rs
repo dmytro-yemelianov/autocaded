@@ -24,10 +24,12 @@ impl GroupCodecError {
             Self::AmbiguousOwner => {
                 "whole erased owner contains already erased members; DWG cannot retain their prior status; use OOPS or UNDO before saving, or answer Y to the SAVE/END question to write AutoCAD 1.4's form (earlier member erasure lost)"
             },
-            Self::OwnerLayer => "explicit REPEAT owner layer has no lossless file mapping",
+            Self::OwnerLayer => {
+                "explicit REPEAT owner layer differs from a member's layer; files keep a group's layer only in its member records (CHANGE the group's layer first)"
+            }
             Self::LayerWrappers => "multiple layer wrappers have no lossless file mapping",
             Self::InvalidEntity => "entity fields and block bases must be finite",
-            Self::InvalidRepeat => "REPEAT needs members, nonzero dimensions and finite spacings",
+            Self::InvalidRepeat => "REPEAT needs nonzero dimensions and finite spacings",
             Self::DepthLimit => "group nesting exceeds the native codec limit of 64",
             Self::RecordLimit => "stored record count exceeds the native codec limit of 65535",
         }
@@ -84,9 +86,11 @@ pub fn entity_fields_are_finite(entity: &Entity) -> bool {
     }
 }
 
+/// A group without members is valid: AutoCAD 1.4 writes, keeps and exports
+/// an empty REPEAT/ENDREP pair (docs/native-group-persistence.md, "R6 empty
+/// REPEAT groups"). Only its dimensions and spacings are checked.
 fn repeat_valid(repeat: &Repeat) -> Result<(), GroupCodecError> {
-    if repeat.entities.is_empty()
-        || repeat.columns == 0
+    if repeat.columns == 0
         || repeat.rows == 0
         || !repeat.column_spacing.is_finite()
         || !repeat.row_spacing.is_finite()
@@ -173,7 +177,7 @@ fn records(
             return Err(GroupCodecError::AmbiguousOwner);
         }
         if let Entity::Repeat(repeat) = record.entity {
-            if record.has_layer {
+            if record.has_layer && !members_on_layer(repeat, record.layer, depth)? {
                 return Err(GroupCodecError::OwnerLayer);
             }
             repeat_valid(repeat)?;
@@ -191,6 +195,52 @@ fn records(
     }
     Ok(())
 }
+/// Whether every stored ordinary record beneath a group (live or erased, LOAD
+/// included, through nested groups) carries `layer`. AutoCAD 1.4 has no owner
+/// layer: CHANGE layer on a group rewrites each member record and leaves the
+/// REPEAT/ENDREP marker layers alone (`crates/acad-oracle/tests/repeat_layer.rs`).
+/// An explicit owner layer is therefore lossless in a file exactly when it
+/// repeats every member's layer; writers then store the members and markers
+/// as they are and drop the redundant owner. Marker layers are not compared.
+pub fn members_on_layer(repeat: &Repeat, layer: u8, depth: usize) -> Result<bool, GroupCodecError> {
+    let mut stack = vec![(repeat.entities.iter(), depth + 1)];
+    while let Some((entities, depth)) = stack.last_mut() {
+        let Some(entity) = entities.next() else {
+            stack.pop();
+            continue;
+        };
+        let depth = *depth;
+        let record = stored_record(entity)?;
+        if let Entity::Repeat(inner) = record.entity {
+            if record.has_layer && record.layer != layer {
+                return Ok(false);
+            }
+            if depth >= MAX_GROUP_DEPTH {
+                return Err(GroupCodecError::DepthLimit);
+            }
+            stack.push((inner.entities.iter(), depth + 1));
+        } else if record.layer != layer {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// A top-level erased owner's group: bare, or under an owner layer a file keeps
+/// (one every member already carries). Other wrappers are left for the refusal.
+fn erased_owner_group(entity: &Entity) -> Option<&Repeat> {
+    match entity {
+        Entity::Repeat(repeat) => Some(repeat),
+        Entity::OnLayer { layer, entity } => match entity.as_ref() {
+            Entity::Repeat(repeat) if members_on_layer(repeat, *layer, 0) == Ok(true) => {
+                Some(repeat)
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 /// Validate retained DWG history before output allocation. INSERTs are not expanded.
 pub fn validate_group_records(drawing: &Drawing) -> Result<(), GroupCodecError> {
     validate_group_items(&drawing.items)
@@ -246,7 +296,9 @@ fn validate_items<'a>(
 /// erased before the owner (the state DWG checked save refuses as ambiguous).
 pub fn has_ambiguous_owner(drawing: &Drawing) -> bool {
     drawing.items.iter().any(|item| match item {
-        Item::Erased(Entity::Repeat(repeat)) => holds_erased_member(&repeat.entities),
+        Item::Erased(entity) => {
+            erased_owner_group(entity).is_some_and(|repeat| holds_erased_member(&repeat.entities))
+        }
         _ => false,
     })
 }
@@ -286,24 +338,19 @@ pub fn original_member_erasure(drawing: &Drawing) -> (Drawing, usize) {
     let mut converted = drawing.clone();
     let mut count = 0;
     for item in &mut converted.items {
-        if let Item::Erased(Entity::Repeat(repeat)) = item {
-            if holds_erased_member(&repeat.entities) {
-                let mut repeat = std::mem::replace(
-                    repeat,
-                    Repeat {
-                        start_layer: 1,
-                        end_layer: 1,
-                        entities: Vec::new(),
-                        columns: 1,
-                        rows: 1,
-                        column_spacing: 0.0,
-                        row_spacing: 0.0,
-                    },
-                );
-                erase_members(&mut repeat.entities, 0);
-                *item = Item::Repeat(repeat);
-                count += 1;
-            }
+        let Item::Erased(entity) = item else {
+            continue;
+        };
+        // A kept owner layer repeats every member's layer, so dropping it
+        // with the conversion loses nothing (`members_on_layer`).
+        let Some(repeat) = erased_owner_group(entity) else {
+            continue;
+        };
+        if holds_erased_member(&repeat.entities) {
+            let mut repeat = repeat.clone();
+            erase_members(&mut repeat.entities, 0);
+            *item = Item::Repeat(repeat);
+            count += 1;
         }
     }
     (converted, count)
@@ -314,16 +361,17 @@ fn erase_members(entities: &mut [Entity], depth: usize) {
         let Ok(record) = stored_record(entity) else {
             continue;
         };
-        let shape = (
-            matches!(record.entity, Entity::Repeat(_)),
-            record.erased,
-            record.has_layer,
-        );
+        let shape = (matches!(record.entity, Entity::Repeat(_)), record.erased);
         match shape {
-            // An explicit owner layer stays as it is for the checked refusal.
-            (true, _, true) | (_, true, _) => {}
-            (true, false, false) => {
-                if let Entity::Repeat(repeat) = entity {
+            (_, true) => {}
+            // A nested group, under an owner layer or not: its members are
+            // erased in place. A layer the file cannot keep is still refused.
+            (true, false) => {
+                let repeat = match entity {
+                    Entity::OnLayer { entity, .. } => entity.as_mut(),
+                    entity => entity,
+                };
+                if let Entity::Repeat(repeat) = repeat {
                     if depth < MAX_GROUP_DEPTH {
                         erase_members(&mut repeat.entities, depth + 1);
                     }

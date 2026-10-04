@@ -8,16 +8,10 @@ fn pt(p: &Point) -> String {
     format!("{},{}", f(p.x), f(p.y))
 }
 
-// Preflight bounds recursion to 64 groups/two record wrappers. A LOAD is
-// exportable content, even without geometry; prune only erased-only subtrees.
-fn exportable(entity: &Entity) -> bool {
-    match entity {
-        Entity::Erased(_) => false,
-        Entity::OnLayer { entity, .. } => exportable(entity),
-        Entity::Repeat(repeat) => repeat.entities.iter().any(exportable),
-        _ => true,
-    }
-}
+// Preflight bounds recursion to 64 groups/two record wrappers. Erased members
+// are skipped, but a live group keeps its REPEAT/ENDREP records even with no
+// live member left, as AutoCAD 1.4's task 5 does; its task 6 and the native
+// reader read that empty pair back (docs/native-group-persistence.md, R6).
 fn entity(out: &mut String, e: &Entity) {
     let (layer, e) = match e {
         Entity::OnLayer { layer, entity } => (*layer, entity.as_ref()),
@@ -26,9 +20,6 @@ fn entity(out: &mut String, e: &Entity) {
     match e {
         Entity::Erased(_) => {}
         Entity::Repeat(repeat) => {
-            if !repeat.entities.iter().any(exportable) {
-                return;
-            }
             let _ = write!(out, "REPEAT,{}\r\n", repeat.start_layer);
             for inner in &repeat.entities {
                 entity(out, inner);
@@ -146,14 +137,15 @@ fn entity(out: &mut String, e: &Entity) {
 
 /// Legacy convenience writer. Panics when drawing data cannot be encoded.
 /// Production save/export callers should use `try_write` for an explicit error.
-/// Like `try_write`, this omits erased owners/members and prunes now-empty patterns.
+/// Like `try_write`, this omits erased owners/members; live groups keep their markers.
 pub fn write(d: &Drawing) -> Vec<u8> {
     try_write(d).expect("drawing cannot be encoded as historical DXF")
 }
 
 /// Checked live-only exchange export. Erased ordinary/group owners and their
 /// marker metadata/history are omitted as complete subtrees. Erased members are
-/// skipped; recursively empty patterns and their marker metadata are pruned.
+/// skipped; a live group keeps its REPEAT/ENDREP records even when no live
+/// member remains, as AutoCAD 1.4 writes it (an empty pair that reads back).
 /// The session is unchanged.
 /// Use DWG for retained erased native owner content. OOPS/UNDO history is not persisted.
 pub fn try_write(d: &Drawing) -> Result<Vec<u8>, crate::DxfError> {
@@ -252,9 +244,6 @@ pub fn try_write(d: &Drawing) -> Result<Vec<u8>, crate::DxfError> {
             Item::Entity(e) => entity(&mut s, e),
             Item::Erased(_) => {}
             Item::Repeat(r) => {
-                if !r.entities.iter().any(exportable) {
-                    continue;
-                }
                 let _ = write!(s, "REPEAT,{}\r\n", r.start_layer);
                 for e in &r.entities {
                     entity(&mut s, e);

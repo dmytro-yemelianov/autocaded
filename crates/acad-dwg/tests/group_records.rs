@@ -339,7 +339,7 @@ fn erased_subgroup_in_live_block_or_repeat_is_explicitly_unsupported() {
 }
 
 #[test]
-fn signed_fields_unknown_types_and_empty_groups_get_checked_errors() {
+fn signed_fields_unknown_types_and_zero_dimension_empty_groups_get_checked_errors() {
     for version in [Version::Ac12, Version::Ac140] {
         for sign in [1i16, -1] {
             let mut records = Vec::new();
@@ -358,6 +358,27 @@ fn signed_fields_unknown_types_and_empty_groups_get_checked_errors() {
             marker(&mut empty, 5 * sign, 2);
             close(&mut empty, 4);
             empty[4..6].copy_from_slice(&(6 * sign).to_le_bytes());
+            // R6: a group without members is AutoCAD 1.4's own empty pair,
+            // kept with its marker layers; zero dimensions stay refused.
+            let (bytes, meta) = fixture(&empty, 2, version);
+            let group = acad_model::Repeat {
+                start_layer: 2,
+                end_layer: 4,
+                entities: Vec::new(),
+                columns: 3,
+                rows: 2,
+                column_spacing: -10.0,
+                row_spacing: 5.0,
+            };
+            assert_eq!(
+                acad_dwg::entity::read_items(&bytes, &meta).unwrap(),
+                [if sign > 0 {
+                    Item::Repeat(group)
+                } else {
+                    Item::Erased(Entity::Repeat(group))
+                }]
+            );
+            empty[8..10].copy_from_slice(&0u16.to_le_bytes());
             let (bytes, meta) = fixture(&empty, 2, version);
             assert!(matches!(
                 acad_dwg::entity::read_items(&bytes, &meta),

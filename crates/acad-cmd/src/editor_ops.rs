@@ -395,6 +395,15 @@ impl Editor {
                     }
                     _ => unreachable!("selected live object"),
                 }
+                // A dropped owner wrapper leaves a top-level group, stored
+                // as the file reopens it.
+                if let Item::Entity(Entity::OnLayer { entity, .. }) = item {
+                    if let (Entity::Repeat(_), Item::Entity(Entity::Repeat(group))) =
+                        (entity.as_ref(), &changed)
+                    {
+                        changed = Item::Repeat(group.clone());
+                    }
+                }
                 if changed != *item {
                     replacements.push((index, changed));
                 }

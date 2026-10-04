@@ -240,15 +240,16 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
                         reason: "mixed signs in erased REPEAT owner",
                     });
                 }
-                if open.entities.is_empty()
-                    || columns == 0
+                // An empty pair is the original's own group without members
+                // (R6); only dimensions and spacings make a group malformed.
+                if columns == 0
                     || rows == 0
                     || !column_spacing.is_finite()
                     || !row_spacing.is_finite()
                 {
                     return Err(DwgError::InvalidGroupStream {
                         at: pos,
-                        reason: "REPEAT needs members, nonzero dimensions and finite spacings",
+                        reason: "REPEAT needs nonzero dimensions and finite spacings",
                     });
                 }
                 let repeat = Repeat {

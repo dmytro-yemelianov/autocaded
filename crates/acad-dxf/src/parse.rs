@@ -277,8 +277,9 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 let (_, start_layer, entities) = open_repeat
                     .pop()
                     .ok_or(DxfError::Corrupt { offset: rec.line })?;
-                if entities.is_empty()
-                    || values[0] < 1.0
+                // An empty pair is AutoCAD 1.4's own group without live
+                // members (task 5 writes it, task 6 reads it back; R6).
+                if values[0] < 1.0
                     || values[0] > u16::MAX as f64
                     || values[0].fract() != 0.0
                     || values[1] < 1.0

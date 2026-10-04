@@ -57,6 +57,8 @@ fn nested_groups_are_supported_but_explicit_owners_are_refused() {
             }
         }
     }
+    // Owner layer 2 over bare (layer 1) members: no file keeps it (E2,
+    // `owner_layer.rs` covers the owners a file does keep).
     for item in [
         Item::Entity(layer(Entity::Repeat(outer.clone()))),
         Item::Erased(layer(Entity::Repeat(outer))),

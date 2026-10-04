@@ -146,13 +146,14 @@ fn every_erased_ordinary_type_retains_sign_layer_fields_and_order_inside_live_gr
         let Entity::Repeat(live_outer) = &live.block("B").unwrap().entities[0] else {
             panic!("live outer")
         };
-        assert_eq!(
-            live_outer.entities.len(),
-            1,
-            "erased-only nested group pruned"
+        // R6: the erased-only nested group keeps its markers (an empty
+        // pair, as AutoCAD 1.4's task 5 writes it); its members are skipped.
+        assert_eq!(live_outer.entities.len(), 2);
+        assert!(
+            matches!(&live_outer.entities[0], Entity::Repeat(inner) if inner.entities.is_empty() && (inner.start_layer, inner.end_layer) == (8, 13))
         );
         assert!(matches!(
-            live_outer.entities[0],
+            live_outer.entities[1],
             Entity::OnLayer { layer: 14, .. }
         ));
         let Item::Repeat(live_root) = &live.items[1] else {

@@ -303,17 +303,9 @@ fn change_repeat_layer_updates_all_descendants_and_survives_both_dwg_revisions()
             acad_dwg::header::Version::Ac140,
         ] {
             if representation == 2 {
-                let Item::Entity(entity) = &editor.drawing().items[0] else {
-                    panic!("owner");
-                };
-                let mut layers = Vec::new();
-                layer_records(entity, &mut layers);
-                assert_eq!(layers, vec![7, 7], "owned group still changes in memory");
-                assert!(acad_dwg::write_version(editor.drawing(), version)
-                    .unwrap_err()
-                    .to_string()
-                    .contains("owner layer"));
-                continue;
+                // E2: CHANGE drops the explicit owner (it would only repeat
+                // the members' layer), so the owned group saves too.
+                assert!(matches!(&editor.drawing().items[0], Item::Repeat(_)));
             }
             let reopened =
                 acad_dwg::parse(&acad_dwg::write_version(editor.drawing(), version).unwrap())

@@ -5,9 +5,12 @@ erased-owner candidate. Static original REPEAT selection is source-member based;
 Rust whole-owner editing/persistence is an explicit native policy. B4 retains
 ordinary erased members inside live groups. E1 measured whole-group erasure after
 prior member erasure on the original: its file loses the prior status too, so
-DWG save writes the original's form only after an explicit question. Negative
-structural subgroups and explicit owner-layer wrappers remain checked
-compatibility gaps. This document
+DWG save writes the original's form only after an explicit question. E2
+measured layers on groups: the original has no owner layer, so an explicit
+owner layer is written only when every member already carries it (dropped,
+markers unchanged) and refused otherwise. R6 opens, keeps and re-saves the
+original's empty REPEAT/ENDREP pair as a live group without members. Negative
+structural subgroups remain a checked compatibility gap. This document
 does not claim original group-edit completion.
 
 ## Retained evidence
@@ -133,8 +136,8 @@ or prior UNDO after reopen. This is separate from retaining erased file content.
 
 Root approved metadata-aware nested parsing and mechanical native constructor/test
 updates. `Repeat.start_layer` and `end_layer` preserve physical marker metadata;
-children retain their own OnLayer headers. Explicit owner wrappers remain checked
-errors. New command REPEAT/ENDREP records capture the current layer at each marker. Existing flat source aliases and
+children retain their own OnLayer headers. Explicit owner wrappers follow the E2
+rule below (dropped when every member carries their layer, refused otherwise). New command REPEAT/ENDREP records capture the current layer at each marker. Existing flat source aliases and
 strict comparisons must continue to pass; refusal-only safety fixes do not
 complete B3's usable erased-group persistence objective.
 
@@ -143,16 +146,19 @@ complete B3's usable erased-group persistence objective.
 
 Both writers preflight stored records with at most 64 group levels (65 iterator
 frames including the root) and a 65,535 physical-record ceiling before serialization. A huge u16 lattice is stored
-compactly and does not expand during codec work. Empty groups, zero dimensions,
-nonfinite spacings, explicit group owners and stacked layer wrappers are errors.
+compactly and does not expand during codec work. Zero dimensions,
+nonfinite spacings, explicit group owner layers that differ from a member's
+layer (E2) and stacked layer wrappers are errors.
+A group without members is valid since R6 (section "R6 empty REPEAT groups").
 Readers enforce the same nesting/count bounds and exact physical region/count
 landing. DWG retains established diagnostic order for corrupt boundary, unclosed
 block/group and count mismatches. DXF limits allocated lexical records to 65,535
 plus 128 header records, with a separate 65,535 body-record limit.
 
-The shared marker metadata is semantic model state but has no owner-layer gate.
-An explicit owner wrapper can be used by the runtime, but checked save/export
-refuses it until a lossless mapping exists. Source aliases remain available at
+The shared marker metadata is semantic model state but has no owner-layer gate
+(the original's marker layer gates neither display nor selection, E2). An
+explicit owner wrapper can be used by the runtime; checked save/export writes it
+only in the lossless E2 case and refuses it otherwise. Source aliases remain available at
 `acad_dwg::entity::{read_entities,read_items,RecordHeader}` and both writer APIs.
 The legacy DXF Vec adapter delegates to checked serialization and panics explicitly
 on unsupported state; production document/API routes continue typed errors.
@@ -175,8 +181,9 @@ Any positive marker/member in the subtree rejects. Negative structural subgroups
 in live Repeat/Block bodies remain checked errors. B4 preserves ordinary negative
 members under positive markers, separately from the whole-owner rule below.
 Negative BLOCK/ENDBLK markers remain unsupported, except the zero-filled
-top-level task 6 placeholders, which are dropped (section below). Empty groups are consistently
-refused for either sign. Fields, layers, count/end, nesting and truncation checks
+top-level task 6 placeholders, which are dropped (section below). Since R6 a group
+without members is accepted for either sign (an erased one only as a top-level
+owner, like any erased owner). Fields, layers, count/end, nesting and truncation checks
 apply to erased records too; nonfinite ordinary fields/block bases reject before
 writing or accepting malformed input. Unknown magnitude, including abs(-32768),
 produces the ordinary unknown-type error.
@@ -200,8 +207,8 @@ Tests additionally assert raw uniform negative bytes/counts, every one-positive
 mutation, corrupt erased layers/fields/count/end/depth, unchanged referenced block
 definitions, erased LOAD suppression, ERASE/BLOCK SAVE/END/reopen, session
 OOPS/UNDO and checked API pending-input behavior. Original corpus bytes and
-numeric tolerances remain held. Lossless explicit owner-layer encoding and
-historical source-member editing parity remain open compatibility gaps.
+numeric tolerances remain held. Historical source-member editing parity remains
+an open compatibility gap; explicit owner layers are settled by E2 below.
 
 ## B4 ordinary erased-member preservation
 
@@ -253,9 +260,10 @@ In-session OOPS restores the original partial group; UNDO restores each original
 status snapshot. Reopen retains member signs, but no editor OOPS/UNDO history.
 
 DXF follows the established live-only exchange policy: ordinary erased members
-and whole erased owners are omitted. Repeat subtrees with no remaining exportable
-members are pruned recursively, including marker metadata, so no unreadable empty
-marker pair is emitted. A live LOAD is exportable content even without geometry;
+and whole erased owners are omitted. Since R6 a live group keeps its REPEAT/ENDREP
+records even when none of its members is exported, as AutoCAD 1.4's task 5 does;
+the resulting empty pair reads back (before R6 such groups were pruned, because
+the pair was unreadable). A live LOAD is exportable content even without geometry;
 an erased LOAD is neither exported nor executed. The source drawing and session
 history are unchanged. Typed checked APIs and the explicit-failure legacy DXF
 adapter preserve their existing contracts.
@@ -398,7 +406,8 @@ the retained System floppy (skipped visibly without `System.img`, failing under
   erased A is copied live. OOPS after BLOCK revives A in the source.
 - After reopening either file, OOPS answers `*Invalid*`. END after reopening
   writes only the REPEAT/ENDREP marker pair (count 2): erased members are not
-  kept. The native reader refuses that empty pair (`REPEAT needs members`).
+  kept. Before R6 the native reader refused that empty pair (`REPEAT needs
+  members`); it now opens it (section "R6 empty REPEAT groups").
 
 The original therefore loses the distinction itself, in the file and even in
 its own session. No original bit distinguishes the cases, so none is invented.
@@ -440,10 +449,215 @@ owner without geometry) and no OOPS history, as in the original. Write failures
 are atomic like any save (destination, attachment and dirty state unchanged).
 
 Remaining gaps: the original's END-after-reopen purge (empty marker pair) is not
-reproduced and its output is not readable natively (ledger task R6: read the
-original's empty REPEAT/ENDREP pair); the original's per-instance BLOCK copies
+reproduced (its output is readable natively since R6); the original's per-instance BLOCK copies
 and OOPS revival of earlier erased members are not reproduced. Unmeasured:
 nested original groups (the nested positive-marker form written on `Y` is a
 native extrapolation of the static marker rule) and point picks (typed-point
 selection did not complete in the in-tree runner); only window selection of the
 depth-1 fixture is executed evidence.
+
+## E2 layers on REPEAT groups
+
+### Original evidence (in-tree emulator, `crates/acad-oracle/tests/repeat_layer.rs`)
+
+Each claim below is asserted by that test against original ACAD.EXE runs on
+the retained System floppy (skipped visibly without `System.img`, failing under
+`AUTOCAD_REQUIRE_CORPUS`). Fixture: `LAYER 2`, `REPEAT`, `LAYER 1`, LINE A
+(1,1)-(2,1), LINE B (1,3)-(2,3), `LAYER 2`, `ENDREP` 2 columns, 1 row,
+spacing 5.
+
+- The current layer is captured per record: REPEAT and ENDREP carry layer 2,
+  A and B layer 1. The native editor on the same keys stores the same group.
+- `CHANGE W 0,0 10,5 L 3` rewrites the layer word of each member to 3. Both
+  marker records keep layer 2 (raw words asserted). A window on the repeated
+  column only writes the same file; a window on A's source instance changes A
+  only; `CHANGE L` (Last) changes B only. Selection is per source member.
+- Nested (inner group with markers on layer 4): CHANGE over the whole pattern
+  rewrites both members, inner markers stay 4 and outer markers stay 2.
+- Files hold no owner field. The DWG records are the markers and members as
+  above; native re-encoding of the parsed file is byte-identical, and the
+  original's own reopen-and-END is byte-identical. Task 5 DXF writes
+  `REPEAT,2`, the members with their own layers, `ENDREP,2`; the native DXF
+  writer produces exactly those bytes (the original adds only zero padding).
+- Visibility (drawing-area pixels after REGEN): with the marker layer OFF the
+  whole pattern is drawn; with the member layer OFF nothing is drawn. After
+  CHANGE to layer 3, turning layer 1 or 2 OFF keeps the pattern and turning 3
+  OFF hides it. Reopening that file shows the same for each case. Before a
+  REGEN the original's display after CHANGE holds only part of the pattern.
+- Selection: with the marker layer OFF, `ERASE W` still erases both members;
+  with the member layer OFF it finds nothing.
+- CHANGE to an undefined layer leaves that layer undefined (table slot 255),
+  and the original then draws none of the members.
+- CHANGE layer over a group whose member A was erased earlier finds A again
+  through its repeated instance (`3 found.`) and stops with the fatal error
+  `BAD ENTITY TYPE -1 PASSED TO EREGEN`.
+
+So the original has no owner layer: a layer "applied to a group" is the layer
+word of each member record, and the marker layers are creation-time metadata
+that gate nothing.
+
+### Native contract
+
+- Marker metadata semantics are unchanged: `start_layer`/`end_layer` are kept
+  verbatim by CHANGE, codecs and edits, and never gate visibility or selection.
+  This is now evidence-backed rather than a native choice.
+- CHANGE layer on a group rewrites every stored descendant record (members of
+  nested groups, LOADs and erased members included) and keeps every marker
+  layer. Selecting the group is the native whole-owner policy; for a window
+  holding the whole pattern the result equals the original's file. An explicit
+  `Entity::OnLayer(Repeat)` owner (only library-built drawings hold one: no
+  reader or native command creates it) is dropped by CHANGE, nested owners too,
+  and a top-level owned group becomes `Item::Repeat`, the form a saved file
+  reopens to. The edit, owner removal included, is one UNDO step; UNDO restores
+  the owner.
+- Encoding: an explicit owner layer is lossless exactly when every stored
+  descendant ordinary record (live or erased, LOAD included, through nested
+  groups; a nested owner must have the same layer) already carries it. Then
+  its visibility gate equals the members' own gates, and both DWG revisions and
+  DXF write the group as if the owner were absent: members and markers as they
+  are, no new field (`group_codec::members_on_layer`). Reopen gives the bare
+  group. Otherwise checked save/export refuses with `explicit REPEAT owner
+  layer differs from a member's layer; files keep a group's layer only in its
+  member records (CHANGE the group's layer first)`. The check runs in the
+  existing preflight, before any output allocation, so refused SAVE/END/WBLOCK/
+  API writes leave destinations, attachment, dirty state and the session
+  unchanged, as for every checked refusal. Rewriting member layers on save, or
+  copying the owner layer into the markers, is not done: it would change the
+  drawing's visibility and invent a mapping the original does not use.
+- An erased top-level owner with a kept owner layer uses the existing erased
+  forms: uniform-negative without earlier member erasure; with it, the SAVE/END
+  question and `original_member_erasure` (which drops the redundant owner).
+  A kept nested owner inside an ambiguous erased owner has its members erased
+  like any nested group.
+
+Tests: `crates/acad-dwg/tests/owner_layer.rs` and `crates/acad-dxf/tests/owner_layer.rs`
+(kept owners equal to the bare form in both revisions and DXF, every mismatch
+refused, erased owner forms), `crates/acad-cmd/tests/repeat_owner_layer.rs`
+(native keys, owner removal, visibility/selection gates, one UNDO, DWG reopen),
+`crates/acad-app/tests/repeat_owner_layer.rs` (Session open/CHANGE/END/reopen
+for AC1.2, AC1.40 and DXF, rendered frame and window selection agreement) and
+the oracle test above.
+
+Remaining differences: native CHANGE defines an undefined target layer (color
+15), so the members stay visible; the original leaves it undefined and draws
+nothing. Native CHANGE also rewrites earlier erased members, where the original
+stops with the EREGEN fatal error. Window selection of part of a group remains
+whole-owner (original: per source member), as before.
+
+## R6 empty REPEAT groups
+
+The original's END after reopening a whole-group erasure (previous section)
+writes only the REPEAT/ENDREP marker pair. Before R6 the native reader
+refused the whole drawing (`REPEAT needs members`).
+
+### Original evidence (in-tree emulator, `crates/acad-oracle/tests/empty_repeat.rs`)
+
+Each claim is asserted by that test (skipped visibly without `System.img`,
+failing under `AUTOCAD_REQUIRE_CORPUS`). Fixture group as in E1: LINE A and
+LINE B, `ENDREP` 2 columns, 1 row, spacing 5, erased by `ERASE W 0,0 10,5`.
+
+- END after reopening writes the pair alone: a positive REPEAT start (layer 1,
+  no body) and a positive ENDREP with the group's dimensions and spacings
+  (count 2). The nested form (a group holding a group and LINE B, all erased by
+  one window) keeps both pairs: outer start, inner start, inner ENDREP, outer
+  ENDREP (count 4). Both files are committed fixtures (below).
+- An empty group is ordinary original state: `REPEAT` then `ENDREP 2 1 5` with
+  nothing between them writes the same pair.
+- Reopening and ENDing a file with the pair, flat or nested, writes the
+  identical file: the original keeps the empty group. A LINE drawn after
+  reopening is written after the pair (count 3).
+- It is never drawn or selected: `ERASE W -100,-100 100,100` and `ERASE L`
+  both answer `0 found.`. The screen of the pair plus a LINE equals the
+  screen of the LINE alone with the same header.
+- Task 5 (Make DXF) writes `REPEAT,1` / `ENDREP,1` / `2,1,5.000000,0.000000`.
+  It writes the same records for the live group whose members are all erased,
+  before any reopen; the nested forms give the nested pair text. Task 6 (Load
+  DXF) reads the pair back as a live pair.
+
+### Decision: kept as a live group without members
+
+The model represents the pair losslessly as `Repeat` with no entities, at the
+top level (`Item::Repeat`), nested in a group or in a block (`Entity::Repeat`),
+keeping both marker layers, dimensions and spacings. Nothing is dropped or
+normalised, and no warning is needed because nothing is lost. This follows what
+the original does with such a file.
+
+- **Readers.** `acad_dwg::parse`/`read_items` and `acad_dxf::parse` accept an
+  empty pair. The DWG geometry view (`read_entities`) gives no geometry for it.
+- **Writers.** Both DWG revisions write the pair back byte for byte. A native
+  AC1.40 rewrite of the flat fixture equals the original's whole file. DXF writes
+  a live group's markers even when none of its members is exported. This matches
+  task 5 and replaces B4's pruning, which existed only because the pair was
+  unreadable. Whole erased owners are still omitted from DXF.
+- **Editor.** The group is one live owner without geometry, like a group whose
+  members are all erased (B4). It draws nothing, and windows and picks never
+  find it (a window holding only it reports `selection window contains no
+  visible objects`, the native counterpart of `0 found.`). It counts as one
+  selectable object (`selectable_objects`) and 0 `entities`. It stays
+  addressable by number, `LAST` and `ALL`. This is native numbering policy:
+  the original's `ERASE L` finds nothing. Erasing it by number gives a native
+  whole erased owner, written with negative markers in the B3b form and read
+  back the same. OOPS/UNDO work as for any owner. Editing, report and view
+  commands on it either work or refuse with a message, and the drawing stays
+  savable in both revisions and in DXF.
+- **Routes.** `acad DRAWING` and `acad-mcp --drawing` (`Session::open`), Main
+  Menu task 2, API `open` and the MCP binary open the fixtures. END re-saves
+  them byte for byte, the backup keeps the original bytes, and a second END is
+  stable. Main Menu task 5 writes the original's DXF (up to its end-of-file
+  marker; the original pads its last sector). Task 6 of the original's DXF
+  gives the live pair.
+
+### Still refused
+
+A group without members is not a malformed group. These cases keep their errors
+in both revisions and both formats, for either sign:
+- zero columns or rows (`InvalidGroupStream`, DXF `BadNumber`);
+- nonfinite spacings (`NonFiniteEntity`, DXF `BadNumber`);
+- mixed signs between the markers;
+- a negative pair inside a live group;
+- an unclosed REPEAT (`UnterminatedRepeat`) or a stray ENDREP (`StrayEndrep`);
+- a group crossing a BLOCK boundary;
+- depth, count and end mismatches;
+- in DXF, marker layers above 255.
+
+The task 6 placeholder pair (-5 directly before a zero-filled -6) is still
+dropped (R5). A zero-filled ENDREP has zero dimensions, so it is never a group.
+The checked writers refuse the same malformed groups. The native REPEAT/ENDREP
+commands still refuse to create a group without members. This is a remaining
+difference: the original creates one.
+
+### Tests
+
+`crates/acad-dwg/tests/empty_repeat.rs` covers:
+- the fixtures in both revisions, with byte-exact and idempotent rewrites;
+- empty groups at the top level, in groups and in blocks, and their marker
+  layers;
+- an erased empty owner;
+- every refusal listed above;
+- the DWG/DXF exchange;
+- a broad mutation test of both fixtures in both revisions. It sets every byte
+  to edge values and flips every bit. It also tries every truncation with
+  shifted counts, every count from 0 to 8, every combination of marker sign
+  flips, and every record deleted, duplicated at every position or swapped.
+  None of them panics. Each refusal is a typed error. Every accepted
+  mutation re-encodes to exactly its own record region and count, and
+  reopens equal. So the reader never drops, reorders or rewrites anything it
+  accepts.
+
+`crates/acad-dxf/tests/empty_repeat.rs` covers the original's DXF, nested,
+block and all-erased-member exports, and the DXF refusals.
+`crates/acad-app/tests/empty_repeat.rs` covers every open route including the
+MCP binary, rendering, windows and picks, END (both fixtures, the AC1.2
+revision, appending a LINE in the original's order), erasing by number,
+the Main Menu DXF tasks, and a sweep of editing, report and view commands.
+A differential fuzz run outside the tree compared the R6 reader with the
+baseline reader on 839,830 inputs (both revisions). The inputs were the five
+committed fixtures mutated as above, plus 400,000 random record sequences over
+live, erased and zero-filled markers, blocks and LINEs. Neither build panicked.
+Every input the baseline accepted gave identical items. Every newly accepted
+input held a group without members and re-encoded to its own records, except
+for the existing nested-BLOCK flattening, which the baseline shows too.
+Updated earlier tests: `acad-dwg` `group_records` (an empty pair is accepted,
+zero dimensions are refused), `acad-dwg`/`acad-dxf` `erased_members` (DXF keeps
+an erased-only group's markers) and the oracle `erased_owner` (the END output
+now opens).

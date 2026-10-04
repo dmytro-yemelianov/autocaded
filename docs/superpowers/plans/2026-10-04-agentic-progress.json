@@ -3,7 +3,7 @@
   "goal": "Evidence-supported native Rust AutoCAD 1.4 completion through bounded multi-agent loops",
   "status": "active",
   "created_at": "2026-10-03T21:20:32.120196+00:00",
-  "updated_at": "2026-10-04T20:44:05.017879+00:00",
+  "updated_at": "2026-10-04T21:47:49.458073+00:00",
   "backend": "builtin collaboration API; coordinator protocol adapted from superset-orchestrate",
   "worker_limit": 3,
   "max_fix_attempts": 3,
@@ -1747,7 +1747,7 @@
     },
     {
       "kind": "implementation",
-      "status": "review",
+      "status": "verified",
       "model": "claude-opus-5-5",
       "effort": "high",
       "agent": "claude/repeat_layer_loop",
@@ -1769,15 +1769,25 @@
           "result": "passed",
           "at": "2026-10-04T20:28:19.330279+00:00",
           "note": "Candidate 4afebb8e: oracle shows no owner-layer field; CHANGE layer rewrites members, markers keep layer; native owner layer saved only when all members match (owner dropped), else refused; CHANGE strips owner wrapper. 845 tests, oracle 5+4 (worker). Review NOT yet launched (usage limit)."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T21:47:46.353025+00:00",
+          "note": "Independent review pass; integrated into main with clean 3-way merge; workspace tests, clippy, fmt, GUI harness, and corpus API all passed."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T21:47:46.353025+00:00",
+          "note": "Independent review pass; integrated into main with clean 3-way merge; workspace tests, clippy, fmt, GUI harness, and corpus API all passed."
         }
       },
-      "review": null,
-      "integrated": false,
+      "review": "pass",
+      "integrated": true,
       "artifacts": [
         "target/agentic-artifacts/e2.patch",
         "target/agentic-artifacts/e2-handoff.json"
       ],
-      "updated_at": "2026-10-04T20:28:19.330279+00:00",
+      "updated_at": "2026-10-04T21:47:46.353025+00:00",
       "id": "E2",
       "objective": "Explicit owner layer on REPEAT groups",
       "depends_on": [
@@ -1790,7 +1800,7 @@
         "No change to existing marker-layer metadata semantics"
       ],
       "baseline_commit": "187a566",
-      "latest_note": "Candidate 4afebb8e: oracle shows no owner-layer field; CHANGE layer rewrites members, markers keep layer; native owner layer saved only when all members match (owner dropped), else refused; CHANGE strips owner wrapper. 845 tests, oracle 5+4 (worker). Review NOT yet launched (usage limit)."
+      "latest_note": "Independent review pass; integrated into main with clean 3-way merge; workspace tests, clippy, fmt, GUI harness, and corpus API all passed."
     },
     {
       "kind": "implementation",
@@ -1976,7 +1986,7 @@
       "id": "R6",
       "objective": "Open drawings where the original END left an empty REPEAT/ENDREP pair",
       "kind": "implementation",
-      "status": "running",
+      "status": "verified",
       "depends_on": [
         "E1",
         "R5"
@@ -1992,20 +2002,43 @@
         "independent_review",
         "integrated_native_checks"
       ],
-      "checks": {},
-      "review": null,
-      "integrated": false,
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T20:45:58.303609+00:00",
+          "note": "Candidate 41fd3ce9: oracle shows empty REPEAT pairs are normal original state (stable END, never drawn/selected, DXF task 5 writes them); kept as empty live Repeat, byte-faithful DWG resave, DXF writer now keeps markers (replaces B4 pruning); 840k-parse differential fuzz 0 panics. 854 tests, oracle suites pass (worker). Review NOT yet launched (usage limit)."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T20:45:58.303609+00:00",
+          "note": "Candidate 41fd3ce9: oracle shows empty REPEAT pairs are normal original state (stable END, never drawn/selected, DXF task 5 writes them); kept as empty live Repeat, byte-faithful DWG resave, DXF writer now keeps markers (replaces B4 pruning); 840k-parse differential fuzz 0 panics. 854 tests, oracle suites pass (worker). Review NOT yet launched (usage limit)."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T21:47:49.458073+00:00",
+          "note": "Independent review pass; integrated into main with clean 3-way merge; differential fuzzing 840k inputs 0 panics; workspace tests, clippy, fmt, GUI harness, and corpus API all passed."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T21:47:49.458073+00:00",
+          "note": "Independent review pass; integrated into main with clean 3-way merge; differential fuzzing 840k inputs 0 panics; workspace tests, clippy, fmt, GUI harness, and corpus API all passed."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
       "artifacts": [
-        "target/agentic-artifacts/reviews/e1-review.md"
+        "target/agentic-artifacts/reviews/e1-review.md",
+        "target/agentic-artifacts/r6.patch",
+        "target/agentic-artifacts/r6-handoff.json"
       ],
-      "updated_at": "2026-10-04T20:10:37.108447+00:00",
+      "updated_at": "2026-10-04T21:47:49.458073+00:00",
       "acceptance": [
         "Committed original fixture (reopen + END of an E1-form file) opens natively instead of refusing the whole drawing",
         "Empty group policy explicit and tested (kept, dropped or normalised) with byte-safe resave in both revisions",
         "Genuinely malformed groups still refused; no hidden records (differential fuzz like R5)"
       ],
       "baseline_commit": "187a566",
-      "latest_note": "Worker launched."
+      "latest_note": "Independent review pass; integrated into main with clean 3-way merge; differential fuzzing 840k inputs 0 panics; workspace tests, clippy, fmt, GUI harness, and corpus API all passed."
     }
   ],
   "events": [
@@ -4790,6 +4823,42 @@
       "note": "Verified.",
       "checks": [],
       "review": null
+    },
+    {
+      "at": "2026-10-04T20:45:58.303609+00:00",
+      "task": "R6",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 41fd3ce9: oracle shows empty REPEAT pairs are normal original state (stable END, never drawn/selected, DXF task 5 writes them); kept as empty live Repeat, byte-faithful DWG resave, DXF writer now keeps markers (replaces B4 pruning); 840k-parse differential fuzz 0 panics. 854 tests, oracle suites pass (worker). Review NOT yet launched (usage limit).",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T21:47:46.353025+00:00",
+      "task": "E2",
+      "from": "review",
+      "to": "verified",
+      "note": "Independent review pass; integrated into main with clean 3-way merge; workspace tests, clippy, fmt, GUI harness, and corpus API all passed.",
+      "checks": [
+        "independent_review=passed",
+        "integrated_native_checks=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T21:47:49.458073+00:00",
+      "task": "R6",
+      "from": "review",
+      "to": "verified",
+      "note": "Independent review pass; integrated into main with clean 3-way merge; differential fuzzing 840k inputs 0 panics; workspace tests, clippy, fmt, GUI harness, and corpus API all passed.",
+      "checks": [
+        "independent_review=passed",
+        "integrated_native_checks=passed"
+      ],
+      "review": "pass"
     }
   ]
 }

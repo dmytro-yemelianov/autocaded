@@ -63,7 +63,8 @@
 //! instead of losing metadata; erased ordinary members in live groups are
 //! retained (B4). A uniformly negative top-level Repeat reconstructs one
 //! native erased owner, with all nested fields retained. This is native policy,
-//! not original whole-group selection parity.
+//! not original whole-group selection parity. A group without members (the
+//! original's own empty REPEAT/ENDREP pair, R6) is kept as an empty `Repeat`.
 //!
 //! `ARC`, `TEXT` and `INSERT` each carry an angle field stored in radians;
 //! they are converted to degrees here because `acad_model` documents them in

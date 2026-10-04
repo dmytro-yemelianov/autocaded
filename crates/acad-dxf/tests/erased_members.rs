@@ -3,7 +3,7 @@ fn erase(entity: Entity) -> Entity {
     Entity::Erased(Box::new(entity))
 }
 #[test]
-fn live_only_export_prunes_erased_only_nested_patterns_and_keeps_load_content() {
+fn live_only_export_skips_erased_members_keeps_live_group_markers_and_load_content() {
     let mut drawing = acad_dxf::parse(b"REPEAT,7\r\nREPEAT,8\r\nPOINT,2\r\n1,2\r\nENDREP,9\r\n2,1,3,0\r\nENDREP,10\r\n2,1,4,0\r\nBLOCK,1\r\n0,0\r\nB\r\nREPEAT,11\r\nLOAD,3\r\nALT\r\nPOINT,4\r\n5,6\r\nENDREP,12\r\n2,1,5,0\r\nENDBLK,1\r\n").unwrap();
     let Item::Repeat(outer) = &mut drawing.items[0] else {
         panic!("outer")
@@ -24,10 +24,23 @@ fn live_only_export_prunes_erased_only_nested_patterns_and_keeps_load_content() 
     assert_eq!(drawing, before);
     assert_eq!(acad_dxf::write(&drawing), bytes);
     let parsed = acad_dxf::parse(&bytes).unwrap();
+    // R6: live groups keep their markers without live members, as AutoCAD
+    // 1.4's task 5 writes them; the erased POINT is skipped.
+    assert_eq!(parsed.items.len(), 2);
+    let Item::Repeat(outer) = &parsed.items[0] else {
+        panic!("outer kept")
+    };
     assert_eq!(
-        parsed.items.len(),
-        1,
-        "both now-empty root/nested patterns are pruned"
+        (outer.start_layer, outer.end_layer, outer.column_spacing),
+        (7, 10, 4.0)
+    );
+    let [Entity::Repeat(inner)] = outer.entities.as_slice() else {
+        panic!("inner kept")
+    };
+    assert_eq!((inner.start_layer, inner.end_layer), (8, 9));
+    assert!(
+        inner.entities.is_empty(),
+        "the erased POINT is not exported"
     );
     let Entity::Repeat(r) = &parsed.block("B").unwrap().entities[0] else {
         panic!("retained LOAD group")
@@ -45,7 +58,10 @@ fn live_only_export_prunes_erased_only_nested_patterns_and_keeps_load_content() 
     // Whole erased owners omit prior member history intentionally in DXF,
     // whereas retained DWG history must refuse that ambiguous state.
     let omitted = acad_dxf::try_write(&drawing).unwrap();
-    assert_eq!(omitted, bytes);
+    let mut without_owner = drawing.clone();
+    without_owner.items.remove(0);
+    assert_eq!(omitted, acad_dxf::try_write(&without_owner).unwrap());
+    assert_eq!(acad_dxf::parse(&omitted).unwrap().items.len(), 1);
 }
 #[test]
 fn erased_fields_wrappers_and_depth_remain_checked_even_when_omitted() {

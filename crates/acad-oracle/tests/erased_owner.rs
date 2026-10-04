@@ -218,16 +218,17 @@ fn original_reopen_has_no_oops_and_end_drops_erased_members() {
         .unwrap();
         let (_, written) = &observation.created[0];
         // END after reopening writes the marker pair alone: erased members
-        // are not kept. The native reader refuses that empty group.
+        // are not kept. The native reader opens it as a live group without
+        // members (R6, tests/empty_repeat.rs).
         let (_, meta) = acad_dwg::header::parse_header(written).unwrap();
         assert_eq!(meta.entity_count, 2);
         let records = region(written);
         assert_eq!(&records[..8], &[5, 0, 1, 0, 6, 0, 1, 0]);
         assert_eq!(records.len(), 4 + 24);
-        assert!(acad_dwg::parse(written)
-            .unwrap_err()
-            .to_string()
-            .contains("REPEAT needs members"));
+        assert_eq!(
+            acad_dwg::parse(written).unwrap().items,
+            [Item::Repeat(group(Vec::new()))]
+        );
     }
 }
 

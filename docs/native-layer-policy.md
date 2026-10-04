@@ -30,8 +30,15 @@ COLOR 3`. The separate existing COLOR dialogue remains available.
   so turning OFF layer 0 still shows explicit visible-layer children. Empty
   bare repeats are invisible to the helper. An outer OnLayer wrapper gates an
   entire INSERT/REPEAT; child explicit layers also gate their geometry. Bare
-  block/repeat geometry children use layer 1. This group/inheritance
-  policy is native Rust behavior. LOAD records preserve their ordered font/shape
+  block/repeat geometry children use layer 1. The INSERT inheritance policy is
+  native Rust behavior. For REPEAT the marker rule is original behavior (E2,
+  oracle `repeat_layer.rs`): with the marker layer OFF the original still draws
+  the pattern and windows still select its members; with the member layer OFF
+  it draws and selects nothing. The original has no group owner layer: CHANGE
+  layer rewrites each member and keeps the marker layers. An explicit REPEAT
+  owner wrapper (library-built only) is persisted only when every member
+  already carries its layer, so its gate equals the members' own; CHANGE layer
+  drops it ([group persistence E2](native-group-persistence.md)). LOAD records preserve their ordered font/shape
   effect even on hidden layers or inside hidden groups.
 - Renderer flattening applies these gates across INSERT and REPEAT. Canonical
   IDs count live stored owners independently of visibility. Explicit numeric,
