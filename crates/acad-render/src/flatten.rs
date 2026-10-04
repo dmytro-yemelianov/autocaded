@@ -302,6 +302,13 @@ pub fn flatten_selected_with_budget(
     flatten_owners(d, vp, libraries, Some(selected_indexes), budget)
 }
 
+/// Flatten drawing entities that intersect the viewport's visible world extents.
+/// Offscreen entities are culled from primitive rendering while font and shape
+/// load context is faithfully preserved.
+pub fn flatten_in_view(d: &Drawing, vp: &Viewport, libraries: &crate::Libraries) -> RenderOutput {
+    flatten_owners_impl(d, vp, libraries, None, &mut FrameBudget::default(), true)
+}
+
 fn flatten_owners(
     d: &Drawing,
     vp: &Viewport,
@@ -309,6 +316,22 @@ fn flatten_owners(
     selected: Option<&std::collections::BTreeSet<usize>>,
     budget: &mut FrameBudget,
 ) -> RenderOutput {
+    flatten_owners_impl(d, vp, libraries, selected, budget, false)
+}
+
+fn flatten_owners_impl(
+    d: &Drawing,
+    vp: &Viewport,
+    libraries: &crate::Libraries,
+    selected: Option<&std::collections::BTreeSet<usize>>,
+    budget: &mut FrameBudget,
+    cull_to_viewport: bool,
+) -> RenderOutput {
+    let visible_window = if cull_to_viewport {
+        Some(vp.visible_world_extents())
+    } else {
+        None
+    };
     let mut walker = Walker {
         drawing: d,
         blocks: d.block_index(),
@@ -338,7 +361,35 @@ fn flatten_owners(
             break;
         }
         let owner_start = primitives.len();
-        let emit = selected.is_none_or(|selected| selected.contains(&index));
+        let in_view = match (visible_window, item) {
+            (Some(win), Item::Entity(e)) => {
+                e.bounding_extents().is_none_or(|ext| ext.intersects(&win))
+            }
+            (Some(win), Item::Repeat(r)) => {
+                let mut ext: Option<acad_model::Extents> = None;
+                for e in &r.entities {
+                    if let Some(e_ext) = e.bounding_extents() {
+                        ext = Some(match ext {
+                            Some(cur) => cur.union(&e_ext),
+                            None => e_ext,
+                        });
+                    }
+                }
+                ext.is_none_or(|base| {
+                    let col_offset = f64::from(r.columns.saturating_sub(1)) * r.column_spacing;
+                    let row_offset = f64::from(r.rows.saturating_sub(1)) * r.row_spacing;
+                    let r_ext = acad_model::Extents {
+                        xmin: base.xmin.min(base.xmin + col_offset),
+                        xmax: base.xmax.max(base.xmax + col_offset),
+                        ymin: base.ymin.min(base.ymin + row_offset),
+                        ymax: base.ymax.max(base.ymax + row_offset),
+                    };
+                    r_ext.intersects(&win)
+                })
+            }
+            _ => true,
+        };
+        let emit = selected.is_none_or(|selected| selected.contains(&index)) && in_view;
         let bounded = !emit || {
             let (bounded, visits) = crate::selection_policy::bounded_owner(&walker.blocks, item);
             walker.budget.charge(visits) && bounded
@@ -456,6 +507,31 @@ mod tests {
             100,
             100,
         )
+    }
+
+    #[test]
+    fn flatten_in_view_culls_offscreen_entities() {
+        let drawing = Drawing {
+            header: test_header(),
+            items: vec![
+                Item::Entity(Entity::Line {
+                    start: Point { x: 1.0, y: 1.0 },
+                    end: Point { x: 2.0, y: 2.0 },
+                }),
+                Item::Entity(Entity::Line {
+                    start: Point { x: 50.0, y: 50.0 },
+                    end: Point { x: 60.0, y: 60.0 },
+                }),
+            ],
+        };
+        let viewport = vp();
+        let libs = crate::Libraries::default();
+
+        let full = flatten_with_libraries(&drawing, &viewport, &libs);
+        assert_eq!(full.primitives.len(), 2);
+
+        let culled = flatten_in_view(&drawing, &viewport, &libs);
+        assert_eq!(culled.primitives.len(), 1);
     }
 
     /// `Header` has no `Default` and `acad-model`'s own `test_header` is private

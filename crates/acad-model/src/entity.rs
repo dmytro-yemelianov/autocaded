@@ -99,6 +99,79 @@ impl Entity {
         }
         true
     }
+
+    /// World-space bounding extents of the entity if statically determinable.
+    pub fn bounding_extents(&self) -> Option<crate::geom::Extents> {
+        use crate::geom::Extents;
+        match self {
+            Self::OnLayer { entity, .. } => entity.bounding_extents(),
+            Self::Erased(entity) => entity.bounding_extents(),
+            Self::Point { origin } => Some(Extents {
+                xmin: origin.x,
+                xmax: origin.x,
+                ymin: origin.y,
+                ymax: origin.y,
+            }),
+            Self::Line { start, end } => Some(Extents {
+                xmin: start.x.min(end.x),
+                xmax: start.x.max(end.x),
+                ymin: start.y.min(end.y),
+                ymax: start.y.max(end.y),
+            }),
+            Self::Circle { center, radius } | Self::Arc { center, radius, .. } => {
+                let r = radius.abs();
+                Some(Extents {
+                    xmin: center.x - r,
+                    xmax: center.x + r,
+                    ymin: center.y - r,
+                    ymax: center.y + r,
+                })
+            }
+            Self::Trace { p1, p2, p3, p4 } | Self::Solid { p1, p2, p3, p4 } => {
+                Extents::from_points(&[*p1, *p2, *p3, *p4])
+            }
+            Self::Text { origin, height, .. } => {
+                let h = height.abs();
+                Some(Extents {
+                    xmin: origin.x - h,
+                    xmax: origin.x + h,
+                    ymin: origin.y - h,
+                    ymax: origin.y + h,
+                })
+            }
+            Self::Shape { origin, height, .. } => {
+                let h = height.abs();
+                Some(Extents {
+                    xmin: origin.x - h,
+                    xmax: origin.x + h,
+                    ymin: origin.y - h,
+                    ymax: origin.y + h,
+                })
+            }
+            Self::Repeat(repeat) => {
+                let mut ext: Option<Extents> = None;
+                for e in &repeat.entities {
+                    if let Some(e_ext) = e.bounding_extents() {
+                        ext = Some(match ext {
+                            Some(cur) => cur.union(&e_ext),
+                            None => e_ext,
+                        });
+                    }
+                }
+                let base = ext?;
+                let col_offset =
+                    f64::from(repeat.columns.saturating_sub(1)) * repeat.column_spacing;
+                let row_offset = f64::from(repeat.rows.saturating_sub(1)) * repeat.row_spacing;
+                Some(Extents {
+                    xmin: base.xmin.min(base.xmin + col_offset),
+                    xmax: base.xmax.max(base.xmax + col_offset),
+                    ymin: base.ymin.min(base.ymin + row_offset),
+                    ymax: base.ymax.max(base.ymax + row_offset),
+                })
+            }
+            Self::Insert { .. } | Self::Load { .. } => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -155,5 +228,28 @@ mod tests {
         assert_eq!(p4, Point { x: 2.5, y: 0.55 });
         assert_eq!(p2.x, 7.0);
         assert_eq!(p3.x, 7.0);
+    }
+
+    #[test]
+    fn test_bounding_extents() {
+        let line = Entity::Line {
+            start: Point { x: 1.0, y: 2.0 },
+            end: Point { x: 5.0, y: -3.0 },
+        };
+        let ext = line.bounding_extents().unwrap();
+        assert_eq!(ext.xmin, 1.0);
+        assert_eq!(ext.xmax, 5.0);
+        assert_eq!(ext.ymin, -3.0);
+        assert_eq!(ext.ymax, 2.0);
+
+        let circle = Entity::Circle {
+            center: Point { x: 10.0, y: 10.0 },
+            radius: 5.0,
+        };
+        let ext_c = circle.bounding_extents().unwrap();
+        assert_eq!(ext_c.xmin, 5.0);
+        assert_eq!(ext_c.xmax, 15.0);
+        assert_eq!(ext_c.ymin, 5.0);
+        assert_eq!(ext_c.ymax, 15.0);
     }
 }

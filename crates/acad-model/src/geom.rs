@@ -33,6 +33,39 @@ impl Extents {
             && self.ymin <= other.ymax
             && self.ymax >= other.ymin
     }
+
+    pub fn union(&self, other: &Extents) -> Extents {
+        Extents {
+            xmin: self.xmin.min(other.xmin),
+            xmax: self.xmax.max(other.xmax),
+            ymin: self.ymin.min(other.ymin),
+            ymax: self.ymax.max(other.ymax),
+        }
+    }
+
+    pub fn from_points<'a, I>(points: I) -> Option<Self>
+    where
+        I: IntoIterator<Item = &'a Point>,
+    {
+        let mut iter = points.into_iter();
+        let first = iter.next()?;
+        let mut xmin = first.x;
+        let mut xmax = first.x;
+        let mut ymin = first.y;
+        let mut ymax = first.y;
+        for p in iter {
+            xmin = xmin.min(p.x);
+            xmax = xmax.max(p.x);
+            ymin = ymin.min(p.y);
+            ymax = ymax.max(p.y);
+        }
+        Some(Extents {
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+        })
+    }
 }
 
 #[cfg(test)]
