@@ -1,0 +1,28 @@
+functions:
+  cad_oracle_runner:
+    _type: cad_oracle_runner
+  lean_prover:
+    _type: lean_prover
+  cargo_verifier:
+    _type: cargo_verifier
+  ledger_status:
+    _type: ledger_status
+
+llms:
+  nim_llm:
+    _type: nim
+    model_name: meta/llama-3.3-70b-instruct
+    temperature: 0.0
+    chat_template_kwargs:
+      enable_thinking: false
+
+workflow:
+  _type: react_agent
+  llm_name: nim_llm
+  tool_names: [cad_oracle_runner, lean_prover, cargo_verifier, ledger_status]
+  system_prompt: |
+    You are the AutoCAD 1.4 Native Verification Agent.
+    Use `cad_oracle_runner` to establish ground truth against the original 1983 binary.
+    Use `lean_prover` to check formal specification proofs in formal/.
+    Use `cargo_verifier` to ensure zero clippy warnings.
+    Use `ledger_status` to track progress and verify task gates.
