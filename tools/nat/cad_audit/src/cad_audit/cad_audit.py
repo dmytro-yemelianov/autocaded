@@ -116,3 +116,57 @@ async def ledger_status_function(config: LedgerStatusToolConfig, builder: Builde
         return proc.stdout or proc.stderr
 
     yield FunctionInfo.from_fn(_check_ledger, description=_check_ledger.__doc__)
+
+
+class CorpusCheckerToolConfig(FunctionBaseConfig, name="corpus_checker"):
+    """Tool to verify the full 21-drawing authentic AutoCAD 1.4 corpus."""
+    pass
+
+
+@register_function(config_type=CorpusCheckerToolConfig, framework_wrappers=[LLMFrameworkEnum.LANGCHAIN])
+async def corpus_checker_function(config: CorpusCheckerToolConfig, builder: Builder):
+    async def _check_corpus(dummy: str = "") -> str:
+        """Run verification across all 21 corpus drawings, revisions, and byte-for-byte hashes.
+
+        Args:
+            dummy: Optional unused filter or empty for all.
+
+        Returns:
+            Corpus verification pass status or failure details.
+        """
+        proc = subprocess.run(
+            ["python3", "tools/check_acad_corpus_api.py"],
+            cwd=REPO_ROOT, capture_output=True, text=True
+        )
+        if proc.returncode == 0:
+            return "CORPUS VERIFICATION PASS: All 21 drawings, backups, and DXF files verified byte-for-byte."
+        return f"CORPUS VERIFICATION FAIL:\n{proc.stderr}\n{proc.stdout}"
+
+    yield FunctionInfo.from_fn(_check_corpus, description=_check_corpus.__doc__)
+
+
+class GuiApiCheckerToolConfig(FunctionBaseConfig, name="gui_api_checker"):
+    """Tool to test interactive AutoCAD GUI lifecycle, sockets, and MCP protocol."""
+    pass
+
+
+@register_function(config_type=GuiApiCheckerToolConfig, framework_wrappers=[LLMFrameworkEnum.LANGCHAIN])
+async def gui_api_checker_function(config: GuiApiCheckerToolConfig, builder: Builder):
+    async def _check_gui(dummy: str = "") -> str:
+        """Run interactive GUI lifecycle, socket IPC, and MCP contract checks.
+
+        Args:
+            dummy: Optional unused argument.
+
+        Returns:
+            GUI API verification pass status or failure details.
+        """
+        proc = subprocess.run(
+            ["python3", "tools/check_acad_gui_api.py"],
+            cwd=REPO_ROOT, capture_output=True, text=True
+        )
+        if proc.returncode == 0:
+            return "GUI API VERIFICATION PASS: Main Menu, socket IPC, MCP frames, and lifecycle verified."
+        return f"GUI API VERIFICATION FAIL:\n{proc.stderr}\n{proc.stdout}"
+
+    yield FunctionInfo.from_fn(_check_gui, description=_check_gui.__doc__)

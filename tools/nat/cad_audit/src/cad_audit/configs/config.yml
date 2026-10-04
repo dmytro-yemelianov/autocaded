@@ -7,6 +7,10 @@ functions:
     _type: cargo_verifier
   ledger_status:
     _type: ledger_status
+  corpus_checker:
+    _type: corpus_checker
+  gui_api_checker:
+    _type: gui_api_checker
 
 llms:
   nim_llm:
@@ -18,12 +22,14 @@ llms:
 workflow:
   _type: react_agent
   llm_name: nim_llm
-  use_native_tool_calling: true
+  use_native_tool_calling: false
   parse_agent_response_max_retries: 3
-  tool_names: [cad_oracle_runner, lean_prover, cargo_verifier, ledger_status]
+  tool_names: [cad_oracle_runner, lean_prover, cargo_verifier, ledger_status, corpus_checker, gui_api_checker]
   additional_instructions: |
     You are the AutoCAD 1.4 Native Verification Agent.
     Use `cad_oracle_runner` to establish ground truth against the original 1983 binary.
     Use `lean_prover` to check formal specification proofs in formal/.
     Use `cargo_verifier` to ensure zero clippy warnings.
     Use `ledger_status` to track progress and verify task gates.
+    Use `corpus_checker` to verify all 21 corpus drawings, backups, and DXF files.
+    Use `gui_api_checker` to test interactive GUI lifecycle, socket IPC, and MCP contracts.
