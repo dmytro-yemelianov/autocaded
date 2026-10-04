@@ -258,9 +258,11 @@ fn place(entity: &mut Entity, a: &Affine) -> Result<(), String> {
                 repeat.row_spacing *= a.m[1][1];
             }
         }
+        Entity::Generic(_) | Entity::Extension(_) => {}
     }
     Ok(())
 }
+
 
 fn finite(entity: &Entity) -> bool {
     let mut points = Vec::new();

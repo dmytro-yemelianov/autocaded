@@ -123,9 +123,27 @@ pub(crate) fn selection_extents_points(entity: &Entity) -> Option<Vec<Point>> {
         Entity::Insert { .. }
         | Entity::Load { .. }
         | Entity::OnLayer { .. }
-        | Entity::Erased(_) => return None,
+        | Entity::Erased(_)
+        | Entity::Generic(_) => return None,
+        Entity::Extension(ext) => {
+            if let Some(bounds) = ext.bounding_extents() {
+                vec![
+                    Point {
+                        x: bounds.xmin,
+                        y: bounds.ymin,
+                    },
+                    Point {
+                        x: bounds.xmax,
+                        y: bounds.ymax,
+                    },
+                ]
+            } else {
+                return None;
+            }
+        }
     })
 }
+
 
 fn repeat_extents_points(repeat: &acad_model::Repeat) -> Option<Vec<Point>> {
     crate::geometry::repeat_bounds_points(repeat, true).map(Vec::from)
@@ -324,11 +342,15 @@ pub(crate) fn entity_pick_distance(point: Point, entity: &Entity) -> Option<f64>
                 .map(|(start, end)| segment_distance(start, end))
                 .fold(f64::INFINITY, f64::min),
         ),
-        Entity::Repeat(_) | Entity::Load { .. } | Entity::OnLayer { .. } | Entity::Erased(_) => {
-            None
-        }
+        Entity::Repeat(_)
+        | Entity::Load { .. }
+        | Entity::OnLayer { .. }
+        | Entity::Erased(_)
+        | Entity::Generic(_)
+        | Entity::Extension(_) => None,
     }
 }
+
 
 #[cfg(test)]
 mod tests {

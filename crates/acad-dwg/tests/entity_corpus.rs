@@ -133,8 +133,11 @@ fn kind_and_fields(e: &Entity) -> (&'static str, Vec<f64>, Option<&str>) {
             vec![p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y],
             None,
         ),
+        Entity::Generic(g) => ("GENERIC", vec![], Some(g.type_name.as_str())),
+        Entity::Extension(ext) => ("EXTENSION", vec![], Some(ext.type_name())),
     }
 }
+
 
 fn assert_entities_match(a: &Entity, b: &Entity, ctx: &str) {
     let (ka, fa, sa) = kind_and_fields(a);

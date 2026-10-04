@@ -147,12 +147,13 @@ pub(crate) fn transform_entity(entity: &mut Entity, transform: Transform) {
             point(p3);
             point(p4);
         }
-        Entity::Load { .. } => {}
+        Entity::Load { .. } | Entity::Generic(_) | Entity::Extension(_) => {}
         Entity::OnLayer { .. } | Entity::Erased(_) => {
             unreachable!("status/layer wrappers were removed above")
         }
     }
 }
+
 
 pub(crate) fn transform_item(item: &mut Item, transform: Transform) {
     match item {
@@ -249,9 +250,13 @@ pub(crate) fn entity_anchor(entity: &Entity) -> Option<Point> {
         }
         Entity::Trace { p1, .. } | Entity::Solid { p1, .. } => Some(*p1),
         Entity::Insert { origin, .. } => Some(*origin),
-        Entity::Load { .. } | Entity::OnLayer { .. } | Entity::Erased(_) => None,
+        Entity::Load { .. } | Entity::OnLayer { .. } | Entity::Erased(_) | Entity::Generic(_) => {
+            None
+        }
+        Entity::Extension(ext) => ext.bounding_extents().map(|e| Point { x: e.xmin, y: e.ymin }),
     }
 }
+
 
 pub(crate) fn item_anchor(item: &Item) -> Option<Point> {
     match item {
@@ -293,9 +298,12 @@ pub(crate) fn apply_change_point(entity: &mut Entity, point: Point) {
         | Entity::Text { .. }
         | Entity::Point { .. }
         | Entity::Trace { .. }
-        | Entity::Solid { .. } => unreachable!("unsupported CHANGE point entity was validated"),
+        | Entity::Solid { .. }
+        | Entity::Generic(_)
+        | Entity::Extension(_) => unreachable!("unsupported CHANGE point entity was validated"),
     }
 }
+
 
 pub(crate) fn set_insert_angle(entity: &mut Entity, angle: f64) {
     match entity {

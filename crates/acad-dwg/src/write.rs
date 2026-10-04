@@ -166,10 +166,29 @@ fn encode_entity(
             put_f64(out, *y_scale);
             put_f64(out, angle(*rotation_deg));
         }
+        Entity::Generic(g) => {
+            return Err(DwgError::WriteValue {
+                field: "entity",
+                value: format!(
+                    "entity type {:?} is not supported in 1983 AutoCAD DWG format",
+                    g.type_name
+                ),
+            });
+        }
+        Entity::Extension(ext) => {
+            return Err(DwgError::WriteValue {
+                field: "entity",
+                value: format!(
+                    "custom entity {:?} is not supported in 1983 AutoCAD DWG format",
+                    ext.type_name()
+                ),
+            });
+        }
     }
     *count += 1;
     Ok(())
 }
+
 
 fn encode_block(
     out: &mut Vec<u8>,

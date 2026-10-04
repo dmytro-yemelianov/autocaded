@@ -119,9 +119,25 @@ pub(crate) fn entity_points(entity: &Entity, out: &mut Vec<Point>) {
         Entity::Insert { .. }
         | Entity::Load { .. }
         | Entity::OnLayer { .. }
-        | Entity::Erased(_) => {}
+        | Entity::Erased(_)
+        | Entity::Generic(_) => {}
+        Entity::Extension(ext) => {
+            if let Some(extents) = ext.bounding_extents() {
+                out.extend([
+                    Point {
+                        x: extents.xmin,
+                        y: extents.ymin,
+                    },
+                    Point {
+                        x: extents.xmax,
+                        y: extents.ymax,
+                    },
+                ]);
+            }
+        }
     }
 }
+
 
 pub(crate) fn rotate_point(point: Point, base: Point, degrees: f64) -> Point {
     let angle = degrees.to_radians();

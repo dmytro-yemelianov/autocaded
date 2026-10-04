@@ -83,6 +83,65 @@ pub enum Entity {
         p3: Point,
         p4: Point,
     },
+    /// Generic unmodeled record preserved for lossless DXF round-tripping.
+    Generic(GenericEntity),
+    /// Extensible entity slot for third-party or advanced entity types.
+    Extension(Box<dyn CustomEntity>),
+}
+
+/// A generic data-driven entity representing an unmodeled or custom CAD record.
+/// Retains its keyword, layer index, and raw DXF text rows for lossless round-tripping.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GenericEntity {
+    pub type_name: String,
+    pub layer: u8,
+    pub rows: Vec<String>,
+}
+
+/// Trait for extensible third-party or newer AutoCAD entity types.
+/// Allows adding new entity definitions without modifying the core engine enums.
+pub trait CustomEntity: std::fmt::Debug + Send + Sync + std::panic::RefUnwindSafe + std::panic::UnwindSafe {
+    /// The CAD entity type name (e.g., "LWPOLYLINE", "3DFACE", "ELLIPSE").
+
+    fn type_name(&self) -> &str;
+
+    /// Layer index (0..=255) for this entity.
+    fn layer(&self) -> u8 {
+        1
+    }
+
+    /// World-space bounding extents if statically determinable.
+    fn bounding_extents(&self) -> Option<crate::geom::Extents> {
+        None
+    }
+
+    /// Tessellate or approximate the entity as polylines for rendering.
+    fn tessellate_points(&self) -> Vec<Vec<Point>> {
+        Vec::new()
+    }
+
+    /// Serialize entity to DXF rows (excluding the header `KEYWORD,LAYER\r\n`).
+    fn dxf_rows(&self) -> Vec<String> {
+        Vec::new()
+    }
+
+    /// Clone helper for dynamic trait objects.
+    fn clone_box(&self) -> Box<dyn CustomEntity>;
+}
+
+impl Clone for Box<dyn CustomEntity> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
+}
+
+impl PartialEq for Box<dyn CustomEntity> {
+    fn eq(&self, other: &Self) -> bool {
+        self.type_name() == other.type_name()
+            && self.layer() == other.layer()
+            && self.bounding_extents() == other.bounding_extents()
+            && self.dxf_rows() == other.dxf_rows()
+    }
 }
 
 impl Entity {
@@ -169,7 +228,8 @@ impl Entity {
                     ymax: base.ymax.max(base.ymax + row_offset),
                 })
             }
-            Self::Insert { .. } | Self::Load { .. } => None,
+            Self::Insert { .. } | Self::Load { .. } | Self::Generic(_) => None,
+            Self::Extension(ext) => ext.bounding_extents(),
         }
     }
 }
@@ -184,6 +244,55 @@ pub struct Block {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[derive(Debug, Clone)]
+    struct MockPolyline {
+        points: Vec<Point>,
+        layer: u8,
+    }
+
+    impl CustomEntity for MockPolyline {
+        fn type_name(&self) -> &str {
+            "LWPOLYLINE"
+        }
+        fn layer(&self) -> u8 {
+            self.layer
+        }
+        fn bounding_extents(&self) -> Option<crate::geom::Extents> {
+            crate::geom::Extents::from_points(&self.points)
+        }
+        fn tessellate_points(&self) -> Vec<Vec<Point>> {
+            vec![self.points.clone()]
+        }
+        fn dxf_rows(&self) -> Vec<String> {
+            vec![format!("POINTS,{}", self.points.len())]
+        }
+        fn clone_box(&self) -> Box<dyn CustomEntity> {
+            Box::new(self.clone())
+        }
+    }
+
+    #[test]
+    fn generic_and_extension_entities_work() {
+        let generic = Entity::Generic(GenericEntity {
+            type_name: "3DFACE".into(),
+            layer: 5,
+            rows: vec!["0,0,0".into(), "1,1,1".into()],
+        });
+        assert!(!generic.is_erased());
+        assert_eq!(generic.bounding_extents(), None);
+
+        let custom = Entity::Extension(Box::new(MockPolyline {
+            points: vec![Point { x: 0.0, y: 0.0 }, Point { x: 10.0, y: 20.0 }],
+            layer: 2,
+        }));
+        assert!(!custom.is_erased());
+        let ext = custom.bounding_extents().unwrap();
+        assert_eq!(ext.xmin, 0.0);
+        assert_eq!(ext.xmax, 10.0);
+        assert_eq!(ext.ymin, 0.0);
+        assert_eq!(ext.ymax, 20.0);
+    }
 
     #[test]
     fn point_holds_an_origin() {
@@ -253,3 +362,4 @@ mod tests {
         assert_eq!(ext_c.ymax, 15.0);
     }
 }
+

@@ -11,53 +11,7 @@ pub enum Prim {
     ColoredFilledPolygon { points: Vec<Point>, rgb: [u8; 3] },
 }
 
-pub(crate) fn aci_rgb(index: u8) -> [u8; 3] {
-    match index {
-        // Color 0 is BYBLOCK; use white until block color inheritance is
-        // modeled. Index 7 switches between white and black by background;
-        // this renderer uses a black background.
-        0 | 7 => [255, 255, 255],
-        1 => [255, 0, 0],
-        2 => [255, 255, 0],
-        3 => [0, 255, 0],
-        4 => [0, 255, 255],
-        5 => [0, 0, 255],
-        6 => [255, 0, 255],
-        8 => [128, 128, 128],
-        9 => [192, 192, 192],
-        10..=249 => {
-            // ACI 10..249 is 24 hues in 15-degree steps. Each hue has five
-            // brightness levels, each in full and half saturation.
-            let color = index - 10;
-            let hue = f64::from(color / 10) * 15.0;
-            let value = [255.0, 165.0, 127.0, 76.0, 38.0][usize::from((color % 10) / 2)];
-            let saturation = if color % 2 == 0 { 255.0 } else { 127.0 };
-            let chroma = value * saturation / 255.0;
-            let segment = hue / 60.0;
-            let x = chroma * (1.0 - (segment.rem_euclid(2.0) - 1.0).abs());
-            let (r, g, b) = match segment as u8 {
-                0 => (chroma, x, 0.0),
-                1 => (x, chroma, 0.0),
-                2 => (0.0, chroma, x),
-                3 => (0.0, x, chroma),
-                4 => (x, 0.0, chroma),
-                _ => (chroma, 0.0, x),
-            };
-            let m = value - chroma;
-            [
-                (r + m).floor() as u8,
-                (g + m).floor() as u8,
-                (b + m).floor() as u8,
-            ]
-        }
-        250 => [0, 0, 0],
-        251 => [101, 101, 101],
-        252 => [102, 102, 102],
-        253 => [153, 153, 153],
-        254 => [204, 204, 204],
-        255 => [255, 255, 255],
-    }
-}
+pub use acad_model::aci_rgb;
 
 pub(crate) fn style(prims: Vec<Prim>, rgb: [u8; 3]) -> Vec<Prim> {
     if rgb == [255, 255, 255] {
@@ -201,8 +155,16 @@ fn flatten_entity_bounded(e: &Entity, vp: &Viewport) -> Vec<Prim> {
                 vp.to_screen(*p1),
             ])]
         }
+        Entity::Generic(_) => Vec::new(),
+        Entity::Extension(ext) => ext
+            .tessellate_points()
+            .into_iter()
+            .map(|pts| Prim::Polyline(pts.into_iter().map(|p| vp.to_screen(p)).collect()))
+            .collect(),
     }
 }
+
+
 
 /// A block may insert another block; `SELEXOL` nests two deep (`PACKTWR`
 /// inserts `HEAD`, `COOLER` inserts `ARROW`). The insert graph comes from the

@@ -81,10 +81,11 @@ pub fn entity_fields_are_finite(entity: &Entity) -> bool {
         Entity::Trace { p1, p2, p3, p4 } | Entity::Solid { p1, p2, p3, p4 } => {
             [p1, p2, p3, p4].into_iter().all(point)
         }
-        Entity::Load { .. } => true,
+        Entity::Load { .. } | Entity::Generic(_) | Entity::Extension(_) => true,
         Entity::OnLayer { .. } | Entity::Repeat(_) | Entity::Erased(_) => false,
     }
 }
+
 
 /// A group without members is valid: AutoCAD 1.4 writes, keeps and exports
 /// an empty REPEAT/ENDREP pair (docs/native-group-persistence.md, "R6 empty

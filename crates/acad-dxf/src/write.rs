@@ -132,8 +132,21 @@ fn entity(out: &mut String, e: &Entity) {
                 pt(p4)
             );
         }
+        Entity::Generic(g) => {
+            let _ = write!(out, "{},{}\r\n", g.type_name, g.layer);
+            for row in &g.rows {
+                let _ = write!(out, "{row}\r\n");
+            }
+        }
+        Entity::Extension(ext) => {
+            let _ = write!(out, "{},{}\r\n", ext.type_name(), ext.layer());
+            for row in ext.dxf_rows() {
+                let _ = write!(out, "{row}\r\n");
+            }
+        }
     }
 }
+
 
 /// Legacy convenience writer. Panics when drawing data cannot be encoded.
 /// Production save/export callers should use `try_write` for an explicit error.

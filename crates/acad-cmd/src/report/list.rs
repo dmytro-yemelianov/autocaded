@@ -114,8 +114,11 @@ fn details(entity: &Entity, drawing: &Drawing) -> String {
             point(*p4)
         ),
         Entity::Repeat(repeat) => repeat_details(repeat, drawing),
+        Entity::Generic(g) => format!("generic entity={}", g.type_name),
+        Entity::Extension(ext) => format!("custom entity={}", ext.type_name()),
         Entity::Load { .. } | Entity::OnLayer { .. } | Entity::Erased(_) => unreachable!(),
     };
+
     format!("layer={} {geometry}", entity_layer(entity))
 }
 

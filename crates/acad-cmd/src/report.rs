@@ -90,9 +90,12 @@ pub(crate) fn list_entities(drawing: &Drawing, ids: &[usize]) -> String {
                 Entity::Trace { .. } => "TRACE",
                 Entity::Solid { .. } => "SOLID",
                 Entity::Shape { .. } => "SHAPE",
+                Entity::Generic(g) => g.type_name.as_str(),
+                Entity::Extension(ext) => ext.type_name(),
                 Entity::Load { .. } | Entity::OnLayer { .. } | Entity::Erased(_) => unreachable!(),
             },
         };
+
         lines.push(format!("{} {kind}", object.id));
     }
     let total = selected.len();

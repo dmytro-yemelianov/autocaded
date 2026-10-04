@@ -103,8 +103,10 @@ fn coords(e: &Entity) -> Vec<(&'static str, f64)> {
             ("x4", p4.x),
             ("y4", p4.y),
         ],
+        Entity::Generic(_) | Entity::Extension(_) => Vec::new(),
     }
 }
+
 
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
@@ -160,5 +162,8 @@ fn entity_name(e: &Entity) -> &'static str {
         Entity::Point { .. } => "POINT",
         Entity::Trace { .. } => "TRACE",
         Entity::Solid { .. } => "SOLID",
+        Entity::Generic(_) => "GENERIC",
+        Entity::Extension(_) => "EXTENSION",
     }
 }
+
