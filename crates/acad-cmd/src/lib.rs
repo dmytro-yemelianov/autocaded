@@ -19,6 +19,7 @@ mod parse;
 mod report;
 mod selection;
 mod sketch;
+mod star_insert;
 mod text;
 mod txt_metrics;
 mod view;
@@ -346,11 +347,11 @@ impl Editor {
     /// Whether the current prompt takes a whole line literally, so a command
     /// script's spaces belong to the answer instead of acting as Return.
     pub fn accepts_literal_text(&self) -> bool {
-        matches!(
-            &self.state,
-            InputState::Text(crate::text::TextInput::Value(_))
-                | InputState::ChangeProperties(crate::change::ChangeInput::TextValue(_))
-        )
+        match &self.state {
+            InputState::Text(crate::text::TextInput::Value(_)) => true,
+            InputState::ChangeProperties(state) => state.accepts_literal_text(),
+            _ => false,
+        }
     }
 
     pub fn awaiting_document_input(&self) -> bool {

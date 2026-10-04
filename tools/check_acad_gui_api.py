@@ -146,12 +146,12 @@ def exercise(root, binaries, scratch, log):
         assert text_geometry['data'].count('TEXT,') == 4
         text_baseline = scratch / 'text baseline.dwg'
         mcp.tool('save', path=str(text_baseline))
-        for value in ['CHANGE', 'LAST', '3,2', '45']:
+        for value in ['CHANGE', 'LAST', '3,2', '', '45']:
             mcp.tool('command', input=value)
         assert api(sock, 'drawing') == text_geometry and not api(sock, 'state')['dirty']
         mcp.tool('cancel')
         assert api(sock, 'drawing') == text_geometry and not api(sock, 'state')['dirty']
-        for value in ['CHANGE', 'LAST', '3,2', '45', 'DONE ']:
+        for value in ['CHANGE', 'LAST', '3,2', '', '45', 'DONE ']:
             mcp.tool('command', input=value)
         assert 'DONE \r\n' in api(sock, 'drawing')['data'] and api(sock, 'state')['dirty']
         mcp.tool('command', input='UNDO')

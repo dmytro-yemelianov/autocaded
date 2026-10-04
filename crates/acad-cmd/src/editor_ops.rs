@@ -10,6 +10,7 @@ use crate::geometry::{
 };
 use crate::input_state::Transform;
 use crate::selection::{item_entity, selected_item_indexes};
+use crate::star_insert::{check_members, place_members, Placement};
 use crate::{Editor, Effect, ErasedItem, UndoSnapshot};
 use acad_model::{Block, Drawing, Entity, Extents, Item, Point};
 use std::collections::BTreeSet;
@@ -202,20 +203,18 @@ impl Editor {
         Ok(Drawing { header, items })
     }
 
-    pub(crate) fn explode_block(&mut self, name: &str, origin: Point) -> Result<(), String> {
+    pub(crate) fn explode_block(
+        &mut self,
+        name: &str,
+        origin: Point,
+        placement: Placement,
+    ) -> Result<(), String> {
         let block = self
             .drawing
             .blocks()
             .find(|block| block.name == name)
             .ok_or_else(|| format!("unknown block: {name}"))?;
-        let delta = Point {
-            x: origin.x - block.base.x,
-            y: origin.y - block.base.y,
-        };
-        let mut copies = block.entities.clone();
-        for entity in &mut copies {
-            transform_entity(entity, Transform::Translate(delta));
-        }
+        let copies = place_members(&block.entities, block.base, origin, placement)?;
         // Erased members are copied as root erased records (transformed like their
         // live siblings), never revived. They were not erased by this session's
         // ERASE, so OOPS does not restore them; the single UNDO removes them.
@@ -224,6 +223,16 @@ impl Editor {
         self.refresh_after_edit();
         self.status = format!("Inserted {name} as separate entities");
         Ok(())
+    }
+
+    /// Representability of a local star INSERT under `placement`.
+    pub(crate) fn check_star_block(&self, name: &str, placement: Placement) -> Result<(), String> {
+        let block = self
+            .drawing
+            .blocks()
+            .find(|block| block.name == name)
+            .ok_or_else(|| format!("unknown block: {name}"))?;
+        check_members(&block.entities, block.base, placement)
     }
 
     pub(crate) fn erase(&mut self, ids: &[usize]) {

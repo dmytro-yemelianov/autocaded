@@ -73,20 +73,19 @@ the last command, while raw UNDO leaves Return-command history unchanged.
 
 ## Atomic CHANGE properties
 
-CHANGE point mode supports a single top-level TEXT, preserving layer and height.
-It stages new origin, optional numeric/point angle, then optional raw text. Empty
-angle/content answers keep their old values; a spaces-only content answer stores
-spaces. New content validates against the target's font context rather than the
-append font. Alignment intent is absent from stored Text, so CHANGE uses its
-stored origin as its point anchor and does not reconstruct centering/right intent.
-
-Mixed or multiple-TEXT property selections reject before mutation. The existing
-multi-LINE/CIRCLE/INSERT point route remains available. Selections containing
-INSERT now stage every selected replacement through the optional angle answer;
-Escape or invalid answers cannot leave moved INSERT/ordinary geometry behind.
-No-op properties and no-op stored layer assignments create no undo snapshot.
-A successful changed property set commits once; retry/cancel preserves drawing,
-dirty baseline and undo history. CHANGE L retains common whole-owner layer policy.
+Superseded for point mode by `docs/native-change.md` (I2), which follows the
+original's measured dialogue: TEXT asks height, angle and text in turn; several
+and mixed TEXT/INSERT/LINE/CIRCLE selections are visited in reverse drawing
+order with one shared INSERT angle; a new value erases the changed record and
+appends the new TEXT, so the value is measured in its append-position font
+context. Height is kept by a blank answer; empty angle/content answers keep
+their old values; a spaces-only content answer stores spaces. Alignment intent
+is absent from stored Text, so CHANGE uses its stored origin as its point
+anchor and does not reconstruct centering/right intent. Every answer is staged;
+retry/cancel preserves drawing, dirty baseline and undo history; a changed
+property set commits once, and no-op properties and no-op stored layer
+assignments create no undo snapshot. CHANGE L retains common whole-owner layer
+policy.
 
 ## Persistence and validation limits
 

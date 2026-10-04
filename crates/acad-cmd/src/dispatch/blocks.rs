@@ -1,6 +1,7 @@
 //! Blocks prompt handling, extracted without changing command policy.
 use super::*;
 use crate::external_insert::InsertTarget;
+use crate::star_insert::Placement;
 
 impl Editor {
     pub(super) fn submit_blocks(
@@ -28,12 +29,54 @@ impl Editor {
                 self.state = InputState::InsertOrigin(InsertTarget::existing(name), explode);
                 Ok(Effect::Continue)
             }
+            InputState::InsertOrigin(name, true) if line.eq_ignore_ascii_case("S") => {
+                self.state = InputState::InsertStarXScale(name);
+                Ok(Effect::Continue)
+            }
+            InputState::InsertStarXScale(name) => {
+                let scale = if line.is_empty() { 1.0 } else { number(line)? };
+                if scale == 0.0 || !scale.is_finite() {
+                    return Err("X scale must be finite and nonzero".into());
+                }
+                self.state = InputState::InsertStarYScale(name, scale);
+                Ok(Effect::Continue)
+            }
+            InputState::InsertStarYScale(name, x_scale) => {
+                let y_scale = if line.is_empty() {
+                    x_scale
+                } else {
+                    number(line)?
+                };
+                if y_scale == 0.0 || !y_scale.is_finite() {
+                    return Err("Y scale must be finite and nonzero".into());
+                }
+                self.state = InputState::InsertStarRotation(name, x_scale, y_scale);
+                Ok(Effect::Continue)
+            }
+            InputState::InsertStarRotation(mut name, x_scale, y_scale) => {
+                let rotation_deg = if line.is_empty() { 0.0 } else { number(line)? };
+                if !rotation_deg.is_finite() {
+                    return Err("rotation angle must be finite".into());
+                }
+                let placement = Placement {
+                    x_scale,
+                    y_scale,
+                    rotation_deg,
+                };
+                match &name.import {
+                    Some(import) => Self::check_external_star(import, placement)?,
+                    None => self.check_star_block(&name.name, placement)?,
+                }
+                name.placement = placement;
+                self.state = InputState::InsertOrigin(name, true);
+                Ok(Effect::Continue)
+            }
             InputState::InsertOrigin(name, explode) => {
                 let origin = point(line)?;
                 if explode {
                     match &name.import {
-                        Some(import) => self.commit_external_star(&name.name, import, origin),
-                        None => self.explode_block(&name.name, origin)?,
+                        Some(import) => self.commit_external_star(&name, import, origin)?,
+                        None => self.explode_block(&name.name, origin, name.placement)?,
                     }
                     self.state = InputState::Command;
                 } else {

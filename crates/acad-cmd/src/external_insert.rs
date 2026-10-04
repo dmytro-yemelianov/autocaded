@@ -3,8 +3,9 @@
 //! applies the conflict policy and stages the result in the prompt state, so
 //! nothing changes until the final prompt commits it as one UNDO step.
 
-use crate::entity_ops::{load_library_name, transform_entity};
-use crate::input_state::{InputState, Transform};
+use crate::entity_ops::load_library_name;
+use crate::input_state::InputState;
+use crate::star_insert::{place_items, Placement};
 use crate::{Editor, Effect};
 use acad_model::{Block, Drawing, Entity, Item, Point};
 use std::collections::{BTreeMap, BTreeSet};
@@ -15,11 +16,17 @@ use std::sync::Arc;
 pub(crate) struct InsertTarget {
     pub(crate) name: String,
     pub(crate) import: Option<Arc<Import>>,
+    /// Native star-form scale/rotation (`S` at the insertion point).
+    pub(crate) placement: Placement,
 }
 
 impl InsertTarget {
     pub(crate) fn existing(name: String) -> Self {
-        Self { name, import: None }
+        Self {
+            name,
+            import: None,
+            placement: Placement::default(),
+        }
     }
 }
 
@@ -422,19 +429,6 @@ impl Import {
     }
 }
 
-fn translate(item: &mut Item, delta: Point) {
-    let transform = Transform::Translate(delta);
-    match item {
-        Item::Entity(entity) | Item::Erased(entity) => transform_entity(entity, transform),
-        Item::Repeat(repeat) => {
-            for entity in &mut repeat.entities {
-                transform_entity(entity, transform);
-            }
-        }
-        Item::Block(_) => {}
-    }
-}
-
 impl Editor {
     /// The drawing-file specification to resolve when the INSERT name prompt
     /// receives `input`: present only when it names no block of this drawing.
@@ -467,6 +461,7 @@ impl Editor {
             InsertTarget {
                 name,
                 import: Some(Arc::new(import)),
+                placement: Placement::default(),
             },
             explode,
         );
@@ -513,20 +508,21 @@ impl Editor {
         };
     }
 
-    /// Star form: definitions plus the translated root records in one step.
-    pub(crate) fn commit_external_star(&mut self, name: &str, import: &Import, origin: Point) {
+    /// Star form: definitions plus the placed root records in one step.
+    /// Unrepresentable placements are refused before any change.
+    pub(crate) fn commit_external_star(
+        &mut self,
+        target: &InsertTarget,
+        import: &Import,
+        origin: Point,
+    ) -> Result<(), String> {
         let Payload::Star(roots) = &import.payload else {
             unreachable!("block imports commit at the rotation prompt")
         };
-        let delta = Point {
-            x: origin.x - import.base.x,
-            y: origin.y - import.base.y,
-        };
+        let placed = place_items(roots, import.base, origin, target.placement)?;
         self.save_undo();
         self.add_imported_definitions(import);
-        for root in roots {
-            let mut item = root.clone();
-            translate(&mut item, delta);
+        for item in placed {
             if let Item::Entity(entity) = &item {
                 if let Some(library) = load_library_name(entity) {
                     self.active_shape_library = Some(library);
@@ -536,7 +532,16 @@ impl Editor {
         }
         self.refresh_after_edit();
         self.committed_import_loads = Some(import.loads.clone());
-        self.status = format!("Inserted drawing {name} as separate entities");
+        self.status = format!("Inserted drawing {} as separate entities", target.name);
+        Ok(())
+    }
+
+    /// Representability of a staged star import under `placement`.
+    pub(crate) fn check_external_star(import: &Import, placement: Placement) -> Result<(), String> {
+        let Payload::Star(roots) = &import.payload else {
+            return Ok(());
+        };
+        place_items(roots, import.base, import.base, placement).map(|_| ())
     }
 
     /// LOAD library names of the file import committed since the last call.

@@ -126,29 +126,44 @@ fn aligned_repeat_preserves_effective_height_without_refitting_new_span() {
     near(p.y, 2.0 - 1.5 * height * 0.6);
 }
 #[test]
-fn change_text_stages_origin_angle_value_cancel_retry_and_one_undo() {
+fn change_text_stages_origin_height_angle_value_cancel_retry_and_one_undo() {
     let mut e = Editor::default();
     inputs(&mut e, &["TEXT", "1,2", "3", "0", "OLD"]);
     let original = e.drawing().clone();
     inputs(&mut e, &["CHANGE", "1", "@2,3"]);
+    assert!(e.prompt().contains("height"), "{}", e.prompt());
     assert_eq!(e.drawing(), &original);
     assert!(e.submit("bad").is_err());
+    assert!(e.submit("-1").is_err());
     assert_eq!(e.drawing(), &original);
-    inputs(&mut e, &["@0,4"]);
+    inputs(&mut e, &["", "@0,4"]);
     assert_eq!(e.drawing(), &original);
     assert!(e.submit("é").is_err());
     assert_eq!(e.drawing(), &original);
     e.cancel_command().unwrap();
     assert_eq!(e.drawing(), &original);
-    inputs(&mut e, &["CHANGE", "1", "3,5", "90", " NEW "]);
-    let (p, h, a, v) = text(&e, 0);
+    // Original: a new value erases the changed record and appends the text.
+    inputs(&mut e, &["CHANGE", "1", "3,5", "", "90", " NEW "]);
+    let Item::Erased(erased) = &e.drawing().items[0] else {
+        panic!("changed TEXT record is kept erased")
+    };
+    assert!(
+        matches!(bare(erased), Entity::Text { value, rotation_deg, .. } if value == "OLD" && *rotation_deg == 90.0)
+    );
+    let (p, h, a, v) = text(&e, 1);
     assert_eq!((p, h, a, v), (Point { x: 3.0, y: 5.0 }, 3.0, 90.0, " NEW "));
+    inputs(&mut e, &["UNDO"]);
+    assert_eq!(e.drawing(), &original);
+    inputs(&mut e, &["CHANGE", "1", "3,5", "2", "", ""]);
+    assert_eq!(text(&e, 0), (Point { x: 3.0, y: 5.0 }, 2.0, 0.0, "OLD"));
+    assert_eq!(e.drawing().items.len(), 1, "unchanged value stays in place");
     inputs(&mut e, &["UNDO"]);
     assert_eq!(e.drawing(), &original);
     inputs(
         &mut e,
         &[
-            "CHANGE", "1", "1,2", "", "", "CHANGE", "1", "L", "1", "UNDO",
+            "CHANGE", "1", "1,2", "", "", "", "CHANGE", "1", "", "", "", "", "CHANGE", "1", "L",
+            "1", "UNDO",
         ],
     );
     assert!(
@@ -157,7 +172,7 @@ fn change_text_stages_origin_angle_value_cancel_retry_and_one_undo() {
     );
 }
 #[test]
-fn mixed_text_refuses_atomically_and_insert_angle_cancellation_discards_all_moves() {
+fn mixed_text_and_insert_stage_atomically_in_reverse_order_with_one_undo() {
     let mut e = Editor::default();
     inputs(
         &mut e,
@@ -167,10 +182,34 @@ fn mixed_text_refuses_atomically_and_insert_angle_cancellation_discards_all_move
         ],
     );
     let original = e.drawing().clone();
-    inputs(&mut e, &["CHANGE", "ALL"]);
-    assert!(e.submit("8,8").is_err());
+    inputs(&mut e, &["CHANGE", "ALL", "8,8"]);
+    assert!(
+        e.prompt().starts_with("CHANGE: new angle"),
+        "{}",
+        e.prompt()
+    );
+    assert!(e.submit("bad").is_err());
+    inputs(&mut e, &["45"]);
+    assert!(e.prompt().contains("height"), "{}", e.prompt());
     assert_eq!(e.drawing(), &original);
     e.cancel_command().unwrap();
+    assert_eq!(e.drawing(), &original);
+    inputs(&mut e, &["CHANGE", "ALL", "8,8", "45", "2", "", "NEW"]);
+    let undo_depth = e.drawing().items.len();
+    assert_eq!(undo_depth, original.items.len() + 1);
+    assert!(matches!(e.drawing().items[0], Item::Erased(_)));
+    assert_eq!(
+        text(&e, original.items.len()),
+        (Point { x: 8.0, y: 8.0 }, 2.0, 0.0, "NEW")
+    );
+    let Item::Entity(insert) = e.drawing().items.iter().rev().nth(1).unwrap() else {
+        panic!()
+    };
+    assert!(
+        matches!(bare(insert), Entity::Insert { origin, rotation_deg, .. } if *origin == Point { x: 8.0, y: 8.0 } && *rotation_deg == 45.0)
+    );
+    inputs(&mut e, &["UNDO"]);
+    assert_eq!(e.drawing(), &original);
     inputs(&mut e, &["CHANGE", "LAST", "8,8"]);
     assert_eq!(e.drawing(), &original);
     assert!(e.submit("bad").is_err());
@@ -206,8 +245,8 @@ fn right_repeat_and_multi_ordinary_change_preserve_atomic_history() {
     inputs(&mut e, &["TEXT", "A", "0,0", "1,0"]);
     assert!(e.submit("I").is_err());
     inputs(&mut e, &["AB"]);
-    inputs(&mut e, &["CHANGE", "1,2"]);
-    assert!(e.submit("0,0").is_err());
+    inputs(&mut e, &["CHANGE", "1,2", "0,0"]);
+    assert!(e.prompt().contains("height"), "two TEXTs now stage in turn");
     e.cancel_command().unwrap();
     let mut ordinary = Editor::default();
     inputs(

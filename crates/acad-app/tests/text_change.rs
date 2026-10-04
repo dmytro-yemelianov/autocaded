@@ -125,7 +125,7 @@ fn actual_variable_font_ink_alignment_spaces_repetition_and_idle_space() {
         .any(|p| (p.x - screen_second.x).abs() < 1e-10 && (p.y - screen_second.y).abs() < 1e-10));
 }
 #[test]
-fn font_context_includes_hidden_group_insert_loads_and_target_record_position() {
+fn font_context_includes_hidden_group_insert_loads_and_append_position() {
     let root = Scratch::new("context");
     let mut s = Session::new(&[root.0.clone()]);
     commands(
@@ -169,13 +169,19 @@ fn font_context_includes_hidden_group_insert_loads_and_target_record_position() 
     near(p.x, 9.85);
     commands(&mut s, &["LOAD", "SECOND", "CHANGE", "LAST"]); // LAST is the TEXT; LOAD has no canonical ID.
     let before = s.drawing().clone();
-    commands(&mut s, &["@1,2", "90"]);
+    commands(&mut s, &["@1,2", "", "90"]);
     assert_eq!(s.drawing(), &before);
-    commands(&mut s, &["B"]); // B exists only in FIRST: target context must not use last LOAD SECOND.
-    let (p, _, angle, value) = text(&s, index);
+    // The original erases the changed record and appends the new text, so the
+    // value is measured in the append context: B exists only in FIRST, and
+    // the drawing ends after LOAD SECOND.
+    assert!(call(&mut s, "command", json!({"input":"B"})).is_err());
+    assert_eq!(s.drawing(), &before);
+    commands(&mut s, &["A"]);
+    assert!(matches!(s.drawing().items[index], Item::Erased(_)));
+    let (p, _, angle, value) = text(&s, s.drawing().items.len() - 1);
     near(p.x, 10.85);
     near(p.y, 12.0);
-    assert_eq!((angle, value), (90.0, "B"));
+    assert_eq!((angle, value), (90.0, "A"));
     commands(&mut s, &["UNDO"]);
     assert_eq!(s.drawing(), &before);
 }
@@ -197,14 +203,14 @@ fn api_point_height_angle_missing_metrics_retry_and_atomic_clean_change() {
     let path = root.0.join("clean.dwg");
     s.save(&path).unwrap();
     let original = s.drawing().clone();
-    commands(&mut s, &["CHANGE", "LAST", "7,8", "30"]);
+    commands(&mut s, &["CHANGE", "LAST", "7,8", "", "30"]);
     assert!(!s.is_dirty());
     assert_eq!(s.drawing(), &original);
     assert!(call(&mut s, "command", json!({"input":"é"})).is_err());
     assert!(!s.is_dirty());
     call(&mut s, "cancel", json!({})).unwrap();
     assert_eq!(s.drawing(), &original);
-    commands(&mut s, &["CHANGE", "LAST", "7,8", "30", "B"]);
+    commands(&mut s, &["CHANGE", "LAST", "7,8", "", "30", "B"]);
     assert!(s.is_dirty());
     commands(&mut s, &["UNDO"]);
     assert_eq!(s.drawing(), &original);

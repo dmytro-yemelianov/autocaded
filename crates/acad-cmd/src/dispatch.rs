@@ -233,6 +233,9 @@ impl Editor {
             | InputState::InsertXScale(..)
             | InputState::InsertYScale(..)
             | InputState::InsertRotation(..)
+            | InputState::InsertStarXScale(..)
+            | InputState::InsertStarYScale(..)
+            | InputState::InsertStarRotation(..)
             | InputState::BlockName
             | InputState::BlockBase(..)
             | InputState::BlockSelection(..)
