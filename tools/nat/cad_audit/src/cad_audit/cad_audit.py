@@ -47,14 +47,20 @@ class LeanProverToolConfig(FunctionBaseConfig, name="lean_prover"):
 
 @register_function(config_type=LeanProverToolConfig, framework_wrappers=[LLMFrameworkEnum.LANGCHAIN])
 async def lean_prover_function(config: LeanProverToolConfig, builder: Builder):
-    async def _check_proofs() -> str:
+    async def _check_proofs(target: str = "") -> str:
         """Compile and check all Lean 4 formal proofs in formal/ using lake build.
+
+        Args:
+            target: Optional target module or empty for all.
 
         Returns:
             Proof compilation output and theorem validation results.
         """
         formal_dir = REPO_ROOT / "formal"
-        proc = subprocess.run(["lake", "build"], cwd=formal_dir, capture_output=True, text=True)
+        cmd = ["lake", "build"]
+        if target:
+            cmd.append(target)
+        proc = subprocess.run(cmd, cwd=formal_dir, capture_output=True, text=True)
         if proc.returncode == 0:
             return f"LEAN FORMAL PROOFS PASS: All targets built and verified successfully."
         return f"LEAN FORMAL PROOFS FAIL:\n{proc.stderr}\n{proc.stdout}"
@@ -69,16 +75,19 @@ class CargoVerifierToolConfig(FunctionBaseConfig, name="cargo_verifier"):
 
 @register_function(config_type=CargoVerifierToolConfig, framework_wrappers=[LLMFrameworkEnum.LANGCHAIN])
 async def cargo_verifier_function(config: CargoVerifierToolConfig, builder: Builder):
-    async def _verify_cargo() -> str:
+    async def _verify_cargo(package: str = "") -> str:
         """Run cargo clippy and format checks across the entire workspace.
+
+        Args:
+            package: Optional package name to verify or empty for all.
 
         Returns:
             Compiler and lint status.
         """
-        proc = subprocess.run(
-            ["cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings"],
-            cwd=REPO_ROOT, capture_output=True, text=True
-        )
+        cmd = ["cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings"]
+        if package:
+            cmd = ["cargo", "clippy", "-p", package, "--all-targets", "--", "-D", "warnings"]
+        proc = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
         if proc.returncode == 0:
             return "CARGO WORKSPACE CLEAN: 0 clippy warnings."
         return f"CARGO CLIPPY WARNINGS/ERRORS:\n{proc.stderr}"
@@ -93,16 +102,17 @@ class LedgerStatusToolConfig(FunctionBaseConfig, name="ledger_status"):
 
 @register_function(config_type=LedgerStatusToolConfig, framework_wrappers=[LLMFrameworkEnum.LANGCHAIN])
 async def ledger_status_function(config: LedgerStatusToolConfig, builder: Builder):
-    async def _check_ledger() -> str:
+    async def _check_ledger(command: str = "status") -> str:
         """Inspect the native completion ledger status and validation gates.
+
+        Args:
+            command: Subcommand for progress ledger (e.g. 'status', 'summary').
 
         Returns:
             Summary of verified and pending implementation tasks.
         """
-        proc = subprocess.run(
-            ["python3", "tools/agentic_progress.py", "status"],
-            cwd=REPO_ROOT, capture_output=True, text=True
-        )
+        cmd = ["python3", "tools/agentic_progress.py", command or "status"]
+        proc = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
         return proc.stdout or proc.stderr
 
     yield FunctionInfo.from_fn(_check_ledger, description=_check_ledger.__doc__)

@@ -18,6 +18,9 @@ def main():
         print(f"Error: NAT config not found at {CONFIG}", file=sys.stderr)
         sys.exit(1)
 
+    if "OPENAI_API_KEY" not in os.environ and "NVIDIA_API_KEY" in os.environ:
+        os.environ["OPENAI_API_KEY"] = os.environ["NVIDIA_API_KEY"]
+
     input_prompt = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Verify all formal proofs and check cargo workspace status."
     cmd = [
         str(NAT_BIN),
