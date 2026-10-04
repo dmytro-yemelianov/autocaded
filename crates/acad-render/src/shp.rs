@@ -144,31 +144,38 @@ impl Library {
     }
 
     pub fn shape(&self, number: u16) -> Result<Glyph, ShapeError> {
+        self.shape_counted(number).0
+    }
+
+    /// `shape`, plus the SHP instructions executed even when it fails, so a
+    /// frame budget can charge failed programs (RB2).
+    pub fn shape_counted(&self, number: u16) -> (Result<Glyph, ShapeError>, usize) {
         let mut vm = Machine::new(self);
-        vm.run(number, 0)?;
-        if !vm.stack.is_empty() {
-            return Err(error(format!("shape {number}: unbalanced position stack")));
-        }
-        Ok(vm.finish())
+        let result = vm.run(number, 0).and_then(|()| {
+            if vm.stack.is_empty() {
+                Ok(())
+            } else {
+                Err(error(format!("shape {number}: unbalanced position stack")))
+            }
+        });
+        let executed = vm.executed();
+        (result.map(|()| vm.finish()), executed)
     }
 
     /// Points and advance are in font units; callers scale by height/cap_height.
     pub fn text(&self, text: &str) -> Result<Glyph, ShapeError> {
+        self.text_counted(text).0
+    }
+
+    /// `text`, plus the SHP instructions executed even when it fails.
+    pub fn text_counted(&self, text: &str) -> (Result<Glyph, ShapeError>, usize) {
         if self.cap_height.is_none() {
-            return Err(error("TEXT needs a font, not a shape library"));
+            return (Err(error("TEXT needs a font, not a shape library")), 0);
         }
         let mut vm = Machine::new(self);
-        // The supplied fonts use shape 1 to save the initial baseline for CR.
-        if self.definitions.contains_key(&1) {
-            vm.run(1, 0)?;
-        }
-        for ch in text.chars() {
-            let id = u16::try_from(ch as u32)
-                .map_err(|_| error(format!("unsupported text character {ch:?}")))?;
-            vm.pen = true;
-            vm.run(id, 0)?;
-        }
-        Ok(vm.finish())
+        let result = vm.run_text(text);
+        let executed = vm.executed();
+        (result.map(|()| vm.finish()), executed)
     }
 }
 
@@ -306,7 +313,11 @@ mod tests {
 pub struct Glyph {
     pub strokes: Vec<Vec<Point>>,
     pub advance: Point,
+    /// SHP instructions executed to produce this glyph (frame budget unit).
+    pub instructions: usize,
 }
+
+const SHP_INSTRUCTION_BUDGET: usize = 100_000;
 
 struct Machine<'a> {
     library: &'a Library,
@@ -327,13 +338,30 @@ impl<'a> Machine<'a> {
             scale: 1.0,
             stack: Vec::new(),
             strokes: Vec::new(),
-            budget: 100_000,
+            budget: SHP_INSTRUCTION_BUDGET,
         }
+    }
+    fn executed(&self) -> usize {
+        SHP_INSTRUCTION_BUDGET - self.budget
+    }
+    fn run_text(&mut self, text: &str) -> Result<(), ShapeError> {
+        // The supplied fonts use shape 1 to save the initial baseline for CR.
+        if self.library.definitions.contains_key(&1) {
+            self.run(1, 0)?;
+        }
+        for ch in text.chars() {
+            let id = u16::try_from(ch as u32)
+                .map_err(|_| error(format!("unsupported text character {ch:?}")))?;
+            self.pen = true;
+            self.run(id, 0)?;
+        }
+        Ok(())
     }
     fn finish(self) -> Glyph {
         Glyph {
             strokes: self.strokes,
             advance: self.position,
+            instructions: SHP_INSTRUCTION_BUDGET - self.budget,
         }
     }
     fn move_by(&mut self, x: f64, y: f64) -> Result<(), ShapeError> {

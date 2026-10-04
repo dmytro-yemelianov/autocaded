@@ -316,7 +316,8 @@ are carried through by the writer; their meanings remain to be recovered.
 Rust 1.88.0, pinned by `rust-toolchain.toml`.
 
     cargo test --workspace
-    cargo run -p acad-app        # renders SUBDIV.DXF in a window
+    cargo run -p acad-app        # starts at the Main Menu (docs/native-main-menu.md)
+    cargo run -p acad-app -- corpus/Samples/SUBDIV.DXF   # renders SUBDIV.DXF
     cargo run -p acad-app -- corpus/Samples/SUBDIV.DWG   # or the DWG sibling
     cargo run -p acad-app -- corpus/Samples/HOUSE.DWG    # AC1.40
     cargo run -p acad-app -- corpus/Samples/DISC.BAK     # fonts included

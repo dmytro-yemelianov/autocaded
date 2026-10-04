@@ -425,7 +425,8 @@ fn zero_color_off_failures_preserve_destination_attachment_dirty_prompt_and_undo
         }
         s.cancel().unwrap();
         assert!(s.command("END").unwrap_err().contains("color 1..127"));
-        commands(&mut s, &["WBLOCK", exported.to_str().unwrap()]);
+        // The existing export asks first; a confirmed write still fails whole.
+        commands(&mut s, &["WBLOCK", exported.to_str().unwrap(), "Y"]);
         assert!(s.command("*").unwrap_err().contains("color 1..127"));
         assert_eq!(s.drawing(), &hidden);
         assert!(s.is_dirty());

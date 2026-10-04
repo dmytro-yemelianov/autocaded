@@ -15,6 +15,61 @@ impl Drop for Staged {
     }
 }
 
+/// Create a file that must not exist yet (WBLOCK when no replacement was
+/// confirmed). Any existing entry at `path`, even a dangling symlink, is
+/// refused. The complete staged file is then hard-linked into place, which
+/// fails if the name appeared meanwhile; where hard links are unsupported a
+/// last existence check precedes the rename.
+pub(super) fn create_new(path: &Path, bytes: &[u8]) -> io::Result<Option<String>> {
+    let exists = || {
+        io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "output file already exists; not replaced",
+        )
+    };
+    if fs::symlink_metadata(path).is_ok() {
+        return Err(exists());
+    }
+    let target = target_path(path)?;
+    let parent = target
+        .parent()
+        .ok_or_else(|| io::Error::other("output path has no parent"))?;
+    let (staged, mut file) = create_staged(parent, false)?;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    drop(file);
+    match fs::hard_link(&staged.0, &target) {
+        Ok(()) => {}
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => return Err(exists()),
+        Err(_) => {
+            if fs::symlink_metadata(&target).is_ok() {
+                return Err(exists());
+            }
+            fs::rename(&staged.0, &target)?;
+        }
+    }
+    // Dropping the staging name leaves the linked file in place.
+    drop(staged);
+    Ok(directory_sync_warning(parent))
+}
+
+/// Whether `a` and `b` name the same existing file, through symlinks,
+/// relative components and case-insensitive volumes (device and inode).
+pub(super) fn same_file(a: &Path, b: &Path) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        let (Ok(a), Ok(b)) = (fs::metadata(a), fs::metadata(b)) else {
+            return false;
+        };
+        a.dev() == b.dev() && a.ino() == b.ino()
+    }
+    #[cfg(not(unix))]
+    {
+        matches!((fs::canonicalize(a), fs::canonicalize(b)), (Ok(a), Ok(b)) if a == b)
+    }
+}
+
 /// Replace without a backup (WBLOCK, as in the original).
 /// `Ok(Some(warning))`: the file was replaced, but the directory fsync that
 /// makes the rename durable was not confirmed. The save still succeeded.
@@ -242,6 +297,38 @@ mod tests {
         }
         assert_eq!(fs::read(root.join("secret.bak")).unwrap(), b"old");
         assert_eq!(fs::read_dir(&root).unwrap().count(), 2);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn create_new_writes_a_missing_file_and_refuses_any_existing_entry() {
+        let root = std::env::temp_dir().join(format!("acad-staging-new-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir(&root).unwrap();
+        let path = root.join("part.dwg");
+        assert_eq!(create_new(&path, b"first").unwrap(), None);
+        assert_eq!(fs::read(&path).unwrap(), b"first");
+        let error = create_new(&path, b"second").unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+        assert_eq!(fs::read(&path).unwrap(), b"first");
+        #[cfg(unix)]
+        {
+            let dangling = root.join("dangling.dwg");
+            std::os::unix::fs::symlink(root.join("missing.dwg"), &dangling).unwrap();
+            let error = create_new(&dangling, b"x").unwrap_err();
+            assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
+            assert!(!root.join("missing.dwg").exists());
+        }
+        let names: Vec<_> = fs::read_dir(&root)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        assert!(
+            names
+                .iter()
+                .all(|name| !name.to_string_lossy().ends_with(".tmp")),
+            "{names:?}"
+        );
         fs::remove_dir_all(root).unwrap();
     }
 

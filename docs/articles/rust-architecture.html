@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AutoRust architecture</title>
+<style>
+  :root { --sp-measure: 70ch; }
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 20px 96px; }
+  main > p, main section > p, main section > ul, main section > ol { max-width: var(--sp-measure); }
+  .lede { font-size: 1.2rem; line-height: 1.55; color: var(--sp-text); }
+  .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .75rem; color: var(--sp-muted); margin-bottom: .5rem; }
+  h1 { font-size: 2.4rem; line-height: 1.1; margin: 0 0 1rem; }
+  h2 { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--sp-border); }
+  h3 { margin-top: 2rem; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--sp-border); border: 1px solid var(--sp-border); margin: 2rem 0; }
+  .stats div { background: var(--sp-bg); padding: 14px 16px; }
+  .stats b { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+  .stats span { color: var(--sp-muted); font-size: .85rem; }
+  .wide { overflow-x: auto; margin: 1.25rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--sp-border); vertical-align: top; }
+  th { color: var(--sp-muted); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  figure { margin: 2rem 0; }
+  figcaption { color: var(--sp-muted); font-size: .9rem; margin-top: .5rem; max-width: var(--sp-measure); }
+  .diagram { width: 100%; max-width: 920px; height: auto; display: block; }
+  .diagram .box { fill: var(--sp-surface); stroke: var(--sp-border); stroke-width: 1.5; }
+  .diagram .core { fill: var(--sp-surface); stroke: var(--sp-text); stroke-width: 1.5; }
+  .diagram .edge { fill: none; stroke: var(--sp-muted); stroke-width: 1.4; }
+  .diagram .io { fill: none; stroke: var(--sp-chart-2); stroke-width: 1.4; stroke-dasharray: 5 4; }
+  .diagram text { fill: var(--sp-text); font-family: var(--sp-font-sans); font-size: 13px; }
+  .diagram .t { font-weight: 600; font-size: 14px; }
+  .diagram .s { fill: var(--sp-muted); font-size: 11.5px; }
+  .callout { border-left: 3px solid var(--sp-text); padding: .25rem 0 .25rem 1rem; margin: 1.5rem 0; max-width: var(--sp-measure); }
+  ol.steps li { margin-bottom: .4rem; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } h1 { font-size: 1.9rem; } }
+</style>
+</head>
+<body class="auto">
+<main>
+  <p class="kicker">Engineering article · October 2026</p>
+  <h1>AutoRust: a native CAD editor built for exact files and boring failures</h1>
+  <p class="lede">AutoRust is a handwritten Rust editor that reads, edits and writes classic DWG (AC1.2 and AC1.40) and historical DXF drawings. This article describes how it is put together, and the handful of design rules that make it fast, compatible and very hard to make lose data.</p>
+
+  <div class="stats">
+    <div><b>6</b><span>product crates</span></div>
+    <div><b>~27.6k</b><span>lines of Rust in src</span></div>
+    <div><b>0</b><span><code>unsafe</code> blocks</span></div>
+    <div><b>743</b><span>product tests</span></div>
+    <div><b>1,061</b><span>workspace tests, all green</span></div>
+    <div><b>17</b><span>MCP automation tools</span></div>
+  </div>
+
+  <section>
+    <h2>The shape of the system</h2>
+    <p>The workspace is six crates arranged as a strict hourglass. A dependency-free model sits in the middle. Codecs, the editor and the renderer each depend only on that model and never on each other. One application crate at the top is the only place that touches files, windows, sockets or clocks.</p>
+
+    <figure>
+      <svg class="diagram" viewBox="0 0 920 430" role="img" aria-labelledby="dg-title">
+        <title id="dg-title">Crate dependency diagram</title>
+        <rect class="box" x="250" y="20" width="420" height="92" rx="6"/>
+        <text class="t" x="270" y="46">acad-app</text>
+        <text class="s" x="270" y="66">Session · document storage · bounded file reader</text>
+        <text class="s" x="270" y="84">script clock · menu macros · GUI (winit) · API socket · MCP</text>
+        <text class="s" x="270" y="102">binaries: acad (window), acad-mcp (headless / attached)</text>
+
+        <rect class="box" x="20" y="180" width="200" height="80" rx="6"/>
+        <text class="t" x="38" y="208">acad-dwg</text>
+        <text class="s" x="38" y="228">AC1.2 / AC1.40 reader</text>
+        <text class="s" x="38" y="245">checked writer</text>
+
+        <rect class="box" x="245" y="180" width="200" height="80" rx="6"/>
+        <text class="t" x="263" y="208">acad-dxf</text>
+        <text class="s" x="263" y="228">historical comma format</text>
+        <text class="s" x="263" y="245">checked live export</text>
+
+        <rect class="box" x="470" y="180" width="200" height="80" rx="6"/>
+        <text class="t" x="488" y="208">acad-cmd</text>
+        <text class="s" x="488" y="228">editor state machine</text>
+        <text class="s" x="488" y="245">geometry · undo · effects</text>
+
+        <rect class="box" x="695" y="180" width="205" height="80" rx="6"/>
+        <text class="t" x="713" y="208">acad-render</text>
+        <text class="s" x="713" y="228">flatten → primitives</text>
+        <text class="s" x="713" y="245">tiny-skia raster · fonts</text>
+
+        <rect class="core" x="330" y="330" width="260" height="76" rx="6"/>
+        <text class="t" x="350" y="358">acad-model</text>
+        <text class="s" x="350" y="378">Drawing · Item · Entity · Header</text>
+        <text class="s" x="350" y="395">std only · no I/O</text>
+
+        <path class="edge" d="M330 112 L120 180"/>
+        <path class="edge" d="M400 112 L345 180"/>
+        <path class="edge" d="M520 112 L570 180"/>
+        <path class="edge" d="M600 112 L797 180"/>
+        <path class="edge" d="M120 260 L400 330"/>
+        <path class="edge" d="M345 260 L430 330"/>
+        <path class="edge" d="M570 260 L490 330"/>
+        <path class="edge" d="M797 260 L520 330"/>
+
+        <path class="io" d="M670 66 L860 66"/>
+        <text class="s" x="740" y="58">files · window</text>
+        <text class="s" x="740" y="84">socket · stdio · clock</text>
+      </svg>
+      <figcaption>Arrows point at dependencies. Only <code>acad-app</code> (dashed edge) talks to the outside world; the renderer's single exception is loading SHP font directories. Codecs may not depend on each other or on the renderer, which keeps each one independently testable.</figcaption>
+    </figure>
+
+    <div class="wide">
+      <table>
+        <thead><tr><th>Crate</th><th>Responsibility</th><th>Third-party deps</th><th class="num">src lines</th><th class="num">tests</th></tr></thead>
+        <tbody>
+          <tr><td>acad-model</td><td>Document types, visibility rules, shared group/record limits</td><td>none</td><td class="num">840</td><td class="num">9</td></tr>
+          <tr><td>acad-dwg</td><td>Binary DWG reader and writer for two revisions</td><td>none</td><td class="num">3,342</td><td class="num">105</td></tr>
+          <tr><td>acad-dxf</td><td>Historical DXF lexer, parser and checked writer</td><td>none</td><td class="num">1,365</td><td class="num">42</td></tr>
+          <tr><td>acad-cmd</td><td>Editor: commands, selection, geometry, undo</td><td>none</td><td class="num">11,616</td><td class="num">319</td></tr>
+          <tr><td>acad-render</td><td>Flattening, budgets, SHP fonts, rasterisation</td><td>tiny-skia</td><td class="num">2,278</td><td class="num">50</td></tr>
+          <tr><td>acad-app</td><td>Session, storage, scripts, GUI, API and MCP</td><td>winit, softbuffer, serde, png</td><td class="num">8,198</td><td class="num">218</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>A model that says exactly what the file says</h2>
+    <p>A drawing is a header plus a flat, ordered list of items. Order is content: block definitions, loose geometry and font selections interleave, and the order in which they appear changes what renders. So the model never reorders anything.</p>
+    <ul>
+      <li><strong>Items</strong> are an entity, an erased entity, a block definition, or a rectangular repeat group.</li>
+      <li><strong>Entities</strong> are geometry (line, circle, arc, text, insert, trace, solid, point, shape), plus three wrappers: <code>OnLayer</code> keeps layer orthogonal to geometry, <code>Erased</code> marks an erased member inside a live group, and <code>Load</code> switches the active font or shape library in document order.</li>
+      <li><strong>The header</strong> carries limits, view, snap/grid/axis modes, units, layer colours, a separate set of OFF layers, and the drawing-scoped FILLET radius. Unrecognised header bytes ride along untouched, but are excluded from equality, so they never make a drawing look "changed".</li>
+    </ul>
+    <p>Erasure is data, not deletion. An erased record stays in the model and in the saved DWG, which is what makes OOPS and faithful round-tripping possible. Visibility is a pure function over the header: hiding a layer hides geometry, but font selections still run, so turning a layer off never changes how other text renders.</p>
+  </section>
+
+  <section>
+    <h2>Codecs that refuse rather than guess</h2>
+    <p>Both codecs work on byte slices and return byte vectors. They never open a file, so the same code serves the GUI, the headless server and the tests.</p>
+    <div class="two">
+      <div>
+        <h3>Reading DWG</h3>
+        <ol class="steps">
+          <li>Check the declared record count (≤ 65,535) and end offset against the real file length before walking anything.</li>
+          <li>Walk records one at a time, checking every step against the record limit and the end offset.</li>
+          <li>Assemble groups with a depth cap of 64; blocks and repeats must nest properly.</li>
+          <li>Finish only if the walk lands exactly on the declared end and the count matches.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Writing DWG and DXF</h3>
+        <ol class="steps">
+          <li>Validate the whole drawing before allocating output.</li>
+          <li>Refuse anything the target format cannot store faithfully: a nonzero FILLET radius in AC1.2 or DXF, non-Latin-1 text, out-of-range layers, ambiguous erasure history.</li>
+          <li>Use checked arithmetic for every size and offset.</li>
+          <li>Return a typed error with a user-facing message; the session keeps the old file and the unsaved document.</li>
+        </ol>
+      </div>
+    </div>
+    <p class="callout">The rule is simple: a save either writes a file that reopens to the same drawing, or it writes nothing and says why. Nineteen typed DWG error variants and nine shared group errors exist so that "why" is always specific.</p>
+    <p>Round-trip guarantees are tested, not assumed. DWG output re-encodes to identical bytes, a reference DXF sample round-trips byte for byte, and every bundled sample drawing reopens to the same structure after a save.</p>
+  </section>
+
+  <section>
+    <h2>An editor with no side effects</h2>
+    <p>The editor is a state machine with one state per prompt (136 of them). Commands are dispatched from a single match on the command name and its aliases. Crucially, the editor never performs I/O. When a command needs the outside world, it returns an <code>Effect</code> value instead: save this drawing, write this block, load this menu, start this script, wait this long. The session decides how to carry it out.</p>
+    <p>That separation buys three things:</p>
+    <ul>
+      <li><strong>Determinism.</strong> Every editor test is a pure function of inputs. No temp files, no sleeps, no flakiness.</li>
+      <li><strong>Staging.</strong> Multi-prompt operations stage their result and commit once. External INSERT reads and validates the whole source file at the first prompt, holds it, and only commits at the last prompt as a single UNDO step. Cancel at any point leaves nothing behind.</li>
+      <li><strong>One undo model.</strong> Each committed change pushes a full snapshot of the drawing plus editor history. UNDO pops one. Failed or cancelled commands are tested to leave the undo stack exactly as it was.</li>
+    </ul>
+
+    <h3>Selection</h3>
+    <p>Every feature that asks "which objects?" uses one traversal: typed IDs, ALL and LAST, mouse picks, window selection, HATCH boundaries, highlighting and the API's object count. IDs are 1-based in drawing order over live top-level owners, so a repeat group or an inserted block is one object. Hidden geometry can't be picked, and turning a layer off never renumbers anything else.</p>
+  </section>
+
+  <section>
+    <h2>What makes it fast</h2>
+    <p>Speed here mostly comes from not doing work, and from knowing up front how much work is allowed.</p>
+    <h3>Budgets everywhere, charged before the work</h3>
+    <p>Every traversal that a hostile or merely huge drawing could blow up has an explicit limit, and the cost is charged <em>before</em> the work runs. Running out of budget is a clean, atomic refusal, never a hang or a half-finished edit.</p>
+    <div class="wide">
+      <table>
+        <thead><tr><th>Budget</th><th class="num">Limit</th><th>Protects against</th></tr></thead>
+        <tbody>
+          <tr><td>Stored records per drawing</td><td class="num">65,535</td><td>Oversized or corrupt files</td></tr>
+          <tr><td>Group nesting depth</td><td class="num">64</td><td>Deep recursion in codecs</td></tr>
+          <tr><td>Generated records per render owner</td><td class="num">100,000</td><td>Huge repeat grids</td></tr>
+          <tr><td>Insert nesting depth</td><td class="num">16</td><td>Self-referencing blocks</td></tr>
+          <tr><td>SHP font instructions</td><td class="num">100,000</td><td>Runaway font programs</td></tr>
+          <tr><td>HATCH strokes / work units</td><td class="num">100,000 / 10M</td><td>Dense patterns, tiny scales, pattern files that draw nothing</td></tr>
+          <tr><td>Script items per event-loop turn</td><td class="num">64</td><td>Long scripts starving the UI</td></tr>
+          <tr><td>Temporary SKETCH segments</td><td class="num">10,000</td><td>Endless freehand input</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>An indexed hatch sweep</h3>
+    <p>Hatching sweeps parallel lines across a boundary. The straightforward version tests every boundary edge against every line, which is fine for a rectangle and terrible for a boundary made of thousands of islands. The sweep now keeps boundary pieces sorted by where they start and end across the sweep direction, plus an active set, so each line only examines pieces it can actually cross. Arcs are split at their extremes so every piece is monotone, and every piece uses the same half-open crossing rule, which makes vertex and tangent rows unambiguous.</p>
+    <div class="stats">
+      <div><b>20.4 s</b><span>dense case before (2,000 squares, 21 pattern families)</span></div>
+      <div><b>0.04 s</b><span>same case after, release build</span></div>
+      <div><b>35,870</b><span>cases verified byte-identical to the old sweep</span></div>
+    </div>
+    <p>The speedup was accepted only after an independent comparison over tens of thousands of scenes, including rotated boundaries, rows exactly through vertices and arc extremes, and coordinates as large as 10<sup>7</sup>, showed identical output.</p>
+
+    <h3>Rendering</h3>
+    <p>Rendering is two pure stages: flatten the drawing into polylines and filled polygons, then rasterise with tiny-skia into a software buffer. Flattening returns diagnostics alongside geometry, so bad font data or an exhausted budget is reported instead of silently drawing something wrong. A saved view that can't be shown on the current canvas falls back to fitting the limits, for display only, so a damaged file still opens to a usable window.</p>
+  </section>
+
+  <section>
+    <h2>What makes it fail-proof</h2>
+    <h3>One owner for everything stateful</h3>
+    <p>A single <code>Session</code> owns the editor, the open document, fonts, the menu, the input line, any running script and any paused menu macro. The GUI, the Unix-socket API and the MCP server all call the same typed operations on it. There is one code path to get right, and every automation test exercises the same logic a person clicking in the window does.</p>
+
+    <h3>Saves that can't destroy your file</h3>
+    <ol class="steps">
+      <li>Resolve the destination, following symlinks; refuse non-regular, read-only or OS-locked files before writing a byte.</li>
+      <li>Write the new drawing to a private temp file beside the destination (created owner-only when replacing), and flush it to disk.</li>
+      <li>If the destination exists, copy its current bytes to a second temp file, flush, and rename it over <code>NAME.BAK</code>.</li>
+      <li>Rename the new file over the destination, then flush the directory.</li>
+    </ol>
+    <p>The destination is never missing or truncated at any step, an older backup is only replaced by a complete one, and a failure anywhere leaves the document attached and still marked unsaved. Leftover temp files are removed on every error path. If only the final directory flush fails, the save counts as done with a warning, because retrying would otherwise back up the new file over the real previous version.</p>
+
+    <h3>Reading user-named files</h3>
+    <p>External drawings, scripts, menus and hatch pattern files all go through one reader. It accepts only regular files, so a folder, pipe or device can neither hang the program nor shadow a real file further down the search path. It checks the size against a per-kind cap before reading and reads at most one byte past the cap, so a file that grows mid-read is still refused.</p>
+
+    <h3>Never blocking the window</h3>
+    <p>Command scripts run on the event loop, not on a thread that sleeps. DELAY records a deadline on an injectable clock. The window's idle hook runs due script items, then waits exactly until the next deadline. Any real user input interrupts a running script before it is handled, and RESUME continues at the exact next unread byte. Tests drive all of it with a fake clock, so timing behaviour is deterministic.</p>
+
+    <h3>Atomic commands</h3>
+    <p>FILLET computes its geometry before touching either line. HATCH charges its whole budget before emitting a stroke. BREAK, ARRAY and CHANGE stage their full result before one commit. Each of these has tests asserting that a refused or cancelled command leaves the drawing, the undo stack and the unsaved flag exactly as they were.</p>
+  </section>
+
+  <section>
+    <h2>What makes it compatible</h2>
+    <p>Compatibility is treated as evidence, kept in four separate classes that every behaviour document labels explicitly:</p>
+    <ul>
+      <li><strong>Reference files.</strong> Drawings saved by the reference program are compared against the editor's output at a geometry tolerance of 10<sup>-10</sup>, with ordering and every field checked.</li>
+      <li><strong>Black-box behaviour tests.</strong> Scripted sessions run the reference program and compare the drawings it saves with what the Rust editor produces from the same input. Every claim about reference behaviour in the docs must be backed by one of these tests, and the test must be one that would fail if the claim were false.</li>
+      <li><strong>Help text.</strong> Where no behavioural run exists, the documented command help defines the contract.</li>
+      <li><strong>Native policy.</strong> Where the editor deliberately differs (retrying instead of abandoning a command, millisecond DELAY units, safer saves), the docs say so plainly.</li>
+    </ul>
+    <p>A per-command matrix tracks all 57 command names with what is implemented, what is not, and which kind of evidence backs it. It deliberately claims no completion percentage. The bundled sample drawings are round-tripped on every full test run: the first backup must match the original byte for byte, and the reopened drawing must match structurally with numeric drift of at most four units in the last place.</p>
+  </section>
+
+  <section>
+    <h2>How it is verified</h2>
+    <div class="wide">
+      <table>
+        <thead><tr><th>Layer</th><th>What runs</th></tr></thead>
+        <tbody>
+          <tr><td>Unit and integration tests</td><td>743 tests across the product crates; strict fixture comparisons; failure-path tests that assert nothing changed</td></tr>
+          <tr><td>Combined workflow</td><td>One drawing driven through creation, selection edits, blocks, external insert, dimensions, hatch, array, break, fillet, sketch, layers, undo and a delayed script, then saved as two DWG revisions and DXF and reopened</td></tr>
+          <tr><td>Live window harness</td><td>A real GUI window driven over its socket and MCP, covering every feature end to end including saves, backups and the script event loop</td></tr>
+          <tr><td>Sample-drawing harness</td><td>All 25 bundled inputs opened headless, rendered, saved in both formats and reopened, with source files hash-checked afterwards</td></tr>
+          <tr><td>Formal model</td><td>A Lean 4 model (≈100 theorems) records observed command contracts as finite state models; Rust tests check the implementation against them</td></tr>
+          <tr><td>CI</td><td>Format check, Clippy with warnings as errors, the full test suite on a clean checkout, behaviour tests with visible skip counts, and a release build</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Sample drawings are not kept in git. Tests that need them say so loudly when they are absent, and fail outright when <code>AUTOCAD_REQUIRE_CORPUS=1</code> is set, so a green run can never quietly mean "skipped".</p>
+    <p>Every feature also went through an independent review as an exact patch before integration, by a reviewer who had not written it and who built counterexamples rather than reading for style. That process caught a hatch row that vanished at certain vertices, a pattern file that could freeze the window for minutes, a save path that could leave an undeletable temp file on a locked drawing, and a CI configuration that had never actually compiled on a clean machine.</p>
+  </section>
+
+  <section>
+    <h2>Automation built in</h2>
+    <p>The same session is reachable three ways: the native window, an owner-only Unix socket attached to a running window, and an MCP server over stdio that can run headless or attach to that socket. The MCP server exposes 17 tools (new, open, command, point, click, motion, state, drawing, save, cancel, report, frame, quit, and four script controls), each with a strict input schema, and returns frames as PNG or raw RGBA. This is what lets an agent, a test or a person drive exactly the same editor.</p>
+  </section>
+
+  <section>
+    <h2>What is next</h2>
+    <ul>
+      <li><strong>Main Menu.</strong> The startup task menu (new, edit, configure, DXF conversion, file utilities); plotting stays out of scope.</li>
+      <li><strong>WBLOCK overwrite safety.</strong> Confirm before replacing an existing file, and protect the open drawing.</li>
+      <li><strong>Whole-drawing render budget.</strong> Today budgets are per owner; a single per-frame limit across the whole drawing is the remaining gap.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

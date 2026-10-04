@@ -599,6 +599,21 @@ def exercise(root, binaries, scratch, log):
         assert api(sock, 'drawing') == before_wblock
         assert api(sock, 'state')['path'] == source_state['path']
         assert api(sock, 'state')['dirty'] == source_state['dirty']
+        # The existing export now gets the original's replace question after
+        # the file name; a non-Y answer (here the block name) keeps the file.
+        exported_bytes = exported.read_bytes()
+        mcp.tool('command', input='WBLOCK')
+        mcp.tool('command', input=str(exported))
+        assert api(sock, 'state')['prompt'] == 'WBLOCK: A drawing with this name already exists. Replace it? <N>'
+        mcp.tool('command', input='GUI_REPEAT')
+        assert api(sock, 'state')['prompt'] == 'Command'
+        assert 'kept existing' in api(sock, 'state')['status']
+        assert exported.read_bytes() == exported_bytes
+        for value in ['WBLOCK', str(exported), 'Y', 'GUI_REPEAT']:
+            mcp.tool('command', input=value)
+        assert api(sock, 'state')['status'].startswith('Wrote block drawing')
+        assert api(sock, 'drawing') == before_wblock
+        assert api(sock, 'state')['dirty'] == source_state['dirty']
         reopened_block = Mcp(binaries / 'acad-mcp', ['--drawing', exported], log)
         try:
             assert reopened_block.tool('state')['structuredContent']['selectable_objects'] == 1
@@ -711,6 +726,48 @@ def exercise(root, binaries, scratch, log):
         reopened.close()
 
 
+def exercise_main_menu(binaries, scratch, log):
+    """No drawing on the command line: the window starts at the Main Menu."""
+    sock = scratch / 'menu.sock'
+    gui = subprocess.Popen([str(binaries / 'acad'), '--api-socket', str(sock)],
+                           stdout=log, stderr=log)
+    mcp = None
+    try:
+        deadline = time.monotonic() + 15
+        while not sock.exists():
+            assert gui.poll() is None, 'Main Menu GUI exited before creating its socket'
+            assert time.monotonic() < deadline, 'Main Menu GUI socket startup timed out'
+            time.sleep(0.02)
+        mcp = Mcp(binaries / 'acad-mcp', ['--socket', sock], log)
+        state = mcp.tool('state')['structuredContent']
+        assert state['main_menu']['screen'] == 'selection' and state['prompt'] == 'Enter selection'
+        assert len(state['main_menu']['tasks']) == 8 and state['returns_to_main_menu'] is True
+        api(sock, 'frame', width=320, height=200)
+        drawing = scratch / 'MENU.DWG'
+        for value in ['1', str(scratch / 'MENU'), 'LINE', '0,0', '4,4', '']:
+            mcp.tool('command', input=value)
+        assert api(sock, 'state')['path'] == str(drawing)
+        ended = mcp.tool('command', input='END')['structuredContent']
+        assert ended['quit'] is False and ended['state']['main_menu']['screen'] == 'selection'
+        assert drawing.exists() and gui.poll() is None
+        for value in ['5', '']:
+            mcp.tool('command', input=value)
+        assert (scratch / 'MENU.DXF').read_bytes().startswith(b'EXTENTS,1')
+        mcp.tool('command', input='')
+        assert mcp.tool('command', input='0')['structuredContent']['quit'] is True
+        gui.wait(timeout=10)
+        assert gui.returncode == 0 and not sock.exists()
+    finally:
+        try:
+            if mcp:
+                mcp.close()
+        finally:
+            if gui.poll() is None:
+                gui.terminate()
+                gui.wait(timeout=5)
+                sock.unlink(missing_ok=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bin-dir', type=Path, help='Built acad/acad-mcp directory')
@@ -721,7 +778,8 @@ def main():
     print(f'Artifacts: {scratch}', flush=True)
     with (scratch / 'gui.log').open('w') as log:
         exercise(root, binaries, scratch, log)
-    print('PASS: attached GUI/MCP/API, TEXT C/R/A/repeat/point-height/CHANGE, REPEAT selection/COPY/nested/ERASE/OOPS/BLOCK/WBLOCK save-reopen, FILLET/ZOOM/PAN, erased REPEAT members, external INSERT, HATCH N/O/I/U and pattern files, circular ARRAY/BREAK, DIM, SCRIPT/DELAY event loop, END/SAVE .BAK backups, mouse SKETCH, layer OFF persistence/zero-color safe errors, ARC/LINE continuation, CIRCLE/triangle, reports/paging, GRID PNG/RGBA, DWG/DXF, UNDO, QUIT, END and socket cleanup')
+        exercise_main_menu(binaries, scratch, log)
+    print('PASS: Main Menu launch/NEW/END/Make DXF/Exit, attached GUI/MCP/API, TEXT C/R/A/repeat/point-height/CHANGE, REPEAT selection/COPY/nested/ERASE/OOPS/BLOCK/WBLOCK save-reopen and replace question, FILLET/ZOOM/PAN, erased REPEAT members, external INSERT, HATCH N/O/I/U and pattern files, circular ARRAY/BREAK, DIM, SCRIPT/DELAY event loop, END/SAVE .BAK backups, mouse SKETCH, layer OFF persistence/zero-color safe errors, ARC/LINE continuation, CIRCLE/triangle, reports/paging, GRID PNG/RGBA, DWG/DXF, UNDO, QUIT, END and socket cleanup')
 
 
 if __name__ == '__main__':

@@ -1,3 +1,4 @@
+mod budget;
 pub mod flatten;
 pub mod libraries;
 pub mod raster;
@@ -6,9 +7,10 @@ mod selection_policy;
 pub mod shp;
 pub mod viewport;
 
+pub use budget::{BudgetStop, FrameBudget, FRAME_WORK_LIMIT, PRIMITIVE_SETUP_UNITS};
 pub use flatten::{
-    flatten, flatten_entity, flatten_selected_with_libraries, flatten_with_libraries, sweep_deg,
-    Prim, RenderOutput,
+    flatten, flatten_entity, flatten_selected_with_budget, flatten_selected_with_libraries,
+    flatten_with_budget, flatten_with_libraries, sweep_deg, Prim, RenderOutput,
 };
 pub use libraries::Libraries;
 pub use raster::rasterize;

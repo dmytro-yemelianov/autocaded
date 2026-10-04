@@ -265,7 +265,8 @@ fn run() -> Result<(), String> {
             }
             "--help" => {
                 println!(
-                    "acad [drawing] [font-directories ...] [--api-socket PATH] [--script FILE]"
+                    "acad [drawing [font-directories ...]] [--api-socket PATH] [--script FILE]\n\
+                     Without a drawing or script, starts at the Main Menu."
                 );
                 return Ok(());
             }
@@ -274,18 +275,30 @@ fn run() -> Result<(), String> {
             _ => directories.push(std::path::PathBuf::from(arg)),
         }
     }
-    let path = path.unwrap_or_else(|| "corpus/Samples/SUBDIV.DXF".into());
-    let mut session = Session::open(std::path::Path::new(&path), &directories)?;
+    // Native policy (docs/native-main-menu.md): without a drawing or a
+    // script the window starts at the Main Menu, and END/QUIT return there.
+    // `--script` alone keeps the historical sample drawing.
+    let mut session = match (&path, &script) {
+        (None, None) => {
+            println!("Main Menu");
+            Session::main_menu(&directories)
+        }
+        _ => {
+            let path = path.unwrap_or_else(|| "corpus/Samples/SUBDIV.DXF".into());
+            let session = Session::open(std::path::Path::new(&path), &directories)?;
+            println!(
+                "{path}: {} entities, {} blocks",
+                session.drawing().entities().count(),
+                session.drawing().blocks().count()
+            );
+            session
+        }
+    };
     if let Some(script) = script {
         // Like the original's "Can't open script file", a bad startup script
         // stops the program; it then runs from the event loop.
         session.start_script(&script)?;
     }
-    println!(
-        "{path}: {} entities, {} blocks",
-        session.drawing().entities().count(),
-        session.drawing().blocks().count()
-    );
     let el = EventLoop::<ApiEvent>::with_user_event()
         .build()
         .map_err(|e| e.to_string())?;

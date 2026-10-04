@@ -23,11 +23,10 @@ else in this document is native Rust policy and is labelled so.
 - Task 2 with a missing name reports `** No drawing with this name is on
   file.` and `Press RETURN to return to main menu.`; no file is created.
 
-Native scope: the native application has no Main Menu screen. The
-equivalents are the process/API `open` (task 2), `new` (task 1) and DXF by
-suffix on open/save (tasks 5 and 6), and FILES (task 7) inside the editor.
-Plotting (task 3), configuration (task 4), the task-1 replace question, and
-the main-menu text layout are explicit non-goals here.
+Native scope: the Main Menu, its task prompts, the task-1 replace question
+and END/QUIT returning to the menu are specified in
+[main menu](native-main-menu.md). Plotting (task 3) and real configuration
+(task 4) remain non-goals; the menu text layout is not reproduced.
 
 ## Evidence: END, QUIT and `.BAK`
 
@@ -41,6 +40,7 @@ the main-menu text layout are explicit non-goals here.
 - QUIT (Y) writes neither the drawing nor a `.BAK`.
 - WBLOCK to an existing drawing name replaces it only after `Y`; any other
   answer (`N`, or `*`) keeps the destination. Replacing it creates no `.BAK`.
+  The question itself is described in the WBLOCK section below.
 
 ## Native backup policy
 
@@ -49,8 +49,9 @@ Rust policy derived from the evidence above:
 - END, SAVE (native extension), API `save` and the unnamed-END output path
   all replace an existing destination through the same staged writer, which
   keeps the previous bytes as a backup. A destination that does not exist
-  gets no backup. WBLOCK never makes a backup (evidence) and still replaces
-  an existing destination without the original's `Y` question (limit below).
+  gets no backup. WBLOCK never makes a backup (evidence) and replaces an
+  existing destination only after its replace question (WBLOCK overwrite
+  contract below).
 - Backup name: the destination with its extension replaced by `bak`,
   lower-case when the destination's extension is all lower-case and `BAK`
   otherwise (`HOUSE.DWG` -> `HOUSE.BAK`, `plan.dxf` -> `plan.bak`,
@@ -90,6 +91,82 @@ Rust policy derived from the evidence above:
   the backup name is replaced as a link, never followed.
 - Source revision: the backup is a byte copy, so an AC1.2 source keeps its
   AC1.2 bytes in the backup while END writes the detected source codec.
+
+## Evidence: WBLOCK replace question
+
+`files_backup.rs` reads the original's editor command area from the final
+graphics frame with the original's own 8x8 display font (the ASCII table in
+`ACAD.OVL`) and asserts:
+
+- Order: `File name: D3`, then, only when `D3.DWG` exists,
+  `A drawing with this name already exists.` and
+  `Do you want to replace it? <N>`, then `Block name:`. The question comes
+  after the file name and before the block name (and so before any
+  selection). A new name goes straight from `File name: D4` to
+  `Block name:`.
+- Answers: any answer starting with `Y` or `y` (`Y`, `y`, `YES`, `Yes`,
+  `YE`, `YEP`) continues to `Block name:`. Every other answer (Return, `N`,
+  `NO`, `X`, `*`) ends WBLOCK at `Command:` and keeps the file; the default
+  is No. Cancel at the question shows `*Cancel*` and keeps the file.
+- The drawing being edited gets the same question and no other guard: after
+  `Y` and `*`, its own `D2.DWG` holds the WBLOCK output, which QUIT then
+  leaves in place (no `.BAK`).
+- A command script (`ACAD D2 S1`) answers the question with its next item:
+  `Y` replaces; an item written as the block name (`*`) declines, keeping
+  the file.
+- The original is not staged: `Y` empties the destination at once, before
+  the block name, and a new name is created empty at the file name.
+- An explicit extension (`D3.DWG`) is rejected with `*Invalid*`.
+
+## Native WBLOCK overwrite contract
+
+Native policy built on the evidence above (tests:
+`crates/acad-cmd/tests/wblock_replace.rs`,
+`crates/acad-app/tests/wblock_replace.rs`, the menu-macro case in
+`crates/acad-app/src/session/tests.rs`, and `tools/check_acad_gui_api.py`):
+
+- Order and answers mirror the original. After the file name the editor
+  reports the destination (`Effect::CheckWblockDestination`); the host
+  checks it at once and, when it exists, the prompt becomes
+  `WBLOCK: A drawing with this name already exists. Replace it? <N>`
+  before the block name. An answer whose first non-blank character is `Y`
+  or `y` confirms; anything else, including Return, ends WBLOCK with
+  `WBLOCK: kept existing <path>`. Prompt wording is native (the original's
+  two lines are joined into one prompt).
+- Declining or cancelling is atomic: no file is touched, and the drawing,
+  undo history, dirty state, attachment and input line are unchanged.
+- "Exists" means any directory entry at the name, including a dangling
+  symlink. A directory or other non-regular destination fails at the file
+  name with `WBLOCK failed: output path is not a regular file`.
+- The open drawing: when the destination is the attached document's own
+  file (same device and inode, so a symlink, `.`-path, relative name, or a
+  case variant on a case-insensitive volume such as default macOS APFS all
+  match), the question reads
+  `WBLOCK: This is the open drawing's file. Replace it? <N>`. Like the
+  original, `Y` replaces it. Natively the document then stays attached
+  with the written output as its saved baseline (AC1.40 DWG), so dirty
+  state reflects what the file holds: QUIT still asks and END rewrites the
+  drawing. Its previous bytes are not backed up (WBLOCK makes no `.BAK`).
+  A hard link to the open drawing also matches (same inode) and gets this
+  question, but `Y` only replaces that link name with a new file: the
+  open drawing's own file keeps its bytes and the link is broken, so
+  nothing is lost.
+- Writing: a confirmed replacement uses the same staged writer as SAVE
+  (create-new temporary beside the destination, owner-only while replacing,
+  permissions copied, fsync, rename, directory fsync), with the same
+  read-only, non-regular, macOS-locked and symlink-following rules, but no
+  backup. The destination keeps its previous bytes on any failure. Unlike
+  the original, nothing is emptied before the write.
+- Without a confirmed replacement WBLOCK only creates: the staged file is
+  hard-linked into place, so a file that appears after the file name is
+  refused with `WBLOCK failed: output file already exists; not replaced`
+  (on filesystems without hard links a final existence check precedes the
+  rename).
+- API/MCP `command`, command scripts and menu macros submit through the
+  same editor, so they meet the same question; a script or macro item is
+  an answer, and only an explicit `Y` item confirms (a `WBLOCK name *`
+  script declines at `*`, as in the original). There is no direct API save
+  of a block, so no overwrite flag is needed.
 
 ## Evidence: screen-menu macro grammar
 
@@ -173,10 +250,11 @@ screen layout and DOS 8.3 rules are not reproduced.
 
 ## Remaining limits
 
-- No Main Menu, plotting, configuration, or task-1 replace question; the
-  task equivalents above are native.
-- WBLOCK replaces an existing destination without the original `Y`
-  question (staged and atomic; no backup, as in the original).
+- No plotting or real configuration; the Main Menu limits are listed in
+  [main menu](native-main-menu.md).
+- WBLOCK accepts an explicit `.DWG` extension, which the original rejects
+  with `*Invalid*`; native wording of the replace question differs from the
+  original's two lines.
 - No keyboard (INS) menu cursor in the native window; menus are picked with
   the pointer.
 - Host backup naming, symlink and permission handling are native policy;

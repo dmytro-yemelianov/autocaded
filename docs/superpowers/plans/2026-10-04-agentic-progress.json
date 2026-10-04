@@ -3,7 +3,7 @@
   "goal": "Evidence-supported native Rust AutoCAD 1.4 completion through bounded multi-agent loops",
   "status": "active",
   "created_at": "2026-10-03T21:20:32.120196+00:00",
-  "updated_at": "2026-10-04T16:00:16.579189+00:00",
+  "updated_at": "2026-10-04T19:02:41.562181+00:00",
   "backend": "builtin collaboration API; coordinator protocol adapted from superset-orchestrate",
   "worker_limit": 3,
   "max_fix_attempts": 3,
@@ -1507,23 +1507,50 @@
     },
     {
       "kind": "implementation",
-      "status": "pending",
+      "status": "verified",
       "model": "claude-opus-5-5",
       "effort": "high",
-      "agent": null,
-      "workspace": null,
-      "fix_attempts": 0,
+      "agent": "claude/main_menu_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/main-menu",
+      "fix_attempts": 1,
       "required_checks": [
         "focused_tests",
         "scoped_clippy",
         "independent_review",
         "integrated_native_checks"
       ],
-      "checks": {},
-      "review": null,
-      "integrated": false,
-      "artifacts": [],
-      "updated_at": "2026-10-04T15:05:55.005393+00:00",
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T18:06:25.285177+00:00",
+          "note": "Repair1 c70cca66: Load DXF merges only present header records (via acad_dxf::lex), keeps radius/units/axis/passthrough, .BAK native extra; oracle: existing-drawing keeps settings, new-name settings asserted; exit flag cleared on cancel; 3 evidence claims now oracle-backed; StrayEndrep -> R5; P3s fixed. 770 tests, oracle 23/10, clippy, GUI pass (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T18:06:25.285177+00:00",
+          "note": "Repair1 c70cca66: Load DXF merges only present header records (via acad_dxf::lex), keeps radius/units/axis/passthrough, .BAK native extra; oracle: existing-drawing keeps settings, new-name settings asserted; exit flag cleared on cancel; 3 evidence claims now oracle-backed; StrayEndrep -> R5; P3s fixed. 770 tests, oracle 23/10, clippy, GUI pass (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T18:13:32.905063+00:00",
+          "note": "Review pass2 pass: header merge per-record verified, malformed refused atomically, .BAK safe, mutation checks fail as expected, StrayEndrep -> R5. Integration after W1 checks."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T18:21:31.053626+00:00",
+          "note": "Root integration after W1: doc and harness conflicts resolved as unions. 792 tests (corpus) 0 failed, oracle main_menu 23 + files_backup 14, clippy workspace, fmt, GUI PASS incl Main Menu step."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/m1.patch",
+        "target/agentic-artifacts/m1-handoff.json",
+        "target/agentic-artifacts/reviews/m1-review.md",
+        "target/agentic-artifacts/m1-repair1.patch",
+        "target/agentic-artifacts/reviews/m1-review-pass2.md"
+      ],
+      "updated_at": "2026-10-04T18:21:31.093717+00:00",
       "id": "M1",
       "objective": "Native Main Menu tasks (excluding plotting)",
       "depends_on": [
@@ -1534,15 +1561,17 @@
         "Oracle-backed Main Menu task list and prompts for New/Edit existing/Configure/Make DXF/Load DXF/File Utilities/Exit; Plot explicitly out of scope by user decision",
         "NEW-under-existing-name replace question and END/QUIT return to the Main Menu where the original does, without breaking --drawing/--script/API launch",
         "Shared GUI/API/MCP route, no data loss on errors, documented native limits"
-      ]
+      ],
+      "baseline_commit": "0832644ede25e71aea68b0045ff9f89246723b19",
+      "latest_note": "Verified."
     },
     {
       "kind": "implementation",
-      "status": "pending",
+      "status": "verified",
       "model": "claude-opus-5-5",
       "effort": "high",
-      "agent": null,
-      "workspace": null,
+      "agent": "claude/wblock_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/wblock",
       "fix_attempts": 0,
       "required_checks": [
         "focused_tests",
@@ -1550,11 +1579,36 @@
         "independent_review",
         "integrated_native_checks"
       ],
-      "checks": {},
-      "review": null,
-      "integrated": false,
-      "artifacts": [],
-      "updated_at": "2026-10-04T15:05:55.005393+00:00",
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T17:04:49.782535+00:00",
+          "note": "Candidate 588b5f39: oracle-measured replace question before block name (Y* replaces, else keep), CheckWblockDestination effect, create-only SaveDrawing + staged ReplaceDrawing, open-drawing detection by dev/inode with distinct prompt, scripts/macros answer explicitly; 4 new oracle tests (files_backup 14). 765 tests, clippy, GUI pass (worker). Review not yet launched (usage limit)."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T17:04:49.782535+00:00",
+          "note": "Candidate 588b5f39: oracle-measured replace question before block name (Y* replaces, else keep), CheckWblockDestination effect, create-only SaveDrawing + staged ReplaceDrawing, open-drawing detection by dev/inode with distinct prompt, scripts/macros answer explicitly; 4 new oracle tests (files_backup 14). 765 tests, clippy, GUI pass (worker). Review not yet launched (usage limit)."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T18:07:59.326850+00:00",
+          "note": "Review pass1 pass: no P1/P2; P3 hard-link alias prompt/doc wording (data-safe), FAT/exFAT create-only race (documented). Root integration starting."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T18:15:31.285796+00:00",
+          "note": "Root integration (clean 3-way) + hard-link doc wording: 765 tests (corpus) 0 failed, oracle files_backup 14, clippy workspace, fmt, GUI PASS."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/w1.patch",
+        "target/agentic-artifacts/w1-handoff.json",
+        "target/agentic-artifacts/reviews/w1-review.md"
+      ],
+      "updated_at": "2026-10-04T18:15:31.324505+00:00",
       "id": "W1",
       "objective": "WBLOCK overwrite confirmation and data safety",
       "depends_on": [
@@ -1565,7 +1619,120 @@
         "Oracle-backed Y/N replace question before overwriting an existing file (original asks; native currently overwrites silently)",
         "Refuse or confirm overwriting the currently open drawing; never lose the open document file without confirmation",
         "Same staging/permission/symlink safety as SAVE; API/MCP explicit overwrite flag; script/menu routes covered"
-      ]
+      ],
+      "baseline_commit": "0832644ede25e71aea68b0045ff9f89246723b19",
+      "latest_note": "Verified."
+    },
+    {
+      "kind": "implementation",
+      "status": "verified",
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/render_budget_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/render-budget",
+      "fix_attempts": 2,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T18:22:50.644905+00:00",
+          "note": "Repair2 34231fe0: Drawing::block_index per pass (first-def, case-sensitive) for render/replay/preflight/text_font_at and visible_bounds::Scene; shape library stack deduped + scan charged; first reason of each incompleteness kind kept outside cap; visibility subtree scan and long-name hashing charged. Repros 87 s -> 9 ms, 30.8 s -> 4 ms; corpus flatten hashes identical. 768 tests, clippy, GUI, corpus API (worker). Review pass3 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T18:22:50.644905+00:00",
+          "note": "Repair2 34231fe0: Drawing::block_index per pass (first-def, case-sensitive) for render/replay/preflight/text_font_at and visible_bounds::Scene; shape library stack deduped + scan charged; first reason of each incompleteness kind kept outside cap; visibility subtree scan and long-name hashing charged. Repros 87 s -> 9 ms, 30.8 s -> 4 ms; corpus flatten hashes identical. 768 tests, clippy, GUI, corpus API (worker). Review pass3 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T18:27:52.067475+00:00",
+          "note": "Review pass3 pass: repros ms, semantics identical, 75 corpus frames byte-identical, no remaining quadratic per-frame paths. Doc worst-case note to add at integration. Root integration starting."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T19:02:41.489845+00:00",
+          "note": "Root integration after M1: fixed M1xRB2 compile clash (Main Menu Frame complete: true); doc worst-case note added. AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1162 passed 0 failed 0 skipped, clippy workspace, fmt, debug+release build, GUI harness, corpus API 25/25."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/rb2.patch",
+        "target/agentic-artifacts/rb2-handoff.json",
+        "target/agentic-artifacts/reviews/rb2-review.md",
+        "target/agentic-artifacts/rb2-repair1.patch",
+        "target/agentic-artifacts/reviews/rb2-review-pass2.md",
+        "target/agentic-artifacts/rb2-repair2.patch",
+        "target/agentic-artifacts/reviews/rb2-review-pass3.md"
+      ],
+      "updated_at": "2026-10-04T19:02:41.562181+00:00",
+      "id": "RB2",
+      "objective": "Whole-document aggregate rendering budget",
+      "depends_on": [
+        "RB1",
+        "Q1"
+      ],
+      "acceptance": [
+        "Bounded total render/flatten work across all owners per frame with a stated limit",
+        "Exceeding the budget degrades visibly and safely (no hang, no silent partial-as-complete), frame/API diagnostics report it",
+        "Existing per-owner budgets, strict render fixtures and GUI responsiveness checks preserved"
+      ],
+      "baseline_commit": "0832644ede25e71aea68b0045ff9f89246723b19",
+      "latest_note": "Verified."
+    },
+    {
+      "kind": "implementation",
+      "status": "review",
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/erased_owner_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/erased-owner",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T19:00:02.134215+00:00",
+          "note": "Repair1 c7c949f1: non-Y script/macro answer interrupts script (line reported) or drops macro; short prompt fits 800px with status explanation; OOPS byte identity asserted; doc cites B3 analysis, lists unmeasured cases, R6 reference. 800 tests, oracle 4 (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T19:00:02.134215+00:00",
+          "note": "Repair1 c7c949f1: non-Y script/macro answer interrupts script (line reported) or drops macro; short prompt fits 800px with status explanation; OOPS byte identity asserted; doc cites B3 analysis, lists unmeasured cases, R6 reference. 800 tests, oracle 4 (worker). Review pass2 launched."
+        }
+      },
+      "review": "changes_requested",
+      "integrated": false,
+      "artifacts": [
+        "target/agentic-artifacts/e1.patch",
+        "target/agentic-artifacts/e1-handoff.json",
+        "target/agentic-artifacts/reviews/e1-review.md",
+        "target/agentic-artifacts/e1-repair1.patch"
+      ],
+      "updated_at": "2026-10-04T19:00:02.134215+00:00",
+      "id": "E1",
+      "objective": "Save whole erased groups that already contain erased members",
+      "depends_on": [
+        "B4",
+        "Q1"
+      ],
+      "acceptance": [
+        "Oracle-backed or explicitly native DWG representation that preserves prior member erasure through whole-owner erase, save and reopen, or a proven-impossible finding with the refusal kept",
+        "OOPS/UNDO semantics unchanged; DXF live export unchanged",
+        "Both DWG revisions; atomic failure paths"
+      ],
+      "baseline_commit": "d63fd972337d4c7639a9017efa9593a993bf55af",
+      "latest_note": "Repair1 c7c949f1: non-Y script/macro answer interrupts script (line reported) or drops macro; short prompt fits 800px with status explanation; OOPS byte identity asserted; doc cites B3 analysis, lists unmeasured cases, R6 reference. 800 tests, oracle 4 (worker). Review pass2 launched."
     },
     {
       "kind": "implementation",
@@ -1585,17 +1752,191 @@
       "review": null,
       "integrated": false,
       "artifacts": [],
-      "updated_at": "2026-10-04T15:05:55.005393+00:00",
-      "id": "RB2",
-      "objective": "Whole-document aggregate rendering budget",
+      "updated_at": "2026-10-04T16:31:52.075465+00:00",
+      "id": "E2",
+      "objective": "Explicit owner layer on REPEAT groups",
       "depends_on": [
-        "RB1",
+        "B3",
         "Q1"
       ],
       "acceptance": [
-        "Bounded total render/flatten work across all owners per frame with a stated limit",
-        "Exceeding the budget degrades visibly and safely (no hang, no silent partial-as-complete), frame/API diagnostics report it",
-        "Existing per-owner budgets, strict render fixtures and GUI responsiveness checks preserved"
+        "Evidence-backed encoding of a layer applied to a whole REPEAT owner in DWG/DXF, or documented refusal retained",
+        "Selection, visibility, CHANGE layer and save/reopen agree",
+        "No change to existing marker-layer metadata semantics"
+      ]
+    },
+    {
+      "kind": "implementation",
+      "status": "review",
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/dim_arrow_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/dim-arrows",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T18:49:32.325356+00:00",
+          "note": "Repair1 a7be78f5: honest provenance (retained confirmations), corrected round descriptions, 7 pre-registered held-out scripts all match original at 1e-10, span-6 divergence pinned, dead field removed. 793 tests, 4 oracle (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T18:49:32.325356+00:00",
+          "note": "Repair1 a7be78f5: honest provenance (retained confirmations), corrected round descriptions, 7 pre-registered held-out scripts all match original at 1e-10, span-6 divergence pinned, dead field removed. 793 tests, 4 oracle (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T18:52:02.697976+00:00",
+          "note": "Review pass2 pass: held-out set disjoint, predictions literal, docs honest; reviewer 15 independent probes also match. Awaiting integration."
+        }
+      },
+      "review": "pass",
+      "integrated": false,
+      "artifacts": [
+        "target/agentic-artifacts/d2.patch",
+        "target/agentic-artifacts/d2-handoff.json",
+        "target/agentic-artifacts/reviews/d2-review.md",
+        "target/agentic-artifacts/d2-repair1.patch",
+        "target/agentic-artifacts/reviews/d2-review-pass2.md"
+      ],
+      "updated_at": "2026-10-04T18:52:02.697976+00:00",
+      "id": "D2",
+      "objective": "DIM large-arrow external text placement from black-box runs",
+      "depends_on": [
+        "D1",
+        "Q1"
+      ],
+      "acceptance": [
+        "Committed oracle runs measuring the original placement rule across arrow sizes/fonts",
+        "Native rule implemented only where measurements determine it; no lookup tables or loosened tolerances",
+        "Existing strict DIM fixtures stay strict"
+      ],
+      "baseline_commit": "d63fd972337d4c7639a9017efa9593a993bf55af",
+      "latest_note": "Review pass2 pass: held-out set disjoint, predictions literal, docs honest; reviewer 15 independent probes also match. Awaiting integration."
+    },
+    {
+      "kind": "implementation",
+      "status": "pending",
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": null,
+      "workspace": null,
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {},
+      "review": null,
+      "integrated": false,
+      "artifacts": [],
+      "updated_at": "2026-10-04T16:31:52.075465+00:00",
+      "id": "I2",
+      "objective": "INSERT *file scale/rotation and multi-object CHANGE",
+      "depends_on": [
+        "B1",
+        "T1",
+        "Q1"
+      ],
+      "acceptance": [
+        "Oracle-backed prompts/geometry for star-form scale and rotation (or explicit native policy)",
+        "CHANGE over mixed selections with atomic staging and one UNDO",
+        "File round trips and API route covered"
+      ]
+    },
+    {
+      "id": "R5",
+      "objective": "Open drawings written by the original Load DXF task (leading empty erased placeholder records)",
+      "kind": "implementation",
+      "status": "review",
+      "depends_on": [
+        "B3",
+        "M1"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/dwg_placeholder_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/dwg-placeholders",
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T18:41:51.076510+00:00",
+          "note": "Candidate ec13a1d8: zero-filled erased structural placeholders (ENDREP/BLOCK/ENDBLK) dropped but counted; 9 ordinary placeholders kept as erased records (byte-faithful resave); corrupt-stream refusals unchanged (9 mutation checks); 3 original fixtures; oracle 4 tests (placeholder per header record, END drops them). Opens via parse, acad DRAWING, task 2, API, MCP. 802 tests (worker). Review launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T18:41:51.076510+00:00",
+          "note": "Candidate ec13a1d8: zero-filled erased structural placeholders (ENDREP/BLOCK/ENDBLK) dropped but counted; 9 ordinary placeholders kept as erased records (byte-faithful resave); corrupt-stream refusals unchanged (9 mutation checks); 3 original fixtures; oracle 4 tests (placeholder per header record, END drops them). Opens via parse, acad DRAWING, task 2, API, MCP. 802 tests (worker). Review launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T18:51:25.375984+00:00",
+          "note": "Review pass1 pass, no findings: 609,274-input differential fuzz vs baseline, no panics, no regressions, no hidden records. Awaiting integration after RB2 final checks."
+        }
+      },
+      "review": "pass",
+      "integrated": false,
+      "artifacts": [
+        "target/agentic-artifacts/reviews/m1-review.md",
+        "target/agentic-artifacts/r5.patch",
+        "target/agentic-artifacts/r5-handoff.json",
+        "target/agentic-artifacts/reviews/r5-review.md"
+      ],
+      "updated_at": "2026-10-04T18:51:25.375984+00:00",
+      "acceptance": [
+        "Committed fixture of the original raw Load DXF output (12 empty erased placeholders incl. unmatched ENDREP) opens natively via all routes",
+        "Placeholders preserved or normalised by an explicit, tested policy; save/reopen safe in both revisions",
+        "Malformed-stream refusals for genuinely corrupt files unchanged"
+      ],
+      "baseline_commit": "d63fd972337d4c7639a9017efa9593a993bf55af",
+      "latest_note": "Review pass1 pass, no findings: 609,274-input differential fuzz vs baseline, no panics, no regressions, no hidden records. Awaiting integration after RB2 final checks."
+    },
+    {
+      "id": "R6",
+      "objective": "Open drawings where the original END left an empty REPEAT/ENDREP pair",
+      "kind": "implementation",
+      "status": "pending",
+      "depends_on": [
+        "E1",
+        "R5"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": null,
+      "workspace": null,
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {},
+      "review": null,
+      "integrated": false,
+      "artifacts": [
+        "target/agentic-artifacts/reviews/e1-review.md"
+      ],
+      "updated_at": "2026-10-04T18:55:37.480332+00:00",
+      "acceptance": [
+        "Committed original fixture (reopen + END of an E1-form file) opens natively instead of refusing the whole drawing",
+        "Empty group policy explicit and tested (kept, dropped or normalised) with byte-safe resave in both revisions",
+        "Genuinely malformed groups still refused; no hidden records (differential fuzz like R5)"
       ]
     }
   ],
@@ -3712,6 +4053,469 @@
     {
       "at": "2026-10-04T16:00:16.579189+00:00",
       "task": "Q1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:31:52.075465+00:00",
+      "task": "E1",
+      "from": null,
+      "to": "pending",
+      "note": "Created by user request 2026-10-04 (\"go further\" after M1/W1/RB2).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:31:52.075465+00:00",
+      "task": "E2",
+      "from": null,
+      "to": "pending",
+      "note": "Created by user request 2026-10-04 (\"go further\" after M1/W1/RB2).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:31:52.075465+00:00",
+      "task": "D2",
+      "from": null,
+      "to": "pending",
+      "note": "Created by user request 2026-10-04 (\"go further\" after M1/W1/RB2).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:31:52.075465+00:00",
+      "task": "I2",
+      "from": null,
+      "to": "pending",
+      "note": "Created by user request 2026-10-04 (\"go further\" after M1/W1/RB2).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:32:54.834074+00:00",
+      "task": "M1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Snapshot prepared from main c542d2d.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:32:54.871874+00:00",
+      "task": "M1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:32:54.916671+00:00",
+      "task": "W1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Snapshot prepared from main c542d2d.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:32:54.957914+00:00",
+      "task": "W1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:32:55.000731+00:00",
+      "task": "RB2",
+      "from": "pending",
+      "to": "ready",
+      "note": "Snapshot prepared from main c542d2d.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:32:55.043847+00:00",
+      "task": "RB2",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:48:49.897914+00:00",
+      "task": "RB2",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 8e6dd784: FRAME_WORK_LIMIT 1,000,000 units (record visits, SHP instructions, vertices, 4/primitive), stop at owner boundary, complete flag + amber border + status + diagnostic; shared highlight budget; 1M pick/window visit budget; pathological 65,535-owner frame from ~hours to 75 ms release. 756 tests (corpus), clippy, GUI, corpus API pass (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:53:10.962151+00:00",
+      "task": "M1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 9e10e062: Main Menu session state (8 tasks, oracle-measured prompts/messages), shown when launched without drawing/script or via API main_menu; END/QUIT return to menu for menu sessions; Make/Load DXF via staged writer without .BAK (Load appends + overwrites settings, oracle-measured); Configure native; Plot refused; 18 oracle tests; 765 tests, clippy, GUI pass (worker). Note: DWG reader cannot parse original raw task-6 output (StrayEndrep). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T17:00:32.239441+00:00",
+      "task": "M1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P1 Load DXF replaces whole header (entities-only DXF resets limits/layers/textsize; original keeps them) without .BAK; P2 cancelled window close leaves exit flag; P2 three unbacked evidence claims; StrayEndrep is a real acad-dwg compatibility bug (new task). Repair not yet requested (usage limit).",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T17:04:49.782535+00:00",
+      "task": "W1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 588b5f39: oracle-measured replace question before block name (Y* replaces, else keep), CheckWblockDestination effect, create-only SaveDrawing + staged ReplaceDrawing, open-drawing detection by dev/inode with distinct prompt, scripts/macros answer explicitly; 4 new oracle tests (files_backup 14). 765 tests, clippy, GUI pass (worker). Review not yet launched (usage limit).",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T17:06:50.802414+00:00",
+      "task": "RB2",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P1 empty/erased-member REPEAT cells uncharged (65,535 owners 14-15.6 s release, complete=true); P1 failed TEXT/SHAPE SHP work uncharged + unbounded quadratic diagnostics (8,000 texts 29.8 s, ~2.6 GB at 65,535); P2 complete flag ignores LOAD-context truncation. Corpus 75 frames byte-identical, overhead ~5%. Repair not yet requested (usage limit).",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T18:01:39.214254+00:00",
+      "task": "R5",
+      "from": null,
+      "to": "pending",
+      "note": "Created from M1 review: acad-dwg rejects original Load DXF output with StrayEndrep (P2 compatibility bug).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:01:39.284105+00:00",
+      "task": "W1",
+      "from": "review",
+      "to": "review",
+      "note": "Independent review launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:06:25.285177+00:00",
+      "task": "M1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 c70cca66: Load DXF merges only present header records (via acad_dxf::lex), keeps radius/units/axis/passthrough, .BAK native extra; oracle: existing-drawing keeps settings, new-name settings asserted; exit flag cleared on cancel; 3 evidence claims now oracle-backed; StrayEndrep -> R5; P3s fixed. 770 tests, oracle 23/10, clippy, GUI pass (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:06:44.491135+00:00",
+      "task": "RB2",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 c2e36887: per-cell charge cells*(units+1), counted SHP instructions on failure, diagnostics capped at 64 distinct (hash dedupe, 40-char TEXT truncation, budget stop always last), RenderOutput.incomplete for any truncation (budget/LOAD context/per-owner skip) drives complete/border/status. Pathological cases now ms. 761 tests (corpus), clippy, fmt, GUI, corpus API pass (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:07:59.326850+00:00",
+      "task": "W1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass1 pass: no P1/P2; P3 hard-link alias prompt/doc wording (data-safe), FAT/exFAT create-only race (documented). Root integration starting.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T18:13:32.905063+00:00",
+      "task": "M1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: header merge per-record verified, malformed refused atomically, .BAK safe, mutation checks fail as expected, StrayEndrep -> R5. Integration after W1 checks.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T18:14:06.343614+00:00",
+      "task": "RB2",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass2: pass-1 repros fixed, corpus 75 frames byte-identical. New P1: uncharged linear Drawing::block scan per INSERT visit (87 s/frame); P1 shape library list grows per LOAD with uncharged search (30.8 s); P2 diagnostic cap can hide incompleteness reason. Repair2 (final) requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T18:15:31.285796+00:00",
+      "task": "W1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration (clean 3-way) + hard-link doc wording: 765 tests (corpus) 0 failed, oracle files_backup 14, clippy workspace, fmt, GUI PASS.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:15:31.324505+00:00",
+      "task": "W1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:21:31.053626+00:00",
+      "task": "M1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration after W1: doc and harness conflicts resolved as unions. 792 tests (corpus) 0 failed, oracle main_menu 23 + files_backup 14, clippy workspace, fmt, GUI PASS incl Main Menu step.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:21:31.093717+00:00",
+      "task": "M1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:21:45.253984+00:00",
+      "task": "E1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Snapshot prepared with W1/M1 integrated.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:21:45.291024+00:00",
+      "task": "E1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:21:45.327917+00:00",
+      "task": "R5",
+      "from": "pending",
+      "to": "ready",
+      "note": "Snapshot prepared with W1/M1 integrated.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:21:45.364987+00:00",
+      "task": "R5",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:22:50.644905+00:00",
+      "task": "RB2",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair2 34231fe0: Drawing::block_index per pass (first-def, case-sensitive) for render/replay/preflight/text_font_at and visible_bounds::Scene; shape library stack deduped + scan charged; first reason of each incompleteness kind kept outside cap; visibility subtree scan and long-name hashing charged. Repros 87 s -> 9 ms, 30.8 s -> 4 ms; corpus flatten hashes identical. 768 tests, clippy, GUI, corpus API (worker). Review pass3 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:27:52.067475+00:00",
+      "task": "RB2",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass3 pass: repros ms, semantics identical, 75 corpus frames byte-identical, no remaining quadratic per-frame paths. Doc worst-case note to add at integration. Root integration starting.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T18:28:10.948260+00:00",
+      "task": "D2",
+      "from": "pending",
+      "to": "ready",
+      "note": "Snapshot d63fd97 (W1/M1).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:28:11.029481+00:00",
+      "task": "D2",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:40:30.124702+00:00",
+      "task": "D2",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 91c46a71: oracle-derived rule (vertical dim line, horizontal text): R=min dist-A, x=L+sigma*max(0,W/2-R)-W/2; 5 alternative rules falsified; fixtures 29/316 -> 32/344 at 1e-10 (held-out DAR050/DAR200/PTEXT50); 54-script oracle test (38 fail without rule). Open: inside/outside arrow threshold for vertical dims (bracket 3..4). 793 tests (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:41:51.076510+00:00",
+      "task": "R5",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate ec13a1d8: zero-filled erased structural placeholders (ENDREP/BLOCK/ENDBLK) dropped but counted; 9 ordinary placeholders kept as erased records (byte-faithful resave); corrupt-stream refusals unchanged (9 mutation checks); 3 original fixtures; oracle 4 tests (placeholder per header record, END drops them). Opens via parse, acad DRAWING, task 2, API, MCP. 802 tests (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:45:38.220867+00:00",
+      "task": "D2",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: rule confirmed on 15 new unmeasured original runs (all match at 1e-10); P2 held-out claim for DAR050/DAR200/PTEXT50 false (they were measured/known) and round-1 sweep misdescribed; P3 dead baseline field, comment/log mismatches, unused label width, README list. Repair1 requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T18:46:50.470872+00:00",
+      "task": "E1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 1e2a8ed9: oracle proves original loses prior member erasure (byte-identical streams; live markers + all members negative). Direct saves still refuse; SAVE/END ask Y/N, Y writes original form with status warning. Second reader gap: original END after reopen writes empty REPEAT/ENDREP pair our reader rejects. 796 tests, 4 oracle (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:49:32.325356+00:00",
+      "task": "D2",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 a7be78f5: honest provenance (retained confirmations), corrected round descriptions, 7 pre-registered held-out scripts all match original at 1e-10, span-6 divergence pinned, dead field removed. 793 tests, 4 oracle (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T18:51:25.375984+00:00",
+      "task": "R5",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass1 pass, no findings: 609,274-input differential fuzz vs baseline, no panics, no regressions, no hidden records. Awaiting integration after RB2 final checks.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T18:52:02.697976+00:00",
+      "task": "D2",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: held-out set disjoint, predictions literal, docs honest; reviewer 15 independent probes also match. Awaiting integration.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T18:55:37.450137+00:00",
+      "task": "E1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P2 native-only question consumes next script item/macro piece as answer (script SAVE ... REDRAW QUIT Y quits with unsaved changes); P3 prompt truncated at 800px, doc overclaims, R6 recommended. Repair1 requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T18:55:37.480332+00:00",
+      "task": "R6",
+      "from": null,
+      "to": "pending",
+      "note": "Created from E1 review P3-3: original END after reopen writes an empty REPEAT/ENDREP pair; reader refuses whole drawing.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:00:02.134215+00:00",
+      "task": "E1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 c7c949f1: non-Y script/macro answer interrupts script (line reported) or drops macro; short prompt fits 800px with status explanation; OOPS byte identity asserted; doc cites B3 analysis, lists unmeasured cases, R6 reference. 800 tests, oracle 4 (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:02:41.489845+00:00",
+      "task": "RB2",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration after M1: fixed M1xRB2 compile clash (Main Menu Frame complete: true); doc worst-case note added. AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1162 passed 0 failed 0 skipped, clippy workspace, fmt, debug+release build, GUI harness, corpus API 25/25.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:02:41.562181+00:00",
+      "task": "RB2",
       "from": "review",
       "to": "verified",
       "note": "Verified.",

@@ -77,13 +77,67 @@ impl Document {
     }
 }
 
-/// WBLOCK output: replaced without a backup, as the original does.
+/// What a WBLOCK output name refers to before the block name prompt
+/// (docs/native-files-menu.md, WBLOCK overwrite contract).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WblockDestination {
+    New,
+    /// An existing regular file, or a dangling symlink whose name is taken.
+    Existing,
+    /// The attached document's own file, by any name for it.
+    OpenDrawing,
+}
+
+pub(crate) fn wblock_destination(
+    path: &Path,
+    open: Option<&Path>,
+) -> Result<WblockDestination, String> {
+    match std::fs::symlink_metadata(path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(WblockDestination::New),
+        Err(e) => Err(e.to_string()),
+        Ok(_) => match std::fs::metadata(path) {
+            Ok(meta) if !meta.is_file() => Err("output path is not a regular file".into()),
+            Ok(_) if open.is_some_and(|open| storage::same_file(path, open)) => {
+                Ok(WblockDestination::OpenDrawing)
+            }
+            Ok(_) => Ok(WblockDestination::Existing),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(WblockDestination::Existing),
+            Err(e) => Err(e.to_string()),
+        },
+    }
+}
+
+/// Whether `path` is the attached document's own file.
+pub(crate) fn is_document_file(path: &Path, document: Option<&Path>) -> bool {
+    document.is_some_and(|document| storage::same_file(path, document))
+}
+
+/// WBLOCK output, never backed up (as the original). `replace` is the
+/// answered replace question; without it an existing file is refused.
 pub(crate) fn save_dwg(
     path: &str,
     drawing: &acad_model::Drawing,
+    replace: bool,
 ) -> Result<Option<String>, String> {
     let bytes = Format::Dwg(acad_dwg::header::Version::Ac140).encode(drawing)?;
-    storage::replace(Path::new(path), &bytes).map_err(|e| e.to_string())
+    if replace {
+        storage::replace(Path::new(path), &bytes)
+    } else {
+        storage::create_new(Path::new(path), &bytes)
+    }
+    .map_err(|e| e.to_string())
+}
+
+/// Main Menu tasks 5 and 6 (docs/native-main-menu.md): the interchange
+/// file or drawing is replaced through the staged writer without a backup,
+/// as the original makes none.
+pub(crate) fn write_without_backup(
+    path: &Path,
+    format: Format,
+    drawing: &acad_model::Drawing,
+) -> Result<Option<String>, String> {
+    let bytes = format.encode(drawing)?;
+    storage::replace(path, &bytes).map_err(|e| e.to_string())
 }
 
 /// Chooses the codec by the file's own magic bytes, not its extension: a

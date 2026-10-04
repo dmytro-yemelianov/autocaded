@@ -435,7 +435,7 @@ impl Editor {
         pick: Point,
         aperture: f64,
     ) -> Result<Option<usize>, String> {
-        let Some(id) = self.pick_entity_at(pick, aperture) else {
+        let Some(id) = self.try_pick_entity_at(pick, aperture)? else {
             self.status = "No object found".into();
             return Ok(None);
         };

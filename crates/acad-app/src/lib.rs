@@ -12,7 +12,7 @@ pub use presentation::Frame;
 pub use report_view::ReportAction;
 pub use session::{
     KeyModifiers, ScriptClock, ScriptInterrupt, ScriptPhase, ScriptPump, Session, SystemClock,
-    MAX_SCRIPT_BYTES, SCRIPT_ITEMS_PER_PUMP,
+    MAIN_MENU_TASKS, MAX_SCRIPT_BYTES, SCRIPT_ITEMS_PER_PUMP,
 };
 pub mod api;
 #[cfg(unix)]

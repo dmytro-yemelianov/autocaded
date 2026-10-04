@@ -33,8 +33,8 @@ Stored header settings alone do not establish their visible GUI behavior.
 | POINT | Current-layer point placement | Original screen point style not matched | R, codecs |
 | CIRCLE | Center plus numeric/point radius, numeric D, 2P diameter endpoints and 3P circumference points | New forms follow retained HLP with Rust numeric/input contracts; no retained original exports for these forms | R, `creation_options.rs`, shared API/MCP |
 | SHAPE | Named loaded SHP shape, origin/height/angle | Broader original library acceptance not established | R, renderer |
-| REPEAT | Opens following-entity group; canonical whole-group edits; nested live/uniform-erased DWG persistence, ordinary erased-member retention, live DXF pruning | Whole-owner save with prior member erasure, negative structural subgroups, explicit owner-layer encoding and original leaf-selection parity; some group transforms | R, `selection_groups.rs`, group codecs/API/MCP |
-| ENDREP | Columns/rows and numeric or two-point spacing; nested persistence; bounded owner expansion in rendering | Aggregate whole-drawing rendering budget; original group-edit parity | R, codecs, `expansion_budget.rs` |
+| REPEAT | Opens following-entity group; canonical whole-group edits; nested live/uniform-erased DWG persistence, ordinary erased-member retention, live DXF pruning; many-owner frames, picks and windows bounded by whole-drawing budgets (`docs/native-render-budget.md`) | Whole-owner save with prior member erasure, negative structural subgroups, explicit owner-layer encoding and original leaf-selection parity; some group transforms | R, `selection_groups.rs`, group codecs/API/MCP, `frame_budget.rs` |
+| ENDREP | Columns/rows and numeric or two-point spacing; nested persistence; bounded owner expansion in rendering; whole-frame aggregate budget (1,000,000 work units: vertices + per-primitive setup, record visits, SHP instructions) stopping at a deterministic owner boundary with frame/API/MCP diagnostics, `complete: false` and an amber canvas indicator; shared drawing/highlight budget and whole-drawing hit-test budget (`docs/native-render-budget.md`) | Original group-edit parity; budget values are native policy, not recovered from ACAD.EXE | R, codecs, `expansion_budget.rs`, `frame_budget.rs`, `render_budget_tests.rs` |
 | TEXT | A/C/R ink layout, height value/two points, angle value/point, literal text and repeated lines | Original layout/leading parity; alignment/history absent after reopen | R, `text_change.rs`, runtime SHP/API/MCP |
 | ARC | Three points; center/end/angle/chord/radius/direction forms; tangent continuation; undo | Extra forms, sign and session-history choices lack native export parity | R, E: existing 3P; `arc_options.rs`, app API/GUI smoke |
 | TRACE | Width, vertex chain, mitered quadrilaterals | Whole-chain undo policy and broader bends not established | R |
@@ -61,15 +61,15 @@ Stored header settings alone do not establish their visible GUI behavior.
 | DBLIST | Live entity/block/repeat database report, shared wrapped/paged viewer | Original field layout/paging not matched | R, app reports |
 | DIST | Two-point distance in selected units | Broader original field layout not retained | R |
 | CHANGE | LINE endpoint, CIRCLE radius, staged INSERT point/angle, single TEXT origin/angle/value, entity layer | Multiple/mixed TEXT property edits; original prompt/layout parity | R, `text_change.rs` |
-| END | Saves attached document before exit; unnamed drawing asks for output path; replacing an existing file keeps its previous bytes as `.BAK` (none for new files or `.bak` destinations) with staged, fsynced (files and directory), destination-safe order; locked (macOS immutable) destinations refused up front | Source codec/revision preserved by Rust policy; host backup naming/symlink/permission policy is native; no Main Menu, task-1 replace question or disk-full parity | R, `files_backup.rs` oracle, `backups.rs`, `corpus_backups.rs`, app `lifecycle.rs`, real MCP/GUI |
-| QUIT | Y/YES discard confirmation, shared with window close and default API quit; writes no drawing or backup (oracle) | Explicit API `discard:true` bypass for automation; no native screen/layout parity | R, `exit.rs`, app `lifecycle.rs`, `files_backup.rs` oracle, real MCP/GUI |
+| END | Saves attached document, then returns to the Main Menu when the session came from it (no-drawing launch or API `main_menu`; oracle: END/QUIT return there) and exits otherwise; unnamed drawing asks for output path; replacing an existing file keeps its previous bytes as `.BAK` (none for new files or `.bak` destinations) with staged, fsynced (files and directory), destination-safe order; locked (macOS immutable) destinations refused up front | Source codec/revision preserved by Rust policy; host backup naming/symlink/permission policy is native; Main Menu text layout not reproduced; no disk-full parity | R, `files_backup.rs` + `main_menu.rs` oracles, app `tests/main_menu.rs`, `backups.rs`, `corpus_backups.rs`, app `lifecycle.rs`, real MCP/GUI |
+| QUIT | Y/YES discard confirmation, shared with window close and default API quit; writes no drawing or backup (oracle); typed QUIT returns to the Main Menu when the session came from it ([main menu](native-main-menu.md)) | Window close and API quit always exit the process (native); explicit API `discard:true` bypass for automation; no native screen/layout parity | R, `exit.rs`, app `lifecycle.rs` + `tests/main_menu.rs`, `files_backup.rs` + `main_menu.rs` oracles, real MCP/GUI |
 | ? | Command query/list and retained topic pages in shared viewer | Original screen/paging not matched | R, `help.rs`, app reports |
 | AREA | Point-polygon area; ENTITYAREA extension handles selected geometry | Original AREA entity-selection syntax is not inferred | R |
 | OOPS | Restores last erased records in place, undoable | Unmeasured original lifecycle paths remain open | R |
 | TABLET | Excluded digitizer configuration | Hardware outside native 2D scope | H only |
 | PLOT | Excluded plotter driver | Hardware outside native 2D scope | H only |
 | DELAY | Signed 16-bit integer count; nonblocking Session deadline in native milliseconds inside a command script (native SCRIPT command, `--script`, API/MCP `script`); negative = no pause; inert outside scripts ([contract](native-scripts.md)) | Original is a CPU-bound loop (~730 8086 instructions/unit) with 16-bit wrap; native unit and out-of-range refusal are policy | R + in-tree original: `scripts.rs` (cmd/oracle), app `session/script_tests.rs` |
-| RESUME | Continues an interrupted script (error, input, cancel) at its exact next unread item; remaining DELAY discarded; inert inside or without a script | Mouse/API/cancel interruption and no Main Menu are native; keys the GUI ignores (Space/Tab/arrows) do not interrupt; screen echo not compared | R + in-tree original: `scripts.rs` (cmd/oracle), app `session/script_tests.rs` |
+| RESUME | Continues an interrupted script (error, input, cancel) at its exact next unread item; remaining DELAY discarded; inert inside or without a script | Mouse/API/cancel interruption is native; scripts never start at the Main Menu and END returning there drops the rest of the script (native); keys the GUI ignores (Space/Tab/arrows) do not interrupt; screen echo not compared | R + in-tree original: `scripts.rs` (cmd/oracle), app `session/script_tests.rs` |
 | COPY | Displacement or from/to then selection | Common selection limits | R |
 | BLOCK | Named selection/base, flat block table | Common selection limits | R |
 | DIM | Orthogonal primitives, A/T settings, B/C history, TXT metrics, undo | Large-arrow external text rule, other fonts and unmeasured cases | R + E: 29 drawings |
@@ -79,13 +79,13 @@ Stored header settings alone do not establish their visible GUI behavior.
 | HELP | All dispatcher topics, aliases, retained text, unknown-topic recovery, shared viewer | Original screen/paging not matched; pages describe options still absent in execution | R, exact retained LINE page, app reports |
 | UNITS | Four formats/precision, persisted AC1.40 fields and measurement display | Broader original formatting thresholds not all retained | R, codecs |
 | ARRAY | Rectangular/circular copies, numeric or point spacing, bounded output; circular angle-to-cover (`-degrees`, endpoint inclusive, exact 0/360 full circle, half-up rounding), angle validation, single-INSERT rotate-copies choice with normalized rotation | Original aborts (native retries) on zero/oversized angle and fractional counts; other rotate answers retry (original: No); original's large-array confirmation prompt not reproduced | R + in-tree original, `docs/native-array-break.md` |
-| WBLOCK | Whole/live, named (erased members as root negative records) or selected group export, transitive block closure, bounded ordered nested LOAD context, base | Explicit owner-layer encoding; full save of erased source with prior member erasure; broader path semantics; replaces an existing destination (staged, no backup) without the original `Y` question | R, app/files, `group_exports.rs`, `selection_groups.rs`, `files_backup.rs` oracle |
+| WBLOCK | Whole/live, named (erased members as root negative records) or selected group export, transitive block closure, bounded ordered nested LOAD context, base | Explicit owner-layer encoding; full save of erased source with prior member erasure; broader path semantics (accepts `.DWG`, original says `*Invalid*`); original replace question after the file name (leading `Y` replaces, anything else keeps; open drawing gets its own wording and stays attached, dirty against the written file); staged, no backup, create-only without `Y` | R, app/files, `group_exports.rs`, `selection_groups.rs`, `wblock_replace.rs`, `files_backup.rs` oracle |
 | AXIS | Toggle, numeric/SNAP-relative spacing and visible rulers | Original pixel style modernized; historical DXF cannot carry AXIS | R, header/raster |
 | HATCH | All 23 built-in names, phase/drift/dashes/dots, closed loops/circles/holes, undo; `name,N/O/I` island styles (`docs/native-hatch-styles.md`); `U[,style]` angle/spacing (number or two points)/double prompts; external ACAD.PAT-syntax files through the Session (`NAME.PAT`, then `ACAD.PAT`; regular files, 262,144-byte cap, line-numbered errors, row/dash/line limits, 10,000,000 row+dash-cycle work bound; rows visit only boundary edges whose offset range they cross) (`docs/native-hatch-user.md`); sweep start row and continuous-row direction follow the original | Native retries (Return/zero/negative spacing, other double answers) where the original exits or accepts; built-in names never read a file; dashed-row direction and patterns with non-zero delta-x are not oracle-checked; non-default styles lack original comparison | R + E: LINE/default NET; R + in-tree original (`docs/native-hatch-user.md`): `U` geometry/prompts, sweep start/orientation, PLAST/PLASTI/TRANS/INSUL order, ACAD.PAT run-time catalogue and ANSI31/ANSI37/BRICK via the file route |
 | FILLET | R remembered initial-zero radius; zero intersection/line extension; positive tangent fillet; AC1.40 radius persistence | AC1.2/DXF nonzero radius checked refusal; new nonzero original export and generalized ray choices unmeasured | R, independent retained descriptor audit, `fillet_radius.rs`, `fillet_views.rs` |
 | BREAK | Point-to-object pick (typed/mouse/API) as first point, F first-point re-entry, projected points, end cut-off, whole-span erase, LINE/ARC/CIRCLE/TRACE with original record policy (erased source + appended remainder), undo, DWG/DXF | Mitered-end TRACE cuts and non-TRACE corner windings refused; missed picks retry (original aborts); original LINE below-X-range no-op, coincident-point ARC/CIRCLE splits and screen-dependent aperture not reproduced | R + in-tree original, `docs/native-array-break.md` |
 | SKETCH | Mouse freehand on GUI motion and API/MCP `motion`. Click or P toggles the pen. Vertices are taken at the world-unit increment by one-axis (Chebyshev) distance; pen-up/R/X record the tail; collinear runs merge. R/X/Q/Return/E (cut back through the nearest vertex)/C (connect within the increment)/`.` follow the original's messages. SNAP/ORTHO apply (the ORTHO pen-up/R/X tail is the observed L, and R continues from the pointer). Temporary strokes are frame-only (cyan) until R/X; Q/Esc/Ctrl+C discard them, other GUI chords are ignored; at most 10 000 temporary segments; one UNDO per record batch; DWG/DXF round trip (`docs/native-sketch.md`) | Original CGA-pixel quantization and polling cadence not reproduced. Unobserved cases (other sub-mode keys, connect metric, non-axis and cross-stroke merging, pen-up ORTHO, segment bound, UNDO granularity) are native policy; no remembered increment default | R + QEMU original mouse oracle (`sketch_mouse.rs`, 9 tests, O1–O14) |
-| FILES | Host file utility list/wildcard/delete/rename with drive mapping, shared viewer; rename never replaces any existing entry (incl. dangling symlink) | Broader DOS path/layout semantics; original File Utility screen | R, app/files/reports, [files/menu](native-files-menu.md) |
+| FILES | Host file utility list/wildcard/delete/rename with drive mapping, shared viewer; rename never replaces any existing entry (incl. dangling symlink); also Main Menu task 7, whose selection 0 returns to the Main Menu (oracle) | Broader DOS path/layout semantics; original File Utility screen | R, app/files/reports + `tests/main_menu.rs`, `main_menu.rs` oracle, [files/menu](native-files-menu.md), [main menu](native-main-menu.md) |
 
 ## Source ownership and regression anchors
 
@@ -135,25 +135,15 @@ Stored header settings alone do not establish their visible GUI behavior.
 ## Next implementation order
 
 Current execution is tracked in the [agentic ledger](superpowers/plans/2026-10-04-agentic-progress.json).
-Every ledger task except Q1 is verified: selection/LIST (S1/S2), layers and
-signed OFF persistence (L1/L2/L3), TEXT/CHANGE (T1), FILLET/ZOOM/PAN (V1),
-HATCH styles and U/pattern files (H1/H2), external INSERT (B1), circular
-ARRAY and BREAK (B2), REPEAT persistence and erased members (B3/B4), owner
-rendering bounds (RB1), scripts (X1), mouse SKETCH (K1), files/backups/menu
-macros (F1) and the DIM evidence audit (D1). The latest integration passed
-738 six-package native tests plus the in-tree/QEMU oracle suites, Clippy,
-workspace checks and the attached GUI/MCP/API harness; the Q1 candidate
-passes 742 with the corpus required. These are scoped Rust
-contracts; remaining compatibility limits are stated in the table and ledger.
+All 23 milestones of the 2026-10-04 loop are verified, including Q1 (combined
+Session/MCP workflow, HATCH edge index, clean-checkout CI and this audit); the
+final run passed 1,061 workspace tests with the corpus required.
 
-1. Q1, combined workflows, performance and release checks, is the final
-   milestone and awaits review: the combined Session/API/MCP workflow test,
-   the corpus API check (all 25 inputs), the HATCH boundary-edge index
-   (dense boundaries no longer cost rows times edges) and CI that compiles
-   and tests a clean checkout without the corpus (corpus menu files are read
-   at run time; their tests skip visibly), shows oracle skip messages and
-   builds release binaries. The whole-document aggregate
-   rendering budget noted at RB1 remains a follow-up.
+1. In progress: M1 native Main Menu (plotting out of scope), W1 WBLOCK
+   overwrite confirmation and open-drawing protection, RB2 whole-document
+   rendering budget. Queued after them: E1 whole-owner erase with prior member
+   erasure, E2 explicit REPEAT owner layers, D2 DIM large-arrow text from
+   black-box runs, I2 INSERT `*file` scale/rotation and multi-object CHANGE.
 2. Keep each row's native-parity limits explicit; the open gaps include
    whole-owner save after prior member erasure, explicit owner-layer
    encoding, nonzero FILLET radius outside AC1.40, view ink bounds and

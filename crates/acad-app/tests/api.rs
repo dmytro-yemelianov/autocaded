@@ -181,6 +181,8 @@ fn frames_export_exact_shared_pixels_as_png_and_rgba() {
     .unwrap();
     let pixels = STANDARD.decode(raw["data"].as_str().unwrap()).unwrap();
     assert_eq!(raw["stride"], 2560);
+    assert_eq!(raw["complete"], true);
+    assert_eq!(raw["diagnostics"], json!([]));
     assert_eq!(pixels.len(), 640 * 480 * 4);
     assert_eq!(pixels, frame.rgba());
     assert!(pixels.chunks_exact(4).all(|p| p[3] == 255));

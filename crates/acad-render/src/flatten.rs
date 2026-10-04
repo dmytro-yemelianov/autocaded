@@ -1,4 +1,5 @@
-use crate::resource_walker::{LibraryState, Walker};
+use crate::budget::{BudgetStop, FrameBudget};
+use crate::resource_walker::{LibraryState, Reason, Walker};
 use crate::viewport::Viewport;
 use acad_model::{Drawing, Entity, Item, Point};
 
@@ -240,14 +241,35 @@ const MAX_INSERT_DEPTH: u32 = 16;
 pub struct RenderOutput {
     pub primitives: Vec<Prim>,
     pub diagnostics: Vec<String>,
+    /// Set when the whole-frame budget stopped this pass early; the
+    /// primitives are then only the complete owners before the stop
+    /// (none for a selection-highlight pass). Never a complete frame.
+    pub budget_stop: Option<BudgetStop>,
+    /// True when any owner this pass should draw is missing: a budget stop,
+    /// a LOAD/recursion context failure that stopped the owner loop, or an
+    /// owner skipped by its per-owner budget. Missing fonts, shapes or blocks
+    /// are content diagnostics and do not set it.
+    pub incomplete: bool,
 }
 
+/// Render with a fresh [`FrameBudget`] of [`crate::FRAME_WORK_LIMIT`] units.
 pub fn flatten_with_libraries(
     d: &Drawing,
     vp: &Viewport,
     libraries: &crate::Libraries,
 ) -> RenderOutput {
-    flatten_owners(d, vp, libraries, None)
+    flatten_with_budget(d, vp, libraries, &mut FrameBudget::default())
+}
+
+/// Render, spending from a caller-owned whole-frame budget so several passes
+/// of one frame (drawing, then selection highlight) share one bound.
+pub fn flatten_with_budget(
+    d: &Drawing,
+    vp: &Viewport,
+    libraries: &crate::Libraries,
+    budget: &mut FrameBudget,
+) -> RenderOutput {
+    flatten_owners(d, vp, libraries, None, budget)
 }
 
 /// Selected owners use original drawing order and complete library context.
@@ -259,7 +281,25 @@ pub fn flatten_selected_with_libraries(
     libraries: &crate::Libraries,
     selected_indexes: &std::collections::BTreeSet<usize>,
 ) -> RenderOutput {
-    flatten_owners(d, vp, libraries, Some(selected_indexes))
+    flatten_selected_with_budget(
+        d,
+        vp,
+        libraries,
+        selected_indexes,
+        &mut FrameBudget::default(),
+    )
+}
+
+/// Selection highlight spending from a shared frame budget. An exhausted
+/// budget yields no highlight at all (never a partial one) and a diagnostic.
+pub fn flatten_selected_with_budget(
+    d: &Drawing,
+    vp: &Viewport,
+    libraries: &crate::Libraries,
+    selected_indexes: &std::collections::BTreeSet<usize>,
+    budget: &mut FrameBudget,
+) -> RenderOutput {
+    flatten_owners(d, vp, libraries, Some(selected_indexes), budget)
 }
 
 fn flatten_owners(
@@ -267,32 +307,57 @@ fn flatten_owners(
     vp: &Viewport,
     libraries: &crate::Libraries,
     selected: Option<&std::collections::BTreeSet<usize>>,
+    budget: &mut FrameBudget,
 ) -> RenderOutput {
     let mut walker = Walker {
         drawing: d,
+        blocks: d.block_index(),
         viewport: vp,
         libraries,
         diagnostics: Vec::new(),
         context_failed: false,
+        budget: *budget,
+        reported: Default::default(),
+        suppressed: 0,
+        pinned: Vec::new(),
+        reason_seen: [false; 2],
     };
     let mut state = LibraryState {
         font: "TXT".into(),
         shapes: Vec::new(),
     };
     let mut primitives = Vec::new();
+    let mut stopped_at = None;
+    let mut owner_skipped = false;
     for (index, item) in d.items.iter().enumerate() {
         if walker.context_failed {
             break;
         }
+        if walker.budget.exhausted() {
+            stopped_at = Some(index);
+            break;
+        }
+        let owner_start = primitives.len();
         let emit = selected.is_none_or(|selected| selected.contains(&index));
-        let bounded = !emit || crate::selection_policy::bounded_owner(d, item);
+        let bounded = !emit || {
+            let (bounded, visits) = crate::selection_policy::bounded_owner(&walker.blocks, item);
+            walker.budget.charge(visits) && bounded
+        };
+        if walker.budget.exhausted() {
+            stopped_at = Some(index);
+            break;
+        }
         if !bounded {
+            owner_skipped = true;
             let (kind, work) = if selected.is_some() {
                 ("Selected owner", "highlight")
             } else {
                 ("Owner", "render")
             };
-            walker.report(format!("{kind} {} exceeds {work} work budget", index + 1));
+            walker.report_reason(
+                Reason::OwnerSkipped,
+                format!("{kind} {} exceeds {work} work budget", index + 1),
+            );
         }
         if !emit || !bounded {
             match item {
@@ -302,22 +367,55 @@ fn flatten_owners(
                 }
                 Item::Block(_) | Item::Erased(_) => {}
             }
-            continue;
-        }
-        match item {
-            Item::Entity(e) => primitives.extend(walker.entity(e, &mut state, MAX_INSERT_DEPTH)),
-            Item::Block(_) | Item::Erased(_) => {}
-            Item::Repeat(repeat) => {
-                primitives.extend(walker.repeat(repeat, &mut state, MAX_INSERT_DEPTH));
+        } else {
+            match item {
+                Item::Entity(e) => {
+                    primitives.extend(walker.entity(e, &mut state, MAX_INSERT_DEPTH))
+                }
+                Item::Block(_) | Item::Erased(_) => {}
+                Item::Repeat(repeat) => {
+                    primitives.extend(walker.repeat(repeat, &mut state, MAX_INSERT_DEPTH));
+                }
             }
         }
+        if walker.budget.exhausted() {
+            // Never keep a partially drawn owner: stop at its boundary.
+            primitives.truncate(owner_start);
+            stopped_at = Some(index);
+            break;
+        }
     }
-    if selected.is_some() && walker.context_failed {
+    *budget = walker.budget;
+    let budget_stop = stopped_at.map(|index| BudgetStop {
+        limit: budget.limit(),
+        first_skipped_item: index + 1,
+        skipped_owners: d.items[index..]
+            .iter()
+            .filter(|item| matches!(item, Item::Entity(_) | Item::Repeat(_)))
+            .count(),
+    });
+    let stop_message = budget_stop.as_ref().map(|stop| {
+        if selected.is_some() {
+            format!(
+                "Selection highlight exceeds frame render budget of {} work units; highlight omitted",
+                stop.limit
+            )
+        } else {
+            format!(
+                "Frame render budget of {} work units exceeded: drawing stopped before item {}; {} owner(s) not drawn",
+                stop.limit, stop.first_skipped_item, stop.skipped_owners
+            )
+        }
+    });
+    if selected.is_some() && (walker.context_failed || budget_stop.is_some()) {
         primitives.clear();
     }
+    let incomplete = budget_stop.is_some() || walker.context_failed || owner_skipped;
     RenderOutput {
         primitives,
-        diagnostics: walker.diagnostics,
+        diagnostics: walker.finish_diagnostics(stop_message),
+        budget_stop,
+        incomplete,
     }
 }
 

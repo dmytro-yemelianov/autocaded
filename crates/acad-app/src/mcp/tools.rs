@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-pub(super) const NAMES: [&str; 17] = [
+pub(super) const NAMES: [&str; 18] = [
     "acad_new",
     "acad_open",
     "acad_command",
@@ -17,6 +17,7 @@ pub(super) const NAMES: [&str; 17] = [
     "acad_script_status",
     "acad_script_tick",
     "acad_script_stop",
+    "acad_main_menu",
 ];
 pub(super) fn list() -> Value {
     let string = json!({"type":"string"});
@@ -29,7 +30,7 @@ pub(super) fn list() -> Value {
         ("Place a world-coordinate point at the current prompt using SNAP/ORTHO.",json!({"x":number,"y":number}),json!(["x","y"])),
         ("Click a physical client pixel: includes screen-menu, point and selection routes. Dimensions default to the attached window.",json!({"x":number,"y":number,"width":dim,"height":dim}),json!(["x","y"])),
         ("Move the pointer to a physical client pixel without clicking. SKETCH samples it (pen down records at the record increment); other prompts only move the crosshair. Dimensions default to the attached window.",json!({"x":number,"y":number,"width":dim,"height":dim}),json!(["x","y"])),
-        ("Read prompt, status, input, document path/format/dirty state, entity/block counts, view and drawing settings.",json!({}),json!([])),
+        ("Read prompt, status, input, document path/format/dirty state, entity/block counts, view and drawing settings, and main_menu (screen, task, messages, text; null in the drawing editor).",json!({}),json!([])),
         ("Return current geometry as historical DXF text, without writing a file.",json!({}),json!([])),
         ("Save the current drawing; .dxf uses DXF, other extensions use DWG.",json!({"path":string}),json!(["path"])),
         ("Cancel the current prompt, retaining completed geometry.",json!({}),json!([])),
@@ -40,6 +41,7 @@ pub(super) fn list() -> Value {
         ("Read script state: idle/running/delaying/interrupted, next line and byte offset, delay remaining, interrupt cause/line/message.",json!({}),json!([])),
         ("Run script items that are due; at most 64 per call, never waits. Repeat while script state is running (long scripts) and after delay_remaining_ms while delaying.",json!({}),json!([])),
         ("Discard the current script, including an interrupted one awaiting RESUME.",json!({}),json!([])),
+        ("Show the AutoCAD Main Menu (refused while the drawing has unsaved changes). Answer its prompts with acad_command (0 Exit, 1 New, 2 Edit, 3 Plot: not available, 4 Configure, 5 Make DXF, 6 Load DXF, 7 File Utilities); acad_state.main_menu reports the screen. Afterwards END/QUIT return to the Main Menu.",json!({}),json!([])),
     ];
     json!({"tools":NAMES.iter().zip(definitions).map(|(name,(description,properties,required))|json!({"name":name,"description":description,"inputSchema":{"type":"object","properties":properties,"required":required,"additionalProperties":false},"annotations":{"readOnlyHint":matches!(*name,"acad_state"|"acad_drawing"|"acad_frame"|"acad_script_status"),"openWorldHint":false}})).collect::<Vec<_>>()})
 }

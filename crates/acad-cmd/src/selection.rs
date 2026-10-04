@@ -46,7 +46,35 @@ pub(crate) fn item_entity(item: &Item) -> Option<Entity> {
     }
 }
 
+/// Whole-drawing hit-test budget (RB2, `docs/native-render-budget.md`): one
+/// pick or window spends at most this many stored-record visits across all
+/// owners, on top of the unchanged per-owner limits. When it runs out the
+/// whole pick/window fails; it never returns a hit from a partial scan.
+pub(crate) const MAX_DRAWING_HIT_TEST_VISITS: usize = 1_000_000;
+pub(crate) const HIT_TEST_BUDGET_EXCEEDED: &str =
+    "selection exceeds the drawing hit-test work budget; select objects by number";
+
+/// Spend one owner's work (at least one visit) from the drawing budget.
+pub(crate) fn charge_hit_test(remaining: &mut usize, used: usize) -> Result<(), String> {
+    let used = used.max(1);
+    if used > *remaining {
+        return Err(HIT_TEST_BUDGET_EXCEEDED.into());
+    }
+    *remaining -= used;
+    Ok(())
+}
+
+#[cfg(test)]
 pub(crate) fn entities_in_window(drawing: &Drawing, first: Point, second: Point) -> Vec<usize> {
+    checked_entities_in_window(drawing, first, second).expect("window within hit-test budget")
+}
+
+pub(crate) fn checked_entities_in_window(
+    drawing: &Drawing,
+    first: Point,
+    second: Point,
+) -> Result<Vec<usize>, String> {
+    let mut remaining = MAX_DRAWING_HIT_TEST_VISITS;
     let min = Point {
         x: first.x.min(second.x),
         y: first.y.min(second.y),
@@ -56,8 +84,11 @@ pub(crate) fn entities_in_window(drawing: &Drawing, first: Point, second: Point)
         y: first.y.max(second.y),
     };
     let mut ids = Vec::new();
+    let scene = visible_bounds::Scene::new(drawing);
     for selected in selectable_items(drawing) {
-        let Some(points) = visible_bounds::item_bounds(drawing, selected.item) else {
+        let (bounds, used) = visible_bounds::item_bounds(&scene, selected.item);
+        charge_hit_test(&mut remaining, used)?;
+        let Some(points) = bounds else {
             continue;
         };
         if points.iter().all(|point| {
@@ -66,7 +97,7 @@ pub(crate) fn entities_in_window(drawing: &Drawing, first: Point, second: Point)
             ids.push(selected.id);
         }
     }
-    ids
+    Ok(ids)
 }
 
 pub(crate) fn selection_extents_points(entity: &Entity) -> Option<Vec<Point>> {
@@ -147,21 +178,28 @@ pub(crate) fn selected_item_indexes(drawing: &Drawing, ids: &[usize]) -> BTreeSe
 // remain available by ID; we never return a hit from a partially scanned group.
 const MAX_PICK_MEMBERS: usize = 100_000;
 
-pub(crate) fn item_pick_distance(drawing: &Drawing, point: Point, item: &Item) -> Option<f64> {
+/// One owner's pick distance (`None` when missed, hidden or over the
+/// per-owner budget), plus the visits spent.
+pub(crate) fn item_pick_distance(
+    scene: &visible_bounds::Scene<'_>,
+    point: Point,
+    item: &Item,
+) -> (Option<f64>, usize) {
     let mut remaining = MAX_PICK_MEMBERS;
-    match item {
-        Item::Entity(entity) => bounded_pick_distance(drawing, point, entity, &mut remaining, 0)
+    let distance = match item {
+        Item::Entity(entity) => bounded_pick_distance(scene, point, entity, &mut remaining, 0)
             .ok()
             .flatten(),
-        Item::Repeat(repeat) => repeat_pick_distance(drawing, point, repeat, &mut remaining, 0)
+        Item::Repeat(repeat) => repeat_pick_distance(scene, point, repeat, &mut remaining, 0)
             .ok()
             .flatten(),
         _ => None,
-    }
+    };
+    (distance, MAX_PICK_MEMBERS - remaining)
 }
 
 fn bounded_pick_distance(
-    drawing: &Drawing,
+    scene: &visible_bounds::Scene<'_>,
     point: Point,
     entity: &Entity,
     remaining: &mut usize,
@@ -171,15 +209,22 @@ fn bounded_pick_distance(
         return Err(());
     }
     *remaining -= 1;
-    if !visible_bounds::visible_record(drawing, entity) {
+    // Layer wrappers are walked by the visibility gate: charge them first.
+    let mut leaf = entity;
+    while let Entity::OnLayer { entity: child, .. } = leaf {
+        if *remaining == 0 {
+            return Err(());
+        }
+        *remaining -= 1;
+        leaf = child;
+    }
+    if !visible_bounds::visible_record(scene.drawing, entity) {
         return Ok(None);
     }
     match bare(entity) {
-        Entity::Repeat(repeat) => {
-            repeat_pick_distance(drawing, point, repeat, remaining, depth + 1)
-        }
+        Entity::Repeat(repeat) => repeat_pick_distance(scene, point, repeat, remaining, depth + 1),
         Entity::Insert { .. } => {
-            if visible_bounds::entity_bounds(drawing, entity, remaining, depth, 0)?.is_some() {
+            if visible_bounds::entity_bounds(scene, entity, remaining, depth, 0)?.is_some() {
                 Ok(entity_pick_distance(point, entity))
             } else {
                 Ok(None)
@@ -190,7 +235,7 @@ fn bounded_pick_distance(
 }
 
 fn repeat_pick_distance(
-    drawing: &Drawing,
+    scene: &visible_bounds::Scene<'_>,
     point: Point,
     repeat: &acad_model::Repeat,
     remaining: &mut usize,
@@ -212,7 +257,7 @@ fn repeat_pick_distance(
             };
             for entity in &repeat.entities {
                 if let Some(distance) =
-                    bounded_pick_distance(drawing, local, entity, remaining, depth)?
+                    bounded_pick_distance(scene, local, entity, remaining, depth)?
                 {
                     nearest = Some(nearest.map_or(distance, |old| old.min(distance)));
                 }
@@ -289,6 +334,143 @@ pub(crate) fn entity_pick_distance(point: Point, entity: &Entity) -> Option<f64>
 mod tests {
     use super::*;
     use crate::Editor;
+
+    fn point_lattice(columns: u16, rows: u16) -> Item {
+        Item::Repeat(acad_model::Repeat {
+            start_layer: 1,
+            end_layer: 1,
+            entities: vec![Entity::Point {
+                origin: Point { x: 1.0, y: 1.0 },
+            }],
+            columns,
+            rows,
+            column_spacing: 1.0,
+            row_spacing: 1.0,
+        })
+    }
+
+    /// RB2: owners each inside the per-owner pick limit cannot add up to
+    /// unbounded hit-test work; the pick fails as a whole, never partially.
+    #[test]
+    fn pick_shares_one_drawing_hit_test_budget_across_owners() {
+        let far = Point {
+            x: -1_000.0,
+            y: -1_000.0,
+        };
+        let mut editor = Editor::default();
+        editor.drawing_mut().items = vec![point_lattice(250, 199); 5];
+        assert_eq!(editor.try_pick_entity_at(far, 0.5), Ok(None));
+        assert_eq!(
+            editor.try_pick_entity_at(Point { x: 3.0, y: 2.0 }, 0.5),
+            Ok(Some(1))
+        );
+        editor.drawing_mut().items = vec![point_lattice(250, 199); 30];
+        assert_eq!(
+            editor.try_pick_entity_at(far, 0.5),
+            Err(HIT_TEST_BUDGET_EXCEEDED.to_string())
+        );
+        assert_eq!(editor.pick_entity_at(Point { x: 3.0, y: 2.0 }, 0.5), None);
+        editor.submit("ERASE").unwrap();
+        let before = editor.prompt().to_string();
+        assert_eq!(
+            editor.pick_selection_at(Point { x: 3.0, y: 2.0 }, 0.5),
+            Err(HIT_TEST_BUDGET_EXCEEDED.to_string())
+        );
+        assert_eq!(editor.prompt(), before, "failed pick leaves the prompt");
+    }
+
+    /// Review pass 2 (h2): pick and window resolve INSERTs through one
+    /// block index per pass instead of a linear scan per INSERT visit.
+    #[test]
+    fn hit_tests_resolve_blocks_through_a_per_pass_index() {
+        let insert = |name: &str| Entity::Insert {
+            name: name.into(),
+            origin: Point { x: 1.0, y: 1.0 },
+            x_scale: 1.0,
+            y_scale: 1.0,
+            rotation_deg: 0.0,
+        };
+        let mut editor = Editor::default();
+        let items = &mut editor.drawing_mut().items;
+        items.clear();
+        items.push(Item::Block(acad_model::Block {
+            name: "A".into(),
+            base: Point { x: 0.0, y: 0.0 },
+            entities: vec![insert("Z"); 2_000],
+        }));
+        items.extend(std::iter::repeat_n(
+            Item::Erased(Entity::Point {
+                origin: Point { x: 0.0, y: 0.0 },
+            }),
+            65_335,
+        ));
+        items.push(Item::Block(acad_model::Block {
+            name: "Z".into(),
+            base: Point { x: 0.0, y: 0.0 },
+            entities: vec![Entity::Point {
+                origin: Point { x: 0.0, y: 0.0 },
+            }],
+        }));
+        items.extend(std::iter::repeat_n(Item::Entity(insert("A")), 190));
+        let started = std::time::Instant::now();
+        assert_eq!(
+            editor.try_pick_entity_at(Point { x: 1.0, y: 1.0 }, 0.5),
+            Ok(Some(1))
+        );
+        let window = checked_entities_in_window(
+            editor.drawing(),
+            Point { x: -5.0, y: -5.0 },
+            Point { x: 5.0, y: 5.0 },
+        )
+        .unwrap();
+        assert_eq!(window.len(), 190);
+        let elapsed = started.elapsed();
+        assert!(elapsed < std::time::Duration::from_secs(30), "{elapsed:?}");
+    }
+
+    #[test]
+    fn window_selection_shares_one_drawing_hit_test_budget() {
+        let mut editor = Editor::default();
+        let points = (0..1_000)
+            .map(|i| Entity::Point {
+                origin: Point {
+                    x: f64::from(i % 10),
+                    y: f64::from(i / 10),
+                },
+            })
+            .collect();
+        editor.drawing_mut().items = vec![Item::Block(acad_model::Block {
+            name: "DOTS".into(),
+            base: Point { x: 0.0, y: 0.0 },
+            entities: points,
+        })];
+        let insert = Item::Entity(Entity::Insert {
+            name: "DOTS".into(),
+            origin: Point { x: 0.0, y: 0.0 },
+            x_scale: 1.0,
+            y_scale: 1.0,
+            rotation_deg: 0.0,
+        });
+        let (a, b) = (Point { x: -1.0, y: -1.0 }, Point { x: 20.0, y: 200.0 });
+        editor
+            .drawing_mut()
+            .items
+            .extend(std::iter::repeat_n(insert.clone(), 10));
+        assert_eq!(
+            checked_entities_in_window(editor.drawing(), a, b)
+                .unwrap()
+                .len(),
+            10
+        );
+        editor
+            .drawing_mut()
+            .items
+            .extend(std::iter::repeat_n(insert, 2_000));
+        assert_eq!(
+            checked_entities_in_window(editor.drawing(), a, b),
+            Err(HIT_TEST_BUDGET_EXCEEDED.to_string())
+        );
+    }
 
     #[test]
     fn repeat_window_uses_all_lattice_extremes_and_ignores_empty_groups() {

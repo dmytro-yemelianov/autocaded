@@ -1,7 +1,7 @@
 //! Shared selection continuation: visible picks/windows collect owners until
 //! Return (HATCH windows finish at their second corner); an explicit typed
 //! ID/ALL/LAST line replaces the collected set.
-use super::{entities_in_window, selectable_count, selection};
+use super::{checked_entities_in_window, selectable_count, selection};
 use crate::{
     input_state::{EditCommand, InputState},
     parse::{point, point_from},
@@ -99,7 +99,7 @@ impl Editor {
         if matches!(self.state, InputState::BreakSelection) {
             return self.break_pick(point, tolerance);
         }
-        let Some(id) = self.pick_entity_at(point, tolerance) else {
+        let Some(id) = self.try_pick_entity_at(point, tolerance)? else {
             return Ok(None);
         };
         let mut dialogue = match self.state.clone() {
@@ -204,7 +204,7 @@ impl Editor {
             Mode::FirstCorner => dialogue.mode = Mode::SecondCorner(point(line)?),
             Mode::SecondCorner(first) => {
                 let second = point_from(line, first)?;
-                let ids = entities_in_window(&self.drawing, first, second);
+                let ids = checked_entities_in_window(&self.drawing, first, second)?;
                 if ids.is_empty() {
                     return Err("selection window contains no visible objects".into());
                 }

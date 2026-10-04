@@ -240,12 +240,14 @@ fn read_only_directory_permissions_and_symlinks_are_preserved() {
 fn wblock_over_an_existing_file_makes_no_backup() {
     let root = Scratch::new("wblock");
     let target = root.0.join("part.dwg");
-    saved(&target);
+    let before = saved(&target);
     let mut s = Session::default();
     point(&mut s, 2.0);
-    for input in ["WBLOCK", target.to_str().unwrap(), "*"] {
+    // The existing file needs `Y` (files_backup.rs oracle) before replacing.
+    for input in ["WBLOCK", target.to_str().unwrap(), "Y", "*"] {
         s.command(input).unwrap();
     }
+    assert_ne!(std::fs::read(&target).unwrap(), before);
     assert_eq!(root.names(), ["part.dwg"]);
 }
 

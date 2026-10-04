@@ -55,6 +55,28 @@ impl Drawing {
     pub fn block(&self, name: &str) -> Option<&Block> {
         self.blocks().find(|b| b.name == name)
     }
+    /// Name index with exactly `block`'s semantics (first definition wins,
+    /// case-sensitive), built once in O(items) for passes that resolve many
+    /// INSERTs (render frames, hit tests, bounds).
+    pub fn block_index(&self) -> BlockIndex<'_> {
+        let mut by_name = std::collections::HashMap::new();
+        for block in self.blocks() {
+            by_name.entry(block.name.as_str()).or_insert(block);
+        }
+        BlockIndex { by_name }
+    }
+}
+
+/// See [`Drawing::block_index`].
+#[derive(Debug, Clone, Default)]
+pub struct BlockIndex<'a> {
+    by_name: std::collections::HashMap<&'a str, &'a Block>,
+}
+
+impl<'a> BlockIndex<'a> {
+    pub fn get(&self, name: &str) -> Option<&'a Block> {
+        self.by_name.get(name).copied()
+    }
 }
 
 #[cfg(test)]
@@ -152,6 +174,28 @@ mod tests {
     }
 
     #[test]
+    fn block_index_keeps_first_definition_like_block() {
+        let mut d = interleaved();
+        let mut later = d.block("B1").unwrap().clone();
+        later.entities.clear();
+        d.items.push(Item::Block(later));
+        d.items.push(Item::Block(Block {
+            name: "b1".into(),
+            base: Point { x: 0.0, y: 0.0 },
+            entities: vec![],
+        }));
+        let index = d.block_index();
+        for name in ["B1", "b1", "B2"] {
+            assert_eq!(
+                index.get(name).map(|b| b as *const Block),
+                d.block(name).map(|b| b as *const Block),
+                "{name}"
+            );
+        }
+        assert_eq!(index.get("B1").unwrap().entities.len(), 1);
+    }
+
+    #[test]
     fn entities_skips_block_definitions_and_keeps_document_order() {
         let d = interleaved();
         let es: Vec<&Entity> = d.entities().collect();
@@ -170,5 +214,11 @@ mod tests {
         let d = interleaved();
         assert_eq!(d.block("B1").map(|b| b.name.as_str()), Some("B1"));
         assert!(d.block("NOPE").is_none());
+        let index = d.block_index();
+        assert!(std::ptr::eq(
+            index.get("B1").unwrap(),
+            d.block("B1").unwrap()
+        ));
+        assert!(index.get("NOPE").is_none());
     }
 }

@@ -11,6 +11,14 @@ pub(crate) enum Transform {
     Scale { base: Point, factor: f64 },
 }
 
+/// A WBLOCK output file and whether replacing an existing file was
+/// confirmed at the replace question.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct WblockOutput {
+    pub(crate) path: String,
+    pub(crate) replace: bool,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum InputState {
     Command,
@@ -60,9 +68,13 @@ pub(crate) enum InputState {
     BlockBase(String),
     BlockSelection(String, Point),
     WblockPath,
-    WblockName(String),
-    WblockBase(String),
-    WblockSelection(String, Point),
+    WblockReplace {
+        path: String,
+        open_drawing: bool,
+    },
+    WblockName(WblockOutput),
+    WblockBase(WblockOutput),
+    WblockSelection(WblockOutput, Point),
     HelpCommand,
     MenuFile,
     ScriptFile,
@@ -229,6 +241,13 @@ impl InputState {
             Self::BlockBase(_) => "BLOCK: insertion base point",
             Self::BlockSelection(_, _) => "BLOCK: entity numbers, ALL or LAST",
             Self::WblockPath => "WBLOCK: output file name",
+            Self::WblockReplace {
+                open_drawing: false,
+                ..
+            } => "WBLOCK: A drawing with this name already exists. Replace it? <N>",
+            Self::WblockReplace {
+                open_drawing: true, ..
+            } => "WBLOCK: This is the open drawing's file. Replace it? <N>",
             Self::WblockName(_) => "WBLOCK: block name (* for entire drawing)",
             Self::WblockBase(_) => "WBLOCK: insertion base point",
             Self::WblockSelection(_, _) => "WBLOCK: entity numbers, ALL, or LAST",

@@ -2,7 +2,7 @@
 use crate::presentation::*;
 use crate::{
     command_line,
-    document::{decode_drawing, save_dwg, Document, Format},
+    document::{decode_drawing, save_dwg, Document, Format, WblockDestination},
     files, menu_panel,
 };
 use acad_render::Libraries;
@@ -11,10 +11,12 @@ mod effects;
 mod external_insert;
 mod hatch_pattern;
 mod lifecycle;
+mod main_menu;
 mod menu_macro;
 mod mouse;
 mod resources;
 mod script;
+pub use main_menu::MAIN_MENU_TASKS;
 use resources::*;
 pub use script::{
     ScriptClock, ScriptInterrupt, ScriptPhase, ScriptPump, SystemClock, MAX_SCRIPT_BYTES,
@@ -50,8 +52,24 @@ pub struct Session {
     script_clock: std::sync::Arc<dyn ScriptClock>,
     /// Remaining steps of a screen-menu macro waiting at a `\` pause.
     pub(crate) paused_macro: Option<std::collections::VecDeque<acad_cmd::menu::MacroStep>>,
+    /// Font/menu search directories given at launch, kept for drawings the
+    /// Main Menu opens or creates later.
+    directories: Vec<std::path::PathBuf>,
+    /// The Main Menu screen while it is shown (docs/native-main-menu.md).
+    main_menu: Option<main_menu::MainMenu>,
+    /// END and QUIT return to the Main Menu instead of exiting.
+    main_menu_home: bool,
+    /// The name last given at the Main Menu (its default drawing name).
+    main_menu_drawing: Option<String>,
+    /// Set by window close / API quit for the next submission: their QUIT
+    /// answer exits the process even when QUIT would return to the menu.
+    exit_requested: bool,
+    /// "Enter NAME of drawing (default NAME)" once a name was given.
+    default_name_prompt: String,
 }
 
+#[cfg(test)]
+mod render_budget_tests;
 #[cfg(test)]
 mod script_tests;
 #[cfg(test)]
@@ -74,6 +92,7 @@ impl Session {
         }
         let (libraries, diagnostics) = Libraries::load(&search);
         let mut session = Self::with_editor(acad_cmd::Editor::default(), libraries);
+        session.directories = directories.to_vec();
         if !diagnostics.is_empty() {
             session.status = diagnostics.join("; ");
         }
@@ -97,6 +116,12 @@ impl Session {
             script_stepping: false,
             script_clock: std::sync::Arc::new(SystemClock::default()),
             paused_macro: None,
+            directories: Vec::new(),
+            main_menu: None,
+            main_menu_home: false,
+            main_menu_drawing: None,
+            exit_requested: false,
+            default_name_prompt: String::new(),
         };
         session
             .set_viewport_size(800, 600)
@@ -137,6 +162,7 @@ impl Session {
         self.pending_insert_source = None;
         self.script = None;
         self.abandon_macro();
+        self.main_menu = None;
         self.register_libraries();
         self.input.clear();
         self.status.clear();
@@ -154,6 +180,7 @@ impl Session {
         let format = Format::from_bytes(&bytes);
         let (libraries, diagnostics) = Libraries::for_drawing(&path, directories);
         let mut session = Self::with_editor(acad_cmd::Editor::new(drawing), libraries);
+        session.directories = directories.to_vec();
         session.document = Document::saved(path, format, session.drawing());
         if !diagnostics.is_empty() {
             session.status = diagnostics.join("; ");
@@ -171,6 +198,19 @@ impl Session {
     /// One Return-terminated line through the shared route (window, API and
     /// script items alike).
     fn submit_line(&mut self, input: &str) -> Result<bool, String> {
+        let result = if self.main_menu_takes_input() {
+            self.input.clear();
+            self.main_menu_submit(input)
+        } else {
+            let result = self.submit_editor_line(input);
+            self.leave_finished_file_utilities();
+            result
+        };
+        self.exit_requested = false;
+        result
+    }
+
+    fn submit_editor_line(&mut self, input: &str) -> Result<bool, String> {
         self.input = input.to_owned();
         let mut outcome = None;
         let mut quit = false;
@@ -223,7 +263,7 @@ impl Session {
             }
             return Ok(false);
         }
-        if text == " " && self.input.is_empty() && self.editor.prompt() == "Command" {
+        if text == " " && self.input.is_empty() && self.prompt() == "Command" {
             return self.command("");
         }
         self.input.push_str(text);
@@ -231,6 +271,7 @@ impl Session {
     }
 
     pub fn point(&mut self, point: acad_model::Point) -> Result<bool, String> {
+        self.refuse_at_main_menu()?;
         self.interrupt_script(ScriptInterrupt::Input);
         if self.editor.accepts_mouse_selection() {
             let picked = self.editor.pick_selection_at(point, 0.0)?;
@@ -256,6 +297,7 @@ impl Session {
         self.resume_macro(&mut |session, result| {
             quit |= matches!(session.apply_effect(result), Ok(true));
         });
+        self.exit_requested = false;
         if quit {
             Ok(true)
         } else {
@@ -264,6 +306,11 @@ impl Session {
     }
 
     pub fn cancel(&mut self) -> Result<bool, String> {
+        // Escape also abandons a window-close/API-quit confirmation.
+        self.exit_requested = false;
+        if self.main_menu.is_some() {
+            return self.main_menu_cancel();
+        }
         self.interrupt_script(ScriptInterrupt::Cancel);
         self.input.clear();
         self.abandon_macro();
@@ -281,8 +328,11 @@ impl Session {
         {
             return Err("click must be inside the frame".into());
         }
-        self.interrupt_script(ScriptInterrupt::Input);
         self.cursor = Some((x, y));
+        if !(self.in_file_utilities() && self.report_visible()) {
+            self.refuse_at_main_menu()?;
+        }
+        self.interrupt_script(ScriptInterrupt::Input);
         let mut quit = false;
         let mut error = None;
         self.handle_left_click(width, height, |session, result| {
@@ -293,6 +343,7 @@ impl Session {
                 }
             }
         });
+        self.exit_requested = false;
         if quit {
             Ok(true)
         } else if let Some(error) = error {
@@ -306,7 +357,8 @@ impl Session {
         self.editor.drawing()
     }
     pub fn prompt(&self) -> &str {
-        self.editor.prompt()
+        self.main_menu_prompt()
+            .unwrap_or_else(|| self.editor.prompt())
     }
     pub fn status(&self) -> &str {
         &self.status
@@ -353,6 +405,14 @@ impl Session {
             .as_ref()
             .map(|m| format!(" | screen menu: {} entries", m.entries.len()))
             .unwrap_or_default();
+        if self.main_menu_takes_input() {
+            return format!(
+                "AutoCAD 1.4 — Main Menu | {} {} {}",
+                self.prompt(),
+                self.input,
+                self.status
+            );
+        }
         format!(
             "AutoCAD 1.4 — {}{} | {} {} {}{}",
             self.document

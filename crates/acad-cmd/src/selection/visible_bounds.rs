@@ -2,6 +2,25 @@
 use super::*;
 
 const MAX_STORED_VISITS: usize = 100_000;
+
+/// A drawing plus its block-name index, built once per pick, window or
+/// bounds pass: `Drawing::block` is a linear scan of every item (RB2).
+pub(crate) struct Scene<'a> {
+    pub(crate) drawing: &'a Drawing,
+    pub(crate) blocks: acad_model::BlockIndex<'a>,
+}
+
+impl<'a> Scene<'a> {
+    pub(crate) fn new(drawing: &'a Drawing) -> Self {
+        Self {
+            drawing,
+            blocks: drawing.block_index(),
+        }
+    }
+}
+
+/// Bytes of a block name hashed per visit unit (long names are not free).
+const NAME_BYTES_PER_VISIT: usize = 16;
 const MAX_DEPTH: usize = 256;
 
 // REPEAT markers have no own layer. Layer wrappers gate a whole group;
@@ -23,15 +42,18 @@ pub(super) fn visible_record(drawing: &Drawing, mut entity: &Entity) -> bool {
         && (wrapped || matches!(entity, Entity::Repeat(_)) || drawing.header.layer_is_visible(1))
 }
 
-pub(super) fn item_bounds(drawing: &Drawing, item: &Item) -> Option<[Point; 2]> {
+/// One owner's bounds (`None` when hidden, empty or over the per-owner
+/// budget), plus the stored-record visits spent finding them.
+pub(super) fn item_bounds(scene: &Scene<'_>, item: &Item) -> (Option<[Point; 2]>, usize) {
     let mut remaining = MAX_STORED_VISITS;
-    match item {
-        Item::Entity(entity) => entity_bounds(drawing, entity, &mut remaining, 0, 0),
-        Item::Repeat(repeat) => repeat_bounds(drawing, repeat, &mut remaining, 0, 0),
+    let bounds = match item {
+        Item::Entity(entity) => entity_bounds(scene, entity, &mut remaining, 0, 0),
+        Item::Repeat(repeat) => repeat_bounds(scene, repeat, &mut remaining, 0, 0),
         _ => Ok(None),
     }
     .ok()
-    .flatten()
+    .flatten();
+    (bounds, MAX_STORED_VISITS - remaining)
 }
 
 fn merge(bounds: &mut Option<[Point; 2]>, child: [Point; 2]) {
@@ -61,7 +83,7 @@ fn points_bounds(points: impl IntoIterator<Item = Point>) -> Result<Option<[Poin
 }
 
 pub(super) fn entity_bounds(
-    drawing: &Drawing,
+    scene: &Scene<'_>,
     entity: &Entity,
     remaining: &mut usize,
     depth: usize,
@@ -81,11 +103,11 @@ pub(super) fn entity_bounds(
         *remaining -= 1;
         leaf = child;
     }
-    if !visible_record(drawing, entity) {
+    if !visible_record(scene.drawing, entity) {
         return Ok(None);
     }
     match bare(entity) {
-        Entity::Repeat(repeat) => repeat_bounds(drawing, repeat, remaining, depth + 1, inserts),
+        Entity::Repeat(repeat) => repeat_bounds(scene, repeat, remaining, depth + 1, inserts),
         Entity::Insert {
             name,
             origin,
@@ -96,13 +118,17 @@ pub(super) fn entity_bounds(
             if inserts >= 16 {
                 return Err(());
             }
-            let Some(block) = drawing.block(name) else {
+            let name_cost = name.len() / NAME_BYTES_PER_VISIT;
+            if name_cost > *remaining {
+                return Err(());
+            }
+            *remaining -= name_cost;
+            let Some(block) = scene.blocks.get(name) else {
                 return Ok(None);
             };
             let mut bounds = None;
             for child in &block.entities {
-                if let Some(child) =
-                    entity_bounds(drawing, child, remaining, depth + 1, inserts + 1)?
+                if let Some(child) = entity_bounds(scene, child, remaining, depth + 1, inserts + 1)?
                 {
                     merge(&mut bounds, child);
                 }
@@ -133,7 +159,7 @@ pub(super) fn entity_bounds(
 }
 
 fn repeat_bounds(
-    drawing: &Drawing,
+    scene: &Scene<'_>,
     repeat: &acad_model::Repeat,
     remaining: &mut usize,
     depth: usize,
@@ -147,7 +173,7 @@ fn repeat_bounds(
     }
     let mut bounds = None;
     for child in &repeat.entities {
-        if let Some(child) = entity_bounds(drawing, child, remaining, depth + 1, inserts)? {
+        if let Some(child) = entity_bounds(scene, child, remaining, depth + 1, inserts)? {
             merge(&mut bounds, child);
         }
     }
@@ -173,10 +199,11 @@ fn repeat_bounds(
 pub(crate) fn drawing_bounds(drawing: &Drawing) -> Result<Option<acad_model::Extents>, String> {
     let mut remaining = MAX_STORED_VISITS;
     let mut bounds = None;
+    let scene = Scene::new(drawing);
     for item in &drawing.items {
         let child = match item {
-            Item::Entity(entity) => entity_bounds(drawing, entity, &mut remaining, 0, 0),
-            Item::Repeat(repeat) => repeat_bounds(drawing, repeat, &mut remaining, 0, 0),
+            Item::Entity(entity) => entity_bounds(&scene, entity, &mut remaining, 0, 0),
+            Item::Repeat(repeat) => repeat_bounds(&scene, repeat, &mut remaining, 0, 0),
             Item::Block(_) | Item::Erased(_) => continue,
         }
         .map_err(|()| "visible drawing bounds exceed finite geometry/traversal limits")?;

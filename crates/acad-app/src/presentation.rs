@@ -1,6 +1,8 @@
 //! Shared drawing and UI composition for GUI and automation.
 use crate::{command_line, menu_panel, Session};
-use acad_render::{flatten_with_libraries, rasterize, Libraries, Prim, Viewport};
+use acad_render::{
+    flatten_with_budget, rasterize, FrameBudget, Libraries, Prim, RenderOutput, Viewport,
+};
 
 /// Reserve the command area even without a menu; use physical client pixels so
 /// the policy matches both the raster and cursor coordinates on every DPI.
@@ -29,18 +31,38 @@ pub(crate) fn supported_client_size(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn selected_highlight(
     drawing: &acad_model::Drawing,
     input: &str,
     viewport: &Viewport,
     libraries: &Libraries,
 ) -> Vec<Prim> {
+    selected_highlight_with_budget(
+        drawing,
+        input,
+        viewport,
+        libraries,
+        &mut FrameBudget::default(),
+    )
+    .primitives
+}
+
+/// Highlight pass of one frame, spending from that frame's shared budget.
+/// An exhausted budget omits the whole highlight (never a partial one).
+pub(crate) fn selected_highlight_with_budget(
+    drawing: &acad_model::Drawing,
+    input: &str,
+    viewport: &Viewport,
+    libraries: &Libraries,
+    budget: &mut FrameBudget,
+) -> RenderOutput {
     let selected: std::collections::BTreeSet<usize> = input
         .split(',')
         .filter_map(|part| part.trim().parse().ok())
         .collect();
     if selected.is_empty() {
-        return Vec::new();
+        return RenderOutput::default();
     }
 
     let selected_indexes: std::collections::BTreeSet<_> = acad_cmd::selectable_items(drawing)
@@ -48,17 +70,62 @@ pub(crate) fn selected_highlight(
         .map(|object| object.item_index)
         .collect();
     if selected_indexes.is_empty() {
-        return Vec::new();
+        return RenderOutput::default();
     }
-    highlight_primitives(
-        acad_render::flatten_selected_with_libraries(
-            drawing,
-            viewport,
-            libraries,
-            &selected_indexes,
-        )
-        .primitives,
-    )
+    let mut output = acad_render::flatten_selected_with_budget(
+        drawing,
+        viewport,
+        libraries,
+        &selected_indexes,
+        budget,
+    );
+    output.primitives = highlight_primitives(output.primitives);
+    output
+}
+
+/// Visible degradation for any truncated pass: an amber canvas border and a
+/// command-area status prefix. The canvas is never presented as complete.
+pub(crate) const BUDGET_INDICATOR: u32 = 0x00ff_8000;
+
+/// Status prefix for an incomplete frame; budget stops are named as such,
+/// other truncation (context failure, per-owner skip) points at diagnostics.
+pub(crate) fn incomplete_status(
+    drawing: &RenderOutput,
+    highlight: Option<&RenderOutput>,
+) -> Option<String> {
+    if let Some(stop) = &drawing.budget_stop {
+        return Some(format!(
+            "RENDER BUDGET: {} owner(s) from item {} not drawn",
+            stop.skipped_owners, stop.first_skipped_item
+        ));
+    }
+    if drawing.incomplete {
+        return Some("RENDER INCOMPLETE: some owners not drawn (see diagnostics)".into());
+    }
+    match highlight {
+        Some(h) if h.budget_stop.is_some() => {
+            Some("RENDER BUDGET: selection highlight omitted".into())
+        }
+        Some(h) if h.incomplete => {
+            Some("RENDER INCOMPLETE: selection highlight incomplete (see diagnostics)".into())
+        }
+        _ => None,
+    }
+}
+
+pub(crate) fn draw_budget_border(buffer: &mut [u32], width: u32, height: u32) {
+    let (width, height) = (width as usize, height as usize);
+    if width == 0 || height == 0 || buffer.len() < width.saturating_mul(height) {
+        return;
+    }
+    const THICKNESS: usize = 3;
+    for y in 0..height {
+        for x in 0..width {
+            if x < THICKNESS || y < THICKNESS || x + THICKNESS >= width || y + THICKNESS >= height {
+                buffer[y * width + x] = BUDGET_INDICATOR;
+            }
+        }
+    }
 }
 
 pub(crate) fn highlight_primitives(primitives: Vec<Prim>) -> Vec<Prim> {
@@ -246,6 +313,9 @@ pub struct Frame {
     pub height: u32,
     pub pixels: Vec<u32>,
     pub diagnostics: Vec<String>,
+    /// False when the whole-frame render budget stopped drawing or omitted
+    /// the selection highlight; `diagnostics` then says what was skipped.
+    pub complete: bool,
 }
 impl Frame {
     pub fn rgba(&self) -> Vec<u8> {
@@ -275,6 +345,30 @@ impl Session {
         if width == 0 || height == 0 || u64::from(width) * u64::from(height) > 33_554_432 {
             return Err("frame must be nonzero and contain at most 33554432 pixels".into());
         }
+        if self.main_menu_active() && !(self.in_file_utilities() && self.report_visible()) {
+            let mut pixels = vec![0; width as usize * height as usize];
+            draw_text_screen(
+                &mut pixels,
+                width,
+                height,
+                &self.main_menu_text().unwrap_or_default(),
+            );
+            command_line::draw(
+                &mut pixels,
+                width,
+                height,
+                self.prompt(),
+                &self.input,
+                &self.status,
+            );
+            return Ok(Frame {
+                width,
+                height,
+                pixels,
+                diagnostics: Vec::new(),
+                complete: true,
+            });
+        }
         if self.report_visible() {
             let mut pixels = vec![0; width as usize * height as usize];
             self.report
@@ -294,19 +388,29 @@ impl Session {
                 height,
                 pixels,
                 diagnostics: Vec::new(),
+                complete: true,
             });
         }
         let drawing = self.drawing();
         let vp = viewport_for(drawing, width, height);
-        let rendered = flatten_with_libraries(drawing, &vp, &self.libraries);
-        let mut primitives = rendered.primitives;
-        if self.editor.accepts_mouse_selection() {
-            primitives.extend(selected_highlight(
-                drawing,
-                &self.input,
-                &vp,
-                &self.libraries,
-            ));
+        // One budget for the drawing and highlight passes of this frame.
+        let mut budget = FrameBudget::default();
+        let mut rendered = flatten_with_budget(drawing, &vp, &self.libraries, &mut budget);
+        let highlight = self.editor.accepts_mouse_selection().then(|| {
+            selected_highlight_with_budget(drawing, &self.input, &vp, &self.libraries, &mut budget)
+        });
+        // Any truncated pass (budget, context failure, per-owner skip) marks
+        // the frame incomplete; both passes' diagnostics are capped.
+        let budget_status = incomplete_status(&rendered, highlight.as_ref());
+        let mut primitives = std::mem::take(&mut rendered.primitives);
+        let mut diagnostics = rendered.diagnostics;
+        if let Some(highlight) = highlight {
+            for diagnostic in highlight.diagnostics {
+                if !diagnostics.contains(&diagnostic) {
+                    diagnostics.push(diagnostic);
+                }
+            }
+            primitives.extend(highlight.primitives);
         }
         if let Some(sketch) = self.editor.sketch_preview() {
             primitives.extend(sketch_primitives(&sketch, &vp));
@@ -335,20 +439,63 @@ impl Session {
                 &layout,
             );
         }
+        // Last on the canvas so neither the menu panel nor the crosshair can
+        // hide that this frame is incomplete.
+        if budget_status.is_some() {
+            draw_budget_border(&mut pixels, width, canvas_height);
+        }
+        let status = match &budget_status {
+            Some(budget) if self.status.is_empty() => budget.clone(),
+            Some(budget) => format!("{budget}; {}", self.status),
+            None => self.status.clone(),
+        };
         command_line::draw(
             &mut pixels,
             width,
             height,
             self.prompt(),
             &self.input,
-            &self.status,
+            &status,
         );
         Ok(Frame {
             width,
             height,
             pixels,
-            diagnostics: rendered.diagnostics,
+            diagnostics,
+            complete: budget_status.is_none(),
         })
+    }
+}
+
+/// The Main Menu's text screen above the command area; lines that do not
+/// fit the canvas are clipped, never wrapped into the command area.
+pub(crate) fn draw_text_screen(buffer: &mut [u32], width: u32, height: u32, text: &str) {
+    use crate::bitmap::{draw_rect, draw_text, GLYPH_HEIGHT, GLYPH_WIDTH};
+    const PAD: usize = 8;
+    let row = GLYPH_HEIGHT * 2;
+    let canvas = command_line::drawing_height(height) as usize;
+    let width = width as usize;
+    let length = (width * canvas).min(buffer.len());
+    let buffer = &mut buffer[..length];
+    draw_rect(buffer, width, canvas, 0, 0, width, canvas, 0x0000_0000);
+    let columns = width.saturating_sub(2 * PAD) / (GLYPH_WIDTH * 2);
+    for (index, line) in text.lines().enumerate() {
+        let top = PAD + index * row;
+        if top + row > canvas {
+            break;
+        }
+        let line: String = line
+            .chars()
+            .map(|c| {
+                if c.is_ascii() && !c.is_control() {
+                    c
+                } else {
+                    '?'
+                }
+            })
+            .take(columns)
+            .collect();
+        draw_text(buffer, width, PAD, top, &line, 0x00dd_eeee);
     }
 }
 

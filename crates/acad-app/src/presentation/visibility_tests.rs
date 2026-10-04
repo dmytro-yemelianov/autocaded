@@ -1,5 +1,6 @@
 use super::*;
 use acad_model::{Entity, Item, Point, Repeat};
+use acad_render::flatten_with_libraries;
 fn libraries() -> Libraries {
     let mut libraries = Libraries::default();
     libraries

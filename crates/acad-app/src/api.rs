@@ -70,6 +70,8 @@ pub enum Request {
     ScriptTick {},
     /// Discard the current (running, delaying or interrupted) script.
     ScriptStop {},
+    /// Show the Main Menu (clean drawings only); END/QUIT then return to it.
+    MainMenu {},
 }
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -95,7 +97,8 @@ pub fn state(session: &Session) -> Value {
         "limits":{"xmin":h.limits.xmin,"ymin":h.limits.ymin,"xmax":h.limits.xmax,"ymax":h.limits.ymax},
         "fillet_radius":h.fillet_radius,"current_layer":h.current_layer,"layers":h.layers,"off_layers":h.off_layers,
         "snap":{"on":h.snap.on,"spacing":h.snap.spacing},
-        "grid":{"on":h.grid.on,"spacing":h.grid.spacing},"ortho":h.ortho,"script":session.script_status()})
+        "grid":{"on":h.grid.on,"spacing":h.grid.spacing},"ortho":h.ortho,"script":session.script_status(),
+        "main_menu":session.main_menu_state(),"returns_to_main_menu":session.returns_to_main_menu()})
 }
 
 /// Frame/click dimensions default to the attached window's current physical
@@ -141,8 +144,14 @@ fn perform(session: &mut Session, request: Request, size: (u32, u32)) -> Result<
         }
         Request::Open { path, directories } => {
             let clock = session.script_clock();
-            *session = Session::open(&path, &directories)?;
+            let mut opened = Session::open(&path, &directories)?;
+            opened.inherit_main_menu_home(session);
+            *session = opened;
             session.set_script_clock(clock);
+            false
+        }
+        Request::MainMenu {} => {
+            session.enter_main_menu()?;
             false
         }
         Request::Command { input } => {
@@ -208,7 +217,7 @@ fn perform(session: &mut Session, request: Request, size: (u32, u32)) -> Result<
             };
             return Ok(
                 json!({"width":frame.width,"height":frame.height,"stride":frame.width*4,
-                "format":format,"encoding":"base64","data":STANDARD.encode(bytes),"diagnostics":frame.diagnostics}),
+                "format":format,"encoding":"base64","data":STANDARD.encode(bytes),"diagnostics":frame.diagnostics,"complete":frame.complete}),
             );
         }
         Request::Quit { discard: true } => true,

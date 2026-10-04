@@ -181,6 +181,8 @@ pub struct InTreeObservation {
     /// Each of the requested `watch_files` present after the run (for
     /// example a drawing saved by END), by the requested DOS name.
     pub created: Vec<(String, Vec<u8>)>,
+    /// The 16 KiB CGA memory (`B800:0000`) when the run ended.
+    pub cga: Vec<u8>,
 }
 
 /// Boot the original with `command_tail` and `extra_files` added to the
@@ -224,6 +226,7 @@ pub fn observe_in_tree(
         stopped: None,
         console: String::new(),
         created: Vec::new(),
+        cga: Vec::new(),
     };
     'phases: for (keys, slices) in phases {
         if observation.stopped.is_some() {
@@ -250,6 +253,7 @@ pub fn observe_in_tree(
         observation.phases.push(phase);
     }
     observation.console = String::from_utf8_lossy(machine.output()).into_owned();
+    observation.cga = machine.cga_memory();
     for name in watch_files {
         if let Some(bytes) = machine.file(name) {
             observation
@@ -258,6 +262,48 @@ pub fn observe_in_tree(
         }
     }
     Ok(observation)
+}
+
+/// The original editor's 25 rows of 80 text cells, read from a graphics
+/// [`InTreeObservation::cga`] frame with the original's own 8×8 display font
+/// (the ASCII-indexed table in `ACAD.OVL`). Cells that match no printable
+/// glyph read as `?`; trailing spaces are trimmed.
+pub fn editor_text_rows(system_disk: &Path, cga: &[u8]) -> Result<Vec<String>, String> {
+    let disk = fs::read(system_disk)
+        .map_err(|error| format!("read {}: {error}", system_disk.display()))?;
+    let overlay = fat12_file(&disk, "ACAD.OVL")?;
+    // Locate the table by its `A` glyph, then require a blank space glyph.
+    const GLYPH_A: [u8; 8] = [0x30, 0x78, 0xCC, 0xCC, 0xFC, 0xCC, 0xCC, 0x00];
+    let base = overlay
+        .windows(8)
+        .position(|window| window == GLYPH_A)
+        .and_then(|at| at.checked_sub(usize::from(b'A') * 8))
+        .filter(|base| overlay.get(base + 0x20 * 8..base + 0x21 * 8) == Some(&[0; 8][..]))
+        .filter(|base| overlay.len() >= base + 0x7F * 8)
+        .ok_or("ACAD.OVL display font not found")?;
+    let frame = crate::cga::Frame::new(cga)?;
+    Ok((0..25)
+        .map(|row| {
+            let text: String = (0..80)
+                .map(|column| {
+                    let cell: Vec<u8> = (0..8)
+                        .map(|line| {
+                            (0..8).fold(0u8, |bits, x| {
+                                bits << 1 | u8::from(frame.lit(column * 8 + x, row * 8 + line))
+                            })
+                        })
+                        .collect();
+                    (0x20u8..0x7F)
+                        .find(|&code| {
+                            let at = base + usize::from(code) * 8;
+                            overlay[at..at + 8] == cell[..]
+                        })
+                        .map_or('?', char::from)
+                })
+                .collect();
+            text.trim_end().to_owned()
+        })
+        .collect())
 }
 
 #[cfg(test)]

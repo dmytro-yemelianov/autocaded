@@ -449,6 +449,12 @@ fn load_accepts_a_new_shp_path_and_makes_its_shapes_available() {
         script_stepping: false,
         script_clock: std::sync::Arc::new(SystemClock::default()),
         paused_macro: None,
+        directories: Vec::new(),
+        main_menu: None,
+        main_menu_home: false,
+        main_menu_drawing: None,
+        exit_requested: false,
+        default_name_prompt: String::new(),
     };
     app.editor.submit("LOAD").unwrap();
     let library_name = app.resolve_shape_library(path.to_str().unwrap()).unwrap();
@@ -506,6 +512,12 @@ fn menu_app(page: usize) -> Option<Session> {
         script_stepping: false,
         script_clock: std::sync::Arc::new(SystemClock::default()),
         paused_macro: None,
+        directories: Vec::new(),
+        main_menu: None,
+        main_menu_home: false,
+        main_menu_drawing: None,
+        exit_requested: false,
+        default_name_prompt: String::new(),
     })
 }
 
@@ -1762,4 +1774,34 @@ fn a_pattern_file_answer_at_a_macro_pause_resumes_the_macro() {
     assert_eq!(app.editor.drawing().blocks().count(), 1);
     assert_eq!(app.editor.prompt(), "Command");
     std::fs::remove_file(path).unwrap();
+}
+
+/// Menu macros reach the WBLOCK replace question like typed input: a macro
+/// written for a new file (`wblock \*`) has its `*` decline at the question,
+/// and only an explicit `Y` piece confirms (docs/native-files-menu.md).
+#[test]
+fn menu_macro_wblock_answers_the_replace_question_with_its_next_piece() {
+    let dir = std::env::temp_dir().join(format!("acad-macro-wblock-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir(&dir).unwrap();
+    let target = dir.join("part.dwg");
+    std::fs::write(&target, b"keep me").unwrap();
+    let mut app = Session::default();
+    app.command("POINT").unwrap();
+    app.command("1,1").unwrap();
+    let run = |app: &mut Session, text: &str| {
+        app.run_macro(text, &mut |app, result| {
+            let _ = app.apply_effect(result);
+        });
+        assert!(app.paused_macro.is_some());
+        app.command_typed(target.to_str().unwrap()).unwrap();
+        assert!(app.paused_macro.is_none());
+        assert_eq!(app.prompt(), "Command");
+    };
+    run(&mut app, "wblock \\*");
+    assert_eq!(std::fs::read(&target).unwrap(), b"keep me");
+    run(&mut app, "wblock \\y *");
+    let written = std::fs::read(&target).unwrap();
+    assert_eq!(acad_dwg::parse(&written).unwrap().entities().count(), 1);
+    std::fs::remove_dir_all(&dir).unwrap();
 }

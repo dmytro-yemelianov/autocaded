@@ -4,7 +4,7 @@ use crate::dimension::{dimension_geometry, DimInput};
 use crate::entity_ops::{entity_anchor, item_anchor, normalize_library_name};
 use crate::geometry::{polygon_metrics, trace_quads};
 use crate::input_state::{
-    ArraySpacingInput, EditCommand, InputState, RepeatDistanceInput, Transform,
+    ArraySpacingInput, EditCommand, InputState, RepeatDistanceInput, Transform, WblockOutput,
 };
 use crate::parse::{
     color_index, format_measurement, layer_index, number, parse_grid_mode, parse_mode,
@@ -244,6 +244,7 @@ impl Editor {
             | InputState::EndSavePath
             | InputState::QuitConfirmation
             | InputState::WblockPath
+            | InputState::WblockReplace { .. }
             | InputState::WblockName(..)
             | InputState::WblockBase(..)
             | InputState::WblockSelection(..)

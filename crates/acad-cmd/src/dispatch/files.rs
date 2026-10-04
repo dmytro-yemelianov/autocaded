@@ -40,12 +40,32 @@ impl Editor {
                 if path.extension().is_none() {
                     path.set_extension("DWG");
                 }
-                self.state = InputState::WblockName(path.to_string_lossy().into_owned());
+                let path = path.to_string_lossy().into_owned();
+                // The question, when the host finds the file, comes before
+                // the block name, as in the original.
+                self.state = InputState::WblockName(WblockOutput {
+                    path: path.clone(),
+                    replace: false,
+                });
+                Ok(Effect::CheckWblockDestination(path))
+            }
+            InputState::WblockReplace { path, .. } => {
+                // Original rule: an answer starting with Y replaces; anything
+                // else, including Return, ends WBLOCK keeping the file.
+                if line.trim_start().starts_with(['Y', 'y']) {
+                    self.state = InputState::WblockName(WblockOutput {
+                        path,
+                        replace: true,
+                    });
+                } else {
+                    self.status = format!("WBLOCK: kept existing {path}");
+                    self.state = InputState::Command;
+                }
                 Ok(Effect::Continue)
             }
-            InputState::WblockName(path) => {
+            InputState::WblockName(output) => {
                 if line.trim().is_empty() {
-                    self.state = InputState::WblockBase(path);
+                    self.state = InputState::WblockBase(output);
                     return Ok(Effect::Continue);
                 }
                 let drawing = if line.trim() == "*" {
@@ -54,17 +74,17 @@ impl Editor {
                     self.wblock_named_block(line.trim())?
                 };
                 self.state = InputState::Command;
-                Ok(Effect::SaveDrawing(path, Box::new(drawing)))
+                Ok(wblock_effect(output, drawing))
             }
-            InputState::WblockBase(path) => {
-                self.state = InputState::WblockSelection(path, point(line)?);
+            InputState::WblockBase(output) => {
+                self.state = InputState::WblockSelection(output, point(line)?);
                 Ok(Effect::Continue)
             }
-            InputState::WblockSelection(path, base) => {
+            InputState::WblockSelection(output, base) => {
                 let ids = selection(line, selectable_count(&self.drawing))?;
                 let drawing = self.wblock_selected_entities(&ids, base)?;
                 self.state = InputState::Command;
-                Ok(Effect::SaveDrawing(path, Box::new(drawing)))
+                Ok(wblock_effect(output, drawing))
             }
             InputState::HelpCommand => {
                 let report = help_report(line)?;
@@ -174,5 +194,13 @@ impl Editor {
 
             _ => unreachable!("dispatch routes only files prompts"),
         }
+    }
+}
+
+fn wblock_effect(output: WblockOutput, drawing: acad_model::Drawing) -> Effect {
+    if output.replace {
+        Effect::ReplaceDrawing(output.path, Box::new(drawing))
+    } else {
+        Effect::SaveDrawing(output.path, Box::new(drawing))
     }
 }

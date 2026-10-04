@@ -41,6 +41,11 @@ impl Session {
                         self.editor.submit(&piece)
                     };
                     handle_result(self, result);
+                    if self.main_menu.is_some() {
+                        // END/QUIT returned to the Main Menu: the rest of
+                        // the macro belonged to the closed drawing.
+                        return;
+                    }
                 }
                 MacroStep::Pause(typed) => {
                     self.input = typed;

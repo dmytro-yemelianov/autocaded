@@ -74,7 +74,16 @@ pub enum Effect {
     /// Save the attached document, prompting for a path if it is unnamed.
     End,
     SaveAndQuit(String),
+    /// WBLOCK output to a destination that must not exist yet: the host
+    /// creates it and never replaces a file (docs/native-files-menu.md).
     SaveDrawing(String, Box<Drawing>),
+    /// WBLOCK output whose replacement of an existing file was confirmed
+    /// with `Y` at the replace question.
+    ReplaceDrawing(String, Box<Drawing>),
+    /// WBLOCK chose this output file. The host checks it now and calls
+    /// [`Editor::ask_wblock_replace`] when it already exists; otherwise the
+    /// block name prompt follows.
+    CheckWblockDestination(String),
     LoadMenu(String),
     UnloadMenu,
     Files(FilesRequest),
@@ -298,6 +307,21 @@ impl Editor {
         self.state = InputState::EndSavePath;
     }
 
+    /// The WBLOCK destination reported by `Effect::CheckWblockDestination`
+    /// exists: ask the original's replace question before the block name.
+    /// `open_drawing` names the attached document's own file. Ignored unless
+    /// WBLOCK is at the block name step and has not been confirmed.
+    pub fn ask_wblock_replace(&mut self, open_drawing: bool) {
+        if let InputState::WblockName(output) = &self.state {
+            if !output.replace {
+                self.state = InputState::WblockReplace {
+                    path: output.path.clone(),
+                    open_drawing,
+                };
+            }
+        }
+    }
+
     /// Whether the current prompt takes a whole line literally, so a command
     /// script's spaces belong to the answer instead of acting as Return.
     pub fn accepts_literal_text(&self) -> bool {
@@ -458,13 +482,29 @@ impl Editor {
     }
 
     /// Return the one-based selectable entity number nearest a world-space point.
+    /// `None` also when the whole-drawing hit-test budget is exhausted; use
+    /// [`Editor::try_pick_entity_at`] to tell that apart from a miss.
     pub fn pick_entity_at(&self, point: Point, tolerance: f64) -> Option<usize> {
+        self.try_pick_entity_at(point, tolerance).ok().flatten()
+    }
+
+    /// Nearest selectable entity, or an error when scanning every owner would
+    /// exceed the whole-drawing hit-test budget (no hit from a partial scan).
+    pub fn try_pick_entity_at(
+        &self,
+        point: Point,
+        tolerance: f64,
+    ) -> Result<Option<usize>, String> {
         if !tolerance.is_finite() || tolerance < 0.0 {
-            return None;
+            return Ok(None);
         }
+        let mut remaining = selection::MAX_DRAWING_HIT_TEST_VISITS;
         let mut nearest: Option<(usize, f64)> = None;
+        let scene = selection::visible_bounds::Scene::new(&self.drawing);
         for selected in selectable_items(&self.drawing) {
-            if let Some(distance) = item_pick_distance(&self.drawing, point, selected.item) {
+            let (distance, used) = item_pick_distance(&scene, point, selected.item);
+            selection::charge_hit_test(&mut remaining, used)?;
+            if let Some(distance) = distance {
                 if distance <= tolerance
                     && nearest.is_none_or(|(_, nearest_distance)| distance < nearest_distance)
                 {
@@ -472,7 +512,7 @@ impl Editor {
                 }
             }
         }
-        nearest.map(|(id, _)| id)
+        Ok(nearest.map(|(id, _)| id))
     }
 }
 

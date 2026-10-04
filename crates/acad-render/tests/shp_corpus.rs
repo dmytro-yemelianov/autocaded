@@ -1,4 +1,6 @@
-use acad_render::{flatten, flatten_with_libraries, shp::Library, Libraries, Viewport};
+use acad_render::{
+    flatten, flatten_with_budget, shp::Library, FrameBudget, Libraries, Viewport, FRAME_WORK_LIMIT,
+};
 
 #[test]
 fn every_supplied_font_and_shape_program_executes() {
@@ -53,6 +55,7 @@ fn all_21_drawings_render_without_missing_fonts_or_glyphs() {
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
     assert_eq!(local.get("TXT").unwrap().cap_height, Some(6.));
     let mut count = 0;
+    let mut heaviest = (0, String::new());
     for entry in std::fs::read_dir(&root).unwrap() {
         let path = entry.unwrap().path();
         if path.extension().is_none_or(|s| s != "DWG") && path.file_name().unwrap() != "DISC.BAK" {
@@ -60,7 +63,19 @@ fn all_21_drawings_render_without_missing_fonts_or_glyphs() {
         }
         let drawing = acad_dwg::parse(&std::fs::read(&path).unwrap()).unwrap();
         let vp = Viewport::fit(&drawing.header.limits, 1200, 900);
-        let rendered = flatten_with_libraries(&drawing, &vp, &libraries);
+        let mut budget = FrameBudget::default();
+        let rendered = flatten_with_budget(&drawing, &vp, &libraries, &mut budget);
+        // RB2: retained drawings stay far inside the whole-frame budget.
+        assert!(rendered.budget_stop.is_none(), "{}", path.display());
+        assert!(
+            budget.used() < FRAME_WORK_LIMIT / 10,
+            "{}: {} work units",
+            path.display(),
+            budget.used()
+        );
+        if budget.used() > heaviest.0 {
+            heaviest = (budget.used(), path.display().to_string());
+        }
         assert!(
             rendered.diagnostics.is_empty(),
             "{}: {:?}",
@@ -77,4 +92,8 @@ fn all_21_drawings_render_without_missing_fonts_or_glyphs() {
         count += 1;
     }
     assert_eq!(count, 21);
+    eprintln!(
+        "heaviest corpus frame: {} work units ({})",
+        heaviest.0, heaviest.1
+    );
 }

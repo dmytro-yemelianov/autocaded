@@ -149,6 +149,7 @@ impl Session {
     /// Resolve and read a script, then make it the only script, due now.
     /// Failures leave any existing (interrupted) script untouched.
     pub fn start_script(&mut self, spec: &str) -> Result<(), String> {
+        self.refuse_at_main_menu()?;
         if self.script_stepping {
             return Err("SCRIPT: a running command script cannot start another".into());
         }

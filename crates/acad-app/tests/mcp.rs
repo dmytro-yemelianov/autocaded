@@ -39,7 +39,7 @@ fn lifecycle_and_protocol_errors_do_not_execute_tools() {
         )
         .unwrap();
     let listed = tools["result"]["tools"].as_array().unwrap();
-    assert_eq!(listed.len(), 17);
+    assert_eq!(listed.len(), 18);
     let script_tools: Vec<_> = listed
         .iter()
         .filter(|tool| tool["name"].as_str().unwrap().starts_with("acad_script"))
@@ -337,4 +337,51 @@ fn selected_list_mcp_collects_deduplicated_points_and_reports_without_mutation()
     }
     assert_eq!(session.drawing(), &before);
     assert_eq!(session.is_dirty(), dirty);
+}
+
+#[test]
+fn acad_main_menu_tool_shows_and_answers_the_main_menu() {
+    let mut protocol = Protocol::default();
+    let mut session = Session::default();
+    let mut backend = |value: Value| {
+        let request = serde_json::from_value(value).map_err(|e| e.to_string())?;
+        api::dispatch(&mut session, request, (800, 600))
+    };
+    protocol.handle(initialize(), &mut backend).unwrap();
+    protocol.handle(
+        json!({"jsonrpc":"2.0","method":"notifications/initialized"}),
+        &mut backend,
+    );
+    let mut call = |id: i64, name: &str, arguments: Value| {
+        protocol
+            .handle(
+                json!({"jsonrpc":"2.0","id":id,"method":"tools/call","params":{"name":name,"arguments":arguments}}),
+                &mut backend,
+            )
+            .unwrap()["result"]
+            .clone()
+    };
+    let shown = call(2, "acad_main_menu", json!({}));
+    assert_eq!(shown["isError"], false);
+    assert_eq!(
+        shown["structuredContent"]["state"]["main_menu"]["screen"],
+        "selection"
+    );
+    assert_eq!(
+        shown["structuredContent"]["state"]["prompt"],
+        "Enter selection"
+    );
+    let configure = call(3, "acad_command", json!({"input":"4"}));
+    assert_eq!(
+        configure["structuredContent"]["state"]["main_menu"]["screen"],
+        "configure_show"
+    );
+    call(4, "acad_command", json!({"input":""}));
+    let back = call(5, "acad_command", json!({"input":"0"}));
+    assert_eq!(
+        back["structuredContent"]["state"]["main_menu"]["screen"],
+        "selection"
+    );
+    let quit = call(6, "acad_command", json!({"input":"0"}));
+    assert_eq!(quit["structuredContent"]["quit"], true);
 }

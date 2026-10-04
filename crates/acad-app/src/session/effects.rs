@@ -41,23 +41,34 @@ impl Session {
                 self.status = self.editor.status().to_owned();
                 self.sync_collected_selection();
             }
-            acad_cmd::Effect::Quit => return Ok(true),
+            acad_cmd::Effect::Quit => return Ok(self.leave_editor()),
             acad_cmd::Effect::End => return self.end(),
             acad_cmd::Effect::SaveAndQuit(path) => {
                 self.save(std::path::Path::new(&path))?;
-                return Ok(true);
+                return Ok(self.leave_editor());
             }
             acad_cmd::Effect::UnloadMenu => self.unload_menu(),
             acad_cmd::Effect::Save(path) => {
                 self.save(std::path::Path::new(&path))?;
             }
+            acad_cmd::Effect::CheckWblockDestination(path) => {
+                let open = self.document.path.as_deref();
+                match crate::document::wblock_destination(std::path::Path::new(&path), open) {
+                    Ok(WblockDestination::New) => {}
+                    Ok(WblockDestination::Existing) => self.editor.ask_wblock_replace(false),
+                    Ok(WblockDestination::OpenDrawing) => self.editor.ask_wblock_replace(true),
+                    Err(e) => {
+                        self.editor.cancel_command()?;
+                        return Err(format!("WBLOCK failed: {e}"));
+                    }
+                }
+                self.status = self.editor.status().to_owned();
+            }
             acad_cmd::Effect::SaveDrawing(path, drawing) => {
-                let warning =
-                    save_dwg(&path, &drawing).map_err(|e| format!("WBLOCK failed: {e}"))?;
-                self.status = match warning {
-                    Some(warning) => format!("Wrote block drawing {path}; {warning}"),
-                    None => format!("Wrote block drawing {path}"),
-                };
+                self.write_wblock(&path, &drawing, false)?
+            }
+            acad_cmd::Effect::ReplaceDrawing(path, drawing) => {
+                self.write_wblock(&path, &drawing, true)?
             }
             acad_cmd::Effect::LoadMenu(requested) => {
                 self.try_load_menu(&requested)?;
@@ -82,5 +93,38 @@ impl Session {
             }
         }
         Ok(false)
+    }
+}
+
+impl Session {
+    /// Write WBLOCK output. When it lands on the attached document's own
+    /// file (only after the open-drawing question, or a file that did not
+    /// exist), the document stays attached with that output as its saved
+    /// baseline, so dirty state, QUIT and END reflect what the file holds.
+    fn write_wblock(
+        &mut self,
+        path: &str,
+        drawing: &acad_model::Drawing,
+        replace: bool,
+    ) -> Result<(), String> {
+        let warning =
+            save_dwg(path, drawing, replace).map_err(|e| format!("WBLOCK failed: {e}"))?;
+        let mut status = format!("Wrote block drawing {path}");
+        let document = self.document.path.clone();
+        if let Some(document) = document.filter(|document| {
+            crate::document::is_document_file(std::path::Path::new(path), Some(document))
+        }) {
+            self.document = Document::saved(
+                document,
+                Format::Dwg(acad_dwg::header::Version::Ac140),
+                drawing,
+            );
+            status.push_str(" over the open drawing's file");
+        }
+        if let Some(warning) = warning {
+            status = format!("{status}; {warning}");
+        }
+        self.status = status;
+        Ok(())
     }
 }
