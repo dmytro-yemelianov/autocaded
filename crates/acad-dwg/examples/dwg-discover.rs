@@ -22,6 +22,7 @@ const TOLERANCE: f64 = 5e-7;
 /// `end_deg`.
 fn coords(e: &Entity) -> Vec<(&'static str, f64)> {
     match e {
+        Entity::Erased(_) => Vec::new(),
         Entity::Repeat(r) => vec![
             ("columns", f64::from(r.columns)),
             ("rows", f64::from(r.rows)),
@@ -146,6 +147,7 @@ fn main() -> ExitCode {
 
 fn entity_name(e: &Entity) -> &'static str {
     match e {
+        Entity::Erased(_) => "ERASED",
         Entity::Repeat(_) => "REPEAT",
         Entity::OnLayer { entity, .. } => entity_name(entity),
         Entity::Load { .. } => "LOAD",

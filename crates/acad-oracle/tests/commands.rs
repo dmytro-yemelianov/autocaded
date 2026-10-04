@@ -1255,6 +1255,8 @@ fn original_repeat_point_distances_use_consecutive_point_deltas() {
     ];
     let original = acad_oracle::generate_dwg_in_tree(&disk, "ORCRPPT", &inputs).unwrap();
     let expected = Item::Repeat(acad_model::Repeat {
+        start_layer: 1,
+        end_layer: 1,
         entities: vec![Entity::OnLayer {
             layer: 1,
             entity: Box::new(Entity::Line {

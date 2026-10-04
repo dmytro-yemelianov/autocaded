@@ -1,10 +1,22 @@
 import unittest
 
 from analysis_layout import normalize_layout
-from recover_flow import directory_views, helper_kind, switch_table
+from recover_flow import directory_views, helper_kind, switch_table, validated_extra_seeds
 
 
 class RecoveryTests(unittest.TestCase):
+    def test_trace_seeds_require_in_range_code_and_remove_duplicates(self):
+        spec = {"blocks": [
+            {"name": "EXE_CODE", "off": 0x100, "len": 0xe000},
+            {"name": "EXE_DATA", "off": 0, "len": 0x5000}]}
+        seed = ("EXE_CODE", 0xdbb2)
+        self.assertEqual(validated_extra_seeds(spec, [seed, seed]), [seed])
+        for invalid in [("EXE_DATA", 0x100), ("MISSING", 0x100),
+                        ("EXE_CODE", 0xff), ("EXE_CODE", 0xe100),
+                        ("EXE_CODE", True)]:
+            with self.assertRaises(ValueError):
+                validated_extra_seeds(spec, [invalid])
+
     def test_frame_signature_requires_the_return_transfer(self):
         helper = bytes.fromhex("5efc2eacb400558bec2be03b265d5076e1ffe6")
         self.assertEqual(helper_kind(helper), ("frame", 1))

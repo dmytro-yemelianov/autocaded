@@ -63,6 +63,7 @@ const TOLERANCE: f64 = 5e-7;
 /// not just aggregate per-kind counts.
 fn kind_and_fields(e: &Entity) -> (&'static str, Vec<f64>, Option<&str>) {
     match e {
+        Entity::Erased(_) => panic!("unexpected erased member in held original live fixture"),
         Entity::Repeat(r) => (
             "REPEAT",
             vec![

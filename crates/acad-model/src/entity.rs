@@ -9,6 +9,10 @@ use crate::geom::Point;
 /// model just holds the four points.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Entity {
+    /// An erased ordinary stored member. It retains geometry/layer fields but
+    /// has no live geometry or library effect. Structural wrappers are checked
+    /// codec errors; top-level erased owners use Item::Erased instead.
+    Erased(Box<Entity>),
     /// A rectangular pattern nested in a block definition.
     Repeat(crate::drawing::Repeat),
     /// Layer index stored in the entity record header. Wrapping keeps layer
@@ -79,6 +83,22 @@ pub enum Entity {
         p3: Point,
         p4: Point,
     },
+}
+
+impl Entity {
+    /// Erased status beneath layer wrappers. Malformed excessive wrapper depth
+    /// is conservatively excluded from live traversal; codecs validate it separately.
+    pub fn is_erased(&self) -> bool {
+        let mut entity = self;
+        for _ in 0..=256 {
+            match entity {
+                Self::OnLayer { entity: inner, .. } => entity = inner,
+                Self::Erased(_) => return true,
+                _ => return false,
+            }
+        }
+        true
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

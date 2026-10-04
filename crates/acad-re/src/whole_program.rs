@@ -372,13 +372,13 @@ pub fn emit_function(function: &Function, symbols: &SymbolTable) -> String {
                         let fn_name = function_symbol(&tgt_blk, tgt_entry);
                         writeln!(
                             source,
-                            "crate::{mod_name}::{fn_name}(registers, memory, budget)?;"
+                            "crate::runtime::call_with_return(registers, memory, budget, |registers, memory, budget| crate::{mod_name}::{fn_name}(registers, memory, budget))?;"
                         )
                         .unwrap();
                     } else {
                         writeln!(
                             source,
-                            "crate::runtime::dispatch_call(registers, memory, budget, {target})?;"
+                            "crate::runtime::call_with_return(registers, memory, budget, |registers, memory, budget| crate::runtime::dispatch_call(registers, memory, budget, {target}))?;"
                         )
                         .unwrap();
                     }
@@ -424,21 +424,46 @@ pub fn emit_function(function: &Function, symbols: &SymbolTable) -> String {
                     }
                 }
                 Operation::CallIndirect { target } => {
+                    let call_scope = if row.bytes.starts_with("ff1e") {
+                        "call_far_with_return"
+                    } else {
+                        "call_with_return"
+                    };
                     writeln!(
                         source,
-                        "crate::runtime::dispatch_indirect(registers, memory, budget, {})?;",
-                        value(target)
+                        "let target = {};\ncrate::runtime::{call_scope}(registers, memory, budget, |registers, memory, budget| crate::runtime::dispatch_indirect(registers, memory, budget, {:?}, target))?;",
+                        value(target),
+                        function.block,
                     )
                     .unwrap();
                 }
+                Operation::KernelTailCall { native_ip } => {
+                    writeln!(source, "return crate::runtime::dispatch_kernel_tailcall(registers, memory, budget, {native_ip});").unwrap();
+                }
                 Operation::JumpIndirect { target } => {
-                    writeln!(
-                        source,
-                        "crate::runtime::dispatch_indirect_jump(registers, memory, budget, {})?;",
-                        value(target)
-                    )
-                    .unwrap();
-                    writeln!(source, "return Ok(0);").unwrap();
+                    writeln!(source, "let target = {};", value(target)).unwrap();
+                    if function.block != "EXE_CODE" {
+                        writeln!(source, "if let Some(file_offset) = crate::runtime::loaded_overlay_offset(target) {{\nmatch file_offset {{").unwrap();
+                        for instruction in &function.instructions {
+                            writeln!(
+                                source,
+                                "{} => {{ pc = {}; continue; }},",
+                                instruction.file_offset, instruction.address
+                            )
+                            .unwrap();
+                        }
+                        writeln!(source, "_ => return crate::runtime::dispatch_indirect_jump(registers, memory, budget, {:?}, target),\n}}\n}}", function.block).unwrap();
+                    }
+                    writeln!(source, "match target {{").unwrap();
+                    for instruction in &function.instructions {
+                        writeln!(
+                            source,
+                            "{} => {{ pc = target; continue; }},",
+                            instruction.address
+                        )
+                        .unwrap();
+                    }
+                    writeln!(source, "_ => return crate::runtime::dispatch_indirect_jump(registers, memory, budget, {:?}, target),\n}}", function.block).unwrap();
                 }
                 Operation::Out { port, value: val } => {
                     writeln!(
@@ -468,222 +493,7 @@ pub fn emit_function(function: &Function, symbols: &SymbolTable) -> String {
 }
 
 /// Standalone runtime library file contents.
-pub const RUNTIME_RS: &str = r#"//! Runtime environment for whole-program translated AutoCAD 2.18.
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Trap {
-    Memory,
-    DivisionByZero,
-    InvalidPc,
-    Budget,
-    StackOverflow,
-}
-
-impl std::fmt::Display for Trap {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for Trap {}
-
-#[allow(dead_code)]
-pub fn read(bank: &[u8], offset: usize, size: usize) -> u64 {
-    bank[offset..offset + size]
-        .iter()
-        .enumerate()
-        .fold(0, |value, (i, byte)| value | ((*byte as u64) << (i * 8)))
-}
-
-#[allow(dead_code)]
-pub fn write(bank: &mut [u8], offset: usize, size: usize, value: u64) {
-    for (i, byte) in bank[offset..offset + size].iter_mut().enumerate() {
-        *byte = (value >> (i * 8)) as u8;
-    }
-}
-
-#[allow(dead_code)]
-pub fn read128(bank: &[u8], offset: usize, size: usize) -> u128 {
-    bank[offset..offset + size]
-        .iter()
-        .enumerate()
-        .fold(0u128, |value, (i, byte)| value | ((*byte as u128) << (i * 8)))
-}
-
-#[allow(dead_code)]
-pub fn write128(bank: &mut [u8], offset: usize, size: usize, value: u128) {
-    for (i, byte) in bank[offset..offset + size].iter_mut().enumerate() {
-        *byte = (value >> (i * 8)) as u8;
-    }
-}
-
-#[allow(dead_code)]
-pub fn load(memory: &[u8], address: u64, size: usize) -> Result<u64, Trap> {
-    let offset = usize::try_from(address).map_err(|_| Trap::Memory)?;
-    let end = offset.checked_add(size).ok_or(Trap::Memory)?;
-    let bytes = memory.get(offset..end).ok_or(Trap::Memory)?;
-    Ok(read(bytes, 0, size))
-}
-
-#[allow(dead_code)]
-pub fn store(memory: &mut [u8], address: u64, size: usize, value: u64) -> Result<(), Trap> {
-    let offset = usize::try_from(address).map_err(|_| Trap::Memory)?;
-    let end = offset.checked_add(size).ok_or(Trap::Memory)?;
-    let bytes = memory.get_mut(offset..end).ok_or(Trap::Memory)?;
-    write(bytes, 0, size, value);
-    Ok(())
-}
-
-#[allow(dead_code)]
-pub fn load128(memory: &[u8], address: u64, size: usize) -> Result<u128, Trap> {
-    let offset = usize::try_from(address).map_err(|_| Trap::Memory)?;
-    let end = offset.checked_add(size).ok_or(Trap::Memory)?;
-    let bytes = memory.get(offset..end).ok_or(Trap::Memory)?;
-    Ok(read128(bytes, 0, size))
-}
-
-#[allow(dead_code)]
-pub fn store128(memory: &mut [u8], address: u64, size: usize, value: u128) -> Result<(), Trap> {
-    let offset = usize::try_from(address).map_err(|_| Trap::Memory)?;
-    let end = offset.checked_add(size).ok_or(Trap::Memory)?;
-    let bytes = memory.get_mut(offset..end).ok_or(Trap::Memory)?;
-    write128(bytes, 0, size, value);
-    Ok(())
-}
-
-#[allow(dead_code)]
-pub fn f80_to_f64(raw: u128) -> f64 {
-    let sign = ((raw >> 79) & 1) != 0;
-    let exp = ((raw >> 64) & 0x7fff) as u32;
-    let mantissa = (raw & 0xffff_ffff_ffff_ffff) as u64;
-    if exp == 0 && mantissa == 0 {
-        return if sign { -0.0 } else { 0.0 };
-    }
-    if exp == 0x7fff {
-        if mantissa == 0x8000_0000_0000_0000 {
-            return if sign { f64::NEG_INFINITY } else { f64::INFINITY };
-        }
-        return f64::NAN;
-    }
-    let frac = (mantissa & 0x7fff_ffff_ffff_ffff) as f64 / (1u64 << 63) as f64;
-    let val = if mantissa & (1u64 << 63) != 0 { 1.0 + frac } else { frac };
-    let shift = (exp as i32) - 16383;
-    let res = val * (2.0f64).powi(shift.clamp(-1022, 1023));
-    if sign { -res } else { res }
-}
-
-#[allow(dead_code)]
-pub fn f64_to_f80(val: f64) -> u128 {
-    if val == 0.0 {
-        return if val.is_sign_negative() { 1u128 << 79 } else { 0 };
-    }
-    if val.is_nan() {
-        return (0x7fffu128 << 64) | (0xc000_0000_0000_0000u128);
-    }
-    if val.is_infinite() {
-        let sign_bit = if val.is_sign_negative() { 1u128 << 79 } else { 0 };
-        return sign_bit | (0x7fffu128 << 64) | (0x8000_0000_0000_0000u128);
-    }
-    let bits = val.to_bits();
-    let sign = (bits >> 63) != 0;
-    let exp = ((bits >> 52) & 0x7ff) as i32;
-    let mantissa = bits & 0x000f_ffff_ffff_ffff;
-    let (f80_exp, f80_mant) = if exp == 0 {
-        (0u128, (mantissa as u128) << 12)
-    } else {
-        let e = (exp - 1023 + 16383) as u128;
-        let m = (1u128 << 63) | ((mantissa as u128) << 11);
-        (e, m)
-    };
-    let sign_bit = if sign { 1u128 << 79 } else { 0 };
-    sign_bit | (f80_exp << 64) | f80_mant
-}
-
-#[allow(dead_code)]
-pub fn signed(value: u64, bits: u32) -> i64 {
-    ((value << (64 - bits)) as i64) >> (64 - bits)
-}
-
-#[allow(dead_code)]
-pub fn shift_left(value: u64, count: u64) -> u64 {
-    if count >= 64 { 0 } else { value << count }
-}
-
-#[allow(dead_code)]
-pub fn shift_right(value: u64, count: u64) -> u64 {
-    if count >= 64 { 0 } else { value >> count }
-}
-
-#[allow(dead_code)]
-pub fn shift_signed_right(value: u64, count: u64, bits: u32) -> u64 {
-    let signed_val = signed(value, bits);
-    let shift = if count >= bits as u64 { (bits - 1) as u64 } else { count };
-    (signed_val >> shift) as u64
-}
-
-#[allow(dead_code)]
-pub fn segment(seg: u64, off: u64) -> u64 {
-    (seg << 4).wrapping_add(off)
-}
-
-#[allow(dead_code)]
-pub fn read_port(_port: u64) -> u64 {
-    0
-}
-
-#[allow(dead_code)]
-pub fn write_port(_port: u64, _value: u64) {}
-
-#[allow(unused_variables)]
-pub fn host_interrupt(
-    int_num: u64,
-    registers: &mut [u8; 8192],
-    memory: &mut [u8],
-) -> Result<u64, Trap> {
-    Ok(0)
-}
-
-#[allow(unused_variables)]
-pub fn dispatch_call(
-    registers: &mut [u8; 8192],
-    memory: &mut [u8],
-    budget: &mut usize,
-    target: u64,
-) -> Result<u64, Trap> {
-    Ok(0)
-}
-
-#[allow(unused_variables)]
-pub fn dispatch_tailcall(
-    registers: &mut [u8; 8192],
-    memory: &mut [u8],
-    budget: &mut usize,
-    target_block: &str,
-    target: u64,
-) -> Result<u64, Trap> {
-    Ok(0)
-}
-
-#[allow(unused_variables)]
-pub fn dispatch_indirect(
-    registers: &mut [u8; 8192],
-    memory: &mut [u8],
-    budget: &mut usize,
-    target: u64,
-) -> Result<u64, Trap> {
-    Ok(0)
-}
-
-#[allow(unused_variables)]
-pub fn dispatch_indirect_jump(
-    registers: &mut [u8; 8192],
-    memory: &mut [u8],
-    budget: &mut usize,
-    target: u64,
-) -> Result<u64, Trap> {
-    Ok(0)
-}
-"#;
+pub const RUNTIME_RS: &str = include_str!("translated_runtime.rs");
 
 /// Emits the whole-program translated Rust crate containing all blocks and runtime.
 pub fn emit_translated_crate(
@@ -775,6 +585,55 @@ edition = "2021"
     writeln!(lib_code, "    }}").unwrap();
     writeln!(lib_code, "}}").unwrap();
     writeln!(lib_code).unwrap();
+    writeln!(
+        lib_code,
+        "/// Dispatch only recovered entries at their full linear addresses."
+    )
+    .unwrap();
+    writeln!(lib_code, "pub fn dispatch_address(caller_block: &str, target: u64, registers: &mut [u8; 8192], memory: &mut [u8], budget: &mut usize) -> Result<u64, runtime::Trap> {{\n    if let Some(file_offset) = runtime::loaded_overlay_offset(target) {{\n        return match file_offset {{").unwrap();
+    let mut overlay_entries = BTreeSet::new();
+    for f in &lowered {
+        if f.block == "EXE_CODE" {
+            continue;
+        }
+        let row = f
+            .instructions
+            .iter()
+            .find(|row| row.address == f.entry)
+            .ok_or("missing overlay entry instruction")?;
+        if row.file != "ACAD.OVL" || !overlay_entries.insert(row.file_offset) {
+            return Err("ambiguous overlay entry file offset".into());
+        }
+        let mod_name = block_to_mod(&f.block);
+        let fn_name = function_symbol(&f.block, (f.entry & 0xffff) as u16);
+        writeln!(
+            lib_code,
+            "            {:#x} => {mod_name}::{fn_name}(registers, memory, budget),",
+            row.file_offset
+        )
+        .unwrap();
+    }
+    writeln!(lib_code, "            _ => {{\n                if std::env::var_os(\"ACAD_RE_TRACE_DOS\").is_some() {{ eprintln!(\"unresolved loaded overlay target {{target:#x}} (file {{file_offset:#x}}) from {{caller_block}}\"); }}\n                Err(runtime::Trap::InvalidPc)\n            }},\n        }};\n    }}\n    match (caller_block, target) {{").unwrap();
+    for f in &lowered {
+        let mod_name = block_to_mod(&f.block);
+        let fn_name = function_symbol(&f.block, (f.entry & 0xffff) as u16);
+        let caller = if f.block == "EXE_CODE" {
+            "_".into()
+        } else {
+            format!("{:?}", f.block)
+        };
+        writeln!(
+            lib_code,
+            "        ({caller}, {:#x}) => {mod_name}::{fn_name}(registers, memory, budget),",
+            f.entry
+        )
+        .unwrap();
+    }
+    writeln!(
+        lib_code,
+        "        _ => {{\n            if std::env::var_os(\"ACAD_RE_TRACE_DOS\").is_some() {{ eprintln!(\"unresolved indirect target {{target:#x}} from {{caller_block}}\"); }}\n            Err(runtime::Trap::InvalidPc)\n        }},\n    }}\n}}\n"
+    )
+    .unwrap();
     writeln!(
         lib_code,
         "pub fn run_entry(block: &str, entry: u16, registers: &mut [u8; 8192], memory: &mut [u8], mut budget: usize) -> Result<u64, runtime::Trap> {{"

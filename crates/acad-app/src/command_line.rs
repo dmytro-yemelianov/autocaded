@@ -1,5 +1,5 @@
 //! The persistent two-line command area, in physical client pixels.
-use crate::menu_panel::{draw_rect, draw_text, GLYPH_HEIGHT, GLYPH_WIDTH};
+use crate::bitmap::{draw_rect, draw_text, GLYPH_HEIGHT, GLYPH_WIDTH};
 
 const CELL: usize = GLYPH_WIDTH * 2;
 const ROW: usize = GLYPH_HEIGHT * 2;
@@ -51,8 +51,7 @@ pub(crate) fn draw(
     let input = visible_input(prompt, input, cells);
     let status: String = status.chars().take(cells).collect();
     draw_text(buffer, width, PAD, top + PAD, &input, 0x00ff_ffff);
-    // The shared bitmap font has no underscore glyph. Its reserved cell
-    // instead gets an explicit caret, without duplicating or changing the font.
+    // Draw a distinct caret in the final cell, including for clipped input.
     if let Some(last_cell) = input.chars().count().checked_sub(1) {
         draw_rect(
             buffer,

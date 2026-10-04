@@ -9,9 +9,27 @@ pub struct Viewport {
 }
 
 impl Viewport {
+    /// `from_view` for a saved view that must be usable on this canvas:
+    /// distinct finite world corners and a finite positive pixel/world scale.
+    pub fn checked_from_view(
+        center: Point,
+        height: f64,
+        width: u32,
+        pixel_height: u32,
+    ) -> Result<Self, String> {
+        if width == 0 || pixel_height == 0 {
+            return Err("viewport dimensions must be positive".into());
+        }
+        acad_model::DwgView { center, height }
+            .validate_canvas(f64::from(width) / f64::from(pixel_height), pixel_height)
+            .map_err(str::to_owned)?;
+        Ok(Self::from_view(center, height, width, pixel_height))
+    }
+
     /// Construct a viewport from the drawing's saved view. `height` is the
     /// world-space vertical span; the horizontal span follows the canvas
-    /// aspect ratio. Callers should use `fit` when the stored view is invalid.
+    /// aspect ratio. Unchecked: callers displaying a stored view should use
+    /// `checked_from_view` and choose their own fallback when it is refused.
     pub fn from_view(center: Point, height: f64, width: u32, pixel_height: u32) -> Self {
         Self {
             width,
@@ -129,5 +147,18 @@ mod tests {
             vp.to_screen(Point { x: 7.0, y: 6.5 }),
             Point { x: 100.0, y: 0.0 }
         );
+    }
+
+    #[test]
+    fn checked_saved_view_refuses_collapsed_corners_and_infinite_scale() {
+        let huge = Point { x: 1e308, y: 1e308 };
+        let origin = Point { x: 0.0, y: 0.0 };
+        assert!(Viewport::checked_from_view(huge, 1.0, 400, 222).is_err());
+        assert!(Viewport::checked_from_view(origin, 1e-308, 400, 222).is_err());
+        assert!(Viewport::checked_from_view(origin, 1.0, 0, 222).is_err());
+        // The same tiny height is usable on a one-pixel-high canvas.
+        let vp = Viewport::checked_from_view(origin, 1e-308, 400, 1).unwrap();
+        assert_eq!(vp.to_screen(origin), Point { x: 200.0, y: 0.5 });
+        assert!(Viewport::checked_from_view(huge, 1e300, 400, 222).is_ok());
     }
 }

@@ -82,3 +82,37 @@ fn missing_libraries_and_glyphs_are_reported() {
         );
     }
 }
+
+#[test]
+fn hidden_layer_and_hidden_group_loads_preserve_visible_text_font_order() {
+    use acad_model::{Entity, Item};
+    let mut drawing = acad_dxf::parse(b"LOAD,2\r\nalt\r\nTEXT,1\r\n2,0,1,0\r\nA\r\n").unwrap();
+    let vp = viewport();
+    let normal = flatten_with_libraries(&drawing, &vp, &libraries());
+    drawing.header.off_layers.insert(2);
+    let hidden_load = flatten_with_libraries(&drawing, &vp, &libraries());
+    assert_eq!(hidden_load.primitives, normal.primitives);
+    assert!(hidden_load.diagnostics.is_empty());
+    let load = drawing.items.remove(0);
+    let Item::Entity(load) = load else {
+        panic!("LOAD");
+    };
+    drawing.items.insert(
+        0,
+        Item::Entity(Entity::OnLayer {
+            layer: 2,
+            entity: Box::new(Entity::Repeat(acad_model::Repeat {
+                start_layer: 1,
+                end_layer: 1,
+                entities: vec![load],
+                columns: 1,
+                rows: 1,
+                column_spacing: 0.0,
+                row_spacing: 0.0,
+            })),
+        }),
+    );
+    let hidden_group = flatten_with_libraries(&drawing, &vp, &libraries());
+    assert_eq!(hidden_group.primitives, normal.primitives);
+    assert!(hidden_group.diagnostics.is_empty());
+}

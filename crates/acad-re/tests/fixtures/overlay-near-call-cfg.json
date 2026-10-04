@@ -1,0 +1,250 @@
+{
+  "architecture": {
+    "language": "x86:LE:16:Real Mode",
+    "ram_space_id": 497,
+    "userops": [
+      "segment"
+    ]
+  },
+  "functions": [
+    {
+      "block": "OVL00_CODE",
+      "entry": 284,
+      "instructions": [
+        {
+          "offset": 284,
+          "address": "OVL00_CODE::02011c",
+          "bytes": "ffd6",
+          "file": "ACAD.OVL",
+          "file_offset": 284,
+          "instruction": "CALL SI",
+          "ops": [
+            {
+              "op": "INT_RIGHT",
+              "out": {
+                "space": "unique",
+                "offset": 33536,
+                "size": 4,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "const",
+                  "offset": 131358,
+                  "size": 4,
+                  "unique": false
+                },
+                {
+                  "space": "const",
+                  "offset": 4,
+                  "size": 4,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "INT_AND",
+              "out": {
+                "space": "unique",
+                "offset": 34048,
+                "size": 4,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "unique",
+                  "offset": 33536,
+                  "size": 4,
+                  "unique": true
+                },
+                {
+                  "space": "const",
+                  "offset": 61440,
+                  "size": 4,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "COPY",
+              "out": {
+                "space": "register",
+                "offset": 258,
+                "size": 2,
+                "unique": false
+              },
+              "in": [
+                {
+                  "space": "unique",
+                  "offset": 34048,
+                  "size": 2,
+                  "unique": true
+                }
+              ]
+            },
+            {
+              "op": "CALLOTHER",
+              "out": {
+                "space": "unique",
+                "offset": 388096,
+                "size": 4,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "const",
+                  "offset": 0,
+                  "size": 4,
+                  "unique": false
+                },
+                {
+                  "space": "register",
+                  "offset": 258,
+                  "size": 2,
+                  "unique": false
+                },
+                {
+                  "space": "register",
+                  "offset": 24,
+                  "size": 2,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "COPY",
+              "out": {
+                "space": "unique",
+                "offset": 263936,
+                "size": 2,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "const",
+                  "offset": 286,
+                  "size": 2,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "INT_SUB",
+              "out": {
+                "space": "register",
+                "offset": 16,
+                "size": 2,
+                "unique": false
+              },
+              "in": [
+                {
+                  "space": "register",
+                  "offset": 16,
+                  "size": 2,
+                  "unique": false
+                },
+                {
+                  "space": "const",
+                  "offset": 2,
+                  "size": 2,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "CALLOTHER",
+              "out": {
+                "space": "unique",
+                "offset": 264704,
+                "size": 4,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "const",
+                  "offset": 0,
+                  "size": 4,
+                  "unique": false
+                },
+                {
+                  "space": "register",
+                  "offset": 260,
+                  "size": 2,
+                  "unique": false
+                },
+                {
+                  "space": "register",
+                  "offset": 16,
+                  "size": 2,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "STORE",
+              "out": null,
+              "in": [
+                {
+                  "space": "const",
+                  "offset": 497,
+                  "size": 8,
+                  "unique": false
+                },
+                {
+                  "space": "unique",
+                  "offset": 264704,
+                  "size": 4,
+                  "unique": true
+                },
+                {
+                  "space": "unique",
+                  "offset": 263936,
+                  "size": 2,
+                  "unique": true
+                }
+              ]
+            },
+            {
+              "op": "CALLIND",
+              "out": null,
+              "in": [
+                {
+                  "space": "unique",
+                  "offset": 388096,
+                  "size": 4,
+                  "unique": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "offset": 286,
+          "address": "OVL00_CODE::02011e",
+          "bytes": "c3",
+          "file": "ACAD.OVL",
+          "file_offset": 286,
+          "instruction": "RET",
+          "ops": [
+            {
+              "op": "RETURN",
+              "out": null,
+              "in": [
+                {
+                  "space": "register",
+                  "offset": 0,
+                  "size": 2,
+                  "unique": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "edges": [],
+      "inline_data": [],
+      "dependencies": [],
+      "errors": []
+    }
+  ]
+}

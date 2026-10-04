@@ -4,6 +4,12 @@ use crate::entity_ops::bare;
 use crate::HATCH_PATTERNS;
 use acad_model::{Drawing, Entity, Item};
 
+mod help;
+mod list;
+mod status;
+pub(crate) use list::list_report;
+pub(crate) use status::status_report;
+
 const COMMAND_LIST: &str = "\
 Command List
 
@@ -23,7 +29,8 @@ Point Entry: Absolute: x,y; Relative: @dx,dy; Distance, angle: @d<a
 Object selection: L = Last object; W = Within window
 Command repeat: press space or RETURN.\n";
 
-pub(crate) const LINE_HELP: &str = "\
+#[cfg(test)]
+const LINE_HELP: &str = "\
 The  LINE  command allows you to draw straight lines.
 
 Format:     LINE  From point:  <point>
@@ -46,10 +53,9 @@ pub(crate) fn help_report(input: &str) -> Result<String, String> {
     if command.is_empty() {
         return Ok(COMMAND_LIST.into());
     }
-    if command == "LINE" {
-        return Ok(LINE_HELP.into());
-    }
-    Err(format!("help text for {command} has not been recovered"))
+    help::page(&command)
+        .map(str::to_owned)
+        .ok_or_else(|| format!("unknown help topic: {command}"))
 }
 
 pub(crate) fn hatch_pattern_report() -> String {
@@ -59,27 +65,42 @@ pub(crate) fn hatch_pattern_report() -> String {
         .collect()
 }
 
-pub(crate) fn list_entities(drawing: &Drawing) -> String {
+pub(crate) fn list_entities(drawing: &Drawing, ids: &[usize]) -> String {
     let mut lines = Vec::new();
-    for (index, entity) in drawing
-        .entities()
-        .filter(|entity| !matches!(bare(entity), Entity::Load { .. }))
-        .enumerate()
+    let selected: std::collections::BTreeSet<_> = ids.iter().copied().collect();
+    for object in crate::selection::selectable_items(drawing)
+        .filter(|object| selected.contains(&object.id))
+        .take(list::MAX_LIST_OBJECTS)
     {
-        let kind = match bare(entity) {
-            Entity::Repeat(_) => "REPEAT",
-            Entity::Line { .. } => "LINE",
-            Entity::Circle { .. } => "CIRCLE",
-            Entity::Arc { .. } => "ARC",
-            Entity::Text { .. } => "TEXT",
-            Entity::Insert { .. } => "INSERT",
-            Entity::Point { .. } => "POINT",
-            Entity::Trace { .. } => "TRACE",
-            Entity::Solid { .. } => "SOLID",
-            Entity::Shape { .. } => "SHAPE",
-            Entity::Load { .. } | Entity::OnLayer { .. } => unreachable!(),
+        let entity = match object.item {
+            Item::Entity(entity) => Some(bare(entity)),
+            Item::Repeat(_) => None,
+            _ => unreachable!(),
         };
-        lines.push(format!("{} {kind}", index + 1));
+        let kind = match entity {
+            None => "REPEAT",
+            Some(entity) => match entity {
+                Entity::Repeat(_) => "REPEAT",
+                Entity::Line { .. } => "LINE",
+                Entity::Circle { .. } => "CIRCLE",
+                Entity::Arc { .. } => "ARC",
+                Entity::Text { .. } => "TEXT",
+                Entity::Insert { .. } => "INSERT",
+                Entity::Point { .. } => "POINT",
+                Entity::Trace { .. } => "TRACE",
+                Entity::Solid { .. } => "SOLID",
+                Entity::Shape { .. } => "SHAPE",
+                Entity::Load { .. } | Entity::OnLayer { .. } | Entity::Erased(_) => unreachable!(),
+            },
+        };
+        lines.push(format!("{} {kind}", object.id));
+    }
+    let total = selected.len();
+    if total > list::MAX_LIST_OBJECTS {
+        lines.push(format!(
+            "... {} objects omitted",
+            total - list::MAX_LIST_OBJECTS
+        ));
     }
     if lines.is_empty() {
         "No entities".into()
@@ -90,6 +111,9 @@ pub(crate) fn list_entities(drawing: &Drawing) -> String {
 
 pub(crate) fn database_listing(drawing: &Drawing) -> String {
     fn append_entity(lines: &mut Vec<String>, count: &mut usize, entity: &Entity) {
+        if entity.is_erased() {
+            return;
+        }
         *count += 1;
         lines.push(format!("Entity {}: {:#?}", count, bare(entity)));
     }
@@ -153,7 +177,7 @@ mod tests {
         assert_eq!(editor.drawing(), &source);
 
         editor.submit("HELP").unwrap();
-        assert!(editor.submit("CIRCLE").is_err());
+        assert!(editor.submit("UNKNOWN").is_err());
         assert_eq!(editor.prompt(), "Command name (RETURN for list)");
     }
 }

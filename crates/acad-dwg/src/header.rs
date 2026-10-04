@@ -26,6 +26,9 @@ const OFF_TXTSIZE: usize = 0xb4;
 const OFF_TRACEWID: usize = 0xbc;
 const OFF_CURRENT_LAYER: usize = 0xc4;
 const OFF_LAYERS: usize = 0xc8;
+const OFF_DIM_ARROW: usize = 0x1c8;
+// Retained FILLET state DS:48fe is descriptor42, final AC1.40 field.
+const OFF_FILLET_RADIUS: usize = 0x1fa;
 const OFF_AXIS_FLAG: usize = 0x1e0;
 const OFF_AXIS_SPACING: usize = 0x1e2;
 const OFF_UNITS_FORMAT: usize = 0x1d8;
@@ -112,12 +115,29 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
         });
     }
     let mut layers = BTreeMap::new();
+    let mut off_layers = std::collections::BTreeSet::new();
     for slot in 0..LAYER_SLOTS {
-        let color = u16_at(bytes, OFF_LAYERS + slot * 2);
+        let raw = u16_at(bytes, OFF_LAYERS + slot * 2);
+        let signed = raw as i16;
+        let color = if signed < 0 {
+            // Retained historical OFF is NEG, not a sign-bit flag. Keep native
+            // zero/high-color extensions outside this verified signed range.
+            let magnitude = signed.checked_neg().filter(|&n| (1..=127).contains(&n));
+            if slot == 0 || magnitude.is_none() {
+                return Err(DwgError::InvalidHeaderValue {
+                    field: "OFF layer color",
+                    value: raw,
+                });
+            }
+            off_layers.insert(slot as u8);
+            magnitude.unwrap() as u16
+        } else {
+            raw
+        };
         if color > 255 {
             return Err(DwgError::InvalidHeaderValue {
                 field: "layer color",
-                value: color,
+                value: raw,
             });
         }
         if color != 255 {
@@ -177,6 +197,19 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
         fill: u16_at(bytes, OFF_FILL) != 0,
         text_size: f64_at(bytes, OFF_TXTSIZE),
         trace_width: f64_at(bytes, OFF_TRACEWID),
+        fillet_radius: if version == Version::Ac140 {
+            f64_at(bytes, OFF_FILLET_RADIUS)
+        } else {
+            0.0
+        },
+        // Positive-zero bits accompany omitted native exports in all 50
+        // menu-control pairs. Preserve negative zero and every other value.
+        dim_arrow: if version == Version::Ac140 {
+            let value = f64_at(bytes, OFF_DIM_ARROW);
+            (value.to_bits() != 0).then_some(value)
+        } else {
+            None
+        },
         units: if version == Version::Ac140 {
             Units {
                 format: UnitFormat::from_disk(u16_at(bytes, OFF_UNITS_FORMAT)),
@@ -190,8 +223,15 @@ pub fn parse_header(bytes: &[u8]) -> Result<(Header, HeaderMeta), DwgError> {
         },
         current_layer: layer as u8,
         layers,
+        off_layers,
         dwg_header_passthrough: Some(bytes[..header_min].to_vec()),
     };
+    if !header.fillet_radius.is_finite() || header.fillet_radius < 0.0 {
+        return Err(DwgError::InvalidHeaderScalar {
+            field: "FILLET radius",
+            value: header.fillet_radius.to_string(),
+        });
+    }
     Ok((header, meta_of(bytes, version)))
 }
 

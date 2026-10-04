@@ -1,6 +1,11 @@
 # HATCH Pattern Recovery Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Historical recovery plan — superseded 2026-10-03.** NET is implemented and
+checked offline against retained exports; the remaining catalogue geometry uses
+retained PAT data. The user stopped new oracle collection and requested native
+Rust implementation. Follow the [native completion plan](2026-10-03-native-editor-completion.md).
+Instructions below about collectors, isolated recovery worktrees and additional
+guest runs describe the earlier scope and are not active tasks.
 
 **Goal:** Recover native HATCH pattern names and primitives, then implement one useful additional pattern with native differential coverage, retaining the existing LINE cases.
 

@@ -64,12 +64,15 @@ fn default_header() -> Header {
         fill: false,
         text_size: 0.0,
         trace_width: 0.0,
+        fillet_radius: 0.0,
+        dim_arrow: None,
         units: Units {
             format: UnitFormat::Decimal,
             precision: 4,
         },
         current_layer: 0,
         layers: Default::default(),
+        off_layers: Default::default(),
         dwg_header_passthrough: None,
     }
 }
@@ -79,9 +82,34 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
     let mut header = default_header();
     let mut items: Vec<Item> = Vec::new();
     let mut open_block: Option<Block> = None;
-    let mut open_repeat: Option<(usize, Vec<Entity>)> = None;
+    let mut open_repeat: Vec<(usize, u8, Vec<Entity>)> = Vec::new();
+    let mut stored_records = 0usize;
 
     for rec in &records {
+        if matches!(
+            rec.keyword.as_str(),
+            "LINE"
+                | "POINT"
+                | "CIRCLE"
+                | "SHAPE"
+                | "REPEAT"
+                | "ENDREP"
+                | "TEXT"
+                | "ARC"
+                | "TRACE"
+                | "LOAD"
+                | "SOLID"
+                | "BLOCK"
+                | "ENDBLK"
+                | "INSERT"
+        ) {
+            stored_records += 1;
+            if stored_records > acad_model::group_codec::MAX_STORED_RECORDS {
+                return Err(DxfError::UnsupportedGroup {
+                    reason: "stored record count exceeds the native codec limit of 65535",
+                });
+            }
+        }
         let entity = match rec.keyword.as_str() {
             "EXTENTS" | "LIMITS" => {
                 let v = nums::<4>(rec, 0)?;
@@ -124,6 +152,17 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 }
                 continue;
             }
+            "DIMARROW" => {
+                let value = nums::<1>(rec, 0)?[0];
+                if !value.is_finite() {
+                    return Err(DxfError::BadNumber {
+                        row: rec.rows[0].clone(),
+                        line: rec.line,
+                    });
+                }
+                header.dim_arrow = Some(value);
+                continue;
+            }
             "MODEORTHO" => {
                 header.ortho = nums::<1>(rec, 0)?[0] != 0.0;
                 continue;
@@ -156,10 +195,35 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                                 line: rec.line,
                             });
                         }
-                        let color = tok.trim().parse::<u8>().map_err(|_| DxfError::BadNumber {
-                            row: row.clone(),
-                            line: rec.line,
-                        })?;
+                        let signed =
+                            tok.trim().parse::<i16>().map_err(|_| DxfError::BadNumber {
+                                row: row.clone(),
+                                line: rec.line,
+                            })?;
+                        let color = if signed < 0 {
+                            let magnitude =
+                                signed.checked_neg().filter(|&n| (1..=127).contains(&n));
+                            if slot == 0 || magnitude.is_none() {
+                                return Err(DxfError::InvalidLayerColor {
+                                    layer: slot as u8,
+                                    value: signed,
+                                });
+                            }
+                            header.off_layers.insert(slot as u8);
+                            magnitude.unwrap() as u8
+                        } else if signed <= 255 {
+                            signed as u8
+                        } else {
+                            return Err(DxfError::InvalidLayerColor {
+                                layer: slot as u8,
+                                value: signed,
+                            });
+                        };
+                        // A later table record replaces the corresponding slot.
+                        header.layers.remove(&(slot as u8));
+                        if signed >= 0 {
+                            header.off_layers.remove(&(slot as u8));
+                        }
                         if color != LAYER_UNUSED {
                             header.layers.insert(slot as u8, color);
                         }
@@ -169,6 +233,9 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 continue;
             }
             "BLOCK" => {
+                if !open_repeat.is_empty() {
+                    return Err(DxfError::Corrupt { offset: rec.line });
+                }
                 let v = nums::<2>(rec, 0)?;
                 if let Some(open) = &open_block {
                     return Err(DxfError::UnterminatedBlock {
@@ -184,22 +251,31 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                 continue;
             }
             "ENDBLK" => {
+                if !open_repeat.is_empty() {
+                    return Err(DxfError::Corrupt { offset: rec.line });
+                }
                 if let Some(b) = open_block.take() {
                     items.push(Item::Block(b))
                 }
                 continue;
             }
             "REPEAT" => {
-                if open_repeat.is_some() {
-                    return Err(DxfError::Corrupt { offset: rec.line });
+                if open_repeat.len() + usize::from(open_block.is_some())
+                    >= acad_model::group_codec::MAX_GROUP_DEPTH
+                {
+                    return Err(DxfError::UnsupportedGroup {
+                        reason: "group nesting exceeds the native codec limit of 64",
+                    });
                 }
-                open_repeat = Some((rec.line, Vec::new()));
+                let layer =
+                    u8::try_from(rec.suffix).map_err(|_| DxfError::BadHeader { line: rec.line })?;
+                open_repeat.push((rec.line, layer, Vec::new()));
                 continue;
             }
             "ENDREP" => {
                 let values = nums::<4>(rec, 0)?;
-                let (_, entities) = open_repeat
-                    .take()
+                let (_, start_layer, entities) = open_repeat
+                    .pop()
                     .ok_or(DxfError::Corrupt { offset: rec.line })?;
                 if entities.is_empty()
                     || values[0] < 1.0
@@ -214,22 +290,29 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
                         line: rec.line,
                     });
                 }
-                if let Some(block) = open_block.as_mut() {
-                    block.entities.push(Entity::Repeat(acad_model::Repeat {
-                        entities,
-                        columns: values[0] as u16,
-                        rows: values[1] as u16,
-                        column_spacing: values[2],
-                        row_spacing: values[3],
-                    }));
+                let end_layer =
+                    u8::try_from(rec.suffix).map_err(|_| DxfError::BadHeader { line: rec.line })?;
+                if !values[2].is_finite() || !values[3].is_finite() {
+                    return Err(DxfError::BadNumber {
+                        row: rec.rows[0].clone(),
+                        line: rec.line,
+                    });
+                }
+                let repeat = acad_model::Repeat {
+                    start_layer,
+                    end_layer,
+                    entities,
+                    columns: values[0] as u16,
+                    rows: values[1] as u16,
+                    column_spacing: values[2],
+                    row_spacing: values[3],
+                };
+                if let Some((_, _, entities)) = open_repeat.last_mut() {
+                    entities.push(Entity::Repeat(repeat));
+                } else if let Some(block) = open_block.as_mut() {
+                    block.entities.push(Entity::Repeat(repeat));
                 } else {
-                    items.push(Item::Repeat(acad_model::Repeat {
-                        entities,
-                        columns: values[0] as u16,
-                        rows: values[1] as u16,
-                        column_spacing: values[2],
-                        row_spacing: values[3],
-                    }));
+                    items.push(Item::Repeat(repeat));
                 }
                 continue;
             }
@@ -329,7 +412,7 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
             layer: rec.suffix as u8,
             entity: Box::new(entity),
         };
-        if let Some((_, entities)) = open_repeat.as_mut() {
+        if let Some((_, _, entities)) = open_repeat.last_mut() {
             entities.push(entity);
         } else if let Some(b) = open_block.as_mut() {
             b.entities.push(entity);
@@ -345,23 +428,34 @@ pub fn parse(bytes: &[u8]) -> Result<Drawing, DxfError> {
             line,
         });
     }
-    if let Some((line, _)) = open_repeat {
-        return Err(DxfError::Corrupt { offset: line });
+    if let Some((line, _, _)) = open_repeat.last() {
+        return Err(DxfError::Corrupt { offset: *line });
     }
 
     let drawing = Drawing { header, items };
-    // Scan entities inside block definitions too, not only top-level ones.
-    for e in drawing
-        .entities()
-        .chain(drawing.blocks().flat_map(|b| b.entities.iter()))
-    {
-        let mut e = e;
-        while let Entity::OnLayer { entity, .. } = e {
-            e = entity;
-        }
-        if let Entity::Insert { name, .. } = e {
-            if drawing.block(name).is_none() {
-                return Err(DxfError::UndefinedBlock { name: name.clone() });
+    // Validate INSERT references inside every stored group without expanding instances.
+    for item in &drawing.items {
+        let entities = match item {
+            Item::Entity(e) => std::slice::from_ref(e),
+            Item::Block(b) => &b.entities,
+            Item::Repeat(r) => &r.entities,
+            Item::Erased(_) => continue,
+        };
+        let mut stack = vec![entities.iter()];
+        while let Some(entities) = stack.last_mut() {
+            let Some(mut entity) = entities.next() else {
+                stack.pop();
+                continue;
+            };
+            if let Entity::OnLayer { entity: inner, .. } = entity {
+                entity = inner;
+            }
+            match entity {
+                Entity::Repeat(r) => stack.push(r.entities.iter()),
+                Entity::Insert { name, .. } if drawing.block(name).is_none() => {
+                    return Err(DxfError::UndefinedBlock { name: name.clone() });
+                }
+                _ => {}
             }
         }
     }

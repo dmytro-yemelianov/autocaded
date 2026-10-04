@@ -72,7 +72,20 @@ def directory_views(spec):
     return views
 
 
-def recover(program, spec, exporter):
+def validated_extra_seeds(spec, seeds):
+    """Accept trace-derived code entries without changing the Ghidra listing."""
+    blocks = {b["name"]: b for b in spec["blocks"]}
+    result = []
+    for name, off in seeds:
+        block = blocks.get(name)
+        if (block is None or not name.endswith("_CODE") or type(off) is not int
+                or not block["off"] <= off < block["off"] + block["len"]):
+            raise ValueError("extra seed is not an in-range code entry")
+        result.append((name, off))
+    return list(dict.fromkeys(result))
+
+
+def recover(program, spec, exporter, extra_seeds=()):
     from ghidra.app.util import PseudoDisassembler
 
     blocks = {str(b.getName()): b for b in program.getMemory().getBlocks()}
@@ -156,6 +169,7 @@ def recover(program, spec, exporter):
         seeds.append((name, off))
     seeds.extend(("OVL%02d_CODE" % e["entry"], e["off"])
                  for e in spec["entry_points"])
+    seeds.extend(validated_extra_seeds(spec, extra_seeds))
     bridge_bytes = bytes_at("EXE_DATA", 0x4d76, 2)
     bridge_ip = int.from_bytes(bridge_bytes, "little")
     bridge = bridge_ip - spec.get("resident_ip_bias", 0)

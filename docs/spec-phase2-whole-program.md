@@ -141,3 +141,103 @@ flowchart TD
 - **Preserve 100% Verification:** Every function generated must match original byte ranges checked against `ACAD.EXE` and `ACAD.OVL`.
 - **Zero Wildcards:** All calls must resolve statically or route through the bounded indirect dispatch table. No catch-all no-ops.
 - **Strict Error Propagation:** Traps (`Trap::Memory`, `Trap::Budget`, `Trap::DivisionByZero`, `Trap::StackOverflow`) must propagate cleanly.
+
+## 6. Translated Boot Checkpoint (2026-10-03)
+
+The empty-command-line experiment in `target/acad-translated/tests/boot.rs`
+originally terminated with `REDIRECTION ERROR` after 2,464 instructions. DS and
+SS were both `0x1e25` at `fn_exe_cbeb`; a DS/SS mismatch was not the cause of
+this failure. The final AX value `0x8003` is assigned by the error-exit path in
+`fn_exe_c36d`, rather than demonstrating that `fn_exe_cbeb` returned that value.
+
+The Aztec switch-helper lowering consumed its selector from flat `[SP]` instead
+of `[SS:SP]`. `ir::lower` now constructs the segmented pointer before loading
+AX, then advances the 16-bit SP by two as before. The regression in
+`crates/acad-re/tests/ir.rs` compiles and executes both standalone and linked
+emission against `fixtures/switch-stack-reference.rs`. It checks case/default
+selection, signed case constants, distinct DS/SS, SP wraparound, unchanged
+memory/registers, and a rejected out-of-bounds selector read.
+
+Regenerating all 1,054 functions with this fix removes the redirection error.
+With the existing experimental DOS runtime restored, the boot experiment reaches
+repeated INT 21h/AH=0Ah calls and exhausts its 1,000,000-instruction budget.
+This is progress beyond stream initialization, not a completed AutoCAD boot:
+buffered input is unimplemented, indirect dispatch remains stubbed, and a
+failed FCB open for `A` still needs investigation. No native-oracle comparison
+was performed for this checkpoint.
+
+The continuation replaces those runtime stubs. `translated_runtime.rs` is now
+tracked and included by the generator: DOS files, console output, and buffered
+input survive regeneration. `queue_input_line` supplies deterministic input;
+an empty queue returns `InputRequired`. The buffer length includes the final
+carriage return, while the returned count excludes it, following the
+[MS-DOS Programmer's Reference](https://www.pcjs.org/documents/books/mspl13/msdos/dosref40/).
+Unknown interrupts and unknown code targets fail explicitly.
+
+Hosted `swi`/`CALLIND` Pcode pairs execute the host interrupt once without a
+second guest call. Actual indirect calls use a generated router that matches
+full linear addresses and the calling overlay, sharing the execution budget.
+Indirect jumps within a recovered function update its PC; external jumps
+propagate the routed return value.
+
+The formatter callback at `EXE_CODE:0xdbb2` was absent from the original
+candidate set. A read-only recovery with `extra_seeds=[("EXE_CODE", 0xdbb2)]`
+produced 1,055 functions with no recovery errors. Its 29 verified instructions
+are preserved in `tests/fixtures/sprintf-callback-cfg.json`; recovery accepts
+only in-range code seeds. Routing this callback fixes the truncated `A` file
+open: the application constructs `A:ACAD.OVL`, opens it, and reads its header
+and first overlay. This corrects the earlier interpretation of that filename
+as a configuration-file path.
+
+The recovered Pcode for `FF 2E disp16` (`JMP FAR [disp16]`) omitted the segment
+word. Lowering now reads the full DS-based far pointer and updates CS without
+touching the stack. The first replay loaded all 23,712 bytes of `OVL00_CODE` at
+`0x2abb:0x0100` identically to the original OVL image, then stopped at physical
+address `0x2acb0` after 53,775 instructions.
+
+The next continuation routes relocated overlays using the source file offsets
+of bytes actually transferred by DOS FCB reads. Replacing part of a loaded
+range splits its provenance; reads from another file invalidate the overwritten
+part, and EOF padding never becomes executable overlay data. The generated
+router matches only recovered function entries at these file offsets, while
+indirect jumps can also match instructions within the current function.
+
+Ghidra's synthetic CS reconstruction from `inst_next` is suppressed for near
+indirect transfers and CS overrides. Genuine far transfers retain their CS
+updates. The kernel thunk now executes the resident bridge contract, including
+the segment switches, native return stack, and bridge registers. A scoped
+caller continuation allows an overlay's far return to resume its active Rust
+caller; it does not enable arbitrary unrecovered resident instruction targets.
+
+`FF 1E disp16` (`CALL FAR [disp16]`) now loads the complete pointer, pushes the
+old CS and native return IP, and enters the target CS. The resident wrapper's
+runtime-generated `INT imm8; RETF` stub is accepted only at its known DS-based
+location with those exact opcode bytes. Both instructions consume the shared
+budget. The hosted BIOS provides page-zero 80x25 color text initialization,
+cursor, character, teletype, and scroll services. The scroll parameters follow
+the [IBM BIOS source listing](https://raw.githubusercontent.com/gawlas/IBM-PC-BIOS/master/IBM%20PC/PCBIOSV3.ASM).
+Other video modes and unsupported services still trap explicitly.
+
+The replay now passes through `OVL00` initialization, replaces it with
+`OVL01`, and displays the binary's `Main Menu` and `Enter selection:` prompt.
+It verifies the loaded `OVL01_CODE` bytes against the original image. Raw input
+can be queued with `queue_input_bytes`; empty DOS AH=06h polls normally return
+AL=0 and ZF=1. The replay opts into `yield_on_empty_input` to stop at the prompt
+with `InputRequired`, rather than spending the remaining instruction budget
+polling. A second replay supplies `0\r` and checks normal DOS termination.
+Startup has not yet been compared against the native oracle, and drawing or
+graphics behavior is outside this checkpoint.
+
+The optional replay regenerates its own crate using the local CFG, verified
+original images, and the recovered callback fixture:
+
+```sh
+cargo test -p acad-re --test translated_boot -- --ignored --nocapture
+```
+
+It asserts the expected overlay boundary, source-identical loaded code, and
+absence of the redirection error. `ACAD_RE_CFG`, `ACAD_RE_IMAGES`, and
+`ACAD_RE_SYSTEM` can override the local input paths. Normal tests independently
+cover routing collisions, local/external jumps, far-pointer semantics, DOS
+buffered input, checked FCB transfers, and explicit unsupported-service traps.
+No native-oracle comparison has been performed.

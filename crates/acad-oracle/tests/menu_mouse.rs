@@ -51,12 +51,11 @@
 //! - The Rust side does not hand-type `"zoom a"` as a stand-in for the
 //!   macro: it reads `ACAD.MNU`'s actual `ZOOM All` entry via
 //!   `acad_cmd::menu::parse_menu` and splits its real `action` bytes the
-//!   same way `acad-app`'s `split_macro_pieces` does (that function is
-//!   private to the `acad-app` binary, so this test reimplements the one
-//!   rule that matters for this macro: `;` and whitespace both act as
-//!   Enter), asserting the split matches `["zoom", "a"]` before submitting
-//!   those exact pieces — so this test is tied to the real decoded macro a
-//!   click actually sends, not a hand-typed guess at it.
+//!   same way a native click does (`acad_cmd::menu::macro_steps`, whose
+//!   space/`;` Return rule is measured in `menu_macros.rs`), asserting the
+//!   split matches `["zoom", "a"]` before submitting those exact pieces — so
+//!   this test is tied to the real decoded macro a click actually sends, not
+//!   a hand-typed guess at it.
 use acad_oracle::mouse::{device_for_pixel, LEFT};
 use acad_oracle::session::Session;
 use std::path::Path;
@@ -64,20 +63,6 @@ use std::thread;
 use std::time::Duration;
 
 const WAIT: Duration = Duration::from_secs(60);
-
-/// Reimplements `acad-app`'s `split_macro_pieces` (private to that binary):
-/// `;` and whitespace both act as a native macro's "Enter" between pieces.
-fn split_macro_pieces(text: &str) -> Vec<&str> {
-    text.split(';')
-        .flat_map(|piece| {
-            let mut words: Vec<&str> = piece.split_whitespace().collect();
-            if words.is_empty() {
-                words.push("");
-            }
-            words
-        })
-        .collect()
-}
 
 #[test]
 fn original_zoom_all_menu_click_matches_the_typed_macro() {
@@ -92,15 +77,30 @@ fn original_zoom_all_menu_click_matches_the_typed_macro() {
     // not a hand-typed stand-in. `ACAD.MNU`'s `[ZOOM All]zoom a` must
     // decode to action bytes `b"zoom a"` (confirmed by `acad-cmd`'s own
     // `menu.rs` unit test) and split into two pieces.
-    let menu = acad_cmd::menu::parse_menu(include_bytes!("../../../corpus/System/ACAD.MNU"))
-        .expect("parse ACAD.MNU");
+    let menu_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/System/ACAD.MNU");
+    let Ok(menu_bytes) = std::fs::read(&menu_path) else {
+        assert!(
+            std::env::var_os("AUTOCAD_REQUIRE_CORPUS").is_none(),
+            "{} absent",
+            menu_path.display()
+        );
+        eprintln!("skipping oracle: {} absent", menu_path.display());
+        return;
+    };
+    let menu = acad_cmd::menu::parse_menu(&menu_bytes).expect("parse ACAD.MNU");
     let zoom_all = menu
         .entries
         .iter()
         .find(|entry| entry.label == "ZOOM All")
         .expect("ACAD.MNU has a ZOOM All entry");
     let action_text = std::str::from_utf8(&zoom_all.action).expect("action is valid UTF-8");
-    let pieces = split_macro_pieces(action_text);
+    let pieces: Vec<String> = acad_cmd::menu::macro_steps(action_text)
+        .into_iter()
+        .map(|step| match step {
+            acad_cmd::menu::MacroStep::Return(text) => text,
+            acad_cmd::menu::MacroStep::Pause(_) => panic!("ZOOM All has no pause"),
+        })
+        .collect();
     assert_eq!(
         pieces,
         vec!["zoom", "a"],

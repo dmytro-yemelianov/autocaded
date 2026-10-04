@@ -124,7 +124,7 @@ fn menu_control_preserves_circle_radius_pending_state() {
             editor.submit(input).unwrap();
         }
         editor.apply_menu_control(control).unwrap();
-        assert_eq!(editor.prompt(), "CIRCLE: radius");
+        assert_eq!(editor.prompt(), "CIRCLE: radius or point (D for diameter)");
         assert!(editor.drawing().items.is_empty());
         editor.submit("1.25").unwrap();
         assert_eq!(editor.prompt(), "Command");

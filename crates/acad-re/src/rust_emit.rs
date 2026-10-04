@@ -248,6 +248,10 @@ pub fn emit(function: &Function) -> String {
                 Operation::CallIndirect { target } => {
                     writeln!(source, "let _ = {}; // callind", value(target)).unwrap();
                 }
+                Operation::KernelTailCall { .. } => {
+                    // This entry needs the linked resident bridge contract.
+                    writeln!(source, "return Err(Trap::InvalidPc);").unwrap();
+                }
                 Operation::JumpIndirect { target } => {
                     writeln!(source, "pc = {}; continue;", value(target)).unwrap();
                 }

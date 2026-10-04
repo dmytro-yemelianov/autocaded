@@ -25,7 +25,7 @@ pub fn rows_per_instance(keyword: &str) -> Option<usize> {
         "TEXT" | "INSERT" | "BLOCK" | "TRACE" | "SOLID" => 2,
         "EXTENTS" | "LIMITS" | "BASE" | "DWGVIEW" | "MODERES" | "MODEGRID" | "MODEORTHO"
         | "MODEFILL" | "TXTSIZE" | "TRACEWID" | "LAYER" | "LINE" | "CIRCLE" | "ARC" | "POINT"
-        | "ENDREP" | "LOAD" | "SHAPE" => 1,
+        | "ENDREP" | "LOAD" | "SHAPE" | "DIMARROW" => 1,
         _ => return None,
     })
 }
@@ -95,12 +95,20 @@ pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
             keyword: kw.clone(),
             line: i + 1,
         })?;
+        if kw == "DIMARROW" && count != 1 {
+            return Err(DxfError::BadHeader { line: i + 1 });
+        }
         let mut cursor = i + 1;
         for _ in 0..if is_entity(&kw) { 1 } else { count } {
             if cursor + per > lines.len() {
                 return Err(DxfError::Truncated {
                     keyword: kw.clone(),
                     line: i + 1,
+                });
+            }
+            if out.len() >= acad_model::group_codec::MAX_STORED_RECORDS + 128 {
+                return Err(DxfError::UnsupportedGroup {
+                    reason: "DXF record allocation exceeds the native codec limit",
                 });
             }
             out.push(Record {

@@ -19,6 +19,9 @@ pub enum Item {
 /// A rectangular pattern stored as REPEAT/ENDREP in AC1.40.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Repeat {
+    /// Stored opening/closing marker layers; metadata, never an owner visibility gate.
+    pub start_layer: u8,
+    pub end_layer: u8,
     pub entities: Vec<Entity>,
     pub columns: u16,
     pub rows: u16,
@@ -34,11 +37,14 @@ pub struct Drawing {
 
 impl Drawing {
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
-        self.items.iter().flat_map(|i| match i {
-            Item::Entity(e) => std::slice::from_ref(e).iter(),
-            Item::Repeat(r) => r.entities.iter(),
-            Item::Block(_) | Item::Erased(_) => [].iter(),
-        })
+        self.items
+            .iter()
+            .flat_map(|i| match i {
+                Item::Entity(e) => std::slice::from_ref(e).iter(),
+                Item::Repeat(r) => r.entities.iter(),
+                Item::Block(_) | Item::Erased(_) => [].iter(),
+            })
+            .filter(|entity| !entity.is_erased())
     }
     pub fn blocks(&self) -> impl Iterator<Item = &Block> {
         self.items.iter().filter_map(|i| match i {
@@ -58,6 +64,21 @@ mod tests {
         geom::{Extents, Point},
         header::{DwgView, Mode},
     };
+
+    #[test]
+    fn explicit_dim_arrow_is_semantic_but_passthrough_is_not() {
+        let absent = test_header();
+        let mut present = absent.clone();
+        present.dim_arrow = Some(0.140625);
+        assert_ne!(present, absent);
+        present.dim_arrow = Some(0.25);
+        let mut other = present.clone();
+        other.dim_arrow = Some(0.5);
+        assert_ne!(present, other);
+        other.dim_arrow = present.dim_arrow;
+        other.dwg_header_passthrough = Some(vec![42]);
+        assert_eq!(present, other);
+    }
 
     fn test_header() -> Header {
         let zero = Extents {
@@ -90,12 +111,15 @@ mod tests {
             fill: false,
             text_size: 0.0,
             trace_width: 0.0,
+            fillet_radius: 0.0,
+            dim_arrow: None,
             units: crate::Units {
                 format: crate::UnitFormat::Decimal,
                 precision: 4,
             },
             current_layer: 0,
             layers: Default::default(),
+            off_layers: Default::default(),
             dwg_header_passthrough: None,
         }
     }

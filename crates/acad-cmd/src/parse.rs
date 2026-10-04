@@ -189,3 +189,28 @@ pub(crate) fn parse_mode(
         }
     }
 }
+
+/// GRID zero follows the remembered SNAP interval; an X suffix resolves a
+/// multiple of the current interval. Both forms are described by ACAD.HLP.
+pub(crate) fn parse_grid_mode(
+    text: &str,
+    previous: acad_model::Mode,
+    snap_spacing: f64,
+) -> Result<acad_model::Mode, String> {
+    let text = text.to_ascii_uppercase();
+    if matches!(text.as_str(), "ON" | "OFF" | "YES" | "NO") {
+        return parse_mode(&text, previous);
+    }
+    let spacing = if let Some(value) = text.strip_suffix('X') {
+        if !snap_spacing.is_finite() || snap_spacing <= 0.0 {
+            return Err("SNAP spacing must be positive and finite".into());
+        }
+        number(value)? * snap_spacing
+    } else {
+        number(&text)?
+    };
+    if !spacing.is_finite() || spacing < 0.0 {
+        return Err("GRID spacing must be non-negative and finite".into());
+    }
+    Ok(acad_model::Mode { on: true, spacing })
+}

@@ -1,0 +1,3722 @@
+{
+  "schema_version": 1,
+  "goal": "Evidence-supported native Rust AutoCAD 1.4 completion through bounded multi-agent loops",
+  "status": "active",
+  "created_at": "2026-10-03T21:20:32.120196+00:00",
+  "updated_at": "2026-10-04T16:00:16.579189+00:00",
+  "backend": "builtin collaboration API; coordinator protocol adapted from superset-orchestrate",
+  "worker_limit": 3,
+  "max_fix_attempts": 3,
+  "coordinator": "/root",
+  "run": {
+    "run_dir": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv",
+    "original": "/Users/dmytro/github/autorust",
+    "baseline_commit": "6a26ba4332879523ac589c1ff9a9f4ec3b071cb3",
+    "workers": {
+      "selection": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/selection",
+      "layers": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/layers",
+      "S2": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/selection-dialogue",
+      "B3": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/repeat-codec",
+      "L3": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/off-persistence",
+      "T1": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/text-change",
+      "V1": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/fillet-views",
+      "B4": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/erased-members"
+    }
+  },
+  "baseline_validation": {
+    "distinct_native_tests": 412,
+    "full_suite_log": "/tmp/autorust-arc-native.log",
+    "additional_focused_log": "/tmp/autorust-arc-final-options.log",
+    "gui_log": "/tmp/autorust-arc-gui.log",
+    "protected_manifest": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/protected-sha256.json"
+  },
+  "tasks": [
+    {
+      "id": "S1",
+      "objective": "Canonical live-object addressing for selection, REPEAT and detailed immediate LIST",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [],
+      "acceptance": [
+        "One documented addressing rule shared by edit selection, reports, picking and highlighting",
+        "LOAD/erased records excluded; REPEAT behavior and unsupported transforms explicit",
+        "Focused tests, unchanged native comparisons, independent review and integrated native checks"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "/root/selection_loop",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/integration-guard",
+      "fix_attempts": 2,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "repair2_focused": {
+          "result": "passed",
+          "at": "2026-10-03T21:54:17.049273+00:00",
+          "note": "Repair2 first focused checks passed in worker copy: four codec cases plus reproduced native/API SAVE/END destination and UNDO preservation across AC1.2/AC1.40/DXF. Final worker suite, exact patch and independent final review pending."
+        },
+        "worker_tests": {
+          "result": "passed",
+          "at": "2026-10-03T21:55:03.493502+00:00",
+          "note": "Coordinator verified scope/SHAae39cfb8b631 and applied guard serially over S1/L1; worker208 tests/Clippy passed. Final source review and combined visibility/native checks pending. Nested codec support remains B3."
+        },
+        "worker_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T21:55:03.493502+00:00",
+          "note": "Coordinator verified scope/SHAae39cfb8b631 and applied guard serially over S1/L1; worker208 tests/Clippy passed. Final source review and combined visibility/native checks pending. Nested codec support remains B3."
+        },
+        "coordinator_guard_tests": {
+          "result": "passed",
+          "at": "2026-10-03T21:57:25.949178+00:00",
+          "note": "Coordinator applied exact guard and independently ran both codec repeat_guard suites:4 passed. Whole merged native/API/GUI checks wait final visibility source; no milestone approval yet."
+        },
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:05:22.513474+00:00",
+          "note": "Coordinator final merged six-native suite passed455 tests,0 failed/ignored, including retained original DIM/HATCH comparisons. Final Clippy/workspace/GUI and independent source verdict pending."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T22:05:33.522840+00:00",
+          "note": "Coordinator six-native all-target Clippy -Dwarnings passed after455 tests. Changed44Rust paths fmt and protected/native hashes checked. Workspace/GUI and final independent review pending."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-03T22:06:35.594507+00:00",
+          "note": "Final exact merged source approval pass3 and workspace all-target check pass. Native455tests/Clippy/fmt passed; binaries building for actualGUI/MCP smoke. Await integration gate."
+        },
+        "workspace_check": {
+          "result": "passed",
+          "at": "2026-10-03T22:06:35.594507+00:00",
+          "note": "Final exact merged source approval pass3 and workspace all-target check pass. Native455tests/Clippy/fmt passed; binaries building for actualGUI/MCP smoke. Await integration gate."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-03T22:07:43.463721+00:00",
+          "note": "Coordinator final acceptance: exact source approval,455native tests,all-targetClippy/workspace,44pathfmt/diff,actualGUI/MCP/API/CLI smoke pass. Visible/OFF800x600 frames inspected; save/refusal/UNDO/reopen/END clean, freshDXF12raw/11selectable. S1 integrated; S2/B3/resource-export gaps remain explicit."
+        },
+        "gui_mcp": {
+          "result": "passed",
+          "at": "2026-10-03T22:07:43.463721+00:00",
+          "note": "Coordinator final acceptance: exact source approval,455native tests,all-targetClippy/workspace,44pathfmt/diff,actualGUI/MCP/API/CLI smoke pass. Visible/OFF800x600 frames inspected; save/refusal/UNDO/reopen/END clean, freshDXF12raw/11selectable. S1 integrated; S2/B3/resource-export gaps remain explicit."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/selection.patch",
+        "docs/superpowers/reviews/2026-10-04-selection-review.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/selection-repair-tests.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/selection-repair-clippy.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/guard.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/guard-tests.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/guard-clippy.log",
+        "/tmp/autorust-agentic-guard-root.log",
+        "/tmp/autorust-agentic-native.log",
+        "/tmp/autorust-agentic-clippy.log",
+        "docs/superpowers/reviews/2026-10-04-merged-final-review.md",
+        "/tmp/autorust-agentic-workspace.log",
+        "/tmp/autorust-agentic-gui.log",
+        "/tmp/autorust-agentic-build.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/acad-gui-lifecycle-k7vlixyh"
+      ],
+      "latest_note": "Coordinator final acceptance: exact source approval,455native tests,all-targetClippy/workspace,44pathfmt/diff,actualGUI/MCP/API/CLI smoke pass. Visible/OFF800x600 frames inspected; save/refusal/UNDO/reopen/END clean, freshDXF12raw/11selectable. S1 integrated; S2/B3/resource-export gaps remain explicit.",
+      "updated_at": "2026-10-03T22:07:43.463721+00:00"
+    },
+    {
+      "id": "L1",
+      "objective": "Layer ON/OFF/COLOR/? and native visibility with safe export handling",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [],
+      "acceptance": [
+        "Retained HLP dialogue and explicit semantic off-layer state",
+        "Renderer and mouse picking/highlight honor visibility; UNDO/dirty/API agree",
+        "No undocumented file bits or silently lost off-state; checked save/export fails safely when unsupported",
+        "ON/UNDO and supported drawings keep existing DWG/DXF behavior"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "/root/layers_loop",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/integration-visibility",
+      "fix_attempts": 2,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "worker_first_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:00:00.023232+00:00",
+          "note": "Worker first cmd/app/render library tests and check passed. Canonical hidden explicit selectors, visible group/INSERT bounds and ordered resource-context tests added; walker extracted from flatten.rs. Final exact patch/lint/integration pending."
+        },
+        "worker_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:02:13.129223+00:00",
+          "note": "Coordinator checked SHA63c029507ae2 and pathscope; applied serially over S1/L1/guard for final integration. Worker331 affected tests and149 focused pass; Clippy passed. Independent merged source review, coordinator checks and actual GUI smoke pending."
+        },
+        "worker_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T22:02:13.129223+00:00",
+          "note": "Coordinator checked SHA63c029507ae2 and pathscope; applied serially over S1/L1/guard for final integration. Worker331 affected tests and149 focused pass; Clippy passed. Independent merged source review, coordinator checks and actual GUI smoke pending."
+        },
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:05:22.659090+00:00",
+          "note": "Coordinator final merged six-native suite passed455 tests,0 failed/ignored, including selection/resource/layer integration. Final Clippy/workspace/GUI and source verdict pending."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T22:05:33.839330+00:00",
+          "note": "Coordinator six-native all-target Clippy -Dwarnings passed after455 tests. Workspace/GUI and final independent review pending."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-03T22:06:35.738509+00:00",
+          "note": "Final exact merged source approval pass3 and workspace all-target check pass. Native455tests/Clippy/fmt passed; awaiting actualGUI/MCP integration gate."
+        },
+        "workspace_check": {
+          "result": "passed",
+          "at": "2026-10-03T22:06:35.738509+00:00",
+          "note": "Final exact merged source approval pass3 and workspace all-target check pass. Native455tests/Clippy/fmt passed; awaiting actualGUI/MCP integration gate."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-03T22:07:43.617633+00:00",
+          "note": "Coordinator final acceptance:455native tests,Clippy/workspace/fmt/diff,finalexact independent review andactualGUI pass. Stable hiddenIDs,owner/childpicks/windows/highlight,LOADcontext andoffstatePNG/RGBAchecked. Existing/absentdestination safe refusals,UNDOrecovery andsourcefiles preserved. OFFencodingL2/visible-onlyZOOMV1 remain gaps."
+        },
+        "gui_mcp": {
+          "result": "passed",
+          "at": "2026-10-03T22:07:43.617633+00:00",
+          "note": "Coordinator final acceptance:455native tests,Clippy/workspace/fmt/diff,finalexact independent review andactualGUI pass. Stable hiddenIDs,owner/childpicks/windows/highlight,LOADcontext andoffstatePNG/RGBAchecked. Existing/absentdestination safe refusals,UNDOrecovery andsourcefiles preserved. OFFencodingL2/visible-onlyZOOMV1 remain gaps."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/layers.patch",
+        "docs/superpowers/reviews/2026-10-04-layer-review.md",
+        "/tmp/autorust-agentic-l1-workspace.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/visibility.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/reviews/visibility-full-tests.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/reviews/visibility-clippy.log",
+        "/tmp/autorust-agentic-native.log",
+        "/tmp/autorust-agentic-clippy.log",
+        "docs/superpowers/reviews/2026-10-04-merged-final-review.md",
+        "/tmp/autorust-agentic-workspace.log",
+        "/tmp/autorust-agentic-gui.log",
+        "/tmp/autorust-agentic-build.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/acad-gui-lifecycle-k7vlixyh"
+      ],
+      "latest_note": "Coordinator final acceptance:455native tests,Clippy/workspace/fmt/diff,finalexact independent review andactualGUI pass. Stable hiddenIDs,owner/childpicks/windows/highlight,LOADcontext andoffstatePNG/RGBAchecked. Existing/absentdestination safe refusals,UNDOrecovery andsourcefiles preserved. OFFencodingL2/visible-onlyZOOMV1 remain gaps.",
+      "updated_at": "2026-10-03T22:07:43.617633+00:00"
+    },
+    {
+      "id": "R1",
+      "objective": "Independent evidence contracts and remaining-work dependency plan",
+      "kind": "audit",
+      "status": "verified",
+      "depends_on": [],
+      "acceptance": [
+        "Retained source facts separated from Rust policy and unmeasured parity",
+        "Review selection/repeat and layer save contracts, identify concrete acceptance cases",
+        "Provide bounded queue and notes; coordinator reads and checks findings"
+      ],
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "agent": "/root/evidence_review",
+      "workspace": "/Users/dmytro/github/autorust",
+      "fix_attempts": 0,
+      "required_checks": [
+        "contract_review"
+      ],
+      "checks": {
+        "contract_review": {
+          "result": "passed",
+          "at": "2026-10-03T21:22:57.224134+00:00",
+          "note": "Coordinator inspected note/source acceptance and retained HLP. Contract/queue deliverable accepted; implementation verdicts remain pending. Reviewer available for patch review."
+        }
+      },
+      "review": "pass",
+      "integrated": false,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/reviews/contracts-and-queue.md",
+        "docs/superpowers/plans/2026-10-04-agentic-contracts.md"
+      ],
+      "latest_note": "Coordinator inspected note/source acceptance and retained HLP. Contract/queue deliverable accepted; implementation verdicts remain pending. Reviewer available for patch review.",
+      "updated_at": "2026-10-03T21:22:57.224134+00:00"
+    },
+    {
+      "id": "R2",
+      "objective": "Independent preflight and final candidate review of S1/L1",
+      "kind": "audit",
+      "status": "verified",
+      "depends_on": [
+        "R1"
+      ],
+      "acceptance": [
+        "Read staged patches and source independently, not just worker logs",
+        "Check REPEAT ownership/visibility, safe checked exports and cross-agent integration",
+        "Report severity/location and fixes; final implementation verdict only on exact final patches"
+      ],
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "agent": "/root/evidence_review",
+      "workspace": "/Users/dmytro/github/autorust",
+      "fix_attempts": 0,
+      "required_checks": [
+        "source_review",
+        "final_patch_review"
+      ],
+      "checks": {
+        "source_review": {
+          "result": "passed",
+          "at": "2026-10-03T22:06:23.212062+00:00",
+          "note": "Astra final pass3 source approval SHAc097b9819622; exactpatch/stageddiff and217native hashes independently verified. All blocking S1/L1 source findings closed; compatibilitygaps explicitly remain. Rootexecution gated separately."
+        },
+        "final_patch_review": {
+          "result": "passed",
+          "at": "2026-10-03T22:06:23.212062+00:00",
+          "note": "Astra final pass3 source approval SHAc097b9819622; exactpatch/stageddiff and217native hashes independently verified. All blocking S1/L1 source findings closed; compatibilitygaps explicitly remain. Rootexecution gated separately."
+        }
+      },
+      "review": "pass",
+      "integrated": false,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/merged-final.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/merged-native-sha256.json",
+        "docs/superpowers/reviews/2026-10-04-merged-final-review.md"
+      ],
+      "latest_note": "Coordinator read and accepted exact merged final source-review deliverable; implementation milestones still await root workspace/GUI checks.",
+      "updated_at": "2026-10-03T22:06:23.365428+00:00"
+    },
+    {
+      "id": "S2",
+      "objective": "General window/multiple-pick selection and selected-object detailed LIST",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S1",
+        "L1"
+      ],
+      "acceptance": [
+        "Shared window selection for applicable commands, consistent IDs and hidden-layer handling",
+        "Retained LIST selection dialogue with complete read-only report",
+        "Keyboard/mouse/API/MCP, cancel/retry and UNDO neutrality covered"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "/root/selection_loop",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/selection-dialogue",
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "worker_first_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:26:00.415204+00:00",
+          "note": "Worker reports existing affected cmd/app suites pass with shared selectors and selectedLIST prompt; focused tests ongoing. HATCH replay adaptation requires source review to ensure retained input grammar not masked; no evidence files/tolerances changed."
+        },
+        "worker_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:38:45.561543+00:00",
+          "note": "Worker exact patch bfad5b3021b2 ready:304 cmd/app tests and scoped Clippy passed; original HATCH replay unchanged, immediate window completion retained explicitly. Independent exact review and root integration/GUI pending."
+        },
+        "worker_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T22:38:45.561543+00:00",
+          "note": "Worker exact patch bfad5b3021b2 ready:304 cmd/app tests and scoped Clippy passed; original HATCH replay unchanged, immediate window completion retained explicitly. Independent exact review and root integration/GUI pending."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-03T22:43:15.809367+00:00",
+          "note": "Astra exact bfad5b source review passed; root read selector/report/API source and applied exact candidate after217native/41protected hashes matched. Six-native tests running; root all-target Clippy passed. Added attached GUI/MCP collection/typed-replacement/window/ERASE/UNDO smoke, execution pending."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T22:43:15.809367+00:00",
+          "note": "Astra exact bfad5b source review passed; root read selector/report/API source and applied exact candidate after217native/41protected hashes matched. Six-native tests running; root all-target Clippy passed. Added attached GUI/MCP collection/typed-replacement/window/ERASE/UNDO smoke, execution pending."
+        },
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:44:11.765190+00:00",
+          "note": "S2 coordinator acceptance: exact source pass;468 six-native tests,0 failed/ignored; all-target Clippy/workspace/build,21Rustfmt/diff/protected41 pass. Actual attached native GUI/MCP/API collects deduplicated picks/windows, typed replacement, LIST reports, ERASE Return/cancel/UNDO, existing layers/groups/save/reopen/END smoke passed. Physical keyboard/menu GO retain Session test coverage, no new original parity measurement. B3/L3 combined edits need fresh review/checks."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-03T22:44:11.765190+00:00",
+          "note": "S2 coordinator acceptance: exact source pass;468 six-native tests,0 failed/ignored; all-target Clippy/workspace/build,21Rustfmt/diff/protected41 pass. Actual attached native GUI/MCP/API collects deduplicated picks/windows, typed replacement, LIST reports, ERASE Return/cancel/UNDO, existing layers/groups/save/reopen/END smoke passed. Physical keyboard/menu GO retain Session test coverage, no new original parity measurement. B3/L3 combined edits need fresh review/checks."
+        },
+        "gui_mcp": {
+          "result": "passed",
+          "at": "2026-10-03T22:44:11.765190+00:00",
+          "note": "S2 coordinator acceptance: exact source pass;468 six-native tests,0 failed/ignored; all-target Clippy/workspace/build,21Rustfmt/diff/protected41 pass. Actual attached native GUI/MCP/API collects deduplicated picks/windows, typed replacement, LIST reports, ERASE Return/cancel/UNDO, existing layers/groups/save/reopen/END smoke passed. Physical keyboard/menu GO retain Session test coverage, no new original parity measurement. B3/L3 combined edits need fresh review/checks."
+        },
+        "workspace_check": {
+          "result": "passed",
+          "at": "2026-10-03T22:44:11.765190+00:00",
+          "note": "S2 coordinator acceptance: exact source pass;468 six-native tests,0 failed/ignored; all-target Clippy/workspace/build,21Rustfmt/diff/protected41 pass. Actual attached native GUI/MCP/API collects deduplicated picks/windows, typed replacement, LIST reports, ERASE Return/cancel/UNDO, existing layers/groups/save/reopen/END smoke passed. Physical keyboard/menu GO retain Session test coverage, no new original parity measurement. B3/L3 combined edits need fresh review/checks."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/s2.patch",
+        "docs/superpowers/reviews/2026-10-04-selection-dialogue-review.md",
+        "/tmp/autorust-agentic-s2-clippy.log",
+        "/tmp/autorust-agentic-s2-native.log",
+        "/tmp/autorust-agentic-s2-workspace.log",
+        "/tmp/autorust-agentic-s2-gui.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/acad-gui-lifecycle-fhysyb6r",
+        "docs/superpowers/reviews/2026-10-04-selection-harness-review.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/s2-native-sha256.json"
+      ],
+      "latest_note": "Independent root harness extension approval confirmed35 inserted lines SHA d089965e1d51; attached GUI run passed and exact220-native-files milestone manifest recorded. S2 accepted468 tests. Root queued B4 newly proven partial-member sign preservation so B3 native owner policy cannot conceal original-format gap.",
+      "updated_at": "2026-10-03T22:45:38.268099+00:00",
+      "baseline_commit": "2148439c6bd4ebab8bc466536013c6c3f0827e94"
+    },
+    {
+      "id": "T1",
+      "objective": "TEXT alignment, point-defined size/angle, repeated lines and CHANGE text properties",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2"
+      ],
+      "acceptance": [
+        "Retained A/C/R and relative/point input contracts",
+        "CHANGE properties with one atomic mutation/undo and file round trips",
+        "Font metrics and existing native fixtures remain strict"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "/root/selection_loop",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/text-change",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "worker_tests": {
+          "result": "passed",
+          "at": "2026-10-03T23:23:08.642491+00:00",
+          "note": "Repair1 exactb78738390f9d wholecandidate ready,22staged;363affected native tests/Clippy/fmt/diffpass. Iterative bounded standalonecontext module+2adversarial regressions replace stack.extend; old70657 artifact preserved. Astra finalscope reviewdispatched. Main T1notintegrated yet; rootreconcilesB3metadata/earlyrenderguard hunk aftersourceapproval."
+        },
+        "worker_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T23:23:08.642491+00:00",
+          "note": "Repair1 exactb78738390f9d wholecandidate ready,22staged;363affected native tests/Clippy/fmt/diffpass. Iterative bounded standalonecontext module+2adversarial regressions replace stack.extend; old70657 artifact preserved. Astra finalscope reviewdispatched. Main T1notintegrated yet; rootreconcilesB3metadata/earlyrenderguard hunk aftersourceapproval."
+        },
+        "independent_incremental_review": {
+          "result": "passed",
+          "at": "2026-10-03T23:25:17.147644+00:00",
+          "note": "Astra repairedb787 exactsource pass2, standalonepending-stackP2closed. Rootapplied22filecandidate excluding2contextfiles thenexplicitlyreconciled repeat_start_layer metadata alongsideTEXThistory/provider and reusedsameearlydepth0 guard beforeappendingfont helper. No constructors/fixturesneededchanges; sixnativecombinedB3/T1/L3/RB1 suite running. Finalmergedexact review and actualGUI text/CHANGE remainpending."
+        },
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-03T23:35:39.548010+00:00",
+          "note": "Integrated final B3/T1/L3/RB1 snapshot: 520 six-native tests (0 failures/ignored), scoped all-target Clippy -D warnings, bins build and workspace all-target compile passed. Actual GUI/API/MCP TEXT C/R/A/repeat/point-height/CHANGE and nested/erased REPEAT OOPS/BLOCK/WBLOCK DWG/DXF save-reopen passed; text PNG inspected. 238 native-file hash manifest matches main; protected41 unchanged; changed-file rustfmt/diff pass. Final exact source review SHA576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b pending final text-only confirmation."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T23:35:39.548010+00:00",
+          "note": "Integrated final B3/T1/L3/RB1 snapshot: 520 six-native tests (0 failures/ignored), scoped all-target Clippy -D warnings, bins build and workspace all-target compile passed. Actual GUI/API/MCP TEXT C/R/A/repeat/point-height/CHANGE and nested/erased REPEAT OOPS/BLOCK/WBLOCK DWG/DXF save-reopen passed; text PNG inspected. 238 native-file hash manifest matches main; protected41 unchanged; changed-file rustfmt/diff pass. Final exact source review SHA576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b pending final text-only confirmation."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-03T23:35:39.548010+00:00",
+          "note": "Integrated final B3/T1/L3/RB1 snapshot: 520 six-native tests (0 failures/ignored), scoped all-target Clippy -D warnings, bins build and workspace all-target compile passed. Actual GUI/API/MCP TEXT C/R/A/repeat/point-height/CHANGE and nested/erased REPEAT OOPS/BLOCK/WBLOCK DWG/DXF save-reopen passed; text PNG inspected. 238 native-file hash manifest matches main; protected41 unchanged; changed-file rustfmt/diff pass. Final exact source review SHA576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b pending final text-only confirmation."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-03T23:36:44.222402+00:00",
+          "note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/t1-cmd-focused.log",
+        "docs/superpowers/reviews/2026-10-04-text-preflight-review.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/t1.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/reviews/t1-review.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/t1-repair1-tests.log",
+        "docs/superpowers/reviews/2026-10-04-text-review.md",
+        "/tmp/autorust-agentic-phase2-final-native.log",
+        "/tmp/autorust-agentic-phase2-final-clippy.log",
+        "/tmp/autorust-agentic-phase2-final-workspace.log",
+        "/tmp/autorust-agentic-phase2-final-gui.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/acad-gui-lifecycle-v_l_jgxb",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/phase2-final.patch",
+        "docs/superpowers/reviews/2026-10-04-phase2-final-review.md"
+      ],
+      "latest_note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible.",
+      "updated_at": "2026-10-03T23:36:44.222402+00:00",
+      "baseline_commit": "625176171ae0acf6c803f71b246e0cb81a8f720f"
+    },
+    {
+      "id": "V1",
+      "objective": "FILLET radius setting/zero intersection and missing ZOOM/PAN forms",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2"
+      ],
+      "acceptance": [
+        "Retained R dialogue/persisted supported radius or explicit codec limit",
+        "Zero-radius intersection is atomic and undoable",
+        "ZOOM L/X/absolute semantics and two-point PAN use evidence-supported contracts"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "claude/v1_repair",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/fillet-views",
+      "fix_attempts": 2,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T00:50:02.632521+00:00",
+          "note": "Repair2 69e61faa: infallible viewport_for (stored -> LIMITS fit -> unit) shared by frame/click/pick/crosshair, display-only; commands still refuse; 546 tests, clippy passed (worker). Source pass3 pending."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T00:50:02.632521+00:00",
+          "note": "Repair2 69e61faa: infallible viewport_for (stored -> LIMITS fit -> unit) shared by frame/click/pick/crosshair, display-only; commands still refuse; 546 tests, clippy passed (worker). Source pass3 pending."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T00:52:35.915624+00:00",
+          "note": "Source pass3 pass: display fallback verified incl. degenerate/NaN LIMITS probe; P3 doc wording on @ points to fix at integration. Root integration starting."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T01:03:05.430529+00:00",
+          "note": "Root integration: V1 repair2 (69e61faa) + doc P3 fix, B4 repair1 (25f3da9f) three-way merged with no conflicts + root_item comment fix. 564 six-package tests 0 failed, clippy -D warnings, workspace all-target check, rustfmt on 58 changed files, diff check passed; attached GUI/MCP/API harness PASS incl. new B4 partial-member step (DWG byte-identical resave, DXF omission, ambiguous save refusal, OOPS); 41 protected hashes unchanged. Logs target/agentic-artifacts/{b4-int-*,int-*}.log. Final merged-source review pending."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/v1.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/v1-handoff.json",
+        "docs/superpowers/reviews/2026-10-04-fillet-views-preflight-review.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/v1-repair1.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/v1-repair1-handoff.json",
+        "target/agentic-artifacts/reviews/v1-review-pass2.md",
+        "target/agentic-artifacts/v1-repair2.patch",
+        "target/agentic-artifacts/reviews/v1-review-pass3.md",
+        "target/agentic-artifacts/reviews/final-v1-b4-merged-review.md"
+      ],
+      "latest_note": "Final merged-source review pass (integration delta matches accepted patches plus 4 expected root edits; reviewer reran 564 tests). GUI harness rerun PASS after removing unused variable. Verified.",
+      "updated_at": "2026-10-04T01:06:37.961490+00:00",
+      "baseline_commit": "c9657fbb93960051007f5a248daf143e51fa640d"
+    },
+    {
+      "id": "H1",
+      "objective": "HATCH N/O/I island styles",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2"
+      ],
+      "acceptance": [
+        "Retained styles, nested boundaries and shape cases",
+        "Generation errors/budgets leave drawing and undo unchanged",
+        "Existing original LINE/NET comparisons stay strict"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/hatch_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/hatch-styles",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T01:22:37.812794+00:00",
+          "note": "Repair1 9bee4ce1: O/I half-open crossing rule for lines and y-monotone arc pieces, no per-loop merge, odd per-loop count fails atomically; N unchanged; 4 regressions + styled-path API budget test; 579 tests, clippy passed (worker). Review pass2 not yet launched (usage limit)."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T01:22:37.812794+00:00",
+          "note": "Repair1 9bee4ce1: O/I half-open crossing rule for lines and y-monotone arc pieces, no per-loop merge, odd per-loop count fails atomically; N unchanged; 4 regressions + styled-path API budget test; 579 tests, clippy passed (worker). Review pass2 not yet launched (usage limit)."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T08:11:17.260566+00:00",
+          "note": "Review pass2 pass: brute-force oracle over rotated scenes 0 mismatches for O/I; odd-parity error atomic; N unchanged. Non-blocking: add rotated corner case and odd-crossing error test (test-only addendum requested before integration)."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T08:21:26.484999+00:00",
+          "note": "Root integration after B1: one import-line conflict in input_state.rs resolved (keep both uses). 607 six-package tests 0 failed, clippy, workspace check, build, fmt, diff check; GUI harness PASS with new HATCH N/O/I step (distinct outputs, DWG/DXF reopen); protected hashes unchanged."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/h1.patch",
+        "target/agentic-artifacts/h1-handoff.json",
+        "target/agentic-artifacts/reviews/h1-review.md",
+        "target/agentic-artifacts/h1-repair1.patch",
+        "target/agentic-artifacts/reviews/h1-review-pass2.md",
+        "target/agentic-artifacts/h1-final.patch"
+      ],
+      "latest_note": "Verified.",
+      "updated_at": "2026-10-04T08:21:26.543614+00:00",
+      "baseline_commit": "ed5812b483c1ad7e2c6880bd2beb0d65cb7778fa"
+    },
+    {
+      "id": "H2",
+      "objective": "HATCH U and external pattern input",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "H1"
+      ],
+      "acceptance": [
+        "Validated bounded user pattern and external PAT parsing",
+        "Errors/cancel leave no anonymous block or undo step",
+        "Clipping, phase, dots, file/API workflows covered"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/hatch_user_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/hatch-user",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T09:10:12.695712+00:00",
+          "note": "Repair1 d2e03390: HatchWork total budget 10M rows+dash cycles charged before work, atomic failure; gaps-only rows rejected at parse; PLASTI oracle anchor. 657 tests, clippy, oracle passed (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T09:10:12.695712+00:00",
+          "note": "Repair1 d2e03390: HatchWork total budget 10M rows+dash cycles charged before work, atomic failure; gaps-only rows rejected at parse; PLASTI oracle anchor. 657 tests, clippy, oracle passed (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T09:20:20.012259+00:00",
+          "note": "Review pass2 pass: DoS closed (ms failures), 3,450-case geometry identity, 10M budget swept over 3,803 built-in runs with no regressions. P3 carried to Q1: rows x boundary-edges loop on huge boundaries (pre-existing, ESCHER 58 s at 8,000 edges). Root integration starting."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T09:28:19.005728+00:00",
+          "note": "Root integration after X1: resolved X1/H2 resolver divergence by keeping X1 FileKind API and adding shared candidate_files/is_regular_file (FileKind-based) used by resolve_file and HATCH PATTERN_FILE lookup; messages unchanged; matrix roadmap line merged. 687 six-package tests 0 failed, oracle hatch_user/array_break/scripts 9/9/13, QEMU HATCH 5, clippy incl acad-oracle, workspace check, build, fmt, diff check; GUI harness PASS with new pattern-file + U,I step; protected unchanged. Coordinator resolver reconciliation to be covered by final merged-source review."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/h2.patch",
+        "target/agentic-artifacts/h2-handoff.json",
+        "target/agentic-artifacts/reviews/h2-review.md",
+        "target/agentic-artifacts/h2-repair1.patch",
+        "target/agentic-artifacts/reviews/h2-review-pass2.md"
+      ],
+      "latest_note": "Verified.",
+      "updated_at": "2026-10-04T09:28:19.062194+00:00",
+      "baseline_commit": "98ad0c95cf87fab46054a4668c5f405eabafbaf4"
+    },
+    {
+      "id": "B1",
+      "objective": "External drawing-file INSERT",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2"
+      ],
+      "acceptance": [
+        "Supported DWG/DXF source loading and block/reference closure",
+        "Base/scales/rotation, duplicate names and failure paths explicit",
+        "Supported file round trips with no partial insertion"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/insert_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/external-insert",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T08:08:19.164138+00:00",
+          "note": "Repair1 33f15dd8: regular-file-only resolver + 16,776,960-byte cap via take; combined host+import record check; libraries merged post-commit for reachable LOAD names only; omitted erased REPEAT status; case-only message. 590 tests, clippy passed (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T08:08:19.164138+00:00",
+          "note": "Repair1 33f15dd8: regular-file-only resolver + 16,776,960-byte cap via take; combined host+import record check; libraries merged post-commit for reachable LOAD names only; omitted erased REPEAT status; case-only message. 590 tests, clippy passed (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T08:11:31.609917+00:00",
+          "note": "Review pass2 pass: repros fail safely, combined limit exact at boundary, post-commit merge gated. P3 TOCTOU stat/open FIFO swap (optional O_NONBLOCK), drive-qualified LOAD name cosmetic. Root integration starting."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T08:17:09.569386+00:00",
+          "note": "Root integration (clean 3-way, no conflicts): 590 six-package tests 0 failed, clippy, workspace check, build, fmt, diff check; GUI harness PASS with new external INSERT step (block + star form, DWG/DXF reopen, UNDO, missing-file error); protected hashes unchanged."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/b1.patch",
+        "target/agentic-artifacts/b1-handoff.json",
+        "target/agentic-artifacts/reviews/b1-review.md",
+        "target/agentic-artifacts/b1-repair1.patch",
+        "target/agentic-artifacts/reviews/b1-review-pass2.md"
+      ],
+      "latest_note": "Verified.",
+      "updated_at": "2026-10-04T08:17:09.678542+00:00",
+      "baseline_commit": "ed5812b483c1ad7e2c6880bd2beb0d65cb7778fa"
+    },
+    {
+      "id": "B2",
+      "objective": "Circular ARRAY options and TRACE BREAK",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2"
+      ],
+      "acceptance": [
+        "Retained angle-to-cover and rotate-copy choice",
+        "TRACE clipping contract and object picking dialogue",
+        "Bounded output, retry/cancel, UNDO and unchanged original comparisons"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/array_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/array-break",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T08:14:08.149054+00:00",
+          "note": "Repair1 19fa6644: typed break_select_ids for dialogue selections; whole-object break erases record (OOPS restores only last ERASE, oracle-confirmed); 9 committed oracle tests for every cited claim; no-op ARRAY no undo step. 591 tests, clippy, oracle passed (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T08:14:08.149054+00:00",
+          "note": "Repair1 19fa6644: typed break_select_ids for dialogue selections; whole-object break erases record (OOPS restores only last ERASE, oracle-confirmed); 9 committed oracle tests for every cited claim; no-op ARRAY no undo step. 591 tests, clippy, oracle passed (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T08:19:08.023780+00:00",
+          "note": "Review pass2 pass: repros fixed, every original-behaviour sentence asserted by committed oracle tests (9 + 4 rerun on real System.img), whole-object erase persistence/OOPS/group rejection verified. Awaiting serial integration after H1."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T08:25:25.621500+00:00",
+          "note": "Root integration after H1 (clean 3-way): 634 six-package tests 0 failed, acad-oracle array_break 9 passed on real System.img, clippy, workspace check, build, fmt, diff check; GUI harness PASS with new circular ARRAY fill/BREAK step (DWG/DXF reopen, UNDO); protected hashes unchanged."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/b2.patch",
+        "target/agentic-artifacts/b2-handoff.json",
+        "target/agentic-artifacts/reviews/b2-review.md",
+        "target/agentic-artifacts/b2-repair1.patch",
+        "target/agentic-artifacts/reviews/b2-review-pass2.md"
+      ],
+      "latest_note": "Verified.",
+      "updated_at": "2026-10-04T08:25:25.683872+00:00",
+      "baseline_commit": "ed5812b483c1ad7e2c6880bd2beb0d65cb7778fa"
+    },
+    {
+      "id": "B3",
+      "objective": "REPEAT erased-group persistence and nested stream read/write agreement",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S1"
+      ],
+      "acceptance": [
+        "ERASE/BLOCK of a supported group must save/reopen without silent loss or partial file replacement",
+        "Writer must not claim successful output that the native reader rejects for nested REPEAT",
+        "Implement supported grammar/representation with strict retained fixtures; unresolved file semantics stay explicit",
+        "OOPS/UNDO, block members, both DWG revisions and DXF routes covered"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "/root/layers_loop",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/repeat-codec",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "worker_tests": {
+          "result": "passed",
+          "at": "2026-10-03T23:18:15.948247+00:00",
+          "note": "Repair1 exactincremental a6bbadf15913 vsimmutableB3a a5cdbc0f ready:475sixnative tests/Clippy/fmt pass; all-negative lexical native owner erase +uniformtopreconstruct/mixedrefusal, DXF live-only, extractedboundedLOAD exportcontext/P2closure andpreflightbeforeclones/finiteguards. Astra reviewing exactsource. Partialoriginal erasedmembers trackedB4; explicitruntimeowner-wrapperencodingstill checkedlimit. Rootnormalrender guard RB1verified independently; finalmergedsource/executionpending."
+        },
+        "worker_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T23:18:15.948247+00:00",
+          "note": "Repair1 exactincremental a6bbadf15913 vsimmutableB3a a5cdbc0f ready:475sixnative tests/Clippy/fmt pass; all-negative lexical native owner erase +uniformtopreconstruct/mixedrefusal, DXF live-only, extractedboundedLOAD exportcontext/P2closure andpreflightbeforeclones/finiteguards. Astra reviewing exactsource. Partialoriginal erasedmembers trackedB4; explicitruntimeowner-wrapperencodingstill checkedlimit. Rootnormalrender guard RB1verified independently; finalmergedsource/executionpending."
+        },
+        "independent_incremental_review": {
+          "result": "passed",
+          "at": "2026-10-03T23:20:02.257016+00:00",
+          "note": "Astra exacta6bbadf15913 incremental pass; namedWBLOCK P2closed with ordered boundednestedLOAD projection/checkedpreflight. Rootappliedexactdelta overS2/L3/RB1 aftercheck, sixnative fullsuite nowrunning. Parent B3awaits exactmergedreview/Clippy/workspace/actualGUI ERASE/OOPS/BLOCK/WBLOCK/save/reopen proof; B4partialmemberstates stillpending, no new originalgroup parity."
+        },
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-03T23:35:39.494093+00:00",
+          "note": "Integrated final B3/T1/L3/RB1 snapshot: 520 six-native tests (0 failures/ignored), scoped all-target Clippy -D warnings, bins build and workspace all-target compile passed. Actual GUI/API/MCP TEXT C/R/A/repeat/point-height/CHANGE and nested/erased REPEAT OOPS/BLOCK/WBLOCK DWG/DXF save-reopen passed; text PNG inspected. 238 native-file hash manifest matches main; protected41 unchanged; changed-file rustfmt/diff pass. Final exact source review SHA576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b pending final text-only confirmation."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T23:35:39.494093+00:00",
+          "note": "Integrated final B3/T1/L3/RB1 snapshot: 520 six-native tests (0 failures/ignored), scoped all-target Clippy -D warnings, bins build and workspace all-target compile passed. Actual GUI/API/MCP TEXT C/R/A/repeat/point-height/CHANGE and nested/erased REPEAT OOPS/BLOCK/WBLOCK DWG/DXF save-reopen passed; text PNG inspected. 238 native-file hash manifest matches main; protected41 unchanged; changed-file rustfmt/diff pass. Final exact source review SHA576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b pending final text-only confirmation."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-03T23:35:39.494093+00:00",
+          "note": "Integrated final B3/T1/L3/RB1 snapshot: 520 six-native tests (0 failures/ignored), scoped all-target Clippy -D warnings, bins build and workspace all-target compile passed. Actual GUI/API/MCP TEXT C/R/A/repeat/point-height/CHANGE and nested/erased REPEAT OOPS/BLOCK/WBLOCK DWG/DXF save-reopen passed; text PNG inspected. 238 native-file hash manifest matches main; protected41 unchanged; changed-file rustfmt/diff pass. Final exact source review SHA576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b pending final text-only confirmation."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-03T23:36:44.165966+00:00",
+          "note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "docs/superpowers/reviews/2026-10-04-repeat-format-review.md",
+        "docs/superpowers/reviews/2026-10-04-repeat-erased-scope-review.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/b3a.patch",
+        "docs/superpowers/reviews/2026-10-04-repeat-stream-review.md",
+        "docs/superpowers/reviews/2026-10-04-phase2-scoped-review.md",
+        "/tmp/autorust-agentic-render-budget.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/b3b.patch",
+        "docs/superpowers/reviews/2026-10-04-repeat-erased-review.md",
+        "/tmp/autorust-agentic-phase2-final-native.log",
+        "/tmp/autorust-agentic-phase2-final-clippy.log",
+        "/tmp/autorust-agentic-phase2-final-workspace.log",
+        "/tmp/autorust-agentic-phase2-final-gui.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/acad-gui-lifecycle-v_l_jgxb",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/phase2-final.patch",
+        "docs/superpowers/reviews/2026-10-04-phase2-final-review.md"
+      ],
+      "latest_note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible.",
+      "updated_at": "2026-10-03T23:36:44.165966+00:00",
+      "baseline_commit": "457764aa07321b7c44f4a08890f39c79d774a14b"
+    },
+    {
+      "id": "X1",
+      "objective": "Command script execution with DELAY/RESUME",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2"
+      ],
+      "acceptance": [
+        "Bounded script queue and interruption/resume contract",
+        "No blocking GUI event loop; invalid script/error recovery explicit",
+        "Deterministic time/control tests, shared API and clean lifecycle"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/script_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/script-exec",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T09:01:47.267695+00:00",
+          "note": "Repair1 c7303a0f: discriminating oracle tests (Ctrl-Z+RESUME, poll counts, bad DELAY+RESUME); only input requests pump scripts; tick docs; interrupt route tests; doc qualifications. 664 tests, clippy, oracle 13 passed (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T09:01:47.267695+00:00",
+          "note": "Repair1 c7303a0f: discriminating oracle tests (Ctrl-Z+RESUME, poll counts, bad DELAY+RESUME); only input requests pump scripts; tick docs; interrupt route tests; doc qualifications. 664 tests, clippy, oracle 13 passed (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T09:04:04.707052+00:00",
+          "note": "Review pass2 pass: oracle tests discriminating (alternatives run), pump change no lost wakeup. Root integration starting."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T09:08:39.852469+00:00",
+          "note": "Root integration (clean 3-way): 664 six-package tests 0 failed, acad-oracle scripts 13 + array_break 9 passed, clippy incl. acad-oracle, workspace check, build, fmt, diff check; GUI harness PASS with new SCRIPT/DELAY step proving the real winit about_to_wait loop completes a script across DELAY; protected hashes unchanged."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/x1.patch",
+        "target/agentic-artifacts/x1-handoff.json",
+        "target/agentic-artifacts/reviews/x1-review.md",
+        "target/agentic-artifacts/x1-repair1.patch",
+        "target/agentic-artifacts/reviews/x1-review-pass2.md"
+      ],
+      "latest_note": "Verified.",
+      "updated_at": "2026-10-04T09:08:39.906237+00:00",
+      "baseline_commit": "98ad0c95cf87fab46054a4668c5f405eabafbaf4"
+    },
+    {
+      "id": "K1",
+      "objective": "Native mouse SKETCH and retained controls",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2"
+      ],
+      "acceptance": [
+        "Explicit modern input policy retaining documented command controls",
+        "Increment sampling, pause/finish/cancel and bounded output",
+        "Shared API/pointer behavior, UNDO, save/open and frame checks"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/sketch_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/sketch",
+      "fix_attempts": 2,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T13:28:02.705966+00:00",
+          "note": "Repair2 13827196: shared pen-up/R/X ORTHO L tail, R continues from snapped pointer; oracle X/R/horizontal-first L with native replay; two-leg preview. 663 tests, clippy, oracle 9/9 (worker; one disk-full and one unexplained ORTHO R flake during development). Coordinator freed ~30 GB of finished build caches (disk was 100%). Review pass3 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T13:28:02.705966+00:00",
+          "note": "Repair2 13827196: shared pen-up/R/X ORTHO L tail, R continues from snapped pointer; oracle X/R/horizontal-first L with native replay; two-leg preview. 663 tests, clippy, oracle 9/9 (worker; one disk-full and one unexplained ORTHO R flake during development). Coordinator freed ~30 GB of finished build caches (disk was 100%). Review pass3 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T13:37:15.496787+00:00",
+          "note": "Review pass3 pass: shared pen_tail, oracle 9/9 + ORTHO 10 consecutive passes (residual mouse-packet risk can only fail visibly). Root integration starting."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T13:48:32.212933+00:00",
+          "note": "Root integration after F1: six conflicts with X1 resolved as unions (lib re-exports, winit imports, MCP NAMES 17 + mcp test, type_characters script interrupt then SKETCH keys, test module cfg restored, matrix rows/roadmap). 738 six-package tests 0 failed (corpus required), oracle sketch_mouse 9 + files_backup 10 + menu_macros 7 + hatch_user 9 + scripts 13 + array_break 9, clippy incl acad-oracle, workspace check, build, fmt, diff, lake build; GUI harness PASS with new mouse SKETCH step; protected unchanged."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/k1.patch",
+        "target/agentic-artifacts/k1-handoff.json",
+        "target/agentic-artifacts/reviews/k1-review.md",
+        "target/agentic-artifacts/k1-repair1.patch",
+        "target/agentic-artifacts/reviews/k1-review-pass2.md",
+        "target/agentic-artifacts/k1-repair2.patch",
+        "target/agentic-artifacts/reviews/k1-review-pass3.md"
+      ],
+      "latest_note": "Verified.",
+      "updated_at": "2026-10-04T13:48:32.250891+00:00",
+      "baseline_commit": "98ad0c95cf87fab46054a4668c5f405eabafbaf4"
+    },
+    {
+      "id": "D1",
+      "objective": "Audit retained large-arrow DIM rule and unmeasured font cases",
+      "kind": "audit",
+      "status": "verified",
+      "depends_on": [],
+      "acceptance": [
+        "Use retained notes/exports/metrics only; no invented lookup or tolerance changes",
+        "Implement only supported formula, otherwise preserve precise compatibility blocker"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "/root/layers_loop",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/layers",
+      "fix_attempts": 0,
+      "required_checks": [
+        "contract_review"
+      ],
+      "checks": {
+        "contract_review": {
+          "result": "passed",
+          "at": "2026-10-03T21:51:52.714905+00:00",
+          "note": "Coordinator inspected independent raw-DWG/hash/arithmetic audit and Astra contract review: audit deliverable accepted. General external-origin rule remains unsupported, no DIM implementation/parity completion claimed. Candidate projected fit requires explicit prospective-inside orientation and separately scoped tests; full PBCB still has external-origin mismatch."
+        }
+      },
+      "review": "pass",
+      "integrated": false,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/reviews/dim-evidence.md",
+        "docs/superpowers/reviews/2026-10-04-dim-evidence.md",
+        "docs/superpowers/reviews/2026-10-04-dim-contract-review.md"
+      ],
+      "latest_note": "Coordinator inspected independent raw-DWG/hash/arithmetic audit and Astra contract review: audit deliverable accepted. General external-origin rule remains unsupported, no DIM implementation/parity completion claimed. Candidate projected fit requires explicit prospective-inside orientation and separately scoped tests; full PBCB still has external-origin mismatch.",
+      "updated_at": "2026-10-03T21:51:52.714905+00:00"
+    },
+    {
+      "id": "L2",
+      "objective": "Historical off-layer file mapping and persistence",
+      "kind": "audit",
+      "status": "verified",
+      "depends_on": [
+        "L1"
+      ],
+      "acceptance": [
+        "Establish mapping from retained evidence before encoding bits",
+        "Preserve known header bytes and error guarantees",
+        "Original fixtures and both DWG revisions/DXF round trips"
+      ],
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "agent": "/root/evidence_review",
+      "workspace": "/Users/dmytro/github/autorust",
+      "fix_attempts": 0,
+      "required_checks": [
+        "contract_review"
+      ],
+      "checks": {
+        "contract_review": {
+          "result": "passed",
+          "at": "2026-10-03T22:38:50.408344+00:00",
+          "note": "Coordinator read audit and independently verified primary EXE hash/header descriptors29-31 binding signed table at0xc8 for AC1.2/AC1.40. Static contract accepted, no measured OFF parity or implementation claim. L3 implements bounded signed persistence."
+        }
+      },
+      "review": "pass",
+      "integrated": false,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/reviews/l2-off-mapping.md",
+        "docs/superpowers/reviews/2026-10-04-off-mapping-review.md"
+      ],
+      "latest_note": "Coordinator read audit and independently verified primary EXE hash/header descriptors29-31 binding signed table at0xc8 for AC1.2/AC1.40. Static contract accepted, no measured OFF parity or implementation claim. L3 implements bounded signed persistence.",
+      "updated_at": "2026-10-03T22:38:50.408344+00:00"
+    },
+    {
+      "id": "F1",
+      "objective": "Remaining original backup/file and menu grammar semantics",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2"
+      ],
+      "acceptance": [
+        "Bounded evidence-supported file/backup/macro behavior",
+        "Failure keeps user files and session state safe",
+        "Native workflow tests and explicit remaining compatibility limits"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/files_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/files-release",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T13:02:45.060724+00:00",
+          "note": "Repair1 0d3ea2e0: byte-only backup copy, macOS locked-destination refusal up front, dir fsync, 0600 temps, ULP corpus compare, command_typed keeps pause prefix, *[label] oracle assertion, policy docs. 684 tests (corpus required), clippy, oracle passed (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T13:02:45.060724+00:00",
+          "note": "Repair1 0d3ea2e0: byte-only backup copy, macOS locked-destination refusal up front, dir fsync, 0600 temps, ULP corpus compare, command_typed keeps pause prefix, *[label] oracle assertion, policy docs. 684 tests (corpus required), clippy, oracle passed (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T13:06:04.453739+00:00",
+          "note": "Review pass2 pass (684 tests with corpus, oracle 18). P3-A: dir-fsync failure after completed rename reported as failed save -> retry backs up new bytes, losing real previous version; some FS reject dir fsync. Small addendum requested: treat as saved-with-warning."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T13:14:00.668563+00:00",
+          "note": "Root integration after H2: conflicts in session/mouse.rs (took F1 run_macro, re-added H2 hatch pattern-file dispatch in menu_macro.rs) and session/tests.rs (kept both). 709 six-package tests 0 failed with AUTOCAD_REQUIRE_CORPUS=1 (corpus ran), oracle files_backup 10/menu_macros 7/hatch_user 9/scripts 13/array_break 9, QEMU menu_mouse 1, clippy incl acad-oracle, workspace check, build, fmt, diff; GUI harness PASS with new .BAK backup step; protected and corpus unchanged. Coordinator merge edits to be covered by final merged-source review."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/tmp/autorust-agentic-corpus-api.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/acad-corpus-api-jehhcwdt",
+        "tools/check_acad_corpus_api.py",
+        "docs/superpowers/reviews/2026-10-04-corpus-harness-review.md",
+        "target/agentic-artifacts/f1.patch",
+        "target/agentic-artifacts/f1-handoff.json",
+        "target/agentic-artifacts/reviews/f1-review.md",
+        "target/agentic-artifacts/f1-repair1.patch",
+        "target/agentic-artifacts/reviews/f1-review-pass2.md",
+        "target/agentic-artifacts/f1-final.patch"
+      ],
+      "latest_note": "Verified.",
+      "updated_at": "2026-10-04T13:14:00.710988+00:00",
+      "baseline_commit": "39fd51ef10c4392912e11dc48797071584c44535"
+    },
+    {
+      "id": "Q1",
+      "objective": "Combined workflows, performance and release checks",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S2",
+        "T1",
+        "V1",
+        "H2",
+        "B1",
+        "B2",
+        "X1",
+        "K1",
+        "F1",
+        "B3",
+        "L3",
+        "B4",
+        "RB1"
+      ],
+      "acceptance": [
+        "Create/select/edit/block/dimension/hatch/undo/save/reopen via Session/API/MCP",
+        "Corpus-present frame/data workflows and bounded dense-hatch responsiveness",
+        "Native CI/launch packaging and exact implemented/unsupported matrix"
+      ],
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": "claude/release_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/release",
+      "fix_attempts": 2,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T15:25:59.947123+00:00",
+          "note": "Repair2 e4c05ca4: 4 runtime-corpus tests gated (api.rs only menu-click part); menu_mouse honours AUTOCAD_REQUIRE_CORPUS; clean-checkout CI with fresh in-copy target: fmt/clippy pass, 827/0, oracle 233/0 + 138 skip messages, release pass; skip lines show clean path. 742 corpus-required. Review pass3 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T15:25:59.947123+00:00",
+          "note": "Repair2 e4c05ca4: 4 runtime-corpus tests gated (api.rs only menu-click part); menu_mouse honours AUTOCAD_REQUIRE_CORPUS; clean-checkout CI with fresh in-copy target: fmt/clippy pass, 827/0, oracle 233/0 + 138 skip messages, release pass; skip lines show clean path. 742 corpus-required. Review pass3 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T15:29:42.050335+00:00",
+          "note": "Review pass3 pass: independent clean-checkout CI all green (827/0, oracle 233/0, release), gates verified with/without corpus. Root integration starting."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T16:00:16.496862+00:00",
+          "note": "Root integration (clean 3-way). Final: cargo fmt --all --check, clippy --workspace --all-targets -D warnings, AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1061 passed 0 failed 0 skipped, release build, GUI harness PASS, corpus API 25/25. Coordinator adapted the macro-resume regression test to the gated menu_app helper."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "target/agentic-artifacts/reviews/final-integration-review.md",
+        "target/agentic-artifacts/q1.patch",
+        "target/agentic-artifacts/q1-handoff.json",
+        "target/agentic-artifacts/reviews/q1-review.md",
+        "target/agentic-artifacts/q1-repair1.patch",
+        "target/agentic-artifacts/reviews/q1-review-pass2.md",
+        "target/agentic-artifacts/q1-repair2.patch",
+        "target/agentic-artifacts/reviews/q1-review-pass3.md"
+      ],
+      "latest_note": "Verified.",
+      "updated_at": "2026-10-04T16:00:16.579189+00:00",
+      "baseline_commit": "b0625c3850facd371a5f2a7922b2b73c110d8819"
+    },
+    {
+      "id": "R3",
+      "objective": "Independent contracts and final source review for S2/B3",
+      "kind": "audit",
+      "status": "verified",
+      "depends_on": [
+        "R1",
+        "S1",
+        "L1"
+      ],
+      "acceptance": [
+        "Read evidence and candidate source independently; no invented historical encoding",
+        "Check shared selector state/API and file grouping/error boundaries",
+        "Exact final reviewed hashes and actionable findings; coordinator owns integration checks"
+      ],
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "agent": "/root/evidence_review",
+      "workspace": "/Users/dmytro/github/autorust",
+      "fix_attempts": 0,
+      "required_checks": [
+        "source_review",
+        "final_patch_review"
+      ],
+      "checks": {
+        "s2_source": {
+          "result": "passed",
+          "at": "2026-10-03T22:50:15.312199+00:00",
+          "note": "Exact S2 source and root35line harness extension approved; S2 root468tests/actualGUI complete. B3a and L3 exact candidates pending; approved narrow B3b design not source approval. Reviewer doing one-pass read-only T1 font/history/atomicCHANGE preflight while waiting, prioritizing incoming candidates. R3 remains active; no omnibus completion from S2 pass."
+        },
+        "source_review": {
+          "result": "passed",
+          "at": "2026-10-03T23:36:44.283579+00:00",
+          "note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible."
+        },
+        "final_patch_review": {
+          "result": "passed",
+          "at": "2026-10-03T23:36:44.283579+00:00",
+          "note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible."
+        }
+      },
+      "review": "pass",
+      "integrated": false,
+      "artifacts": [
+        "docs/superpowers/reviews/2026-10-04-selection-dialogue-review.md",
+        "docs/superpowers/reviews/2026-10-04-selection-harness-review.md",
+        "docs/superpowers/reviews/2026-10-04-phase2-final-review.md"
+      ],
+      "latest_note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible.",
+      "updated_at": "2026-10-03T23:36:44.337071+00:00"
+    },
+    {
+      "id": "L3",
+      "objective": "Signed historical OFF layer persistence in DWG AC1.2/AC1.40 and comma DXF",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "L1",
+        "L2"
+      ],
+      "acceptance": [
+        "Static-evidence signed NEG color mapping for historical colors1..127 and layers1..127; both DWG revisions and historical DXF preserve OFF on reopen",
+        "Existing positive colors preserved; undefined OFF, OFF0, native edge OFF and invalid negative magnitudes fail safely before replacement",
+        "Supported SAVE/END/WBLOCK and API lifecycle, unsupported-state destination/dirty/UNDO safety; no current-layer policy change",
+        "Synthetic contract bytes/text distinguished from measured original output; strict existing corpus/comparisons preserved"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "/root/selection_loop",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/off-persistence",
+      "baseline_commit": "cb2197ae9a275c7655530bf9dcd8cdc4395fd7c7",
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "worker_first_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:44:11.912819+00:00",
+          "note": "Worker8 synthetic static-contract codec tests passed:both DWG revisions exact NEG words and signed historicalDXF;positive0..254/255 preserved, malformed negative/native-edge OFF safely rejected. App lifecycle/corpus/finalClippy/source review remain pending."
+        },
+        "worker_tests": {
+          "result": "passed",
+          "at": "2026-10-03T22:51:30.161277+00:00",
+          "note": "Exact workerdcb0acb4b6fc candidate ready:414affected tests/alltargetClippy/fmt pass,24positivecorpus tables preserved. Astra prioritizing signed-range/atomic lifecycle review. Root will integrate header hunks serially with B3 record changes and update actualGUI for supportedOFF."
+        },
+        "worker_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T22:51:30.161277+00:00",
+          "note": "Exact workerdcb0acb4b6fc candidate ready:414affected tests/alltargetClippy/fmt pass,24positivecorpus tables preserved. Astra prioritizing signed-range/atomic lifecycle review. Root will integrate header hunks serially with B3 record changes and update actualGUI for supportedOFF."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-03T23:02:57.025815+00:00",
+          "note": "Astra exactdcb0acb4 source approved; root applied header/lifecycle hunks and reconciled B3a DXF error/group-validation overlap explicitly without restoring blanketOFF refusal. Combined sixnative suite passed before finalcyclicLOADcontext guard; L3 actualGUI signed-save/reopen/zeroerror workflow updated, binariesbuilding. L3 integrated milestone still awaits finalmergedsource/Clippy/GUI gates."
+        },
+        "coordinator_merged_tests": {
+          "result": "passed",
+          "at": "2026-10-03T23:02:57.025815+00:00",
+          "note": "Astra exactdcb0acb4 source approved; root applied header/lifecycle hunks and reconciled B3a DXF error/group-validation overlap explicitly without restoring blanketOFF refusal. Combined sixnative suite passed before finalcyclicLOADcontext guard; L3 actualGUI signed-save/reopen/zeroerror workflow updated, binariesbuilding. L3 integrated milestone still awaits finalmergedsource/Clippy/GUI gates."
+        },
+        "gui_mcp": {
+          "result": "passed",
+          "at": "2026-10-03T23:11:15.286416+00:00",
+          "note": "Actual attachedGUI/MCP signedOFF save+freshheadlessreopen bothformats passed, colorzeroOFF failures preservefiles/attachment andUNDO, nestedlive SAVE/reopen passed. Scoped mergedL3+rootrender/harness approval f45b0822. Workspacecheck found one stale Repeat fixture constructor in acad-oracle test (compile only, no run); two metadata fields mechanically initialized1, preserving comparison. Rerunningworkspace beforeacceptance; protected41unchanged. B3WBLOCK repair+erasedowner remainopen."
+        },
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-03T23:12:29.737457+00:00",
+          "note": "L3 accepted: exactdcb0 source +mergedf45b signed-table reconciliation pass;491combined sixnative tests, final46render suite/7budget checks, alltargetClippy/workspace/build,41Rustfmt/diff,230native exact/41protected hash pass. ActualGUI/MCP supported signedOFF save+freshDWG/DXFreopen andcolorzero atomicfailure/UNDO pass. B3WBLOCKresource/erasedowner fixes remainseparatelyopen; negative signedtable parity isstaticcontract, not newly measuredoriginalexport."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T23:12:29.737457+00:00",
+          "note": "L3 accepted: exactdcb0 source +mergedf45b signed-table reconciliation pass;491combined sixnative tests, final46render suite/7budget checks, alltargetClippy/workspace/build,41Rustfmt/diff,230native exact/41protected hash pass. ActualGUI/MCP supported signedOFF save+freshDWG/DXFreopen andcolorzero atomicfailure/UNDO pass. B3WBLOCKresource/erasedowner fixes remainseparatelyopen; negative signedtable parity isstaticcontract, not newly measuredoriginalexport."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-03T23:12:29.737457+00:00",
+          "note": "L3 accepted: exactdcb0 source +mergedf45b signed-table reconciliation pass;491combined sixnative tests, final46render suite/7budget checks, alltargetClippy/workspace/build,41Rustfmt/diff,230native exact/41protected hash pass. ActualGUI/MCP supported signedOFF save+freshDWG/DXFreopen andcolorzero atomicfailure/UNDO pass. B3WBLOCKresource/erasedowner fixes remainseparatelyopen; negative signedtable parity isstaticcontract, not newly measuredoriginalexport."
+        },
+        "workspace_check": {
+          "result": "passed",
+          "at": "2026-10-03T23:12:29.737457+00:00",
+          "note": "L3 accepted: exactdcb0 source +mergedf45b signed-table reconciliation pass;491combined sixnative tests, final46render suite/7budget checks, alltargetClippy/workspace/build,41Rustfmt/diff,230native exact/41protected hash pass. ActualGUI/MCP supported signedOFF save+freshDWG/DXFreopen andcolorzero atomicfailure/UNDO pass. B3WBLOCKresource/erasedowner fixes remainseparatelyopen; negative signedtable parity isstaticcontract, not newly measuredoriginalexport."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "docs/superpowers/reviews/2026-10-04-off-mapping-review.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/l3-codec-focused.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/l3.patch",
+        "docs/superpowers/reviews/2026-10-04-off-persistence-review.md",
+        "/tmp/autorust-agentic-b3a-l3-native.log",
+        "/tmp/autorust-agentic-b3a-l3-gui.log",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/acad-gui-lifecycle-riq53wt5",
+        "docs/superpowers/reviews/2026-10-04-phase2-scoped-review.md",
+        "/tmp/autorust-agentic-b3a-l3-clippy.log",
+        "/tmp/autorust-agentic-phase2-workspace.log"
+      ],
+      "latest_note": "L3 accepted: exactdcb0 source +mergedf45b signed-table reconciliation pass;491combined sixnative tests, final46render suite/7budget checks, alltargetClippy/workspace/build,41Rustfmt/diff,230native exact/41protected hash pass. ActualGUI/MCP supported signedOFF save+freshDWG/DXFreopen andcolorzero atomicfailure/UNDO pass. B3WBLOCKresource/erasedowner fixes remainseparatelyopen; negative signedtable parity isstaticcontract, not newly measuredoriginalexport.",
+      "updated_at": "2026-10-03T23:12:29.737457+00:00"
+    },
+    {
+      "id": "B4",
+      "objective": "Preserve original erased ordinary members inside live REPEAT and BLOCK",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "B3"
+      ],
+      "acceptance": [
+        "Model and DWG stream retain ordinary member sign/layer/geometry inside live groups and blocks without rendering or resource effects",
+        "Positive structural markers and negative ordinary members roundtrip under both DWG revisions; nested mixed member state bounded",
+        "DXF live export omits erased members explicitly; no accidental group ownership or original selection-parity claim",
+        "Whole native erased owner with prior erased members has explicit preservation/refusal policy, never silently restores erased members",
+        "Meaningful source review/native API/file/resource/UNDO regression checks, exact remaining limits documented"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "agent": "claude/b4_worker",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/erased-members",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T00:53:03.239636+00:00",
+          "note": "Repair1 25f3da9f: root_item helper promotes erased direct members to top-level Item::Erased in explode and named WBLOCK; OOPS does not resurrect copies; recursive LIST count; 538 tests, clippy passed (worker); mutation checks reported. Source pass2 pending."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T00:53:03.239636+00:00",
+          "note": "Repair1 25f3da9f: root_item helper promotes erased direct members to top-level Item::Erased in explode and named WBLOCK; OOPS does not resurrect copies; recursive LIST count; 538 tests, clippy passed (worker); mutation checks reported. Source pass2 pending."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T00:55:50.004394+00:00",
+          "note": "Source pass2 pass: explode/WBLOCK promotion, OOPS, closure, LIST closed; 538 tests in fresh target (reviewer). P3 root_item comment overclaims refusal of erased REPEAT member; fix comment at integration. Integration after V1 integrated checks."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T01:03:05.483647+00:00",
+          "note": "Root integration: V1 repair2 (69e61faa) + doc P3 fix, B4 repair1 (25f3da9f) three-way merged with no conflicts + root_item comment fix. 564 six-package tests 0 failed, clippy -D warnings, workspace all-target check, rustfmt on 58 changed files, diff check passed; attached GUI/MCP/API harness PASS incl. new B4 partial-member step (DWG byte-identical resave, DXF omission, ambiguous save refusal, OOPS); 41 protected hashes unchanged. Logs target/agentic-artifacts/{b4-int-*,int-*}.log. Final merged-source review pending."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "docs/superpowers/reviews/2026-10-04-repeat-erased-scope-review.md",
+        "docs/superpowers/reviews/2026-10-04-erased-member-preflight.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/b4.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/b4-handoff.json",
+        "target/agentic-artifacts/reviews/b4-review.md",
+        "target/agentic-artifacts/b4-repair1.patch",
+        "target/agentic-artifacts/reviews/b4-review-pass2.md",
+        "target/agentic-artifacts/reviews/final-v1-b4-merged-review.md"
+      ],
+      "latest_note": "Final merged-source review pass (integration delta matches accepted patches plus 4 expected root edits; reviewer reran 564 tests). GUI harness rerun PASS after removing unused variable. Verified.",
+      "updated_at": "2026-10-04T01:06:38.015121+00:00",
+      "baseline_commit": "58d618696b3adc1319c91bced71c096e8b37422b"
+    },
+    {
+      "id": "RB1",
+      "objective": "Bound ordinary and direct geometry REPEAT rendering before expansion",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "S1",
+        "L1"
+      ],
+      "acceptance": [
+        "Per-owner100k generated-record/depth preflight shared by ordinary frames, highlights and direct geometry entry point",
+        "Oversized owner emits no partial geometry; ordered stored LOAD effects preserved with depth/cycle context failure stopping following owners",
+        "Zero-sized outer lattice cannot bypass expensive inner-base work; full/geometry/nested/LOAD/cycle regressions",
+        "Independent exact source review, focused/full-render/Clippy and attached GUI integration; global whole-document aggregate budget remains Q1 performance follow-up"
+      ],
+      "model": "coordinator",
+      "effort": "inherited",
+      "agent": "/root",
+      "workspace": "/Users/dmytro/github/autorust",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-03T23:09:24.208265+00:00",
+          "note": "Five rootbudget andtwoexistingselected tests pass; full renderer suite rerunning after last repair."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-03T23:09:24.208265+00:00",
+          "note": "Astra repairedpass2 exactf45b0822;zero-latticeP2 closed, no broaderB3approval."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-03T23:12:30.110575+00:00",
+          "note": "RB1 accepted after independentrepairpass2 f45b0822:zero-lattice bypassclosed;5new+2existingbudget checks and46fullrenderer tests pass. Ordinary/geometry expansion bounded, orderedLOAD preserved, excessive/cyclic context stopsfollowingowners. AlltargetClippy/workspace/fmt andactualattachedGUI nested/reopen/frame workflows pass, source230native manifest exact. Whole-document aggregate primitive budget isexplicitQ1performancefollow-up, not promisedbyper-owner guard."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-03T23:12:30.110575+00:00",
+          "note": "RB1 accepted after independentrepairpass2 f45b0822:zero-lattice bypassclosed;5new+2existingbudget checks and46fullrenderer tests pass. Ordinary/geometry expansion bounded, orderedLOAD preserved, excessive/cyclic context stopsfollowingowners. AlltargetClippy/workspace/fmt andactualattachedGUI nested/reopen/frame workflows pass, source230native manifest exact. Whole-document aggregate primitive budget isexplicitQ1performancefollow-up, not promisedbyper-owner guard."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/phase2-merged.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/phase2-native-sha256.json",
+        "/tmp/autorust-agentic-render-budget.log",
+        "docs/superpowers/reviews/2026-10-04-phase2-scoped-review.md",
+        "/tmp/autorust-agentic-render-full.log",
+        "/tmp/autorust-agentic-render-clippy.log",
+        "/tmp/autorust-agentic-b3a-l3-gui.log"
+      ],
+      "latest_note": "RB1 accepted after independentrepairpass2 f45b0822:zero-lattice bypassclosed;5new+2existingbudget checks and46fullrenderer tests pass. Ordinary/geometry expansion bounded, orderedLOAD preserved, excessive/cyclic context stopsfollowingowners. AlltargetClippy/workspace/fmt andactualattachedGUI nested/reopen/frame workflows pass, source230native manifest exact. Whole-document aggregate primitive budget isexplicitQ1performancefollow-up, not promisedbyper-owner guard.",
+      "updated_at": "2026-10-03T23:12:30.110575+00:00"
+    },
+    {
+      "id": "R4",
+      "objective": "Independent FILLET radius persistence audit and exact V1/B4 source review",
+      "kind": "audit",
+      "status": "verified",
+      "depends_on": [
+        "R3",
+        "B3",
+        "T1"
+      ],
+      "acceptance": [
+        "Bounded retained static audit identifies supported radius encoding or precise missing fact without invented bits",
+        "Review exact V1/B4 worker and merged patches for numeric/view and erased-member state/resource/file safety",
+        "Actionable findings, maximum three repair/audit passes; source approval separate from coordinator execution"
+      ],
+      "model": "gpt-6-astra",
+      "effort": "high",
+      "agent": "/root/evidence_review",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv",
+      "fix_attempts": 0,
+      "required_checks": [
+        "source_review",
+        "final_patch_review"
+      ],
+      "checks": {
+        "radius_contract": {
+          "result": "passed",
+          "at": "2026-10-03T23:44:50.113704+00:00",
+          "note": "Independent bounded three-pass retained-static audit supports AC1.40 FILLET radius f64 slot1fa (DS48fe,descriptor42), 1960 raw instruction byte strings matched; 8 original AC140sample fields zero. No AC1.2/DXF mapping; native nonzero checked-refusal contract accepted, not implementation approval/nonzero original measured parity. V1 implementation proceeds; exact V1/B4 and merged-source gates pending."
+        },
+        "source_review": {
+          "result": "passed",
+          "at": "2026-10-04T01:03:05.537176+00:00",
+          "note": "V1 pass3 and B4 pass2 source reviews passed; final merged-source review of integration delta pending."
+        },
+        "final_patch_review": {
+          "result": "passed",
+          "at": "2026-10-04T01:06:42.573077+00:00",
+          "note": "All R4 reviews complete."
+        }
+      },
+      "review": "pass",
+      "integrated": false,
+      "artifacts": [
+        "docs/superpowers/reviews/2026-10-04-fillet-radius-contract.md",
+        "target/agentic-artifacts/reviews/final-v1-b4-merged-review.md"
+      ],
+      "latest_note": "Radius contract, V1 pass1-3, B4 pass1-2 and final merged-source review complete.",
+      "updated_at": "2026-10-04T01:06:42.611904+00:00"
+    },
+    {
+      "kind": "implementation",
+      "status": "pending",
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": null,
+      "workspace": null,
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {},
+      "review": null,
+      "integrated": false,
+      "artifacts": [],
+      "updated_at": "2026-10-04T15:05:55.005393+00:00",
+      "id": "M1",
+      "objective": "Native Main Menu tasks (excluding plotting)",
+      "depends_on": [
+        "F1",
+        "Q1"
+      ],
+      "acceptance": [
+        "Oracle-backed Main Menu task list and prompts for New/Edit existing/Configure/Make DXF/Load DXF/File Utilities/Exit; Plot explicitly out of scope by user decision",
+        "NEW-under-existing-name replace question and END/QUIT return to the Main Menu where the original does, without breaking --drawing/--script/API launch",
+        "Shared GUI/API/MCP route, no data loss on errors, documented native limits"
+      ]
+    },
+    {
+      "kind": "implementation",
+      "status": "pending",
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": null,
+      "workspace": null,
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {},
+      "review": null,
+      "integrated": false,
+      "artifacts": [],
+      "updated_at": "2026-10-04T15:05:55.005393+00:00",
+      "id": "W1",
+      "objective": "WBLOCK overwrite confirmation and data safety",
+      "depends_on": [
+        "F1",
+        "Q1"
+      ],
+      "acceptance": [
+        "Oracle-backed Y/N replace question before overwriting an existing file (original asks; native currently overwrites silently)",
+        "Refuse or confirm overwriting the currently open drawing; never lose the open document file without confirmation",
+        "Same staging/permission/symlink safety as SAVE; API/MCP explicit overwrite flag; script/menu routes covered"
+      ]
+    },
+    {
+      "kind": "implementation",
+      "status": "pending",
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "agent": null,
+      "workspace": null,
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_native_checks"
+      ],
+      "checks": {},
+      "review": null,
+      "integrated": false,
+      "artifacts": [],
+      "updated_at": "2026-10-04T15:05:55.005393+00:00",
+      "id": "RB2",
+      "objective": "Whole-document aggregate rendering budget",
+      "depends_on": [
+        "RB1",
+        "Q1"
+      ],
+      "acceptance": [
+        "Bounded total render/flatten work across all owners per frame with a stated limit",
+        "Exceeding the budget degrades visibly and safely (no hang, no silent partial-as-complete), frame/API diagnostics report it",
+        "Existing per-owner budgets, strict render fixtures and GUI responsiveness checks preserved"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-10-03T21:20:32.120196+00:00",
+      "task": "S1",
+      "from": "ready",
+      "to": "running",
+      "note": "Dispatched isolated bounded worker loop with explicit model, checks and review handoff"
+    },
+    {
+      "at": "2026-10-03T21:20:32.120196+00:00",
+      "task": "L1",
+      "from": "ready",
+      "to": "running",
+      "note": "Dispatched isolated bounded worker loop with explicit model, checks and review handoff"
+    },
+    {
+      "at": "2026-10-03T21:20:32.120196+00:00",
+      "task": "R1",
+      "from": "ready",
+      "to": "running",
+      "note": "Dispatched isolated bounded worker loop with explicit model, checks and review handoff"
+    },
+    {
+      "at": "2026-10-03T21:22:10.141674+00:00",
+      "task": "S1",
+      "from": "running",
+      "to": "running",
+      "note": "Contract selected: canonical top-level Entity/REPEAT IDs. First worker checks passed: 30 acad-cmd unit tests and 65 editor tests; focused repeat tests and independent review pending.",
+      "checks": [
+        "initial_cmd_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:22:10.182719+00:00",
+      "task": "L1",
+      "from": "running",
+      "to": "running",
+      "note": "Contract selected: explicit off_layers state; no retained original OFF encoding. Production checked exports will reject OFF safely, legacy DXF adapter explicitly fails. Initial mechanical compile failures fixed; focused validation running.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:22:10.222312+00:00",
+      "task": "R1",
+      "from": "running",
+      "to": "review",
+      "note": "Independent evidence/queue note received; coordinator inspecting source references and acceptance cases.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:22:57.224134+00:00",
+      "task": "R1",
+      "from": "review",
+      "to": "verified",
+      "note": "Coordinator inspected note/source acceptance and retained HLP. Contract/queue deliverable accepted; implementation verdicts remain pending. Reviewer available for patch review.",
+      "checks": [
+        "contract_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T21:25:23.742684+00:00",
+      "task": "L1",
+      "from": "running",
+      "to": "running",
+      "note": "Worker focused command/render/lifecycle tests passed; public DXF failure adapter and API/frame cases running. Coordinator preliminary review identified unwrapped REPEAT layer0 gate; worker correcting to per-child visibility, explicit owner wrappers retained.",
+      "checks": [
+        "initial_layer_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:27:15.964902+00:00",
+      "task": "R2",
+      "from": "ready",
+      "to": "running",
+      "note": "Reviewer resumed for bounded L1 preflight; final patches pending"
+    },
+    {
+      "at": "2026-10-03T21:27:16.010344+00:00",
+      "task": "S1",
+      "from": "running",
+      "to": "running",
+      "note": "Worker reports 277 acad-cmd/acad-app tests passed, including retained DIM/HATCH and MCP tests. Six group regressions plus report/highlight/API cases; exact status retained. Clippy and staged patch pending; not integrated or independently verified.",
+      "checks": [
+        "affected_native_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:28:38.711020+00:00",
+      "task": "S1",
+      "from": "running",
+      "to": "review",
+      "note": "Exact staged S1 candidate received. Corrected worker test arithmetic: 267 passed, not 277. Required independent/integrated gates remain pending; no implementation applied to user workspace.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:28:38.781296+00:00",
+      "task": "L1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate received; independent preflight found P1: bare geometry visibility defaults to layer0 while model/codecs use layer1. Old candidate not approved or applied.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-03T21:28:38.842951+00:00",
+      "task": "L1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Repair pass 1: align bare geometry/INSERT visibility with layer1; preserve ownerless REPEAT member filtering; add OFF0/OFF1 and codec agreement regressions. Old check/review approvals invalidated.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:28:38.904953+00:00",
+      "task": "R2",
+      "from": "running",
+      "to": "running",
+      "note": "L1 preflight detected default-layer P1 and requested fix; S1 final staged patch now sent for independent review. Await corrected L1 patch and final SHA256-specific verdicts.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-03T21:32:49.649598+00:00",
+      "task": "L1",
+      "from": "fixing",
+      "to": "review",
+      "note": "L1 reviewed exact SHA843d631ac8bc; coordinator verified hash/scope and applied serially to user workspace. S1 visibility integration and combined native checks still pending; milestone not verified.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T21:32:49.687678+00:00",
+      "task": "S1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Repair pass1 on exact e64461528d42: compact nested bounds, coherent recursive CHANGE layers/DWG reopen, selected WBLOCK dependency closure, LOAD-first ARRAY anchor. Prior worker checks invalidated.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-03T21:32:49.724558+00:00",
+      "task": "R2",
+      "from": "running",
+      "to": "running",
+      "note": "Independent final candidate review: L1 SHA843d631ac8bc passes source review and is applied; S1 SHAe64461528d42 needs fixes. Combined integration/validation remains pending.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:35:22.956592+00:00",
+      "task": "D1",
+      "note": "Reuse available Sol/high worker for bounded read-only evidence audit; Astra reviews any candidate formula independently."
+    },
+    {
+      "at": "2026-10-03T21:35:22.991367+00:00",
+      "task": "D1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Independent evidence audit has no feature dependencies; retained DIM cases available. Reuse idle layer worker read-only while S1 fixes and R2 reviews.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:35:23.027541+00:00",
+      "task": "D1",
+      "from": "ready",
+      "to": "running",
+      "note": "D1 bounded read-only DIM evidence audit dispatched; no implementation or parity claim authorized yet.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:40:37.051982+00:00",
+      "task": "S1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 candidate SHA0b36cd247704 received; worker275 tests and Clippy passed. Four review findings addressed; exact independent rereview requested. Erased/nested REPEAT codec gaps remain visible.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:41:25.005371+00:00",
+      "task": "B3",
+      "from": null,
+      "to": "pending",
+      "note": "S1 review/reopen tests exposed existing erased multi-record refusal and nested stream reader gap; kept as required follow-up, not treated as completed functionality"
+    },
+    {
+      "at": "2026-10-03T21:41:25.045874+00:00",
+      "task": "L1",
+      "from": "review",
+      "to": "review",
+      "note": "Coordinator workspace all-target compilation passed after applying L1. Combined selection/picking and native integration checks still pending.",
+      "checks": [
+        "workspace_check=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:46:56.501917+00:00",
+      "task": "D1",
+      "from": "running",
+      "to": "review",
+      "note": "Read-only DIM audit received and inspected; general external-origin formula remains unsupported. Independent contract review pending; this is an audit deliverable only.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:47:01.351456+00:00",
+      "task": "S1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Repair2: candidate applied to coordinator workspace, but nested REPEAT can emit unreadable files. Dispatch checked DWG/DXF guard plus command/API destination-preservation tests in refreshed combined private snapshot. Actual nested codec support remains B3.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-03T21:47:01.520484+00:00",
+      "task": "L1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Repair2 integration: source-approved layer candidate now combined with S1; complete visibility-aware picking/windows/highlights and ordered resource context in refreshed private snapshot. Previous checks invalidated for final merged review.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:48:18.409113+00:00",
+      "task": "S1",
+      "note": "Refreshed combined dirty-workspace private baseline for disjoint integration repair; actual worker remains assigned Sol/high."
+    },
+    {
+      "at": "2026-10-03T21:48:18.409113+00:00",
+      "task": "L1",
+      "note": "Refreshed combined dirty-workspace private baseline for disjoint integration repair; actual worker remains assigned Sol/high."
+    },
+    {
+      "at": "2026-10-03T21:51:52.714905+00:00",
+      "task": "D1",
+      "from": "review",
+      "to": "verified",
+      "note": "Coordinator inspected independent raw-DWG/hash/arithmetic audit and Astra contract review: audit deliverable accepted. General external-origin rule remains unsupported, no DIM implementation/parity completion claimed. Candidate projected fit requires explicit prospective-inside orientation and separately scoped tests; full PBCB still has external-origin mismatch.",
+      "checks": [
+        "contract_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T21:54:17.049273+00:00",
+      "task": "S1",
+      "from": "fixing",
+      "to": "fixing",
+      "note": "Repair2 first focused checks passed in worker copy: four codec cases plus reproduced native/API SAVE/END destination and UNDO preservation across AC1.2/AC1.40/DXF. Final worker suite, exact patch and independent final review pending.",
+      "checks": [
+        "repair2_focused=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:54:17.218709+00:00",
+      "task": "L1",
+      "from": "fixing",
+      "to": "fixing",
+      "note": "Repair2 visibility contract agreed: explicit IDs/ALL/LAST stable for hidden records; mouse/windows/highlight operate visible geometry. Worker extracting resource walker and shared bounded visible selection policy; checks pending.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:55:03.493502+00:00",
+      "task": "S1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Coordinator verified scope/SHAae39cfb8b631 and applied guard serially over S1/L1; worker208 tests/Clippy passed. Final source review and combined visibility/native checks pending. Nested codec support remains B3.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T21:57:25.949178+00:00",
+      "task": "S1",
+      "from": "review",
+      "to": "review",
+      "note": "Coordinator applied exact guard and independently ran both codec repeat_guard suites:4 passed. Whole merged native/API/GUI checks wait final visibility source; no milestone approval yet.",
+      "checks": [
+        "coordinator_guard_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:00:00.023232+00:00",
+      "task": "L1",
+      "from": "fixing",
+      "to": "fixing",
+      "note": "Worker first cmd/app/render library tests and check passed. Canonical hidden explicit selectors, visible group/INSERT bounds and ordered resource-context tests added; walker extracted from flatten.rs. Final exact patch/lint/integration pending.",
+      "checks": [
+        "worker_first_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:02:13.129223+00:00",
+      "task": "L1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Coordinator checked SHA63c029507ae2 and pathscope; applied serially over S1/L1/guard for final integration. Worker331 affected tests and149 focused pass; Clippy passed. Independent merged source review, coordinator checks and actual GUI smoke pending.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:02:37.571869+00:00",
+      "task": "R2",
+      "from": "running",
+      "to": "running",
+      "note": "Final merged pass3 dispatched: SHAe9b2ba42f48f,47 changed paths vs preserved dirty baseline, all6native files manifest-identical to coordinator. Includes concrete guard and visibility/resource integration. Source verdict pending; root integrated suite running.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:04:17.507719+00:00",
+      "task": "R2",
+      "from": "running",
+      "to": "running",
+      "note": "Merged exact patch refreshed to SHAc097b9819622 for doc-only correction: stable explicit hidden IDs vs visibility-filtered mouse/windows/highlights now stated consistently. Native217filemanifest unchanged; source review pass3 and coordinator full suite remain running.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:05:22.513474+00:00",
+      "task": "S1",
+      "from": "review",
+      "to": "review",
+      "note": "Coordinator final merged six-native suite passed455 tests,0 failed/ignored, including retained original DIM/HATCH comparisons. Final Clippy/workspace/GUI and independent source verdict pending.",
+      "checks": [
+        "focused_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:05:22.659090+00:00",
+      "task": "L1",
+      "from": "review",
+      "to": "review",
+      "note": "Coordinator final merged six-native suite passed455 tests,0 failed/ignored, including selection/resource/layer integration. Final Clippy/workspace/GUI and source verdict pending.",
+      "checks": [
+        "focused_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:05:33.522840+00:00",
+      "task": "S1",
+      "from": "review",
+      "to": "review",
+      "note": "Coordinator six-native all-target Clippy -Dwarnings passed after455 tests. Changed44Rust paths fmt and protected/native hashes checked. Workspace/GUI and final independent review pending.",
+      "checks": [
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:05:33.839330+00:00",
+      "task": "L1",
+      "from": "review",
+      "to": "review",
+      "note": "Coordinator six-native all-target Clippy -Dwarnings passed after455 tests. Workspace/GUI and final independent review pending.",
+      "checks": [
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:06:23.212062+00:00",
+      "task": "R2",
+      "from": "running",
+      "to": "review",
+      "note": "Astra final pass3 source approval SHAc097b9819622; exactpatch/stageddiff and217native hashes independently verified. All blocking S1/L1 source findings closed; compatibilitygaps explicitly remain. Rootexecution gated separately.",
+      "checks": [
+        "source_review=passed",
+        "final_patch_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T22:06:23.365428+00:00",
+      "task": "R2",
+      "from": "review",
+      "to": "verified",
+      "note": "Coordinator read and accepted exact merged final source-review deliverable; implementation milestones still await root workspace/GUI checks.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:06:35.594507+00:00",
+      "task": "S1",
+      "from": "review",
+      "to": "review",
+      "note": "Final exact merged source approval pass3 and workspace all-target check pass. Native455tests/Clippy/fmt passed; binaries building for actualGUI/MCP smoke. Await integration gate.",
+      "checks": [
+        "independent_review=passed",
+        "workspace_check=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T22:06:35.738509+00:00",
+      "task": "L1",
+      "from": "review",
+      "to": "review",
+      "note": "Final exact merged source approval pass3 and workspace all-target check pass. Native455tests/Clippy/fmt passed; awaiting actualGUI/MCP integration gate.",
+      "checks": [
+        "independent_review=passed",
+        "workspace_check=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T22:07:43.463721+00:00",
+      "task": "S1",
+      "from": "review",
+      "to": "verified",
+      "note": "Coordinator final acceptance: exact source approval,455native tests,all-targetClippy/workspace,44pathfmt/diff,actualGUI/MCP/API/CLI smoke pass. Visible/OFF800x600 frames inspected; save/refusal/UNDO/reopen/END clean, freshDXF12raw/11selectable. S1 integrated; S2/B3/resource-export gaps remain explicit.",
+      "checks": [
+        "integrated_native_checks=passed",
+        "gui_mcp=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:07:43.617633+00:00",
+      "task": "L1",
+      "from": "review",
+      "to": "verified",
+      "note": "Coordinator final acceptance:455native tests,Clippy/workspace/fmt/diff,finalexact independent review andactualGUI pass. Stable hiddenIDs,owner/childpicks/windows/highlight,LOADcontext andoffstatePNG/RGBAchecked. Existing/absentdestination safe refusals,UNDOrecovery andsourcefiles preserved. OFFencodingL2/visible-onlyZOOMV1 remain gaps.",
+      "checks": [
+        "integrated_native_checks=passed",
+        "gui_mcp=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:10:55.258151+00:00",
+      "task": "S2",
+      "note": "Refreshed verified455-test working-files snapshot; baseline2148439c6bd4ebab8bc466536013c6c3f0827e94, assigned/root/selection_loop Sol/high."
+    },
+    {
+      "at": "2026-10-03T22:10:55.258151+00:00",
+      "task": "B3",
+      "note": "Refreshed verified455-test working-files snapshot; baseline457764aa07321b7c44f4a08890f39c79d774a14b, assigned/root/layers_loop Sol/high."
+    },
+    {
+      "at": "2026-10-03T22:10:55.258151+00:00",
+      "task": "R3",
+      "from": null,
+      "to": "pending",
+      "note": "Add independent phase2 review checkpoint; no completion claim."
+    },
+    {
+      "at": "2026-10-03T22:10:55.516845+00:00",
+      "task": "S2",
+      "from": "pending",
+      "to": "ready",
+      "note": "S1/L1 verified with exact review and root455-test/GUI gates; refreshed private snapshot ready for general selection/LIST milestone.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:10:55.690852+00:00",
+      "task": "S2",
+      "from": "ready",
+      "to": "running",
+      "note": "Dispatch bounded shared selection/LIST dialogue implementation to existing Sol/high worker; independent R3 review before acceptance.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:10:55.846714+00:00",
+      "task": "B3",
+      "from": "pending",
+      "to": "ready",
+      "note": "S1 verified; erased/nested REPEAT persistence follow-up ready in refreshed private snapshot; native format facts must be distinguished from Rust codec policy.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:10:56.022042+00:00",
+      "task": "B3",
+      "from": "ready",
+      "to": "running",
+      "note": "Dispatch bounded codec/group persistence contract and implementation to existing Sol/high worker. No undocumented historical encoding or silent loss; independent R3 review required.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:10:56.212444+00:00",
+      "task": "L2",
+      "from": "pending",
+      "to": "ready",
+      "note": "L1 verified. Retained historical OFF encoding audit ready; max3 evidence passes, no new guest collection.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:10:56.371441+00:00",
+      "task": "L2",
+      "from": "ready",
+      "to": "running",
+      "note": "Dispatch independent Astra/high retained/static OFF mapping audit; establish supported formula/mapping or precise missing evidence. Do not implement guessed bits or mark persistence complete from refusal.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:14:33.929046+00:00",
+      "task": "S2",
+      "from": "running",
+      "to": "running",
+      "note": "Coordinator accepted bounded contract: numeric/ALL/LAST immediate routes retained; mouse/W accumulate deduplicated visible owners untilReturn; selectedLIST reports requested owners. Native ID/layout/bounds choices explicit. Retry/cancel and postselection geometry errors must preserve state and allow recovery.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:25:59.635357+00:00",
+      "task": "L2",
+      "from": "running",
+      "to": "review",
+      "note": "Astra audit found retained static signed-color mapping and DS-to-DWG/DXF binding;1,348 instruction bytes validated. No negative-color native fixture observed. Root contract acceptance pending; no persistence implementation claim.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:25:59.884758+00:00",
+      "task": "R3",
+      "from": "pending",
+      "to": "ready",
+      "note": "L2 audit delivered and reviewer available; B3 independent-marker discovery needs separate source/evidence contract review before implementation.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:26:00.071432+00:00",
+      "task": "R3",
+      "from": "ready",
+      "to": "running",
+      "note": "Astra reviewing B3 physical marker proof, metadata/runtime ownership and unresolved erased-group selection scope. User new-spec assessment does not adopt a scope change. Final code candidates remain pending.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:26:00.256792+00:00",
+      "task": "B3",
+      "from": "running",
+      "to": "running",
+      "note": "Three distinct retained evidence passes changed design: REPEAT start is ordinary4-byte marker, apparent fused pair is next leaf header; independent native corpus walks agree, bounded nested stream validator exists. Whole erased-group address-sign scope still unresolved. Independent contract review requested; safety refusal is not accepted as B3 completion.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:26:00.415204+00:00",
+      "task": "S2",
+      "from": "running",
+      "to": "running",
+      "note": "Worker reports existing affected cmd/app suites pass with shared selectors and selectedLIST prompt; focused tests ongoing. HATCH replay adaptation requires source review to ensure retained input grammar not masked; no evidence files/tolerances changed.",
+      "checks": [
+        "worker_first_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:38:45.561543+00:00",
+      "task": "S2",
+      "from": "running",
+      "to": "review",
+      "note": "Worker exact patch bfad5b3021b2 ready:304 cmd/app tests and scoped Clippy passed; original HATCH replay unchanged, immediate window completion retained explicitly. Independent exact review and root integration/GUI pending.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:38:50.408344+00:00",
+      "task": "L2",
+      "from": "review",
+      "to": "verified",
+      "note": "Coordinator read audit and independently verified primary EXE hash/header descriptors29-31 binding signed table at0xc8 for AC1.2/AC1.40. Static contract accepted, no measured OFF parity or implementation claim. L3 implements bounded signed persistence.",
+      "checks": [
+        "contract_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T22:39:18.068914+00:00",
+      "task": "L3",
+      "from": null,
+      "to": "pending",
+      "note": "Add bounded codec implementation; L2 is accepted audit only, no feature completion from safe refusal."
+    },
+    {
+      "at": "2026-10-03T22:39:18.254112+00:00",
+      "task": "L3",
+      "from": "pending",
+      "to": "ready",
+      "note": "L1 and static mapping L2 verified; refreshed private baseline cb2197ae9a27 ready, signed persistence remains unimplemented.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:39:18.467532+00:00",
+      "task": "L3",
+      "from": "ready",
+      "to": "running",
+      "note": "Reuse Sol/high selection worker for disjoint header/color codec persistence while S2 exact candidate is independently reviewed; B3 worker owns record streams/model metadata. Root reconciles codec overlaps and GUI harness serially.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:43:15.809367+00:00",
+      "task": "S2",
+      "from": "review",
+      "to": "review",
+      "note": "Astra exact bfad5b source review passed; root read selector/report/API source and applied exact candidate after217native/41protected hashes matched. Six-native tests running; root all-target Clippy passed. Added attached GUI/MCP collection/typed-replacement/window/ERASE/UNDO smoke, execution pending.",
+      "checks": [
+        "independent_review=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T22:43:35.165886+00:00",
+      "task": "B3",
+      "from": "running",
+      "to": "running",
+      "note": "Independent physical-marker contract accepted: preserve opening/closing layers separately, never infer owner visibility; B3a implementing bounded nested streams/child headers and extraction. B3b scope audit disproves original marker-owner selection. Root+reviewer approve explicit native all-negative lexical erased-owner policy after B3a candidate: top Item only, mixed/partial unsupported states rejected, DXF live-only erase-history omission explicit. No original whole-group parity or OOPS-after-open claim; parent not complete from B3a/refusal.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:44:11.765190+00:00",
+      "task": "S2",
+      "from": "review",
+      "to": "verified",
+      "note": "S2 coordinator acceptance: exact source pass;468 six-native tests,0 failed/ignored; all-target Clippy/workspace/build,21Rustfmt/diff/protected41 pass. Actual attached native GUI/MCP/API collects deduplicated picks/windows, typed replacement, LIST reports, ERASE Return/cancel/UNDO, existing layers/groups/save/reopen/END smoke passed. Physical keyboard/menu GO retain Session test coverage, no new original parity measurement. B3/L3 combined edits need fresh review/checks.",
+      "checks": [
+        "focused_tests=passed",
+        "integrated_native_checks=passed",
+        "gui_mcp=passed",
+        "workspace_check=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:44:11.912819+00:00",
+      "task": "L3",
+      "from": "running",
+      "to": "running",
+      "note": "Worker8 synthetic static-contract codec tests passed:both DWG revisions exact NEG words and signed historicalDXF;positive0..254/255 preserved, malformed negative/native-edge OFF safely rejected. App lifecycle/corpus/finalClippy/source review remain pending.",
+      "checks": [
+        "worker_first_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:45:38.066570+00:00",
+      "task": "B4",
+      "from": null,
+      "to": "pending",
+      "note": "Track discovered original partial-member persistence gap without hiding it behind B3 native whole-owner policy."
+    },
+    {
+      "at": "2026-10-03T22:45:38.268099+00:00",
+      "task": "S2",
+      "from": "verified",
+      "to": "verified",
+      "note": "Independent root harness extension approval confirmed35 inserted lines SHA d089965e1d51; attached GUI run passed and exact220-native-files milestone manifest recorded. S2 accepted468 tests. Root queued B4 newly proven partial-member sign preservation so B3 native owner policy cannot conceal original-format gap.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:48:44.089777+00:00",
+      "task": "T1",
+      "note": "Prepared verified S2 private snapshot; implementation starts only after worker L3 handoff, no simultaneous worker mutation."
+    },
+    {
+      "at": "2026-10-03T22:48:44.364191+00:00",
+      "task": "T1",
+      "from": "pending",
+      "to": "ready",
+      "note": "S2 verified. Prepared private baseline625176171ae0 with shared selector, native468 gate. HLP TEXT A/C/R, point size/angle and repeated-line/CHANGE contracts read; waiting L3 worker handoff before implementation assignment.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:50:15.312199+00:00",
+      "task": "R3",
+      "from": "running",
+      "to": "running",
+      "note": "Exact S2 source and root35line harness extension approved; S2 root468tests/actualGUI complete. B3a and L3 exact candidates pending; approved narrow B3b design not source approval. Reviewer doing one-pass read-only T1 font/history/atomicCHANGE preflight while waiting, prioritizing incoming candidates. R3 remains active; no omnibus completion from S2 pass.",
+      "checks": [
+        "s2_source=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:51:30.161277+00:00",
+      "task": "L3",
+      "from": "running",
+      "to": "review",
+      "note": "Exact workerdcb0acb4b6fc candidate ready:414affected tests/alltargetClippy/fmt pass,24positivecorpus tables preserved. Astra prioritizing signed-range/atomic lifecycle review. Root will integrate header hunks serially with B3 record changes and update actualGUI for supportedOFF.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:51:30.396071+00:00",
+      "task": "T1",
+      "from": "ready",
+      "to": "running",
+      "note": "Reuse Sol/high worker after L3 exact handoff; separate verifiedS2 baseline625176171ae0, scoped TEXT/CHANGE extraction and font metrics contracts. L3 source review/integration proceed independently; no simultaneous edits to worker snapshots.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T22:57:46.804828+00:00",
+      "task": "B3",
+      "from": "running",
+      "to": "running",
+      "note": "B3a exact7ade74d46865 ready:466native worker tests/Clippy/fmt; bounded independent-marker stream/extraction/namedWBLOCK closure source under Astrareview. B3b incremental policy implementing separately. Root identified/fixes general rendering expansion cap with ordered LOAD preservation, focused tests passed5 after correcting POINT-cross test expectation. B3 not yet integrated/verified.",
+      "checks": [
+        "worker_b3a_tests=passed",
+        "worker_b3a_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:00:31.223348+00:00",
+      "task": "B3",
+      "from": "running",
+      "to": "review",
+      "note": "B3a exact source review P2: namedWBLOCK retains only preceding directLOAD, losing resource effects from preceding REPEAT/INSERT. Root reproduced source dataflow; preserve ordered bounded LOAD-only context or checked failure before export. Normal-render expansion fix also coordinator-owned integration dependency; B3b planned native erased-owner functionality still pending. No marker grammar blocker reported.",
+      "checks": [
+        "independent_review=failed"
+      ],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-03T23:00:31.415245+00:00",
+      "task": "B3",
+      "from": "review",
+      "to": "fixing",
+      "note": "Repair1 dispatched: extract bounded orderedLOAD context collector for named/selected WBLOCK, no preceding geometry; handle nested/hiddenRepeat/INSERT and fail closed on unresolved budgets/cycles. B3b all-negative erased-owner implementation continues in same private incremental delta vsimmutableB3a a5cdbc0f. Oldchecks/review invalidated; final fullcandidate requires fresh tests/exactreview.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:02:57.025815+00:00",
+      "task": "L3",
+      "from": "review",
+      "to": "review",
+      "note": "Astra exactdcb0acb4 source approved; root applied header/lifecycle hunks and reconciled B3a DXF error/group-validation overlap explicitly without restoring blanketOFF refusal. Combined sixnative suite passed before finalcyclicLOADcontext guard; L3 actualGUI signed-save/reopen/zeroerror workflow updated, binariesbuilding. L3 integrated milestone still awaits finalmergedsource/Clippy/GUI gates.",
+      "checks": [
+        "independent_review=passed",
+        "coordinator_merged_tests=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T23:05:19.569627+00:00",
+      "task": "T1",
+      "from": "running",
+      "to": "running",
+      "note": "Worker6command contracts passed:rotated C/R/A ink layout, relative point size/angle, native repeated-anchor/height policy, rawvsphysical repeat/history/UNDO, atomic singleTEXT CHANGE/no-op/mixed refusal and INSERT optionalangle cancel. Approved clean app-owned runtimeSHP metrics/provider+boundedshared font-context helper, idleSpace handling isolated; API/fonts/codec testsongoing. No DIM source/fixture/tolerancechanges.",
+      "checks": [
+        "worker_first_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:07:39.651032+00:00",
+      "task": "B3",
+      "from": "fixing",
+      "to": "fixing",
+      "note": "Repair1 workerfirstnative owner ERASE/OOPS/SAVE/END and orderednestedLOAD WBLOCK equivalence/error checks pass; finaldelta pending. Root B3a/L3/S2 merged491tests passed beforelastguard. Scoped render review caughtzero-outer preflight bypass; repaired explicit zero-dimension rejection +full/geometry regression,7focused budget tests pass. Interim exactf45b0822 source review pending; GUI updatedsigned OFF/nestedsuccess, syntax/OPENmenu fixture corrections only. NoB3completionclaim.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:09:24.208265+00:00",
+      "task": "RB1",
+      "from": null,
+      "to": "review",
+      "note": "Record coordinator B3 render contribution as independent gate after scoped source review and repair; no new worker/concurrency."
+    },
+    {
+      "at": "2026-10-03T23:11:15.286416+00:00",
+      "task": "L3",
+      "from": "review",
+      "to": "review",
+      "note": "Actual attachedGUI/MCP signedOFF save+freshheadlessreopen bothformats passed, colorzeroOFF failures preservefiles/attachment andUNDO, nestedlive SAVE/reopen passed. Scoped mergedL3+rootrender/harness approval f45b0822. Workspacecheck found one stale Repeat fixture constructor in acad-oracle test (compile only, no run); two metadata fields mechanically initialized1, preserving comparison. Rerunningworkspace beforeacceptance; protected41unchanged. B3WBLOCK repair+erasedowner remainopen.",
+      "checks": [
+        "gui_mcp=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:12:29.737457+00:00",
+      "task": "L3",
+      "from": "review",
+      "to": "verified",
+      "note": "L3 accepted: exactdcb0 source +mergedf45b signed-table reconciliation pass;491combined sixnative tests, final46render suite/7budget checks, alltargetClippy/workspace/build,41Rustfmt/diff,230native exact/41protected hash pass. ActualGUI/MCP supported signedOFF save+freshDWG/DXFreopen andcolorzero atomicfailure/UNDO pass. B3WBLOCKresource/erasedowner fixes remainseparatelyopen; negative signedtable parity isstaticcontract, not newly measuredoriginalexport.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed",
+        "integrated_native_checks=passed",
+        "workspace_check=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:12:30.110575+00:00",
+      "task": "RB1",
+      "from": "review",
+      "to": "verified",
+      "note": "RB1 accepted after independentrepairpass2 f45b0822:zero-lattice bypassclosed;5new+2existingbudget checks and46fullrenderer tests pass. Ordinary/geometry expansion bounded, orderedLOAD preserved, excessive/cyclic context stopsfollowingowners. AlltargetClippy/workspace/fmt andactualattachedGUI nested/reopen/frame workflows pass, source230native manifest exact. Whole-document aggregate primitive budget isexplicitQ1performancefollow-up, not promisedbyper-owner guard.",
+      "checks": [
+        "scoped_clippy=passed",
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:13:42.897497+00:00",
+      "task": "T1",
+      "from": "running",
+      "to": "running",
+      "note": "Worker reports359 cmd/app/render affectedcases +current16focused cases passed, scopedClippy; actualSHP metric/font-context/API/physicalSpace+GO/rawmacro/whitespace/atomicCHANGE/bakedcodec contracts covered. StrictDIM/HATCH sources untouched. Exactpatch beingexported, independent reviewpending; native leading/A-repeat/singleTEXT restrictions documented, no persistedalignment/history claim.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:15:06.711353+00:00",
+      "task": "T1",
+      "from": "running",
+      "to": "review",
+      "note": "Exact70657bb061f2 candidate ready,21staged/no unstaged,359affected +16finalfocused tests/Clippy pass. Astra exactsource review dispatched. No model/codec/fixture/harness edits/Repeatliteral. Root will reconcile identical earlydepth0 guard and B3 editingcontext overlap; actualnativeGUI and integrated checks pending. Single/mixedTEXTproperty restriction andnative leading/repeatedA policies explicit, no new originalfontparity.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:17:17.875614+00:00",
+      "task": "T1",
+      "from": "review",
+      "to": "review",
+      "note": "Astra70657 source P2: standalone font-context traversal INSERT stack.extend can allocate100k*Npendingreferences beforebudgetfailure under branching selfreference. Main appSHP/layout/CHANGE/history paths otherwiseclean. Repair1 iterative boundedframes/depth/cycle checks +regression dispatched, no nativefixture/DIM/codec edits.",
+      "checks": [
+        "independent_review=failed"
+      ],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-03T23:17:18.560958+00:00",
+      "task": "T1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Repair1 starts in sameprivate snapshot: boundedO(depth) standalone context iterators,16INSERT/cycle/stored/visitlimits, branching-cycle retry/cancel regression. Invalidate oldchecks/review; repairedexactpatch plusfocused/fullaffected tests/Clippy required. Root does not integrate knownbad candidate.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:18:15.948247+00:00",
+      "task": "B3",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 exactincremental a6bbadf15913 vsimmutableB3a a5cdbc0f ready:475sixnative tests/Clippy/fmt pass; all-negative lexical native owner erase +uniformtopreconstruct/mixedrefusal, DXF live-only, extractedboundedLOAD exportcontext/P2closure andpreflightbeforeclones/finiteguards. Astra reviewing exactsource. Partialoriginal erasedmembers trackedB4; explicitruntimeowner-wrapperencodingstill checkedlimit. Rootnormalrender guard RB1verified independently; finalmergedsource/executionpending.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:20:02.257016+00:00",
+      "task": "B3",
+      "from": "review",
+      "to": "review",
+      "note": "Astra exacta6bbadf15913 incremental pass; namedWBLOCK P2closed with ordered boundednestedLOAD projection/checkedpreflight. Rootappliedexactdelta overS2/L3/RB1 aftercheck, sixnative fullsuite nowrunning. Parent B3awaits exactmergedreview/Clippy/workspace/actualGUI ERASE/OOPS/BLOCK/WBLOCK/save/reopen proof; B4partialmemberstates stillpending, no new originalgroup parity.",
+      "checks": [
+        "independent_incremental_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T23:23:08.642491+00:00",
+      "task": "T1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 exactb78738390f9d wholecandidate ready,22staged;363affected native tests/Clippy/fmt/diffpass. Iterative bounded standalonecontext module+2adversarial regressions replace stack.extend; old70657 artifact preserved. Astra finalscope reviewdispatched. Main T1notintegrated yet; rootreconcilesB3metadata/earlyrenderguard hunk aftersourceapproval.",
+      "checks": [
+        "worker_tests=passed",
+        "worker_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:25:17.147644+00:00",
+      "task": "T1",
+      "from": "review",
+      "to": "review",
+      "note": "Astra repairedb787 exactsource pass2, standalonepending-stackP2closed. Rootapplied22filecandidate excluding2contextfiles thenexplicitlyreconciled repeat_start_layer metadata alongsideTEXThistory/provider and reusedsameearlydepth0 guard beforeappendingfont helper. No constructors/fixturesneededchanges; sixnativecombinedB3/T1/L3/RB1 suite running. Finalmergedexact review and actualGUI text/CHANGE remainpending.",
+      "checks": [
+        "independent_incremental_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T23:35:39.494093+00:00",
+      "task": "B3",
+      "from": "review",
+      "to": "review",
+      "note": "Integrated final B3/T1/L3/RB1 snapshot: 520 six-native tests (0 failures/ignored), scoped all-target Clippy -D warnings, bins build and workspace all-target compile passed. Actual GUI/API/MCP TEXT C/R/A/repeat/point-height/CHANGE and nested/erased REPEAT OOPS/BLOCK/WBLOCK DWG/DXF save-reopen passed; text PNG inspected. 238 native-file hash manifest matches main; protected41 unchanged; changed-file rustfmt/diff pass. Final exact source review SHA576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b pending final text-only confirmation.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed",
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:35:39.548010+00:00",
+      "task": "T1",
+      "from": "review",
+      "to": "review",
+      "note": "Integrated final B3/T1/L3/RB1 snapshot: 520 six-native tests (0 failures/ignored), scoped all-target Clippy -D warnings, bins build and workspace all-target compile passed. Actual GUI/API/MCP TEXT C/R/A/repeat/point-height/CHANGE and nested/erased REPEAT OOPS/BLOCK/WBLOCK DWG/DXF save-reopen passed; text PNG inspected. 238 native-file hash manifest matches main; protected41 unchanged; changed-file rustfmt/diff pass. Final exact source review SHA576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b pending final text-only confirmation.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed",
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:36:02.528746+00:00",
+      "task": "V1",
+      "from": "pending",
+      "to": "ready",
+      "note": "S2 dependency verified; fresh isolated native snapshot c9657fbb. Bounded FILLET/views assignment; coordinator serial integration and independent exact review required.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:36:02.626248+00:00",
+      "task": "V1",
+      "from": "ready",
+      "to": "running",
+      "note": "Implement retained FILLET R/zero + ZOOM L/X/absolute/PAN displacement/aspect/visible bounds in private fillet-views; strict evidence/persistence boundaries and atomic native tests.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:36:44.165966+00:00",
+      "task": "B3",
+      "from": "review",
+      "to": "verified",
+      "note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T23:36:44.222402+00:00",
+      "task": "T1",
+      "from": "review",
+      "to": "verified",
+      "note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T23:36:44.283579+00:00",
+      "task": "R3",
+      "from": "running",
+      "to": "review",
+      "note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible.",
+      "checks": [
+        "source_review=passed",
+        "final_patch_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-03T23:36:44.337071+00:00",
+      "task": "R3",
+      "from": "review",
+      "to": "verified",
+      "note": "Independent Astra final merged-source PASS exact576694866be892912ac7abe4a945bade609022f242aad091a3cbe1d29820bc3b; all P2 repairs and stale matrix/comment P3 closed. Integrated 520 native tests, Clippy, workspace compile, actual GUI/MCP save/reopen/text/erased groups passed; 238 native hashes match, protected41 unchanged. B4 partial-member and explicit owner-layer/original-parity gaps remain visible.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:36:44.395349+00:00",
+      "task": "B4",
+      "from": "pending",
+      "to": "ready",
+      "note": "B3 verified; original partial ordinary-member erasure follow-up, isolated current native baseline58d618696.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:36:44.453498+00:00",
+      "task": "B4",
+      "from": "ready",
+      "to": "running",
+      "note": "Implement member erased state with bounded group/resource traversals and original signed ordinary member preservation; explicit whole-owner mixed-state save policy; exact review required.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:37:30.566643+00:00",
+      "task": "R4",
+      "from": "pending",
+      "to": "ready",
+      "note": "V1/B4 independent reviewer; start bounded FILLET persisted-radius retained-static mapping audit while workers implement separate modules.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:37:30.641755+00:00",
+      "task": "R4",
+      "from": "ready",
+      "to": "running",
+      "note": "V1/B4 independent reviewer; start bounded FILLET persisted-radius retained-static mapping audit while workers implement separate modules.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:44:50.113704+00:00",
+      "task": "R4",
+      "from": "running",
+      "to": "running",
+      "note": "Independent bounded three-pass retained-static audit supports AC1.40 FILLET radius f64 slot1fa (DS48fe,descriptor42), 1960 raw instruction byte strings matched; 8 original AC140sample fields zero. No AC1.2/DXF mapping; native nonzero checked-refusal contract accepted, not implementation approval/nonzero original measured parity. V1 implementation proceeds; exact V1/B4 and merged-source gates pending.",
+      "checks": [
+        "radius_contract=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:45:58.331066+00:00",
+      "task": "F1",
+      "from": "pending",
+      "to": "pending",
+      "note": "Supplementary coordinator corpus slice passed all25 required inputs (21 drawings+3backups+SUBDIV.DXF), manifest hash availability enforced, stdio MCP Session/frame/SAVEAS1.40/ENDsource revision/fresh DWG exactcanvas and canonicalDXF checks; inputfiles unchanged, SUBDIVPNG inspected. Harness435e51d5f1d0 independent source review requested. Broad F1 stays pending until dependencies/full file workflow scope; no completion claim from this check.",
+      "checks": [
+        "preliminary_corpus_api=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:46:37.075082+00:00",
+      "task": "B4",
+      "from": "running",
+      "to": "running",
+      "note": "Astra ordinary Erased member representation preflight accepted with explicit traversal/resource/file boundaries; recursively empty DXF Repeat pruning and ambiguous whole-owner prior-erased DWG refusal required. Contract acceptance only; implementation/finalreview/native gates remain pending.",
+      "checks": [
+        "design_preflight=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:47:55.034030+00:00",
+      "task": "F1",
+      "from": "pending",
+      "to": "pending",
+      "note": "Astra independent source-only PASS corpus harness435e51d5...41ce9c: exact25 unique20DWG+4BAK inclDISC+SUBDIVDXF, no missing-corpus skip, manifest+pre/posthash checks, scratch-only END/SAVE targets, cleanup. Coordinator actual25/25 pass verified Source/END revision and DWGcanvas/canonicalDXF; broad F1 remains pending dependencies and full file UX; no whole-milestone completion from preliminary slice.",
+      "checks": [
+        "preliminary_corpus_harness_review=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:58:32.231823+00:00",
+      "task": "V1",
+      "from": "running",
+      "to": "running",
+      "note": "Worker preliminary full affected537 tests and scoped all-target Clippy pass; two final focused selector/global-budget cases subsequently passed, final exact539 candidate rerun underway. Independent radiuscontract accepted; final stagedSHA/source and coordinator main/GUI integration stillpending. New private modules separate view and fillet input/geometry; viewport_size constructor initialization mechanical-only.",
+      "checks": [
+        "preliminary_worker_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-03T23:58:32.308743+00:00",
+      "task": "B4",
+      "from": "running",
+      "to": "running",
+      "note": "Worker initial six-native suite and independent raw live nestedREPEAT/BLOCK fixtures for all10 negative ordinary physical types under bothrevisions pass, exact record/canonicalroundtrip; DXF recursively empty group pruning retained. Lifecycle/resource/guard tests and exactcandidate Clippy remain inprogress; top-level member-wrapper boundary highlighted for explicit validation. No integration/source acceptanceyet.",
+      "checks": [
+        "preliminary_worker_tests=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:00:10.349129+00:00",
+      "task": "V1",
+      "from": "running",
+      "to": "review",
+      "note": "Exact whole V1 candidate1a782fc79467 basec9657fbb ready:539six-native tests0failed, alltargetClippy,38changedfilefmt/stageddiff pass.40paths and exactloghashes recordedselfcontainedhandoff. Astra sourcepass1 dispatched. Root actualGUI draft prepared butnotrun/mainnotintegrated; acceptance/finalreview pending.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:01:24.588361+00:00",
+      "task": "V1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Independent source pass1 confirms P2 view representability: ZOOM C center1e308 height1 creates coincident rounded corners; center0 height1e-308 gives infinite556/height scale and NaNto_screen. Require representable strictcorners and finitepositive actual pixel/world transforms beforecommit, errorneutral prompt/view/previous/dirty. Reviewer finishing otherareas; collectfindings into boundedrepair1, preserve immutable1a782 candidate before replacement. Prior gates cleared by fixing transition.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T00:05:58.712105+00:00",
+      "task": "V1",
+      "from": "fixing",
+      "to": "fixing",
+      "note": "Source pass1 complete: only P2 view representability blocking; radius persistence/atomic FILLET and bounded visible views no additionalfinding. Repair1 includes requested-frame/loaded-view/resize/click numeric boundaries and typedZOOMA recovery; old1a782 patch/handoff preserved immutable. Source pass2/rootactual checks pending.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:34:24.112629+00:00",
+      "task": "V1",
+      "from": "fixing",
+      "to": "fixing",
+      "note": "Coordinator resumed in Claude Code session; Codex workers ended. Repair1 (viewport representability guard) handed to Claude worker in same private snapshot; target agentic-views.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:34:24.152679+00:00",
+      "task": "B4",
+      "from": "running",
+      "to": "running",
+      "note": "Coordinator resumed in Claude Code session; Codex worker ended with erased_member_lifecycle named_export test failing. Handed to Claude worker in same private snapshot; target agentic-layers.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:40:19.064605+00:00",
+      "task": "V1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 75e1dba6: shared DwgView::validate_canvas + Viewport::checked_from_view guard for all ZOOM/PAN/P commits and app frame/click seam; 545 six-package tests, clippy -D warnings, fmt, diff check passed (worker). Artifacts mirrored to target/agentic-artifacts (temp dir purge observed). Source pass2 pending.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:41:32.418568+00:00",
+      "task": "B4",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 58f76eaf: failing lifecycle test was a fixture bug (undefined UNKNOWN block); now defines LOAD-bearing HIDDEN block with live control case. Explicit Erased arms in WBLOCK projector, resource walker, text context; mutation check proves render test sensitivity. 535 six-package tests, clippy, fmt, diff check passed (worker). Independent source review pending.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:46:53.988390+00:00",
+      "task": "V1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Source pass2: P1 representability closed; new P2 GUI regression - unusable saved view (historical DXF without DWGVIEW, height 0) makes Session::frame error so window draws nothing; P3 stale viewport.rs:31 comment. Corpus 17 DWG + SUBDIV render fine. Repair2: display-only LIMITS fallback.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T00:47:41.670988+00:00",
+      "task": "B4",
+      "from": "review",
+      "to": "fixing",
+      "note": "Source pass1: P2 INSERT *name explode copies erased members live -> unsaveable drawing; P2 named WBLOCK of block with erased direct member refuses (doc overclaims); P3 LIST erased count not recursive. Traversal/DWG/DXF otherwise accepted. Repair1: map erased direct members to top-level Item::Erased in explode and WBLOCK.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T00:50:02.632521+00:00",
+      "task": "V1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair2 69e61faa: infallible viewport_for (stored -> LIMITS fit -> unit) shared by frame/click/pick/crosshair, display-only; commands still refuse; 546 tests, clippy passed (worker). Source pass3 pending.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:52:35.915624+00:00",
+      "task": "V1",
+      "from": "review",
+      "to": "review",
+      "note": "Source pass3 pass: display fallback verified incl. degenerate/NaN LIMITS probe; P3 doc wording on @ points to fix at integration. Root integration starting.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T00:53:03.239636+00:00",
+      "task": "B4",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 25f3da9f: root_item helper promotes erased direct members to top-level Item::Erased in explode and named WBLOCK; OOPS does not resurrect copies; recursive LIST count; 538 tests, clippy passed (worker); mutation checks reported. Source pass2 pending.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T00:55:50.004394+00:00",
+      "task": "B4",
+      "from": "review",
+      "to": "review",
+      "note": "Source pass2 pass: explode/WBLOCK promotion, OOPS, closure, LIST closed; 538 tests in fresh target (reviewer). P3 root_item comment overclaims refusal of erased REPEAT member; fix comment at integration. Integration after V1 integrated checks.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T01:03:05.430529+00:00",
+      "task": "V1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration: V1 repair2 (69e61faa) + doc P3 fix, B4 repair1 (25f3da9f) three-way merged with no conflicts + root_item comment fix. 564 six-package tests 0 failed, clippy -D warnings, workspace all-target check, rustfmt on 58 changed files, diff check passed; attached GUI/MCP/API harness PASS incl. new B4 partial-member step (DWG byte-identical resave, DXF omission, ambiguous save refusal, OOPS); 41 protected hashes unchanged. Logs target/agentic-artifacts/{b4-int-*,int-*}.log. Final merged-source review pending.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:03:05.483647+00:00",
+      "task": "B4",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration: V1 repair2 (69e61faa) + doc P3 fix, B4 repair1 (25f3da9f) three-way merged with no conflicts + root_item comment fix. 564 six-package tests 0 failed, clippy -D warnings, workspace all-target check, rustfmt on 58 changed files, diff check passed; attached GUI/MCP/API harness PASS incl. new B4 partial-member step (DWG byte-identical resave, DXF omission, ambiguous save refusal, OOPS); 41 protected hashes unchanged. Logs target/agentic-artifacts/{b4-int-*,int-*}.log. Final merged-source review pending.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:03:05.537176+00:00",
+      "task": "R4",
+      "from": "running",
+      "to": "running",
+      "note": "V1 pass3 and B4 pass2 source reviews passed; final merged-source review of integration delta pending.",
+      "checks": [
+        "source_review=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:06:37.961490+00:00",
+      "task": "V1",
+      "from": "review",
+      "to": "verified",
+      "note": "Final merged-source review pass (integration delta matches accepted patches plus 4 expected root edits; reviewer reran 564 tests). GUI harness rerun PASS after removing unused variable. Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:06:38.015121+00:00",
+      "task": "B4",
+      "from": "review",
+      "to": "verified",
+      "note": "Final merged-source review pass (integration delta matches accepted patches plus 4 expected root edits; reviewer reran 564 tests). GUI harness rerun PASS after removing unused variable. Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:06:42.573077+00:00",
+      "task": "R4",
+      "from": "running",
+      "to": "review",
+      "note": "All R4 reviews complete.",
+      "checks": [
+        "final_patch_review=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:06:42.611904+00:00",
+      "task": "R4",
+      "from": "review",
+      "to": "verified",
+      "note": "Radius contract, V1 pass1-3, B4 pass1-2 and final merged-source review complete.",
+      "checks": [],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T01:07:45.236245+00:00",
+      "task": "H1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Dependencies verified; private snapshot ed5812b prepared in target/agentic-snapshots.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:07:45.274975+00:00",
+      "task": "H1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched: contract selection, implementation, focused tests, scoped clippy, exact patch handoff.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:07:45.318599+00:00",
+      "task": "B1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Dependencies verified; private snapshot ed5812b prepared in target/agentic-snapshots.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:07:45.366924+00:00",
+      "task": "B1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched: contract selection, implementation, focused tests, scoped clippy, exact patch handoff.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:07:45.423390+00:00",
+      "task": "B2",
+      "from": "pending",
+      "to": "ready",
+      "note": "Dependencies verified; private snapshot ed5812b prepared in target/agentic-snapshots.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:07:45.482821+00:00",
+      "task": "B2",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched: contract selection, implementation, focused tests, scoped clippy, exact patch handoff.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:13:50.809313+00:00",
+      "task": "H1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 6ed0d9ba: name[,N|O|I] suffix; depth-count along scanlines with merged coincident crossings; N byte-identical to existing; O depth==1, I depth>=1; overlapping loops not rejected (native policy). 574 tests, clippy passed (worker). Independent review pending.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:17:54.577998+00:00",
+      "task": "H1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P1 O/I per-loop 1e-9 crossing merge collapses vertex/arc-endpoint pairs at local extrema -> wrong/empty rows (concave island dip vertex on grid row; arc+line junction). N shares pre-existing flaw (not regression; keep unchanged, document). P3 docs + styled-path budget test. Repair1 requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T01:21:04.922392+00:00",
+      "task": "B1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate a2a47f6b: Session-side file resolve/decode, staged import committed at last prompt (one UNDO), case-insensitive no-redefine conflict policy, reachable block closure, new-layer color/OFF import. 583 tests, clippy passed (worker). Independent review NOT yet launched (session usage limit).",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:22:37.812794+00:00",
+      "task": "H1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 9bee4ce1: O/I half-open crossing rule for lines and y-monotone arc pieces, no per-loop merge, odd per-loop count fails atomically; N unchanged; 4 regressions + styled-path API budget test; 579 tests, clippy passed (worker). Review pass2 not yet launched (usage limit).",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T01:26:53.748946+00:00",
+      "task": "B2",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 6568a88d: circular ARRAY fill/count arithmetic + single-INSERT rotate, BREAK point pick/F re-entry/projection/end trim for LINE/ARC/CIRCLE/TRACE, TRACE ambiguous shapes refused; 587 tests, clippy passed (worker). CONCERN: worker used the in-tree original guest emulator as oracle, which the plan scope excludes (no guest/collector work); coordinator/user must decide whether to accept that evidence. 3 BREAK editor tests rewritten. Review not launched (usage limit).",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T07:57:10.576309+00:00",
+      "task": "B2",
+      "from": "review",
+      "to": "review",
+      "note": "User decision 2026-10-04: accepted in-tree original emulator observations as B2 evidence (\"all in order\"); proceed with independent review.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T07:57:10.614607+00:00",
+      "task": "B1",
+      "from": "review",
+      "to": "review",
+      "note": "Independent review launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T07:57:10.653281+00:00",
+      "task": "H1",
+      "from": "review",
+      "to": "review",
+      "note": "Independent review pass2 launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:03:56.795248+00:00",
+      "task": "B1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P2 non-regular file (FIFO/dir/device) accepted and read unbounded -> hang/OOM/shadowing; P2 record limit checked on import only, combined host+import can exceed 65535 and become unsaveable. P3: merge libraries only after commit and for reachable LOADs; report dropped erased REPEAT count; case-only conflict message. Repair1 requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T08:06:53.856440+00:00",
+      "task": "B2",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P2 two-object window selection ids \"1,2\" reparsed as BREAK point; P2 doc/spec misstate oracle: whole-object break erases record (native refuses), first-endpoint claim wrong. P3 uncommitted oracle numbers, silent skip without disk image, no-op ARRAY undo step. Repair1: typed ids, implement observed whole-object erase.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T08:08:19.164138+00:00",
+      "task": "B1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 33f15dd8: regular-file-only resolver + 16,776,960-byte cap via take; combined host+import record check; libraries merged post-commit for reachable LOAD names only; omitted erased REPEAT status; case-only message. 590 tests, clippy passed (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:11:17.260566+00:00",
+      "task": "H1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: brute-force oracle over rotated scenes 0 mismatches for O/I; odd-parity error atomic; N unchanged. Non-blocking: add rotated corner case and odd-crossing error test (test-only addendum requested before integration).",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T08:11:31.609917+00:00",
+      "task": "B1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: repros fail safely, combined limit exact at boundary, post-commit merge gated. P3 TOCTOU stat/open FIFO swap (optional O_NONBLOCK), drive-qualified LOAD name cosmetic. Root integration starting.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T08:12:53.207931+00:00",
+      "task": "H1",
+      "from": "review",
+      "to": "review",
+      "note": "Test-only addendum 52f860c5: rotated notch rows and odd-crossing atomic error tests (15 hatch_styles tests); only hatch_styles.rs differs from reviewed repair1 (coordinator-verified). Awaiting serial integration after B1.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:14:08.149054+00:00",
+      "task": "B2",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 19fa6644: typed break_select_ids for dialogue selections; whole-object break erases record (OOPS restores only last ERASE, oracle-confirmed); 9 committed oracle tests for every cited claim; no-op ARRAY no undo step. 591 tests, clippy, oracle passed (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:17:09.569386+00:00",
+      "task": "B1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration (clean 3-way, no conflicts): 590 six-package tests 0 failed, clippy, workspace check, build, fmt, diff check; GUI harness PASS with new external INSERT step (block + star form, DWG/DXF reopen, UNDO, missing-file error); protected hashes unchanged.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:17:09.678542+00:00",
+      "task": "B1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:19:08.023780+00:00",
+      "task": "B2",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: repros fixed, every original-behaviour sentence asserted by committed oracle tests (9 + 4 rerun on real System.img), whole-object erase persistence/OOPS/group rejection verified. Awaiting serial integration after H1.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T08:21:26.484999+00:00",
+      "task": "H1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration after B1: one import-line conflict in input_state.rs resolved (keep both uses). 607 six-package tests 0 failed, clippy, workspace check, build, fmt, diff check; GUI harness PASS with new HATCH N/O/I step (distinct outputs, DWG/DXF reopen); protected hashes unchanged.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:21:26.543614+00:00",
+      "task": "H1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:25:25.621500+00:00",
+      "task": "B2",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration after H1 (clean 3-way): 634 six-package tests 0 failed, acad-oracle array_break 9 passed on real System.img, clippy, workspace check, build, fmt, diff check; GUI harness PASS with new circular ARRAY fill/BREAK step (DWG/DXF reopen, UNDO); protected hashes unchanged.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:25:25.683872+00:00",
+      "task": "B2",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:27:46.494165+00:00",
+      "task": "H2",
+      "from": "pending",
+      "to": "ready",
+      "note": "Dependencies verified; snapshot 98ad0c9 prepared.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:27:46.532950+00:00",
+      "task": "H2",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:27:46.571231+00:00",
+      "task": "X1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Dependencies verified; snapshot 98ad0c9 prepared.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:27:46.609992+00:00",
+      "task": "X1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:27:46.648228+00:00",
+      "task": "K1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Dependencies verified; snapshot 98ad0c9 prepared.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:27:46.685384+00:00",
+      "task": "K1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:49:25.618468+00:00",
+      "task": "X1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 8b97a083: Session script queue, SCRIPT/--script/API, DELAY 1ms units on injectable clock, interruption by any input, RESUME exact next item, regular-file 256KiB resolver; 12 committed oracle facts (original has no SCRIPT command; DELAY CPU loop, i16). 658 tests, clippy, oracle passed (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T08:57:22.993124+00:00",
+      "task": "X1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P2 three oracle claims (Ctrl-Z not EOF, one poll per DELAY unit, bad DELAY count stops script) not discriminated by committed tests. P3: API report advances script; headless >64 items need ticks; interrupt route coverage; Space/Tab/arrow keys do not interrupt (pre-existing); UTF-8 doc; HLP line nit. No code defect found. Repair1 requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T08:57:43.719869+00:00",
+      "task": "H2",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 4bc8ef9f: U[,style] prompts, external PAT via Session resolver (shared with B1), 9 oracle tests (U geometry, ACAD.PAT runtime-loaded, start row truncation, stroke direction). CHANGED shared sweep row order/direction for all patterns (oracle-backed; strict LINE/NET and QEMU HATCH pass). 654 tests, clippy passed (worker). Review launched. Note: X1 also generalizes external_insert.rs resolver -> expect merge reconciliation.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:01:47.267695+00:00",
+      "task": "X1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 c7303a0f: discriminating oracle tests (Ctrl-Z+RESUME, poll counts, bad DELAY+RESUME); only input requests pump scripts; tick docs; interrupt route tests; doc qualifications. 664 tests, clippy, oracle 13 passed (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:04:04.707052+00:00",
+      "task": "X1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: oracle tests discriminating (alternatives run), pump change no lost wakeup. Root integration starting.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T09:05:12.036245+00:00",
+      "task": "H2",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P2 external PAT gaps-only/sub-precision dash rows bypass stroke budget -> minutes-long HATCH blocking GUI (64 rows ~13 min release). P3 PLASTI start-row oracle anchor. Shared sweep change verified geometry-identical over 3,450 cases; strict comparisons untouched. Repair1: total work budget.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T09:08:39.852469+00:00",
+      "task": "X1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration (clean 3-way): 664 six-package tests 0 failed, acad-oracle scripts 13 + array_break 9 passed, clippy incl. acad-oracle, workspace check, build, fmt, diff check; GUI harness PASS with new SCRIPT/DELAY step proving the real winit about_to_wait loop completes a script across DELAY; protected hashes unchanged.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:08:39.906237+00:00",
+      "task": "X1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:08:57.616410+00:00",
+      "task": "F1",
+      "from": "pending",
+      "to": "ready",
+      "note": "Snapshot prepared after X1.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:08:57.688852+00:00",
+      "task": "F1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:10:12.695712+00:00",
+      "task": "H2",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 d2e03390: HatchWork total budget 10M rows+dash cycles charged before work, atomic failure; gaps-only rows rejected at parse; PLASTI oracle anchor. 657 tests, clippy, oracle passed (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:10:28.233642+00:00",
+      "task": "K1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 9568aba2: mouse SKETCH with P/X/Q/R/E/C/., per-axis world increment, click=pen toggle, temporary strokes outside drawing until R/X, 10k bound, motion API/MCP; 14 oracle facts via QEMU serial mouse (7 tests). 657 tests, clippy passed (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:20:20.012259+00:00",
+      "task": "H2",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: DoS closed (ms failures), 3,450-case geometry identity, 10M budget swept over 3,803 built-in runs with no regressions. P3 carried to Q1: rows x boundary-edges loop on huge boundaries (pre-existing, ESCHER 58 s at 8,000 edges). Root integration starting.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T09:21:45.751261+00:00",
+      "task": "K1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P2 O4/O12/O13 and O3 numbers lack discriminating oracle tests; P2 GUI Ctrl+letter treated as SKETCH controls (Ctrl-C connects instead of cancel). P3: full-buffer X drops segment silently; click in connect mode; native choices worded as observed; Lean/formal README stale; oracle test1 mid-move risk. Repair1 requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T09:28:19.005728+00:00",
+      "task": "H2",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration after X1: resolved X1/H2 resolver divergence by keeping X1 FileKind API and adding shared candidate_files/is_regular_file (FileKind-based) used by resolve_file and HATCH PATTERN_FILE lookup; messages unchanged; matrix roadmap line merged. 687 six-package tests 0 failed, oracle hatch_user/array_break/scripts 9/9/13, QEMU HATCH 5, clippy incl acad-oracle, workspace check, build, fmt, diff check; GUI harness PASS with new pattern-file + U,I step; protected unchanged. Coordinator resolver reconciliation to be covered by final merged-source review.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:28:19.062194+00:00",
+      "task": "H2",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:30:44.447004+00:00",
+      "task": "F1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 35ac8aa9: END/SAVE .BAK backups (oracle: previous bytes, every END, not new/QUIT/WBLOCK), staged temp+bak+rename order, menu macro grammar (blank slots, *[label], ; and space Returns, \\\\ pause), shared tokenizer, corpus backup workflow with explicit missing-corpus detection; 17 oracle tests. 681 tests, clippy passed (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:35:02.005780+00:00",
+      "task": "K1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 740f455f: discriminating oracle O4/O12/O13 (O13 found ORTHO L-shaped pen-up tail; native fixed), modifier-aware key_character (Ctrl+C cancels, other chords ignored), full-buffer R/X keep final segment, window-close suspends sketch, native-policy wording, Lean notes. 662 tests, clippy, oracle 9/9 (worker). Review pass2 NOT yet launched (usage limit).",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T09:38:47.993885+00:00",
+      "task": "F1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: P2 fs::copy copies macOS uchg flag -> immutable undeletable backup temp residue on locked drawings (regression). P3: dir fsync, float drift is in both codecs (doc + tolerance), API command replaces pause prefix, undocumented pause/SCRIPT/pick interactions, *[label] oracle assertion, WBLOCK overwrite gap, temp umask. Repair not yet requested (usage limit).",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T13:02:45.060724+00:00",
+      "task": "F1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 0d3ea2e0: byte-only backup copy, macOS locked-destination refusal up front, dir fsync, 0600 temps, ULP corpus compare, command_typed keeps pause prefix, *[label] oracle assertion, policy docs. 684 tests (corpus required), clippy, oracle passed (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:06:04.453739+00:00",
+      "task": "F1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass (684 tests with corpus, oracle 18). P3-A: dir-fsync failure after completed rename reported as failed save -> retry backs up new bytes, losing real previous version; some FS reject dir fsync. Small addendum requested: treat as saved-with-warning.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T13:07:17.140197+00:00",
+      "task": "K1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass2: P2 ORTHO R/X tail records only first leg; original records same L as pen-up (and R continues from pointer). P3: horizontal-dominant O13 case; preview shows one leg. Repair2 (final allowed) requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T13:07:51.277224+00:00",
+      "task": "F1",
+      "from": "review",
+      "to": "review",
+      "note": "Addendum eecfde82: dir-fsync failure after rename = success with warning (silent for unsupported/invalid); test-only thread-local seam; coordinator verified scope = 6 listed files vs repair1. Root integration starting.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:14:00.668563+00:00",
+      "task": "F1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration after H2: conflicts in session/mouse.rs (took F1 run_macro, re-added H2 hatch pattern-file dispatch in menu_macro.rs) and session/tests.rs (kept both). 709 six-package tests 0 failed with AUTOCAD_REQUIRE_CORPUS=1 (corpus ran), oracle files_backup 10/menu_macros 7/hatch_user 9/scripts 13/array_break 9, QEMU menu_mouse 1, clippy incl acad-oracle, workspace check, build, fmt, diff; GUI harness PASS with new .BAK backup step; protected and corpus unchanged. Coordinator merge edits to be covered by final merged-source review.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:14:00.710988+00:00",
+      "task": "F1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:28:02.705966+00:00",
+      "task": "K1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair2 13827196: shared pen-up/R/X ORTHO L tail, R continues from snapped pointer; oracle X/R/horizontal-first L with native replay; two-leg preview. 663 tests, clippy, oracle 9/9 (worker; one disk-full and one unexplained ORTHO R flake during development). Coordinator freed ~30 GB of finished build caches (disk was 100%). Review pass3 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:37:15.496787+00:00",
+      "task": "K1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass3 pass: shared pen_tail, oracle 9/9 + ORTHO 10 consecutive passes (residual mouse-packet risk can only fail visibly). Root integration starting.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T13:48:32.212933+00:00",
+      "task": "K1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration after F1: six conflicts with X1 resolved as unions (lib re-exports, winit imports, MCP NAMES 17 + mcp test, type_characters script interrupt then SKETCH keys, test module cfg restored, matrix rows/roadmap). 738 six-package tests 0 failed (corpus required), oracle sketch_mouse 9 + files_backup 10 + menu_macros 7 + hatch_user 9 + scripts 13 + array_break 9, clippy incl acad-oracle, workspace check, build, fmt, diff, lake build; GUI harness PASS with new mouse SKETCH step; protected unchanged.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:48:32.250891+00:00",
+      "task": "K1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:49:20.049291+00:00",
+      "task": "Q1",
+      "from": "pending",
+      "to": "ready",
+      "note": "All dependencies verified; snapshot prepared.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:49:20.089809+00:00",
+      "task": "Q1",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched for combined workflow, dense-hatch performance, corpus/release checks and matrix audit; final merged-source review in parallel.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T13:57:51.853629+00:00",
+      "task": "Q1",
+      "from": "running",
+      "to": "running",
+      "note": "Final merged-source review of coordinator merge edits: needs fixes P2 (pattern-file answer at paused macro did not resume; F1xH2 merge). Coordinator applied exactly the required fix (resume_macro in hatch branch of submit_return_input) with failing-first regression test; P3 motion-vs-script documented as native policy; harness H1 trailing Return removed. acad-app 217 tests, clippy passed. All other hand edits reviewed without findings.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T14:09:55.667686+00:00",
+      "task": "Q1",
+      "from": "running",
+      "to": "running",
+      "note": "Full CI-equivalent cargo test --workspace: 874 passed, 1 failed (acad-oracle fillet_mouse QEMU): stale native replay used pre-V1 FILLET flow (radius after selection). Replay updated to the original guest flow FILLET R 1 / FILLET 1,2; now passes against the real original (independent confirmation that V1 FILLET R matches original geometry). cargo fmt --all --check and clippy --workspace passed.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T14:56:37.696459+00:00",
+      "task": "Q1",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate b7f6facf: combined_workflow.rs end-to-end MCP test; HATCH edge index (byte-identical over 3,332 runs; dense 2,000-square ESCHER 20.4 s -> 0.05 s release); corpus API 25/25 (needs Python >=3.11); CI: fixed pre-existing menu_controls failure, oracle skips visible, release build; README/matrix/contract doc audit; harness DIM step. 741 tests (corpus), clippy, oracle hatch passed (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T15:05:55.005393+00:00",
+      "task": "M1",
+      "from": null,
+      "to": "pending",
+      "note": "Created by user request 2026-10-04 (plotter ignored; Main Menu needed; WBLOCK and render budget to be resolved).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T15:05:55.005393+00:00",
+      "task": "W1",
+      "from": null,
+      "to": "pending",
+      "note": "Created by user request 2026-10-04 (plotter ignored; Main Menu needed; WBLOCK and render budget to be resolved).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T15:05:55.005393+00:00",
+      "task": "RB2",
+      "from": null,
+      "to": "pending",
+      "note": "Created by user request 2026-10-04 (plotter ignored; Main Menu needed; WBLOCK and render budget to be resolved).",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T15:06:51.292043+00:00",
+      "task": "Q1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1 (34,398-case byte-identity harness otherwise clean): P2 arc offset-range margin too narrow at large coordinates -> spurious O/I refusal; P2 CI cannot compile on clean checkout because corpus files are include_bytes! (pre-existing; handoff overclaimed). P3 skip-line count wording, DIMARROW error assertion. Repair1 requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T15:15:59.992059+00:00",
+      "task": "Q1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 bbd5979b: magnitude-aware index margins (arcs/circles/lines) + far-arc regression; corpus include_bytes! in tests -> runtime corpus_file with visible skip / AUTOCAD_REQUIRE_CORPUS failure, 29 corpus-menu session tests gated; clean-checkout CI simulation all steps pass (827 + 233 oracle); DIMARROW assertion; skip-message wording. 742 tests (corpus). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T15:22:04.013337+00:00",
+      "task": "Q1",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass2: HATCH byte-identity confirmed (35,870 cases); no compile-time corpus embedding remains; clean-checkout fmt/clippy/no-run/release/oracle pass. P1: 4 runtime-corpus tests fail on clean checkout (fillet_radius, group_records, text_change, api menu click); worker evidence invalid (shared target dir binaries pointed at full snapshot). Repair2 requested with fresh target dir.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T15:25:59.947123+00:00",
+      "task": "Q1",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair2 e4c05ca4: 4 runtime-corpus tests gated (api.rs only menu-click part); menu_mouse honours AUTOCAD_REQUIRE_CORPUS; clean-checkout CI with fresh in-copy target: fmt/clippy pass, 827/0, oracle 233/0 + 138 skip messages, release pass; skip lines show clean path. 742 corpus-required. Review pass3 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T15:29:42.050335+00:00",
+      "task": "Q1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass3 pass: independent clean-checkout CI all green (827/0, oracle 233/0, release), gates verified with/without corpus. Root integration starting.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T16:00:16.496862+00:00",
+      "task": "Q1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration (clean 3-way). Final: cargo fmt --all --check, clippy --workspace --all-targets -D warnings, AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1061 passed 0 failed 0 skipped, release build, GUI harness PASS, corpus API 25/25. Coordinator adapted the macro-resume regression test to the gated menu_app helper.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T16:00:16.579189+00:00",
+      "task": "Q1",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    }
+  ]
+}

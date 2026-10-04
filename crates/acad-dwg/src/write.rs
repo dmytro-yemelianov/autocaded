@@ -41,8 +41,9 @@ fn put_string(out: &mut Vec<u8>, s: &str, field: &'static str) -> Result<(), Dwg
     Ok(())
 }
 
-fn record_header(out: &mut Vec<u8>, kind: u16, layer: u8) {
-    out.extend_from_slice(&kind.to_le_bytes());
+fn record_header(out: &mut Vec<u8>, kind: u16, layer: u8, erased: bool) {
+    let signed = if erased { -(kind as i16) } else { kind as i16 };
+    out.extend_from_slice(&signed.to_le_bytes());
     out.extend_from_slice(&(layer as u16).to_le_bytes());
 }
 
@@ -51,29 +52,36 @@ fn encode_entity(
     entity: &Entity,
     count: &mut u32,
     version: Version,
+    erased: bool,
 ) -> Result<(), DwgError> {
-    let (layer, entity) = match entity {
-        Entity::OnLayer { layer, entity } => (*layer, entity.as_ref()),
-        e => (1, e),
-    };
+    let record =
+        acad_model::group_codec::stored_record(entity).map_err(|error| DwgError::WriteValue {
+            field: "entity",
+            value: error.message().into(),
+        })?;
+    let layer = record.layer;
+    let entity = record.entity;
+    let erased = erased || record.erased;
     let angle = |deg: f64| deg.to_radians();
     match entity {
         Entity::Repeat(repeat) => {
-            encode_repeat(out, repeat, count, version)?;
+            encode_repeat(out, repeat, count, version, erased)?;
             return Ok(());
         }
-        Entity::OnLayer { .. } => unreachable!("OnLayer wrapper was removed above"),
+        Entity::OnLayer { .. } | Entity::Erased(_) => {
+            unreachable!("checked wrappers were removed above")
+        }
         Entity::Line { start, end } => {
-            record_header(out, 1, layer);
+            record_header(out, 1, layer, erased);
             put_point(out, *start);
             put_point(out, *end);
         }
         Entity::Point { origin } => {
-            record_header(out, 2, layer);
+            record_header(out, 2, layer, erased);
             put_point(out, *origin);
         }
         Entity::Circle { center, radius } => {
-            record_header(out, 3, layer);
+            record_header(out, 3, layer, erased);
             put_point(out, *center);
             put_f64(out, *radius);
         }
@@ -83,7 +91,7 @@ fn encode_entity(
             rotation_deg,
             number,
         } => {
-            record_header(out, 4, layer);
+            record_header(out, 4, layer, erased);
             put_point(out, *origin);
             put_f64(out, *height);
             put_f64(out, angle(*rotation_deg));
@@ -95,17 +103,21 @@ fn encode_entity(
             rotation_deg,
             value,
         } => {
-            record_header(out, 7, layer);
+            let stored_height = *height
+                * if version == Version::Ac12 {
+                    4.0 / 3.0
+                } else {
+                    1.0
+                };
+            if !stored_height.is_finite() {
+                return Err(DwgError::WriteValue {
+                    field: "TEXT height",
+                    value: "revision scaling is nonfinite".into(),
+                });
+            }
+            record_header(out, 7, layer, erased);
             put_point(out, *origin);
-            put_f64(
-                out,
-                *height
-                    * if version == Version::Ac12 {
-                        4.0 / 3.0
-                    } else {
-                        1.0
-                    },
-            );
+            put_f64(out, stored_height);
             put_f64(out, angle(*rotation_deg));
             put_string(out, value, "TEXT")?;
         }
@@ -115,7 +127,7 @@ fn encode_entity(
             start_deg,
             end_deg,
         } => {
-            record_header(out, 8, layer);
+            record_header(out, 8, layer, erased);
             put_point(out, *center);
             put_f64(out, *radius);
             put_f64(out, angle(*start_deg));
@@ -130,13 +142,14 @@ fn encode_entity(
                     11
                 },
                 layer,
+                erased,
             );
             for p in [p1, p2, p3, p4] {
                 put_point(out, *p);
             }
         }
         Entity::Load { name } => {
-            record_header(out, 10, layer);
+            record_header(out, 10, layer, erased);
             put_string(out, name, "LOAD")?;
         }
         Entity::Insert {
@@ -146,7 +159,7 @@ fn encode_entity(
             rotation_deg,
             name,
         } => {
-            record_header(out, 14, layer);
+            record_header(out, 14, layer, erased);
             put_string(out, name, "INSERT")?;
             put_point(out, *origin);
             put_f64(out, *x_scale);
@@ -166,36 +179,14 @@ fn encode_block(
     count: &mut u32,
     version: Version,
 ) -> Result<(), DwgError> {
-    record_header(out, 12, 1);
+    record_header(out, 12, 1, false);
     put_string(out, name, "BLOCK name")?;
     put_point(out, base);
     *count += 1;
     for entity in entities {
-        encode_entity(out, entity, count, version)?;
+        encode_entity(out, entity, count, version, false)?;
     }
-    record_header(out, 13, 1);
-    *count += 1;
-    Ok(())
-}
-
-fn encode_erased_entity(
-    out: &mut Vec<u8>,
-    entity: &Entity,
-    count: &mut u32,
-    version: Version,
-) -> Result<(), DwgError> {
-    let mut record = Vec::new();
-    let mut record_count = 0;
-    encode_entity(&mut record, entity, &mut record_count, version)?;
-    if record_count != 1 {
-        return Err(DwgError::WriteValue {
-            field: "erased entity",
-            value: "a grouped entity cannot be encoded as one erased record".into(),
-        });
-    }
-    let kind = i16::from_le_bytes([record[0], record[1]]);
-    record[..2].copy_from_slice(&(-kind).to_le_bytes());
-    out.extend_from_slice(&record);
+    record_header(out, 13, 1, false);
     *count += 1;
     Ok(())
 }
@@ -205,27 +196,14 @@ fn encode_repeat(
     repeat: &acad_model::Repeat,
     count: &mut u32,
     version: Version,
+    erased: bool,
 ) -> Result<(), DwgError> {
-    let first = repeat
-        .entities
-        .first()
-        .ok_or_else(|| DwgError::WriteValue {
-            field: "REPEAT",
-            value: "group has no entities".into(),
-        })?;
-    let mut encoded = Vec::new();
-    encode_entity(&mut encoded, first, count, version)?;
-    let nested_type = u16::from_le_bytes([encoded[0], encoded[1]]);
-    let layer = u16::from_le_bytes([encoded[2], encoded[3]]);
-    record_header(out, 5, layer as u8);
-    out.extend_from_slice(&nested_type.to_le_bytes());
-    out.extend_from_slice(&1u16.to_le_bytes());
-    out.extend_from_slice(&encoded[4..]);
-    *count += 1; // REPEAT marker in addition to its fused first entity.
-    for entity in repeat.entities.iter().skip(1) {
-        encode_entity(out, entity, count, version)?;
+    record_header(out, 5, repeat.start_layer, erased);
+    *count += 1;
+    for entity in &repeat.entities {
+        encode_entity(out, entity, count, version, erased)?;
     }
-    record_header(out, 6, layer as u8);
+    record_header(out, 6, repeat.end_layer, erased);
     out.extend_from_slice(&repeat.columns.to_le_bytes());
     out.extend_from_slice(&repeat.rows.to_le_bytes());
     put_f64(out, repeat.column_spacing);
@@ -241,8 +219,39 @@ pub fn encode(drawing: &Drawing) -> Result<Vec<u8>, DwgError> {
 
 /// Return a fully padded DWG byte stream in the requested revision.
 pub fn encode_version(drawing: &Drawing, version: Version) -> Result<Vec<u8>, DwgError> {
+    acad_model::group_codec::validate_group_records(drawing).map_err(|error| {
+        DwgError::WriteValue {
+            field: "REPEAT",
+            value: error.message().into(),
+        }
+    })?;
     let start = version.entity_start();
     let h = &drawing.header;
+    if !h.fillet_radius.is_finite()
+        || h.fillet_radius < 0.0
+        || (version == Version::Ac12 && h.fillet_radius != 0.0)
+    {
+        return Err(DwgError::WriteValue {
+            field: "FILLET radius",
+            value: if version == Version::Ac12 {
+                "AC1.2 has no supported nonzero radius mapping".into()
+            } else {
+                h.fillet_radius.to_string()
+            },
+        });
+    }
+    if let Some(value) = h.dim_arrow {
+        if version == Version::Ac12 || !value.is_finite() {
+            return Err(DwgError::WriteValue {
+                field: "DIMARROW",
+                value: if version == Version::Ac12 {
+                    "AC1.2 has no supported mapping".into()
+                } else {
+                    value.to_string()
+                },
+            });
+        }
+    }
     if h.current_layer >= 128 {
         return Err(DwgError::WriteValue {
             field: "current layer",
@@ -254,6 +263,22 @@ pub fn encode_version(drawing: &Drawing, version: Version) -> Result<Vec<u8>, Dw
             field: "layer table",
             value: "indices must be 0..127 and colors 0..254".into(),
         });
+    }
+    for &layer in &h.off_layers {
+        if layer == 0
+            || layer >= 128
+            || !h
+                .layers
+                .get(&layer)
+                .is_some_and(|color| (1..=127).contains(color))
+        {
+            return Err(DwgError::WriteValue {
+                field: "layer visibility",
+                value: format!(
+                    "OFF layer {layer} requires a defined layer 1..127 with color 1..127"
+                ),
+            });
+        }
     }
     let mut out = h
         .dwg_header_passthrough
@@ -269,9 +294,9 @@ pub fn encode_version(drawing: &Drawing, version: Version) -> Result<Vec<u8>, Dw
     let mut count = 0u32;
     for item in &drawing.items {
         match item {
-            Item::Entity(e) => encode_entity(&mut entities, e, &mut count, version)?,
-            Item::Erased(e) => encode_erased_entity(&mut entities, e, &mut count, version)?,
-            Item::Repeat(r) => encode_repeat(&mut entities, r, &mut count, version)?,
+            Item::Entity(e) => encode_entity(&mut entities, e, &mut count, version, false)?,
+            Item::Erased(e) => encode_entity(&mut entities, e, &mut count, version, true)?,
+            Item::Repeat(r) => encode_repeat(&mut entities, r, &mut count, version, false)?,
             Item::Block(b) => encode_block(
                 &mut entities,
                 &b.name,
@@ -326,6 +351,10 @@ pub fn encode_version(drawing: &Drawing, version: Version) -> Result<Vec<u8>, Dw
     put_u16(&mut out, 0xb2, h.fill as u16);
     put_u16(&mut out, 0xc4, h.current_layer as u16);
     if version == Version::Ac140 {
+        put_f64_at(&mut out, 0x1fa, h.fillet_radius);
+        if let Some(value) = h.dim_arrow {
+            put_f64_at(&mut out, 0x1c8, value);
+        }
         put_u16(&mut out, 0x1d8, h.units.format.disk_value());
         put_u16(&mut out, 0x1da, h.units.precision);
         put_u16(&mut out, 0x1e0, h.axis.on as u16);
@@ -335,7 +364,12 @@ pub fn encode_version(drawing: &Drawing, version: Version) -> Result<Vec<u8>, Dw
         put_u16(&mut out, 0xc8 + slot * 2, 255);
     }
     for (&slot, &color) in &h.layers {
-        put_u16(&mut out, 0xc8 + slot as usize * 2, color as u16);
+        let signed = if h.off_layers.contains(&slot) {
+            -(color as i16)
+        } else {
+            color as i16
+        };
+        put_u16(&mut out, 0xc8 + slot as usize * 2, signed as u16);
     }
     out.extend_from_slice(&entities);
     let padded = end.div_ceil(128) * 128;
@@ -384,12 +418,15 @@ mod tests {
                 fill: true,
                 text_size: 0.2,
                 trace_width: 0.1,
+                fillet_radius: 0.0,
+                dim_arrow: None,
                 units: acad_model::Units {
                     format: acad_model::UnitFormat::Decimal,
                     precision: 4,
                 },
                 current_layer: 2,
                 layers: [(1, 7), (2, 64)].into_iter().collect(),
+                off_layers: Default::default(),
                 dwg_header_passthrough: None,
             },
             items: vec![
@@ -474,12 +511,15 @@ mod tests {
                 fill: true,
                 text_size: 1.0,
                 trace_width: 0.25,
+                fillet_radius: 0.0,
+                dim_arrow: None,
                 units: acad_model::Units {
                     format: acad_model::UnitFormat::Decimal,
                     precision: 4,
                 },
                 current_layer: 1,
                 layers: Default::default(),
+                off_layers: Default::default(),
                 dwg_header_passthrough: None,
             },
             items: vec![Item::Entity(Entity::Text {

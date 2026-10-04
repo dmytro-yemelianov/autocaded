@@ -2,7 +2,8 @@ use acad_re::{
     ast::Varnode,
     ir::{
         lower, verify_source, Architecture, CompilerFrame, InlineData, Operation, RawOp,
-        RecoveredDependency, RecoveredExport, RecoveredFunction, RecoveredInstruction,
+        RecoveredDependency, RecoveredEdge, RecoveredExport, RecoveredFunction,
+        RecoveredInstruction,
     },
     rust_emit,
 };
@@ -175,6 +176,10 @@ fn generated_overlay_and_resident_sign_flip_match_memory_reference() {
 }
 
 fn compile_and_check(ir: &acad_re::ir::Function, reference: &str) {
+    compile_source_and_check(&rust_emit::emit(ir), reference);
+}
+
+fn compile_source_and_check(source: &str, reference: &str) {
     let root = std::env::temp_dir().join(format!(
         "acad-ir-{}-{}",
         std::process::id(),
@@ -192,11 +197,7 @@ fn compile_and_check(ir: &acad_re::ir::Function, reference: &str) {
     }
     let _cleanup = Cleanup(root.clone());
     let generated = root.join("generated.rs");
-    fs::write(
-        &generated,
-        format!("{}\n{}", rust_emit::emit(ir), reference),
-    )
-    .unwrap();
+    fs::write(&generated, format!("{source}\n{reference}")).unwrap();
     let output = Command::new("rustc")
         .args(["--edition=2021", "-O", "--test"])
         .arg(&generated)
@@ -620,4 +621,256 @@ fn aztec_compiler_frame_helper_with_signature_lowers_limit() {
             false
         }
     }));
+}
+
+#[test]
+fn aztec_switch_consumes_value_from_stack_segment() {
+    let arch = Architecture {
+        language: "x86:LE:16:Real Mode".into(),
+        ram_space_id: 497,
+        userops: vec!["segment".into()],
+    };
+    let instruction = |offset, result| RecoveredInstruction {
+        offset,
+        address: format!("1000:{offset:04x}"),
+        bytes: if offset == 0 { "e872b7" } else { "c3" }.into(),
+        file: "ACAD.EXE".into(),
+        file_offset: offset as usize,
+        instruction: if offset == 0 { "CALL 0xb775" } else { "RET" }.into(),
+        ops: if offset == 0 {
+            vec![]
+        } else {
+            vec![RawOp {
+                op: "RETURN".into(),
+                out: None,
+                inputs: vec![Some(Varnode {
+                    space: "const".into(),
+                    offset: result,
+                    size: 2,
+                    unique: false,
+                })],
+            }]
+        },
+        compiler_frame: None,
+        kernel_tailcall: None,
+    };
+    let raw = RecoveredFunction {
+        block: "EXE_CODE".into(),
+        entry: 0,
+        instructions: vec![
+            instruction(0, 0),
+            instruction(3, 1),
+            instruction(4, 2),
+            instruction(5, 3),
+        ],
+        inline_data: vec![InlineData {
+            offset: 6,
+            bytes: "".into(),
+            kind: "switch-table".into(),
+            call: 0,
+            status: "ok".into(),
+        }],
+        dependencies: vec![],
+        edges: vec![
+            RecoveredEdge {
+                from: 0,
+                kind: "switch".into(),
+                case: Some(114),
+                target: Some(3),
+            },
+            RecoveredEdge {
+                from: 0,
+                kind: "switch".into(),
+                case: Some(-1),
+                target: Some(4),
+            },
+            RecoveredEdge {
+                from: 0,
+                kind: "switch".into(),
+                case: None,
+                target: Some(5),
+            },
+        ],
+        errors: vec![],
+    };
+    let ir = lower(&arch, &raw).unwrap();
+    let reference = include_str!("fixtures/switch-stack-reference.rs");
+    compile_and_check(&ir, reference);
+
+    // Exercise the linked emitter used by the boot experiment as well.
+    let symbols = acad_re::whole_program::SymbolTable::new(&[raw]);
+    let source = format!(
+        "mod runtime {{ {} }}\nmod exe_code {{ use crate::runtime::*; {} }}\n\
+         use runtime::*;\n\
+         fn dispatch_address(_: &str, _: u64, _: &mut [u8; 8192], _: &mut [u8], _: &mut usize) -> Result<u64, Trap> {{ Err(Trap::InvalidPc) }}\n\
+         fn run(registers: &mut [u8; 8192], memory: &mut [u8], mut budget: usize) -> Result<u64, Trap> {{\n\
+         exe_code::fn_exe_0000(registers, memory, &mut budget)\n}}",
+        acad_re::whole_program::RUNTIME_RS,
+        acad_re::whole_program::emit_function(&ir, &symbols),
+    );
+    compile_source_and_check(&source, reference);
+}
+
+#[test]
+fn hosted_swi_is_not_dispatched_as_an_indirect_guest_call() {
+    let mut export = fixture();
+    let raw = &mut export.functions[0];
+    raw.instructions[0].ops = serde_json::from_value(serde_json::json!([
+        {"op":"CALLOTHER", "out":{"space":"unique","offset":100,"size":4,"unique":true},
+         "in":[{"space":"const","offset":16,"size":4,"unique":false},
+               {"space":"const","offset":33,"size":1,"unique":false}]},
+        {"op":"CALLIND", "out":null,
+         "in":[{"space":"unique","offset":100,"size":4,"unique":true}]}
+    ]))
+    .unwrap();
+    let ir = lower(&export.architecture, raw).unwrap();
+    assert!(ir.instructions[0].operations.iter().any(|op| matches!(
+        op,
+        Operation::Assign {
+            expression: acad_re::ir::Expression::Swi(_),
+            ..
+        }
+    )));
+    assert!(!ir.instructions[0]
+        .operations
+        .iter()
+        .any(|op| matches!(op, Operation::CallIndirect { .. })));
+    // A different target is a real indirect call and must still be checked.
+    raw.instructions[0].ops[1].inputs[0] = Some(Varnode {
+        space: "const".into(),
+        offset: 0,
+        size: 4,
+        unique: false,
+    });
+    let ir = lower(&export.architecture, raw).unwrap();
+    assert!(ir.instructions[0]
+        .operations
+        .iter()
+        .any(|op| matches!(op, Operation::CallIndirect { .. })));
+}
+
+#[test]
+fn far_memory_jump_loads_the_segment_and_preserves_the_stack() {
+    let raw: RecoveredFunction = serde_json::from_value(serde_json::json!({
+        "block":"EXE_CODE", "entry":256,
+        "instructions":[{"offset":256,"address":"1000:0100","bytes":"ff2e0040",
+            "file":"ACAD.EXE","file_offset":0,"instruction":"JMPF [0x4000]","ops":[]}],
+        "inline_data":[],"dependencies":[],"edges":[],"errors":[]
+    }))
+    .unwrap();
+    let ir = lower(&fixture().architecture, &raw).unwrap();
+    let symbols = acad_re::whole_program::SymbolTable::new(&[raw]);
+    let source = format!(
+        "mod runtime {{ {} }}\nmod exe_code {{ use crate::runtime::*; {} }}\n\
+         use runtime::*;\n\
+         fn dispatch_address(_: &str, target: u64, _: &mut [u8; 8192], _: &mut [u8], budget: &mut usize) -> Result<u64, Trap> {{ assert_eq!(*budget, 0); Ok(target) }}\n",
+        acad_re::whole_program::RUNTIME_RS,
+        acad_re::whole_program::emit_function(&ir, &symbols),
+    );
+    compile_source_and_check(
+        &source,
+        r#"
+        #[test]
+        fn reads_the_far_pointer_in_ds_without_touching_ss_or_sp() {
+            let mut registers = [0xa5; 8192];
+            write(&mut registers, 262, 2, 0x120);
+            let mut expected = registers;
+            write(&mut expected, 258, 2, 0x2abb);
+            let mut memory = vec![0; 0x10000];
+            store(&mut memory, 0x5200, 2, 0x100).unwrap();
+            store(&mut memory, 0x5202, 2, 0x2abb).unwrap();
+            let expected_memory = memory.clone();
+            let mut budget = 1;
+            assert_eq!(exe_code::fn_exe_0100(&mut registers, &mut memory, &mut budget), Ok(0x2acb0));
+            assert_eq!(registers, expected);
+            assert_eq!(memory, expected_memory);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn near_indirect_call_preserves_relocated_cs_and_pushes_native_ip() {
+    let export: RecoveredExport =
+        serde_json::from_str(include_str!("fixtures/overlay-near-call-cfg.json")).unwrap();
+    let ir = lower(&export.architecture, &export.functions[0]).unwrap();
+    let symbols = acad_re::whole_program::SymbolTable::new(&export.functions);
+    let source = format!(
+        "mod runtime {{ {} }}\nmod ovl00_code {{ use crate::runtime::*; {} }}\n\
+         use runtime::*;\n\
+         fn dispatch_address(block: &str, target: u64, registers: &mut [u8; 8192], memory: &mut [u8], _: &mut usize) -> Result<u64, Trap> {{\n\
+           assert_eq!(block, \"OVL00_CODE\"); assert_eq!(target, 0x2b15e);\n\
+           assert_eq!(read(registers,258,2), 0x2abb); assert_eq!(read(registers,16,2), 0x1e);\n\
+           assert_eq!(load(memory,0x11e,2), Ok(0x11e));\n\
+           write(registers,16,2,0x20); write(registers,0,2,42); Ok(0)\n}}\n",
+        acad_re::whole_program::RUNTIME_RS,
+        acad_re::whole_program::emit_function(&ir, &symbols),
+    );
+    compile_source_and_check(
+        &source,
+        r#"
+        #[test]
+        fn calls_loaded_overlay() {
+            let mut registers = [0;8192]; let mut memory = vec![0;0x200]; let mut budget = 2;
+            write(&mut registers,258,2,0x2abb); write(&mut registers,260,2,0x10);
+            write(&mut registers,16,2,0x20); write(&mut registers,24,2,0x5ae);
+            assert_eq!(ovl00_code::fn_ovl00_011c(&mut registers,&mut memory,&mut budget),Ok(42));
+            assert_eq!(read(&registers,258,2),0x2abb); assert_eq!(read(&registers,16,2),0x20);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn cs_override_reads_from_the_loaded_segment() {
+    let export: RecoveredExport =
+        serde_json::from_str(include_str!("fixtures/overlay-cs-read-cfg.json")).unwrap();
+    let ir = lower(&export.architecture, &export.functions[0]).unwrap();
+    compile_and_check(
+        &ir,
+        r#"
+        #[test]
+        fn reads_relocated_cs() {
+            let mut registers=[0;8192]; let mut memory=vec![0;0x30000];
+            write(&mut registers,258,2,0x2abb); write(&mut registers,24,2,0x100);
+            store(&mut memory,0x2acb0,2,0xcafe).unwrap(); store(&mut memory,0x20100,2,0xbeef).unwrap();
+            assert_eq!(run(&mut registers,&mut memory,2),Ok(0xcafe));
+            assert_eq!(read(&registers,258,2),0x2abb);
+        }
+    "#,
+    );
+}
+
+#[test]
+fn far_memory_call_pushes_cs_ip_and_enters_the_target_segment() {
+    let raw: RecoveredFunction=serde_json::from_value(serde_json::json!({
+        "block":"EXE_CODE","entry":256,"instructions":[
+          {"offset":256,"address":"1000:0100","bytes":"ff1e0040","file":"ACAD.EXE","file_offset":0,"instruction":"CALLF [0x4000]","ops":[]},
+          {"offset":260,"address":"1000:0104","bytes":"c3","file":"ACAD.EXE","file_offset":4,"instruction":"RET",
+           "ops":[{"op":"RETURN","out":null,"in":[{"space":"const","offset":99,"size":2,"unique":false}]}]}],
+        "inline_data":[],"dependencies":[],"edges":[],"errors":[]
+    })).unwrap();
+    let ir = lower(&fixture().architecture, &raw).unwrap();
+    let symbols = acad_re::whole_program::SymbolTable::new(&[raw]);
+    let source=format!("mod runtime {{ {} }}\nmod exe_code {{ use crate::runtime::*; {} }}\nuse runtime::*;\n\
+       fn dispatch_address(_: &str, target:u64, registers:&mut [u8;8192], memory:&mut [u8], budget:&mut usize)->Result<u64,Trap> {{\n\
+        assert_eq!(target,0x2acb0); assert_eq!(read(registers,258,2),0x2abb);\n\
+        assert_eq!(read(registers,16,2),0x1c); assert_eq!(load(memory,0x11c,2),Ok(0x104)); assert_eq!(load(memory,0x11e,2),Ok(0x1000));\n\
+        assert_eq!(*budget,1); assert_eq!(dispatch_indirect_jump(registers,memory,budget,\"OVL00_CODE\",0x10104),Ok(0x10104));\n\
+        write(registers,16,2,0x20); write(registers,258,2,0x1000); Ok(0x10104)\n}}",
+        acad_re::whole_program::RUNTIME_RS,acad_re::whole_program::emit_function(&ir,&symbols));
+    compile_source_and_check(
+        &source,
+        r#"
+        #[test]
+        fn calls_far_pointer() {
+            let mut registers=[0;8192]; let mut memory=vec![0;0x10000]; let mut budget=2;
+            write(&mut registers,258,2,0x1000); write(&mut registers,262,2,0x120);
+            write(&mut registers,260,2,0x10); write(&mut registers,16,2,0x20);
+            store(&mut memory,0x5200,2,0x100).unwrap(); store(&mut memory,0x5202,2,0x2abb).unwrap();
+            assert_eq!(exe_code::fn_exe_0100(&mut registers,&mut memory,&mut budget),Ok(99));
+            assert_eq!(budget,0); assert_eq!(read(&registers,258,2),0x1000); assert_eq!(read(&registers,16,2),0x20);
+        }
+    "#,
+    );
 }

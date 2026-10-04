@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 /// Libraries are supplied by the caller, not opened from names in a drawing.
 /// Explicit aliases take precedence; other DOS paths are relocated by basename.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Libraries {
     entries: BTreeMap<String, Library>,
 }
@@ -34,6 +34,20 @@ impl Libraries {
     pub fn insert(&mut self, name: &str, bytes: &[u8]) -> Result<(), ShapeError> {
         self.entries.insert(key(name), Library::parse(bytes)?);
         Ok(())
+    }
+    /// Add the named libraries from `other` that are not yet available here;
+    /// existing entries win. Returns how many names were added.
+    pub fn merge_missing(&mut self, other: Self, names: &[String]) -> usize {
+        let mut added = 0;
+        for name in names {
+            if self.get(name).is_none() {
+                if let Some(library) = other.get(name) {
+                    self.entries.insert(key(name), library.clone());
+                    added += 1;
+                }
+            }
+        }
+        added
     }
     pub fn get(&self, name: &str) -> Option<&Library> {
         self.entries.get(&key(name)).or_else(|| {

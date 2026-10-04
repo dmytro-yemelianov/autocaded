@@ -219,6 +219,9 @@ pub enum Operation {
         target_block: String,
         target: u64,
     },
+    KernelTailCall {
+        native_ip: u16,
+    },
     Jump {
         target: u64,
     },
@@ -604,9 +607,11 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
 
             fallthrough = Some(base + frame.continuation);
         } else if let Some(tailcall) = &row.kernel_tailcall {
-            operations.push(Operation::TailCall {
-                target_block: tailcall.block.clone(),
-                target: tailcall.target,
+            if tailcall.block != "EXE_CODE" || tailcall.target != u64::from(tailcall.native_ip) {
+                return Err("unsupported resident kernel address bias".into());
+            }
+            operations.push(Operation::KernelTailCall {
+                native_ip: tailcall.native_ip,
             });
             fallthrough = None;
         } else if raw
@@ -623,10 +628,27 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                 width: Width(2),
             };
 
-            // AX = [SP]
+            // The helper consumes the switch value pushed by the caller.
+            // SP is an offset in SS, not a linear memory address.
+            let stack_pointer = Place::Temporary {
+                offset: next_temp,
+                width: Width(4),
+            };
+            next_temp += 4;
+            operations.push(Operation::Assign {
+                destination: stack_pointer.clone(),
+                expression: Expression::Segment(
+                    Value::Read(Place::Register {
+                        offset: 260,
+                        width: Width(2),
+                    }),
+                    Value::Read(sp_place.clone()),
+                ),
+            });
+            // AX = [SS:SP]
             operations.push(Operation::Assign {
                 destination: ax_place.clone(),
-                expression: Expression::Load(Value::Read(sp_place.clone())),
+                expression: Expression::Load(Value::Read(stack_pointer)),
             });
             // SP = SP + 2
             operations.push(Operation::Assign {
@@ -693,6 +715,126 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                 target: default_target,
             });
             fallthrough = None;
+        } else if row.bytes.len() == 8
+            && (row.bytes.starts_with("ff2e") || row.bytes.starts_with("ff1e"))
+        {
+            // The recovered far-memory transfer Pcode omits the CS update
+            // (and for JMP also the high pointer word).
+            let bytes = decode_bytes(&row.bytes)?;
+            let call = bytes[1] == 0x1e;
+            let displacement = u16::from_le_bytes([bytes[2], bytes[3]]) as u64;
+            let mut temporary = |size| {
+                let place = Place::Temporary {
+                    offset: next_temp,
+                    width: Width(size),
+                };
+                next_temp += size as usize;
+                place
+            };
+            let pointer = temporary(4);
+            let ip = temporary(2);
+            let segment_pointer = temporary(4);
+            let target = temporary(4);
+            let loaded_cs = temporary(2);
+            let stack_pointer = temporary(4);
+            let cs = Place::Register {
+                offset: 258,
+                width: Width(2),
+            };
+            operations.push(Operation::Assign {
+                destination: pointer.clone(),
+                expression: Expression::Segment(
+                    Value::Read(Place::Register {
+                        offset: 262,
+                        width: Width(2),
+                    }),
+                    Value::Constant {
+                        value: displacement,
+                        width: Width(2),
+                    },
+                ),
+            });
+            operations.push(Operation::Assign {
+                destination: ip.clone(),
+                expression: Expression::Load(Value::Read(pointer.clone())),
+            });
+            operations.push(Operation::Assign {
+                destination: segment_pointer.clone(),
+                expression: Expression::Binary(
+                    Binary::Add,
+                    Value::Read(pointer),
+                    Value::Constant {
+                        value: 2,
+                        width: Width(4),
+                    },
+                ),
+            });
+            operations.push(Operation::Assign {
+                destination: loaded_cs.clone(),
+                expression: Expression::Load(Value::Read(segment_pointer)),
+            });
+            if call {
+                let sp = Place::Register {
+                    offset: 16,
+                    width: Width(2),
+                };
+                for pushed in [
+                    Value::Read(cs.clone()),
+                    Value::Constant {
+                        value: row.offset as u64 + 4,
+                        width: Width(2),
+                    },
+                ] {
+                    operations.push(Operation::Assign {
+                        destination: sp.clone(),
+                        expression: Expression::Binary(
+                            Binary::Sub,
+                            Value::Read(sp.clone()),
+                            Value::Constant {
+                                value: 2,
+                                width: Width(2),
+                            },
+                        ),
+                    });
+                    operations.push(Operation::Assign {
+                        destination: stack_pointer.clone(),
+                        expression: Expression::Segment(
+                            Value::Read(Place::Register {
+                                offset: 260,
+                                width: Width(2),
+                            }),
+                            Value::Read(sp.clone()),
+                        ),
+                    });
+                    operations.push(Operation::Store {
+                        pointer: Value::Read(stack_pointer.clone()),
+                        value: pushed,
+                    });
+                }
+            }
+            operations.push(Operation::Assign {
+                destination: cs.clone(),
+                expression: Expression::Unary(Unary::Copy, Value::Read(loaded_cs)),
+            });
+            operations.push(Operation::Assign {
+                destination: target.clone(),
+                expression: Expression::Segment(Value::Read(cs), Value::Read(ip)),
+            });
+            if call {
+                operations.push(Operation::CallIndirect {
+                    target: Value::Read(target),
+                });
+                let next = base + row.offset as u64 + 4;
+                if !addresses.contains(&next) {
+                    return Err("unresolved far-call fallthrough".into());
+                }
+                fallthrough = Some(next);
+            } else {
+                operations.push(Operation::JumpIndirect {
+                    target: Value::Read(target),
+                });
+                fallthrough = None;
+            }
         } else {
             if row.ops.is_empty() {
                 if row.bytes == "9b" {
@@ -702,6 +844,8 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                     return Err("instruction has no Pcode".into());
                 }
             } else {
+                let instruction_end =
+                    base + row.offset as u64 + decode_bytes(&row.bytes)?.len() as u64;
                 for (index, op) in row.ops.iter().enumerate() {
                     let inputs: Vec<_> = op
                         .inputs
@@ -809,7 +953,25 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                             if inputs[0].size != 4 {
                                 return Err("CALLIND target width must be 4".into());
                             }
-                            operations.push(Operation::CallIndirect { target: a()? });
+                            let target = a()?;
+                            // Ghidra models INT as swi(number) followed by a
+                            // CALLIND to its result. The host has already
+                            // serviced that interrupt; it is not a guest call.
+                            let hosted_interrupt = index.checked_sub(1).is_some_and(|previous| {
+                                let producer = &row.ops[previous];
+                                producer.op == "CALLOTHER"
+                                    && producer.out.as_ref() == Some(inputs[0])
+                                    && producer
+                                        .inputs
+                                        .first()
+                                        .and_then(Option::as_ref)
+                                        .is_some_and(|selector| {
+                                            selector.space == "const" && selector.offset == 16
+                                        })
+                            });
+                            if !hosted_interrupt {
+                                operations.push(Operation::CallIndirect { target });
+                            }
                         } else if op.op == "BRANCHIND" {
                             if inputs[0].size != 4 {
                                 return Err("BRANCHIND target width must be 4".into());
@@ -1054,10 +1216,44 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                             Expression::Binary(binary, a()?, b()?)
                         }
                     };
-                    operations.push(Operation::Assign {
-                        destination,
-                        expression,
-                    });
+                    // Ghidra reconstructs CS from inst_next for near indirect
+                    // transfers and CS overrides. Preserve the loaded segment;
+                    // genuine far transfers and IRET still write CS normally.
+                    let synthetic_cs = output.space == "register"
+                        && output.offset == 258
+                        && output.size == 2
+                        && op.op == "COPY"
+                        && index >= 2
+                        && row.ops[index - 1].op == "INT_AND"
+                        && row.ops[index - 2].op == "INT_RIGHT"
+                        && row.ops[index - 1]
+                            .inputs
+                            .get(1)
+                            .and_then(Option::as_ref)
+                            .is_some_and(|v| v.space == "const" && v.offset == 0xf000)
+                        && row.ops[index - 2]
+                            .inputs
+                            .get(1)
+                            .and_then(Option::as_ref)
+                            .is_some_and(|v| v.space == "const" && v.offset == 4)
+                        && row.ops[index - 2]
+                            .inputs
+                            .first()
+                            .and_then(Option::as_ref)
+                            .is_some_and(|v| {
+                                v.space == "const" && v.offset == instruction_end as i64
+                            })
+                        && row.ops[index - 1].inputs.first().and_then(Option::as_ref)
+                            == row.ops[index - 2].out.as_ref()
+                        && row.ops[index - 1].out.as_ref().is_some_and(|v| {
+                            v.space == inputs[0].space && v.offset == inputs[0].offset
+                        });
+                    if !synthetic_cs {
+                        operations.push(Operation::Assign {
+                            destination,
+                            expression,
+                        });
+                    }
                     if output.space == "unique" {
                         defined.extend(byte_range(output)?);
                     }
@@ -1069,6 +1265,7 @@ pub fn lower(architecture: &Architecture, raw: &RecoveredFunction) -> Result<Fun
                 Some(
                     Operation::Return { .. }
                         | Operation::TailCall { .. }
+                        | Operation::KernelTailCall { .. }
                         | Operation::Jump { .. }
                         | Operation::JumpIndirect { .. }
                 )

@@ -177,3 +177,108 @@ fn whole_program_emit_translated_crate_and_compiles() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
+
+#[test]
+fn indirect_routes_use_full_addresses_and_overlay_context() {
+    let ret = |block: &str, base: u64, result| {
+        serde_json::json!({
+            "block":block,"entry":256,"instructions":[{
+                "offset":256,"address":format!("{block}::{:06x}", base + 256),
+                "bytes":"c3","file":"ACAD.OVL","file_offset":if block=="OVL01_CODE" {0x110} else {0x100},"instruction":"RET",
+                "ops":[{"op":"RETURN","out":null,"in":[{"space":"const","offset":result,"size":2,"unique":false}]}]
+            }],"inline_data":[],"dependencies":[],"edges":[],"errors":[]
+        })
+    };
+    let jump = |entry, target, local: bool| {
+        let mut rows = vec![serde_json::json!({
+            "offset":entry,"address":format!("OVL00_CODE::{:06x}", 0x20000 + entry),
+            "bytes":"ffe0","file":"ACAD.OVL","file_offset":entry,"instruction":"JMP AX",
+            "ops":[{"op":"BRANCHIND","out":null,"in":[{"space":"const","offset":target,"size":4,"unique":false}]}]
+        })];
+        if local {
+            rows.push(serde_json::json!({
+                "offset":entry + 2,"address":format!("OVL00_CODE::{:06x}", 0x20002 + entry),
+                "bytes":"c3","file":"ACAD.OVL","file_offset":entry+2,"instruction":"RET",
+                "ops":[{"op":"RETURN","out":null,"in":[{"space":"const","offset":99,"size":2,"unique":false}]}]
+            }));
+        }
+        serde_json::json!({"block":"OVL00_CODE","entry":entry,"instructions":rows,
+            "inline_data":[],"dependencies":[],"edges":[],"errors":[]})
+    };
+    let export: RecoveredExport = serde_json::from_value(serde_json::json!({
+        "architecture":{"language":"x86:LE:16:Real Mode","ram_space_id":497,"userops":["segment"]},
+        "functions":[ret("EXE_CODE",0x10000,30),ret("OVL00_CODE",0x20000,10),ret("OVL01_CODE",0x20000,20),
+                     jump(0x120,0x20122,true),jump(0x130,0x10100,false),jump(0x140,0x2acf2,true)]
+    })).unwrap();
+    let mut image = vec![0; 0x150];
+    image[0x100] = 0xc3;
+    image[0x110] = 0xc3;
+    image[0x120..0x123].copy_from_slice(&[0xff, 0xe0, 0xc3]);
+    image[0x130..0x132].copy_from_slice(&[0xff, 0xe0]);
+    image[0x140..0x143].copy_from_slice(&[0xff, 0xe0, 0xc3]);
+    let images = BTreeMap::from([("ACAD.OVL".into(), image)]);
+    let root = std::env::temp_dir().join(format!(
+        "acad-dispatch-test-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    struct Cleanup(std::path::PathBuf);
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+    let _cleanup = Cleanup(root.clone());
+    emit_translated_crate(&export, &images, &root).unwrap();
+    fs::create_dir(root.join("tests")).unwrap();
+    fs::write(root.join("tests/routes.rs"), r#"
+        use acad_translated::{dispatch_address, runtime::{dispatch_indirect, Trap}};
+        #[test]
+        fn routes_and_jumps() {
+            let mut registers = [0;8192]; let mut memory = []; let mut budget = 10;
+            assert_eq!(dispatch_indirect(&mut registers, &mut memory, &mut budget, "OVL00_CODE",0x20100),Ok(10));
+            assert_eq!(dispatch_indirect(&mut registers, &mut memory, &mut budget, "OVL01_CODE",0x20100),Ok(20));
+            assert_eq!(dispatch_address("OVL00_CODE",0x10100,&mut registers,&mut memory,&mut budget),Ok(30));
+            assert_eq!(dispatch_address("OVL00_CODE",0x20120,&mut registers,&mut memory,&mut budget),Ok(99));
+            assert_eq!(dispatch_address("OVL00_CODE",0x20130,&mut registers,&mut memory,&mut budget),Ok(30));
+            assert_eq!(budget,3);
+            for (block,target) in [("EXE_CODE",0x20100),("OVL00_CODE",0x30100),("OVL00_CODE",0)] {
+                assert_eq!(dispatch_address(block,target,&mut registers,&mut memory,&mut budget),Err(Trap::InvalidPc));
+            }
+            assert_eq!(budget,3);
+            budget=0;
+            assert_eq!(dispatch_address("EXE_CODE",0x10100,&mut registers,&mut memory,&mut budget),Err(Trap::Budget));
+        }
+        #[test]
+        fn loaded_file_offsets_route_without_the_callers_overlay_context() {
+            use acad_translated::runtime::*;
+            reset_dos(); mount_file("ACAD.OVL",vec![0xc3;0x150]);
+            let mut registers = [0;8192]; let mut memory = vec![0;0x40000]; let mut budget = 6;
+            write(&mut registers,262,2,0x10); write(&mut registers,8,2,0x20);
+            memory[0x121..0x12c].copy_from_slice(&to_fcb_name("ACAD.OVL"));
+            store(&mut memory,0x12e,2,1).unwrap(); store(&mut memory,0x141,4,0x100).unwrap();
+            DOS_ENV.with(|env|env.borrow_mut().dta=0x2acb0);
+            write(&mut registers,0,2,0x2700); write(&mut registers,4,2,0x50);
+            host_interrupt(0x21,&mut registers,&mut memory).unwrap();
+            assert_eq!(dispatch_address("EXE_CODE",0x2acb0,&mut registers,&mut memory,&mut budget),Ok(10));
+            assert_eq!(dispatch_address("OVL00_CODE",0x2acc0,&mut registers,&mut memory,&mut budget),Ok(20));
+            assert_eq!(dispatch_address("OVL01_CODE",0x2acb1,&mut registers,&mut memory,&mut budget),Err(Trap::InvalidPc));
+            assert_eq!(dispatch_address("EXE_CODE",0x2acf0,&mut registers,&mut memory,&mut budget),Ok(99));
+            assert_eq!(budget,2);
+        }
+    "#).unwrap();
+    let output = Command::new("cargo")
+        .args(["test", "--offline", "--test", "routes"])
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}

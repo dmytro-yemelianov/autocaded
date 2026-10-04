@@ -1,0 +1,4956 @@
+{
+ "architecture": {
+  "language": "x86:LE:16:Real Mode",
+  "ram_space_id": 497,
+  "userops": [
+   "segment",
+   "in",
+   "out",
+   "sysenter",
+   "sysexit",
+   "syscall",
+   "sysret",
+   "swapgs",
+   "invlpg",
+   "invlpga",
+   "invpcid",
+   "rdtscp",
+   "mwait",
+   "mwaitx",
+   "monitor",
+   "monitorx",
+   "swi",
+   "LOCK",
+   "UNLOCK",
+   "XACQUIRE",
+   "XRELEASE",
+   "clgi",
+   "stgi",
+   "vmload",
+   "vmmcall",
+   "vmrun",
+   "vmsave",
+   "invept",
+   "invvpid",
+   "vmcall",
+   "vmclear",
+   "vmfunc",
+   "vmlaunch",
+   "vmresume",
+   "vmptrld",
+   "vmptrst",
+   "vmread",
+   "vmwrite",
+   "vmxoff",
+   "vmxon",
+   "cldemote",
+   "clflush",
+   "clts",
+   "clzero",
+   "bad_CMPXCHG8B",
+   "cpuid",
+   "cpuid_basic_info",
+   "cpuid_Version_info",
+   "cpuid_cache_tlb_info",
+   "cpuid_serial_info",
+   "cpuid_Deterministic_Cache_Parameters_info",
+   "cpuid_MONITOR_MWAIT_Features_info",
+   "cpuid_Thermal_Power_Management_info",
+   "cpuid_Extended_Feature_Enumeration_info",
+   "cpuid_Direct_Cache_Access_info",
+   "cpuid_Architectural_Performance_Monitoring_info",
+   "cpuid_Extended_Topology_info",
+   "cpuid_Processor_Extended_States_info",
+   "cpuid_Quality_of_Service_info",
+   "cpuid_brand_part1_info",
+   "cpuid_brand_part2_info",
+   "cpuid_brand_part3_info",
+   "enqcmd",
+   "enqcmds",
+   "hreset",
+   "GlobalDescriptorTableRegister",
+   "InterruptDescriptorTableRegister",
+   "LocalDescriptorTableRegister",
+   "SegmentLimit",
+   "TaskRegister",
+   "swap_bytes",
+   "pconfig",
+   "ptwrite",
+   "rdmsr",
+   "readPID",
+   "rdpkru_u32",
+   "rdpmc",
+   "rdtsc",
+   "smm_restore_state",
+   "serialize",
+   "skinit",
+   "invalidInstructionException",
+   "umonitor",
+   "umwait",
+   "tpause",
+   "verr",
+   "verw",
+   "wrpkru",
+   "wrmsr",
+   "xabort",
+   "xbegin",
+   "xend",
+   "xinuse",
+   "xsave",
+   "xsave64",
+   "xsavec",
+   "xsavec64",
+   "xsaveopt",
+   "xsaveopt64",
+   "xsaves",
+   "xsaves64",
+   "xrstor",
+   "xrstor64",
+   "xrstors",
+   "xrstors64",
+   "xtest",
+   "f2xm1",
+   "from_bcd",
+   "to_bcd",
+   "fcos",
+   "ffree",
+   "fldenv",
+   "fpatan",
+   "fptan",
+   "fscale",
+   "fsin",
+   "_fxsave",
+   "_fxrstor",
+   "extract_significand",
+   "extract_exponent",
+   "log2",
+   "cmppd",
+   "cmpps",
+   "cmpsd",
+   "cmpss",
+   "divpd",
+   "divps",
+   "lddqu",
+   "maskmovdqu",
+   "maxpd",
+   "maxps",
+   "minpd",
+   "minps",
+   "movdir64b",
+   "movdq2q",
+   "movmskpd",
+   "movmskps",
+   "packsswb",
+   "packssdw",
+   "pabsb",
+   "pabsw",
+   "pabsd",
+   "paddsb",
+   "paddsw",
+   "paddusb",
+   "paddusw",
+   "pavgb",
+   "pavgw",
+   "phaddd",
+   "phaddw",
+   "phaddsw",
+   "phsubd",
+   "phsubw",
+   "phsubsw",
+   "pmaddubsw",
+   "pmaddwd",
+   "pmulhrsw",
+   "pmulhuw",
+   "pmulhw",
+   "psadbw",
+   "pshufb",
+   "pshufhw",
+   "pshuflw",
+   "pshufw",
+   "psignb",
+   "psignw",
+   "psignd",
+   "psllw",
+   "psraw",
+   "psubsb",
+   "psubsw",
+   "psubusb",
+   "psubusw",
+   "punpcklqdq",
+   "rcpps",
+   "rcpss",
+   "rsqrtps",
+   "rsqrtss",
+   "sqrtpd",
+   "sqrtps",
+   "xstore_available",
+   "xstore",
+   "xcrypt_ecb",
+   "xcrypt_cbc",
+   "xcrypt_ctr",
+   "xcrypt_cfb",
+   "xcrypt_ofb",
+   "montmul",
+   "xsha1",
+   "xsha256",
+   "mpsadbw",
+   "phminposuw",
+   "pmuldq",
+   "pmulld",
+   "dpps",
+   "dppd",
+   "blendps",
+   "blendpd",
+   "blendvps",
+   "blendvpd",
+   "pblendvb",
+   "pblendw",
+   "roundps",
+   "roundss",
+   "roundpd",
+   "roundsd",
+   "insertps",
+   "extractps",
+   "pmovsxbw",
+   "pmovsxbd",
+   "pmovsxbq",
+   "pmovsxwd",
+   "pmovsxwq",
+   "pmovsxdq",
+   "pmovzxbw",
+   "pmovzxbd",
+   "pmovzxbq",
+   "pmovzxwd",
+   "pmovzxwq",
+   "pmovzxdq",
+   "packusdw",
+   "movntdqa",
+   "crc32",
+   "pcmpestri",
+   "pcmpestrm",
+   "pcmpistri",
+   "pcmpistrm",
+   "aesdec",
+   "aesdeclast",
+   "aesenc",
+   "aesenclast",
+   "aesimc",
+   "aeskeygenassist",
+   "PackedIntToFloatingDwordConv",
+   "PackedFloatingToIntDwordConv",
+   "PackedFloatingCompareGE",
+   "PackedFloatingCompareGT",
+   "PackedFloatingCompareEQ",
+   "PackedFloatingAccumulate",
+   "PackedFloatingADD",
+   "PackedFloatingSUB",
+   "PackedFloatingSUBR",
+   "PackedFloatingMIN",
+   "PackedFloatingMAX",
+   "PackedFloatingMUL",
+   "FloatingReciprocalAprox",
+   "PackedFloatingReciprocalSQRAprox",
+   "PackedFloatingReciprocalIter1",
+   "PackedFloatingReciprocalSQRIter1",
+   "PackedFloatingReciprocalIter2",
+   "PackedAverageUnsignedBytes",
+   "PackedAverageHighRoundedWord",
+   "FastExitMediaState",
+   "PackedFloatingToIntWord",
+   "PackedIntToFloatingWord",
+   "PackedFloatingNegAccumulate",
+   "PackedFloatingPosNegAccumulate",
+   "PackedSwapDWords",
+   "MaskedMoveQWord",
+   "vaddsubpd_avx",
+   "vaddsubps_avx",
+   "vandnps_avx",
+   "vblendpd_avx",
+   "vblendps_avx",
+   "vblendvpd_avx",
+   "vblendvps_avx",
+   "vcmppd_avx",
+   "vcmpps_avx",
+   "vcmpsd_avx",
+   "vcmpss_avx",
+   "vcvtdq2pd_avx",
+   "vcvtdq2ps_avx",
+   "vcvtpd2dq_avx",
+   "vcvtpd2ps_avx",
+   "vcvtps2dq_avx",
+   "vcvtps2pd_avx",
+   "vdivpd_avx",
+   "vdivps_avx",
+   "vdppd_avx",
+   "vdpps_avx",
+   "vextractps_avx",
+   "vhaddps_avx",
+   "vhsubpd_avx",
+   "vhsubps_avx",
+   "vinsertps_avx",
+   "vlddqu_avx",
+   "vldmxcsr_avx",
+   "vmaskmovdqu_avx",
+   "vmaxpd_avx",
+   "vmaxps_avx",
+   "vmaxsd_avx",
+   "vmaxss_avx",
+   "vminpd_avx",
+   "vminps_avx",
+   "vminsd_avx",
+   "vminss_avx",
+   "vmovhlps_avx",
+   "vmovhpd_avx",
+   "vmovhps_avx",
+   "vmovlhps_avx",
+   "vmovlpd_avx",
+   "vmovlps_avx",
+   "vmovmskpd_avx",
+   "vmovmskps_avx",
+   "vmovntdqa_avx",
+   "vmovntdq_avx",
+   "vmovntpd_avx",
+   "vmovntps_avx",
+   "vmovshdup_avx",
+   "vmovsldup_avx",
+   "vmpsadbw_avx",
+   "vorpd_avx",
+   "vorps_avx",
+   "vpabsb_avx",
+   "vpabsw_avx",
+   "vpabsd_avx",
+   "vpacksswb_avx",
+   "vpackssdw_avx",
+   "vpackusdw_avx",
+   "vpackuswb_avx",
+   "vpaddb_avx",
+   "vpaddq_avx",
+   "vpaddsb_avx",
+   "vpaddsw_avx",
+   "vpaddusb_avx",
+   "vpaddusw_avx",
+   "vpalignr_avx",
+   "vpand_avx",
+   "vpandn_avx",
+   "vpavgb_avx",
+   "vpavgw_avx",
+   "vpblendvb_avx",
+   "vpblendw_avx",
+   "vpcmpeqb_avx",
+   "vpcmpeqw_avx",
+   "vpcmpeqd_avx",
+   "vpcmpestri_avx",
+   "vpcmpestrm_avx",
+   "vpcmpgtb_avx",
+   "vpcmpgtw_avx",
+   "vpcmpgtd_avx",
+   "vpcmpgtq_avx",
+   "vpcmpistri_avx",
+   "vpcmpistrm_avx",
+   "vpextrb_avx",
+   "vpextrd_avx",
+   "vphaddw_avx",
+   "vphaddd_avx",
+   "vphaddsw_avx",
+   "vphminposuw_avx",
+   "vphsubw_avx",
+   "vphsubd_avx",
+   "vphsubsw_avx",
+   "vpinsrb_avx",
+   "vpinsrw_avx",
+   "vpmaddubsw_avx",
+   "vpmaddwd_avx",
+   "vpmaxsb_avx",
+   "vpmaxsw_avx",
+   "vpmaxsd_avx",
+   "vpmaxub_avx",
+   "vpmaxuw_avx",
+   "vpmaxud_avx",
+   "vpminsb_avx",
+   "vpminsw_avx",
+   "vpminsd_avx",
+   "vpminub_avx",
+   "vpminuw_avx",
+   "vpminud_avx",
+   "vpmovsxbw_avx",
+   "vpmovsxbd_avx",
+   "vpmovsxbq_avx",
+   "vpmovsxwd_avx",
+   "vpmovsxwq_avx",
+   "vpmovsxdq_avx",
+   "vpmovzxbw_avx",
+   "vpmovzxbd_avx",
+   "vpmovzxbq_avx",
+   "vpmovzxwd_avx",
+   "vpmovzxwq_avx",
+   "vpmovzxdq_avx",
+   "vpmuldq_avx",
+   "vpmulhrsw_avx",
+   "vpmulhuw_avx",
+   "vpmulhw_avx",
+   "vpmulld_avx",
+   "vpmullw_avx",
+   "vpmuludq_avx",
+   "vpor_avx",
+   "vpsadbw_avx",
+   "vpshufb_avx",
+   "vpshufd_avx",
+   "vpshufhw_avx",
+   "vpshuflw_avx",
+   "vpsignb_avx",
+   "vpsignw_avx",
+   "vpsignd_avx",
+   "vpslldq_avx",
+   "vpsllw_avx",
+   "vpslld_avx",
+   "vpsllq_avx",
+   "vpsraw_avx",
+   "vpsrad_avx",
+   "vpsrldq_avx",
+   "vpsrlw_avx",
+   "vpsrld_avx",
+   "vpsrlq_avx",
+   "vpsubb_avx",
+   "vpsubw_avx",
+   "vpsubd_avx",
+   "vpsubq_avx",
+   "vpsubsb_avx",
+   "vpsubsw_avx",
+   "vpsubusb_avx",
+   "vpsubusw_avx",
+   "vptest_avx",
+   "vpunpckhbw_avx",
+   "vpunpckhwd_avx",
+   "vpunpckhdq_avx",
+   "vpunpckhqdq_avx",
+   "vpunpcklbw_avx",
+   "vpunpcklwd_avx",
+   "vpunpckldq_avx",
+   "vpunpcklqdq_avx",
+   "vrcpps_avx",
+   "vrcpss_avx",
+   "vroundpd_avx",
+   "vroundps_avx",
+   "vroundsd_avx",
+   "vroundss_avx",
+   "vrsqrtps_avx",
+   "vrsqrtss_avx",
+   "vshufpd_avx",
+   "vshufps_avx",
+   "vsqrtpd_avx",
+   "vsqrtps_avx",
+   "vstmxcsr_avx",
+   "vsubpd_avx",
+   "vsubps_avx",
+   "vunpckhpd_avx",
+   "vunpckhps_avx",
+   "vunpcklpd_avx",
+   "vunpcklps_avx",
+   "vmaskmovps_avx",
+   "vmaskmovpd_avx",
+   "vperm2f128_avx",
+   "vpermilpd_avx",
+   "vpermilps_avx",
+   "vtestps_avx",
+   "vtestpd_avx",
+   "vcvtph2ps_f16c",
+   "vcvtps2ph_f16c",
+   "vmovntdqa_avx2",
+   "vmpsadbw_avx2",
+   "vpabsb_avx2",
+   "vpabsw_avx2",
+   "vpabsd_avx2",
+   "vpacksswb_avx2",
+   "vpackssdw_avx2",
+   "vpackusdw_avx2",
+   "vpackuswb_avx2",
+   "vpaddsb_avx2",
+   "vpaddsw_avx2",
+   "vpaddusb_avx2",
+   "vpaddusw_avx2",
+   "vpalignr_avx2",
+   "vpand_avx2",
+   "vpandn_avx2",
+   "vpavgb_avx2",
+   "vpavgw_avx2",
+   "vpblendvb_avx2",
+   "vpblendw_avx2",
+   "vpcmpeqb_avx2",
+   "vpcmpeqw_avx2",
+   "vpcmpeqd_avx2",
+   "vpcmpgtb_avx2",
+   "vpcmpgtw_avx2",
+   "vpcmpgtd_avx2",
+   "vpcmpgtq_avx2",
+   "vphaddw_avx2",
+   "vphaddd_avx2",
+   "vphaddsw_avx2",
+   "vphsubw_avx2",
+   "vphsubd_avx2",
+   "vphsubsw_avx2",
+   "vpmaddubsw_avx2",
+   "vpmaddwd_avx2",
+   "vpmaxsb_avx2",
+   "vpmaxsw_avx2",
+   "vpmaxsd_avx2",
+   "vpmaxub_avx2",
+   "vpmaxuw_avx2",
+   "vpmaxud_avx2",
+   "vpminsb_avx2",
+   "vpminsw_avx2",
+   "vpminsd_avx2",
+   "vpminub_avx2",
+   "vpminuw_avx2",
+   "vpminud_avx2",
+   "vpmovsxbw_avx2",
+   "vpmovsxbd_avx2",
+   "vpmovsxbq_avx2",
+   "vpmovsxwd_avx2",
+   "vpmovsxwq_avx2",
+   "vpmovsxdq_avx2",
+   "vpmovzxbw_avx2",
+   "vpmovzxbd_avx2",
+   "vpmovzxbq_avx2",
+   "vpmovzxwd_avx2",
+   "vpmovzxwq_avx2",
+   "vpmovzxdq_avx2",
+   "vpmuldq_avx2",
+   "vpmulhrsw_avx2",
+   "vpmulhuw_avx2",
+   "vpmulhw_avx2",
+   "vpmulld_avx2",
+   "vpmullw_avx2",
+   "vpmuludq_avx2",
+   "vpor_avx2",
+   "vpsadbw_avx2",
+   "vpshufb_avx2",
+   "vpshufd_avx2",
+   "vpshufhw_avx2",
+   "vpshuflw_avx2",
+   "vpsignb_avx2",
+   "vpsignw_avx2",
+   "vpsignd_avx2",
+   "vpslldq_avx2",
+   "vpsllw_avx2",
+   "vpslld_avx2",
+   "vpsllq_avx2",
+   "vpsraw_avx2",
+   "vpsrad_avx2",
+   "vpsrldq_avx2",
+   "vpsrlw_avx2",
+   "vpsrld_avx2",
+   "vpsrlq_avx2",
+   "vpsubb_avx2",
+   "vpsubw_avx2",
+   "vpsubd_avx2",
+   "vpsubq_avx2",
+   "vpsubsb_avx2",
+   "vpsubsw_avx2",
+   "vpsubusb_avx2",
+   "vpsubusw_avx2",
+   "vpunpckhbw_avx2",
+   "vpunpckhwd_avx2",
+   "vpunpckhdq_avx2",
+   "vpunpckhqdq_avx2",
+   "vpunpcklbw_avx2",
+   "vpunpcklwd_avx2",
+   "vpunpckldq_avx2",
+   "vpunpcklqdq_avx2",
+   "vpblendd_avx2",
+   "vperm2i128_avx2",
+   "vpermd_avx2",
+   "vpermpd_avx2",
+   "vpermps_avx2",
+   "vpermq_avx2",
+   "vpmaskmovd_avx2",
+   "vpmaskmovq_avx2",
+   "vpsllvd_avx2",
+   "vpsllvq_avx2",
+   "vpsravd_avx2",
+   "vpsrlvd_avx2",
+   "vpsrlvq_avx2",
+   "vgatherdpd",
+   "vgatherdps",
+   "vpgatherdd",
+   "vpgatherdq",
+   "vaddpd_avx512vl",
+   "vaddpd_avx512f",
+   "vaddps_avx512vl",
+   "vaddps_avx512f",
+   "vaddsd_avx512f",
+   "vaddss_avx512f",
+   "vandpd_avx512vl",
+   "vandpd_avx512dq",
+   "vandps_avx512vl",
+   "vandps_avx512dq",
+   "vandnpd_avx512vl",
+   "vandnpd_avx512dq",
+   "vandnps_avx512vl",
+   "vandnps_avx512dq",
+   "vcmppd_avx512vl",
+   "vcmppd_avx512f",
+   "vcmpps_avx512vl",
+   "vcmpps_avx512f",
+   "vcmpsd_avx512f",
+   "vcmpss_avx512f",
+   "vcomisd_avx512f",
+   "vcomiss_avx512f",
+   "vcvtdq2pd_avx512vl",
+   "vcvtdq2pd_avx512f",
+   "vcvtdq2ps_avx512vl",
+   "vcvtdq2ps_avx512f",
+   "vcvtpd2dq_avx512vl",
+   "vcvtpd2dq_avx512f",
+   "vcvtpd2ps_avx512vl",
+   "vcvtpd2ps_avx512f",
+   "vcvtps2dq_avx512vl",
+   "vcvtps2dq_avx512f",
+   "vcvtps2pd_avx512vl",
+   "vcvtps2pd_avx512f",
+   "vcvtsd2si_avx512f",
+   "vcvtsd2ss_avx512f",
+   "vcvtsi2sd_avx512f",
+   "vcvtsi2ss_avx512f",
+   "vcvtss2sd_avx512f",
+   "vcvtss2si_avx512f",
+   "vcvttpd2dq_avx512vl",
+   "vcvttpd2dq_avx512f",
+   "vcvttps2dq_avx512vl",
+   "vcvttps2dq_avx512f",
+   "vcvttsd2si_avx512f",
+   "vcvttss2si_avx512f",
+   "vdivpd_avx512vl",
+   "vdivpd_avx512f",
+   "vdivps_avx512vl",
+   "vdivps_avx512f",
+   "vdivsd_avx512f",
+   "vdivss_avx512f",
+   "vextractps_avx512f",
+   "vinsertps_avx512f",
+   "vmaxpd_avx512vl",
+   "vmaxpd_avx512f",
+   "vmaxps_avx512vl",
+   "vmaxps_avx512f",
+   "vmaxsd_avx512f",
+   "vmaxss_avx512f",
+   "vminpd_avx512vl",
+   "vminpd_avx512f",
+   "vminps_avx512vl",
+   "vminps_avx512f",
+   "vminsd_avx512f",
+   "vminss_avx512f",
+   "vmovapd_avx512f",
+   "vmovaps_avx512f",
+   "vmovddup_avx512vl",
+   "vmovddup_avx512f",
+   "vmovdqa32_avx512vl",
+   "vmovdqa32_avx512f",
+   "vmovdqa64_avx512vl",
+   "vmovdqa64_avx512f",
+   "vmovdqu8_avx512vl",
+   "vmovdqu8_avx512bw",
+   "vmovdqu16_avx512vl",
+   "vmovdqu16_avx512bw",
+   "vmovdqu32_avx512vl",
+   "vmovdqu32_avx512f",
+   "vmovdqu64_avx512vl",
+   "vmovdqu64_avx512f",
+   "vmovhpd_avx512f",
+   "vmovhps_avx512f",
+   "vmovlhps_avx512f",
+   "vmovlpd_avx512f",
+   "vmovlps_avx512f",
+   "vmovntdqa_avx512vl",
+   "vmovntdqa_avx512f",
+   "vmovntdq_avx512vl",
+   "vmovntdq_avx512f",
+   "vmovntpd_avx512vl",
+   "vmovntpd_avx512f",
+   "vmovntps_avx512vl",
+   "vmovntps_avx512f",
+   "vmovsd_avx512f",
+   "vmovshdup_avx512vl",
+   "vmovshdup_avx512f",
+   "vmovsldup_avx512vl",
+   "vmovsldup_avx512f",
+   "vmulpd_avx512vl",
+   "vmulpd_avx512f",
+   "vmulps_avx512vl",
+   "vmulps_avx512f",
+   "vmulsd_avx512f",
+   "vmulss_avx512f",
+   "vpabsb_avx512vl",
+   "vpabsb_avx512bw",
+   "vpabsw_avx512vl",
+   "vpabsw_avx512bw",
+   "vpabsd_avx512vl",
+   "vpabsd_avx512f",
+   "vpabsq_avx512vl",
+   "vpabsq_avx512f",
+   "vpacksswb_avx512vl",
+   "vpacksswb_avx512bw",
+   "vpackssdw_avx512vl",
+   "vpackssdw_avx512bw",
+   "vpackusdw_avx512vl",
+   "vpackusdw_avx512bw",
+   "vpackuswb_avx512vl",
+   "vpackuswb_avx512bw",
+   "vpaddb_avx512vl",
+   "vpaddw_avx512vl",
+   "vpaddd_avx512vl",
+   "vpaddq_avx512vl",
+   "vpaddb_avx512bw",
+   "vpaddw_avx512bw",
+   "vpaddd_avx512f",
+   "vpaddq_avx512f",
+   "vpaddsb_avx512vl",
+   "vpaddsb_avx512bw",
+   "vpaddsw_avx512vl",
+   "vpaddsw_avx512bw",
+   "vpaddusb_avx512vl",
+   "vpaddusb_avx512bw",
+   "vpaddusw_avx512vl",
+   "vpaddusw_avx512bw",
+   "vpalignr_avx512vl",
+   "vpalignr_avx512bw",
+   "vpandd_avx512vl",
+   "vpandd_avx512f",
+   "vpandq_avx512vl",
+   "vpandq_avx512f",
+   "vpandnd_avx512vl",
+   "vpandnd_avx512f",
+   "vpandnq_avx512vl",
+   "vpandnq_avx512f",
+   "vpavgb_avx512vl",
+   "vpavgb_avx512bw",
+   "vpavgw_avx512vl",
+   "vpavgw_avx512bw",
+   "vpcmpeqd_avx512vl",
+   "vpcmpeqd_avx512f",
+   "vpcmpeqb_avx512vl",
+   "vpcmpeqb_avx512bw",
+   "vpcmpeqw_avx512vl",
+   "vpcmpeqw_avx512bw",
+   "vpcmpeqq_avx512vl",
+   "vpcmpeqq_avx512f",
+   "vpcmpgtd_avx512vl",
+   "vpcmpgtd_avx512f",
+   "vpcmpgtb_avx512vl",
+   "vpcmpgtb_avx512bw",
+   "vpcmpgtw_avx512vl",
+   "vpcmpgtw_avx512bw",
+   "vpcmpgtq_avx512vl",
+   "vpcmpgtq_avx512f",
+   "vpinsrb_avx512bw",
+   "vpinsrd_avx512dq",
+   "vpinsrq_avx512dq",
+   "vpinsrw_avx512bw",
+   "vpmaddubsw_avx512vl",
+   "vpmaddubsw_avx512bw",
+   "vpmaddwd_avx512vl",
+   "vpmaddwd_avx512bw",
+   "vpmaxsb_avx512vl",
+   "vpmaxsb_avx512bw",
+   "vpmaxsw_avx512vl",
+   "vpmaxsw_avx512bw",
+   "vpmaxsd_avx512vl",
+   "vpmaxsd_avx512f",
+   "vpmaxsq_avx512vl",
+   "vpmaxsq_avx512f",
+   "vpmaxub_avx512vl",
+   "vpmaxub_avx512bw",
+   "vpmaxuw_avx512vl",
+   "vpmaxuw_avx512bw",
+   "vpmaxud_avx512vl",
+   "vpmaxud_avx512f",
+   "vpmaxuq_avx512vl",
+   "vpmaxuq_avx512f",
+   "vpminsb_avx512vl",
+   "vpminsb_avx512bw",
+   "vpminsw_avx512vl",
+   "vpminsw_avx512bw",
+   "vpminsd_avx512vl",
+   "vpminsd_avx512f",
+   "vpminsq_avx512vl",
+   "vpminsq_avx512f",
+   "vpminub_avx512vl",
+   "vpminub_avx512bw",
+   "vpminuw_avx512vl",
+   "vpminuw_avx512bw",
+   "vpminud_avx512vl",
+   "vpminud_avx512f",
+   "vpminuq_avx512vl",
+   "vpminuq_avx512f",
+   "vpmovsxbw_avx512vl",
+   "vpmovsxbw_avx512bw",
+   "vpmovsxbd_avx512vl",
+   "vpmovsxbd_avx512f",
+   "vpmovsxbq_avx512vl",
+   "vpmovsxbq_avx512f",
+   "vpmovsxwd_avx512vl",
+   "vpmovsxwd_avx512f",
+   "vpmovsxwq_avx512vl",
+   "vpmovsxwq_avx512f",
+   "vpmovsxdq_avx512vl",
+   "vpmovsxdq_avx512f",
+   "vpmovzxbw_avx512vl",
+   "vpmovzxbw_avx512bw",
+   "vpmovzxbd_avx512vl",
+   "vpmovzxbd_avx512f",
+   "vpmovzxbq_avx512vl",
+   "vpmovzxbq_avx512f",
+   "vpmovzxwd_avx512vl",
+   "vpmovzxwd_avx512f",
+   "vpmovzxwq_avx512vl",
+   "vpmovzxwq_avx512f",
+   "vpmovzxdq_avx512vl",
+   "vpmovzxdq_avx512f",
+   "vpmuldq_avx512vl",
+   "vpmuldq_avx512f",
+   "vpmulhrsw_avx512vl",
+   "vpmulhrsw_avx512bw",
+   "vpmulhuw_avx512vl",
+   "vpmulhuw_avx512bw",
+   "vpmulhw_avx512vl",
+   "vpmulhw_avx512bw",
+   "vpmulld_avx512vl",
+   "vpmulld_avx512f",
+   "vpmullq_avx512vl",
+   "vpmullq_avx512dq",
+   "vpmullw_avx512vl",
+   "vpmullw_avx512bw",
+   "vpmuludq_avx512vl",
+   "vpmuludq_avx512f",
+   "vpord_avx512vl",
+   "vpord_avx512f",
+   "vporq_avx512vl",
+   "vporq_avx512f",
+   "vpsadbw_avx512vl",
+   "vpsadbw_avx512bw",
+   "vpshufb_avx512vl",
+   "vpshufb_avx512bw",
+   "vpshufd_avx512vl",
+   "vpshufd_avx512f",
+   "vpshufhw_avx512vl",
+   "vpshufhw_avx512bw",
+   "vpshuflw_avx512vl",
+   "vpshuflw_avx512bw",
+   "vpslldq_avx512vl",
+   "vpslldq_avx512bw",
+   "vpsllw_avx512vl",
+   "vpsllw_avx512bw",
+   "vpslld_avx512vl",
+   "vpslld_avx512f",
+   "vpsllq_avx512vl",
+   "vpsllq_avx512f",
+   "vpsraw_avx512vl",
+   "vpsraw_avx512bw",
+   "vpsrad_avx512vl",
+   "vpsrad_avx512f",
+   "vpsraq_avx512vl",
+   "vpsraq_avx512f",
+   "vpsrldq_avx512vl",
+   "vpsrldq_avx512bw",
+   "vpsrlw_avx512vl",
+   "vpsrlw_avx512bw",
+   "vpsrld_avx512vl",
+   "vpsrld_avx512f",
+   "vpsrlq_avx512vl",
+   "vpsrlq_avx512f",
+   "vpsubb_avx512vl",
+   "vpsubb_avx512bw",
+   "vpsubw_avx512vl",
+   "vpsubw_avx512bw",
+   "vpsubd_avx512vl",
+   "vpsubd_avx512f",
+   "vpsubq_avx512vl",
+   "vpsubq_avx512f",
+   "vpsubsb_avx512vl",
+   "vpsubsb_avx512bw",
+   "vpsubsw_avx512vl",
+   "vpsubsw_avx512bw",
+   "vpsubusb_avx512vl",
+   "vpsubusb_avx512bw",
+   "vpsubusw_avx512vl",
+   "vpsubusw_avx512bw",
+   "vpunpckhbw_avx512vl",
+   "vpunpckhwd_avx512vl",
+   "vpunpckhdq_avx512vl",
+   "vpunpckhqdq_avx512vl",
+   "vpunpckhbw_avx512bw",
+   "vpunpckhwd_avx512bw",
+   "vpunpckhdq_avx512f",
+   "vpunpckhqdq_avx512f",
+   "vpunpcklbw_avx512vl",
+   "vpunpcklwd_avx512vl",
+   "vpunpckldq_avx512vl",
+   "vpunpcklqdq_avx512vl",
+   "vpunpcklbw_avx512bw",
+   "vpunpcklwd_avx512bw",
+   "vpunpckldq_avx512f",
+   "vpunpcklqdq_avx512f",
+   "vshufpd_avx512vl",
+   "vshufpd_avx512f",
+   "vshufps_avx512vl",
+   "vshufps_avx512f",
+   "vsqrtpd_avx512vl",
+   "vsqrtpd_avx512f",
+   "vsqrtps_avx512vl",
+   "vsqrtps_avx512f",
+   "vsubpd_avx512vl",
+   "vsubpd_avx512f",
+   "vsubps_avx512vl",
+   "vsubps_avx512f",
+   "vsubsd_avx512f",
+   "vsubss_avx512f",
+   "vucomisd_avx512f",
+   "vucomiss_avx512f",
+   "vunpckhpd_avx512vl",
+   "vunpckhpd_avx512f",
+   "vunpckhps_avx512vl",
+   "vunpckhps_avx512f",
+   "vunpcklpd_avx512vl",
+   "vunpcklpd_avx512f",
+   "vunpcklps_avx512vl",
+   "vunpcklps_avx512f",
+   "valignd_avx512vl",
+   "valignq_avx512vl",
+   "valignd_avx512f",
+   "valignq_avx512f",
+   "vblendmpd_avx512vl",
+   "vblendmpd_avx512f",
+   "vblendmps_avx512vl",
+   "vblendmps_avx512f",
+   "vbroadcastsd_avx512vl",
+   "vbroadcastsd_avx512f",
+   "vbroadcastf32x2_avx512vl",
+   "vbroadcastf32x2_avx512dq",
+   "vbroadcastss_avx512vl",
+   "vbroadcastss_avx512f",
+   "vbroadcastf32x4_avx512vl",
+   "vbroadcastf32x4_avx512f",
+   "vbroadcastf64x2_avx512vl",
+   "vbroadcastf64x2_avx512dq",
+   "vbroadcastf32x8_avx512dq",
+   "vbroadcastf64x4_avx512f",
+   "vpbroadcastmb2q_avx512vl",
+   "vpbroadcastmb2q_avx512cd",
+   "vpbroadcastmw2d_avx512vl",
+   "vpbroadcastmw2d_avx512cd",
+   "vcompresspd_avx512vl",
+   "vcompresspd_avx512f",
+   "vcompressps_avx512vl",
+   "vcompressps_avx512f",
+   "vcvtpd2qq_avx512vl",
+   "vcvtpd2qq_avx512dq",
+   "vcvtpd2udq_avx512vl",
+   "vcvtpd2udq_avx512f",
+   "vcvtpd2uqq_avx512vl",
+   "vcvtpd2uqq_avx512dq",
+   "vcvtph2ps_avx512vl",
+   "vcvtph2ps_avx512f",
+   "vcvtps2udq_avx512vl",
+   "vcvtps2udq_avx512f",
+   "vcvtps2qq_avx512vl",
+   "vcvtps2qq_avx512dq",
+   "vcvtps2uqq_avx512vl",
+   "vcvtps2uqq_avx512dq",
+   "vcvtqq2pd_avx512vl",
+   "vcvtqq2pd_avx512dq",
+   "vcvtqq2ps_avx512vl",
+   "vcvtqq2ps_avx512dq",
+   "vcvtsd2usi_avx512f",
+   "vcvtss2usi_avx512f",
+   "vcvttpd2qq_avx512vl",
+   "vcvttpd2qq_avx512dq",
+   "vcvttpd2udq_avx512vl",
+   "vcvttpd2udq_avx512f",
+   "vcvttpd2uqq_avx512vl",
+   "vcvttpd2uqq_avx512dq",
+   "vcvttps2udq_avx512vl",
+   "vcvttps2udq_avx512f",
+   "vcvttps2qq_avx512vl",
+   "vcvttps2qq_avx512dq",
+   "vcvttps2uqq_avx512vl",
+   "vcvttps2uqq_avx512dq",
+   "vcvttsd2usi_avx512f",
+   "vcvttss2usi_avx512f",
+   "vcvtudq2pd_avx512vl",
+   "vcvtudq2pd_avx512f",
+   "vcvtudq2ps_avx512vl",
+   "vcvtudq2ps_avx512f",
+   "vcvtuqq2pd_avx512vl",
+   "vcvtuqq2pd_avx512dq",
+   "vcvtuqq2ps_avx512vl",
+   "vcvtuqq2ps_avx512dq",
+   "vcvtusi2sd_avx512f",
+   "vcvtusi2ss_avx512f",
+   "vdbpsadbw_avx512vl",
+   "vdbpsadbw_avx512bw",
+   "vexpandpd_avx512vl",
+   "vexpandpd_avx512f",
+   "vexpandps_avx512vl",
+   "vexpandps_avx512f",
+   "vexp2pd_avx512er",
+   "vexp2ps_avx512er",
+   "vextractf32x4_avx512vl",
+   "vextractf32x4_avx512f",
+   "vextractf64x2_avx512vl",
+   "vextractf64x2_avx512dq",
+   "vextractf32x8_avx512dq",
+   "vextractf64x4_avx512f",
+   "vextracti32x4_avx512vl",
+   "vextracti32x4_avx512f",
+   "vextracti64x2_avx512vl",
+   "vextracti64x2_avx512dq",
+   "vextracti32x8_avx512dq",
+   "vextracti64x4_avx512f",
+   "vfixupimmpd_avx512vl",
+   "vfixupimmpd_avx512f",
+   "vfixupimmps_avx512vl",
+   "vfixupimmps_avx512f",
+   "vfixupimmsd_avx512f",
+   "vfixupimmss_avx512f",
+   "vfmadd132pd_avx512vl",
+   "vfmadd213pd_avx512vl",
+   "vfmadd231pd_avx512vl",
+   "vfmadd132pd_avx512f",
+   "vfmadd213pd_avx512f",
+   "vfmadd231pd_avx512f",
+   "vfmadd132ps_avx512vl",
+   "vfmadd213ps_avx512vl",
+   "vfmadd231ps_avx512vl",
+   "vfmadd132ps_avx512f",
+   "vfmadd213ps_avx512f",
+   "vfmadd231ps_avx512f",
+   "vfmadd132sd_avx512f",
+   "vfmadd213sd_avx512f",
+   "vfmadd231sd_avx512f",
+   "vfmadd132ss_avx512f",
+   "vfmadd213ss_avx512f",
+   "vfmadd231ss_avx512f",
+   "vfmaddsub213pd_avx512vl",
+   "vfmaddsub231pd_avx512vl",
+   "vfmaddsub132pd_avx512vl",
+   "vfmaddsub213pd_avx512f",
+   "vfmaddsub231pd_avx512f",
+   "vfmaddsub132pd_avx512f",
+   "vfmaddsub213ps_avx512vl",
+   "vfmaddsub231ps_avx512vl",
+   "vfmaddsub132ps_avx512vl",
+   "vfmaddsub213ps_avx512f",
+   "vfmaddsub231ps_avx512f",
+   "vfmaddsub132ps_avx512f",
+   "vfmsubadd132pd_avx512vl",
+   "vfmsubadd213pd_avx512vl",
+   "vfmsubadd231pd_avx512vl",
+   "vfmsubadd132pd_avx512f",
+   "vfmsubadd213pd_avx512f",
+   "vfmsubadd231pd_avx512f",
+   "vfmsubadd132ps_avx512vl",
+   "vfmsubadd213ps_avx512vl",
+   "vfmsubadd231ps_avx512vl",
+   "vfmsubadd132ps_avx512f",
+   "vfmsubadd213ps_avx512f",
+   "vfmsubadd231ps_avx512f",
+   "vfmsub132pd_avx512vl",
+   "vfmsub213pd_avx512vl",
+   "vfmsub231pd_avx512vl",
+   "vfmsub132pd_avx512f",
+   "vfmsub213pd_avx512f",
+   "vfmsub231pd_avx512f",
+   "vfmsub132ps_avx512vl",
+   "vfmsub213ps_avx512vl",
+   "vfmsub231ps_avx512vl",
+   "vfmsub132ps_avx512f",
+   "vfmsub213ps_avx512f",
+   "vfmsub231ps_avx512f",
+   "vfmsub132sd_avx512f",
+   "vfmsub213sd_avx512f",
+   "vfmsub231sd_avx512f",
+   "vfmsub132ss_avx512f",
+   "vfmsub213ss_avx512f",
+   "vfmsub231ss_avx512f",
+   "vfnmadd132pd_avx512vl",
+   "vfnmadd213pd_avx512vl",
+   "vfnmadd231pd_avx512vl",
+   "vfnmadd132pd_avx512f",
+   "vfnmadd213pd_avx512f",
+   "vfnmadd231pd_avx512f",
+   "vfnmadd132ps_avx512vl",
+   "vfnmadd213ps_avx512vl",
+   "vfnmadd231ps_avx512vl",
+   "vfnmadd213ps_avx512f",
+   "vfnmadd231ps_avx512f",
+   "vfnmadd132sd_avx512f",
+   "vfnmadd213sd_avx512f",
+   "vfnmadd231sd_avx512f",
+   "vfnmadd132ss_avx512f",
+   "vfnmadd213ss_avx512f",
+   "vfnmadd231ss_avx512f",
+   "vfnmsub132pd_avx512vl",
+   "vfnmsub213pd_avx512vl",
+   "vfnmsub231pd_avx512vl",
+   "vfnmsub132pd_avx512f",
+   "vfnmsub213pd_avx512f",
+   "vfnmsub231pd_avx512f",
+   "vfnmsub132ps_avx512vl",
+   "vfnmsub213ps_avx512vl",
+   "vfnmsub231ps_avx512vl",
+   "vfnmsub132ps_avx512f",
+   "vfnmsub213ps_avx512f",
+   "vfnmsub231ps_avx512f",
+   "vfnmsub132sd_avx512f",
+   "vfnmsub213sd_avx512f",
+   "vfnmsub231sd_avx512f",
+   "vfnmsub132ss_avx512f",
+   "vfnmsub213ss_avx512f",
+   "vfnmsub231ss_avx512f",
+   "vfpclasspd_avx512vl",
+   "vfpclasspd_avx512dq",
+   "vfpclassps_avx512vl",
+   "vfpclassps_avx512dq",
+   "vfpclasssd_avx512dq",
+   "vfpclassss_avx512dq",
+   "vgatherdps_avx512vl",
+   "vgatherdps_avx512f",
+   "vgatherdpd_avx512vl",
+   "vgatherdpd_avx512f",
+   "vgatherpf0dps_avx512pf",
+   "vgatherpf0qps_avx512pf",
+   "vgatherpf0dpd_avx512pf",
+   "vgatherpf0qpd_avx512pf",
+   "vgatherpf1dps_avx512pf",
+   "vgatherpf1qps_avx512pf",
+   "vgatherpf1dpd_avx512pf",
+   "vgatherpf1qpd_avx512pf",
+   "vgatherqps_avx512vl",
+   "vgatherqps_avx512f",
+   "vgatherqpd_avx512vl",
+   "vgatherqpd_avx512f",
+   "vpgatherdd_avx512vl",
+   "vpgatherdd_avx512f",
+   "vpgatherdq_avx512vl",
+   "vpgatherdq_avx512f",
+   "vpgatherqd_avx512vl",
+   "vpgatherqd_avx512f",
+   "vpgatherqq_avx512vl",
+   "vpgatherqq_avx512f",
+   "vgetexppd_avx512vl",
+   "vgetexppd_avx512f",
+   "vgetexpps_avx512vl",
+   "vgetexpps_avx512f",
+   "vgetexpsd_avx512f",
+   "vgetexpss_avx512f",
+   "vgetmantpd_avx512vl",
+   "vgetmantpd_avx512f",
+   "vgetmantps_avx512vl",
+   "vgetmantps_avx512f",
+   "vgetmantsd_avx512f",
+   "vgetmantss_avx512f",
+   "vinsertf32x4_avx512vl",
+   "vinsertf32x4_avx512f",
+   "vinsertf64x2_avx512vl",
+   "vinsertf64x2_avx512dq",
+   "vinsertf32x8_avx512dq",
+   "vinsertf64x4_avx512f",
+   "vinserti32x4_avx512vl",
+   "vinserti32x4_avx512f",
+   "vinserti64x2_avx512vl",
+   "vinserti64x2_avx512dq",
+   "vinserti32x8_avx512dq",
+   "vinserti64x4_avx512f",
+   "vpblendmb_avx512vl",
+   "vpblendmb_avx512bw",
+   "vpblendmw_avx512vl",
+   "vpblendmw_avx512bw",
+   "vpblendmd_avx512vl",
+   "vpblendmd_avx512f",
+   "vpblendmq_avx512vl",
+   "vpblendmq_avx512f",
+   "vpbroadcastb_avx512vl",
+   "vpbroadcastb_avx512bw",
+   "vpbroadcastw_avx512vl",
+   "vpbroadcastw_avx512bw",
+   "vpbroadcastd_avx512vl",
+   "vpbroadcastd_avx512f",
+   "vpbroadcastq_avx512vl",
+   "vpbroadcastq_avx512f",
+   "vbroadcasti32x2_avx512vl",
+   "vbroadcasti32x2_avx512dq",
+   "vbroadcasti32x4_avx512vl",
+   "vbroadcasti32x4_avx512f",
+   "vbroadcasti64x2_avx512vl",
+   "vbroadcasti64x2_avx512dq",
+   "vbroadcasti32x8_avx512dq",
+   "vbroadcasti64x4_avx512f",
+   "vpcmpb_avx512vl",
+   "vpcmpb_avx512bw",
+   "vpcmpub_avx512vl",
+   "vpcmpub_avx512bw",
+   "vpcmpd_avx512vl",
+   "vpcmpd_avx512f",
+   "vpcmpud_avx512vl",
+   "vpcmpud_avx512f",
+   "vpcmpq_avx512vl",
+   "vpcmpq_avx512f",
+   "vpcmpuq_avx512vl",
+   "vpcmpuq_avx512f",
+   "vpcmpw_avx512vl",
+   "vpcmpw_avx512bw",
+   "vpcmpuw_avx512vl",
+   "vpcmpuw_avx512bw",
+   "vpcompressd_avx512vl",
+   "vpcompressd_avx512f",
+   "vpcompressq_avx512vl",
+   "vpcompressq_avx512f",
+   "vpconflictd_avx512vl",
+   "vpconflictd_avx512cd",
+   "vpconflictq_avx512vl",
+   "vpconflictq_avx512cd",
+   "vpermd_avx512vl",
+   "vpermd_avx512f",
+   "vpermw_avx512vl",
+   "vpermw_avx512bw",
+   "vpermi2w_avx512vl",
+   "vpermi2w_avx512bw",
+   "vpermi2d_avx512vl",
+   "vpermi2d_avx512f",
+   "vpermi2q_avx512vl",
+   "vpermi2q_avx512f",
+   "vpermi2ps_avx512vl",
+   "vpermi2ps_avx512f",
+   "vpermi2pd_avx512vl",
+   "vpermi2pd_avx512f",
+   "vpermilpd_avx512vl",
+   "vpermilpd_avx512f",
+   "vpermilps_avx512vl",
+   "vpermilps_avx512f",
+   "vpermpd_avx512vl",
+   "vpermpd_avx512f",
+   "vpermps_avx512vl",
+   "vpermps_avx512f",
+   "vpermq_avx512vl",
+   "vpermq_avx512f",
+   "vpermt2pd_avx512f",
+   "vpexpandd_avx512vl",
+   "vpexpandd_avx512f",
+   "vpexpandq_avx512vl",
+   "vpexpandq_avx512f",
+   "vplzcntd_avx512vl",
+   "vplzcntd_avx512cd",
+   "vplzcntq_avx512vl",
+   "vplzcntq_avx512cd",
+   "vpmovm2b_avx512vl",
+   "vpmovm2b_avx512bw",
+   "vpmovm2w_avx512vl",
+   "vpmovm2w_avx512bw",
+   "vpmovm2d_avx512vl",
+   "vpmovm2d_avx512dq",
+   "vpmovm2q_avx512vl",
+   "vpmovm2q_avx512dq",
+   "vpmovb2m_avx512vl",
+   "vpmovb2m_avx512bw",
+   "vpmovw2m_avx512vl",
+   "vpmovw2m_avx512bw",
+   "vpmovd2m_avx512vl",
+   "vpmovd2m_avx512dq",
+   "vpmovq2m_avx512vl",
+   "vpmovq2m_avx512dq",
+   "vprolvd_avx512vl",
+   "vprold_avx512vl",
+   "vprolvq_avx512vl",
+   "vprolq_avx512vl",
+   "vprolvd_avx512f",
+   "vprold_avx512f",
+   "vprolvq_avx512f",
+   "vprolq_avx512f",
+   "vprorvd_avx512vl",
+   "vprord_avx512vl",
+   "vprorvq_avx512vl",
+   "vprorq_avx512vl",
+   "vprorvd_avx512f",
+   "vprord_avx512f",
+   "vprorvq_avx512f",
+   "vprorq_avx512f",
+   "vpscatterdd_avx512vl",
+   "vpscatterdd_avx512f",
+   "vpscatterdq_avx512vl",
+   "vpscatterdq_avx512f",
+   "vpsllvw_avx512vl",
+   "vpsllvw_avx512bw",
+   "vpsllvd_avx512vl",
+   "vpsllvd_avx512f",
+   "vpsllvq_avx512vl",
+   "vpsllvq_avx512f",
+   "vpsravw_avx512vl",
+   "vpsravw_avx512bw",
+   "vpsravd_avx512vl",
+   "vpsravd_avx512f",
+   "vpsravq_avx512vl",
+   "vpsravq_avx512f",
+   "vpsrlvw_avx512vl",
+   "vpsrlvw_avx512bw",
+   "vpsrlvd_avx512vl",
+   "vpsrlvd_avx512f",
+   "vpsrlvq_avx512vl",
+   "vpsrlvq_avx512f",
+   "vpternlogd_avx512vl",
+   "vpternlogd_avx512f",
+   "vpternlogq_avx512vl",
+   "vpternlogq_avx512f",
+   "vptestmb_avx512vl",
+   "vptestmb_avx512bw",
+   "vptestmw_avx512vl",
+   "vptestmw_avx512bw",
+   "vptestmd_avx512vl",
+   "vptestmd_avx512f",
+   "vptestmq_avx512vl",
+   "vptestmq_avx512f",
+   "vptestnmb_avx512vl",
+   "vptestnmb_avx512f",
+   "vptestnmw_avx512vl",
+   "vptestnmw_avx512f",
+   "vptestnmd_avx512vl",
+   "vptestnmd_avx512f",
+   "vptestnmq_avx512vl",
+   "vptestnmq_avx512f",
+   "vrangepd_avx512vl",
+   "vrangepd_avx512dq",
+   "vrangeps_avx512vl",
+   "vrangeps_avx512dq",
+   "vrangesd_avx512dq",
+   "vrangess_avx512dq",
+   "vrcp14pd_avx512vl",
+   "vrcp14pd_avx512f",
+   "vrcp14sd_avx512f",
+   "vrcp14ps_avx512vl",
+   "vrcp14ps_avx512f",
+   "vrcp14ss_avx512f",
+   "vrcp28pd_avx512er",
+   "vrcp28sd_avx512er",
+   "vrcp28ps_avx512er",
+   "vrcp28ss_avx512er",
+   "vreducepd_avx512vl",
+   "vreducepd_avx512dq",
+   "vreducesd_avx512dq",
+   "vreduceps_avx512vl",
+   "vreduceps_avx512dq",
+   "vreducess_avx512dq",
+   "vrndscalepd_avx512vl",
+   "vrndscalepd_avx512f",
+   "vrndscalesd_avx512f",
+   "vrndscaleps_avx512vl",
+   "vrndscaleps_avx512f",
+   "vrndscaless_avx512f",
+   "vrsqrt14pd_avx512vl",
+   "vrsqrt14pd_avx512f",
+   "vrsqrt14sd_avx512f",
+   "vrsqrt14ps_avx512vl",
+   "vrsqrt14ps_avx512f",
+   "vrsqrt14ss_avx512f",
+   "vrsqrt28pd_avx512er",
+   "vrsqrt28sd_avx512er",
+   "vrsqrt28ps_avx512er",
+   "vrsqrt28ss_avx512er",
+   "vscalefpd_avx512vl",
+   "vscalefpd_avx512f",
+   "vscalefsd_avx512f",
+   "vscalefps_avx512vl",
+   "vscalefps_avx512f",
+   "vscalefss_avx512f",
+   "vscatterdps_avx512vl",
+   "vscatterdps_avx512f",
+   "vscatterdpd_avx512vl",
+   "vscatterdpd_avx512f",
+   "vscatterpf0dps_avx512pf",
+   "vscatterpf0dpd_avx512pf",
+   "vscatterpf1dps_avx512pf",
+   "vscatterpf1dpd_avx512pf",
+   "vshuff32x4_avx512vl",
+   "vshuff32x4_avx512f",
+   "vshuff64x2_avx512vl",
+   "vshuff64x2_avx512f",
+   "vshufi32x4_avx512vl",
+   "vshufi32x4_avx512f",
+   "vshufi64x2_avx512vl",
+   "vshufi64x2_avx512f",
+   "vxorpd_avx512vl",
+   "vxorpd_avx512dq",
+   "vxorps_avx512vl",
+   "vxorps_avx512dq",
+   "vaesdec_vaes",
+   "vaesdeclast_vaes",
+   "vaesenc_vaes",
+   "vaesenclast_vaes",
+   "vpclmulqdq_vpclmulqdq",
+   "vaddph_avx512fp16",
+   "vaddsh_avx512fp16",
+   "vcmpph_avx512fp16",
+   "vcmpsh_avx512fp16",
+   "vcomish_avx512fp16",
+   "vcvtdq2ph_avx512fp16",
+   "vcvtne2ps2bf16_avx512vl",
+   "vcvtne2ps2bf16_avx512f",
+   "vcvtneps2bf16_avx512vl",
+   "vcvtneps2bf16_avx512f",
+   "vcvtpd2ph_avx512fp16",
+   "vcvtph2dq_avx512fp16",
+   "vcvtph2pd_avx512fp16",
+   "vcvtph2psx_avx512fp16",
+   "vcvtph2qq_avx512fp16",
+   "vcvtph2udq_avx512fp16",
+   "vcvtph2uqq_avx512fp16",
+   "vcvtph2uw_avx512fp16",
+   "vcvtph2w_avx512fp16",
+   "vcvtps2phx_avx512fp16",
+   "vcvtqq2ph_avx512fp16",
+   "vcvtsd2sh_avx512fp16",
+   "vcvtsh2sd_avx512fp16",
+   "vcvtsh2si_avx512fp16",
+   "vcvtsh2ss_avx512fp16",
+   "vcvtsh2usi_avx512fp16",
+   "vcvtsi2sh_avx512fp16",
+   "vcvtss2sh_avx512fp16",
+   "vcvttph2dq_avx512fp16",
+   "vcvttph2qq_avx512fp16",
+   "vcvttph2udq_avx512fp16",
+   "vcvttph2uqq_avx512fp16",
+   "vcvttph2uw_avx512fp16",
+   "vcvttph2w_avx512fp16",
+   "vcvttsh2si_avx512fp16",
+   "vcvttsh2usi_avx512fp16",
+   "vcvtudq2ph_avx512fp16",
+   "vcvtuqq2ph_avx512fp16",
+   "vcvtusi2sh_avx512fp16",
+   "vcvtuw2ph_avx512fp16",
+   "vcvtw2ph_avx512fp16",
+   "vdivph_avx512fp16",
+   "vdivsh_avx512fp16",
+   "vdpbf16ps_avx512vl",
+   "vdpbf16ps_avx512f",
+   "vfcmaddcph_avx512fp16",
+   "vfmaddcph_avx512fp16",
+   "vfcmaddcsh_avx512fp16",
+   "vfmaddcsh_avx512fp16",
+   "vfcmulcph_avx512fp16",
+   "vfmulcph_avx512fp16",
+   "vfcmulcsh_avx512fp16",
+   "vfmulcsh_avx512fp16",
+   "vfmadd132ph_avx512fp16",
+   "vfmadd213ph_avx512fp16",
+   "vfmadd231ph_avx512fp16",
+   "vfnmadd132ph_avx512fp16",
+   "vfnmadd213ph_avx512fp16",
+   "vfnmadd231ph_avx512fp16",
+   "vfmadd132sh_avx512fp16",
+   "vfmadd213sh_avx512fp16",
+   "vfmadd231sh_avx512fp16",
+   "vfnmadd132sh_avx512fp16",
+   "vfnmadd213sh_avx512fp16",
+   "vfnmadd231sh_avx512fp16",
+   "vfmaddsub132ph_avx512fp16",
+   "vfmaddsub213ph_avx512fp16",
+   "vfmaddsub231ph_avx512fp16",
+   "vfmsub132ph_avx512fp16",
+   "vfmsub213ph_avx512fp16",
+   "vfmsub231ph_avx512fp16",
+   "vfnmsub132ph_avx512fp16",
+   "vfnmsub213ph_avx512fp16",
+   "vfnmsub231ph_avx512fp16",
+   "vfmsub132sh_avx512fp16",
+   "vfmsub213sh_avx512fp16",
+   "vfmsub231sh_avx512fp16",
+   "vfnmsub132sh_avx512fp16",
+   "vfnmsub213sh_avx512fp16",
+   "vfnmsub231sh_avx512fp16",
+   "vfmsubadd132ph_avx512fp16",
+   "vfmsubadd213ph_avx512fp16",
+   "vfmsubadd231ph_avx512fp16",
+   "vfpclassph_avx512fp16",
+   "vfpclasssh_avx512fp16",
+   "vgetexpph_avx512fp16",
+   "vgetexpsh_avx512fp16",
+   "vgetmantph_avx512fp16",
+   "vgetmantsh_avx512fp16",
+   "vmaxph_avx512fp16",
+   "vmaxsh_avx512fp16",
+   "vminph_avx512fp16",
+   "vminsh_avx512fp16",
+   "vmovsh_avx512fp16",
+   "vmovw_avx512fp16",
+   "vmulph_avx512fp16",
+   "vmulsh_avx512fp16",
+   "vp2intersectd_avx512vl",
+   "vp2intersectd_avx512f",
+   "vp2intersectq_avx512vl",
+   "vp2intersectq_avx512f",
+   "vpcompressb_avx512_vbmi2",
+   "vpcompressw_avx512_vbmi2",
+   "vpdpbusd_avx512_vnni",
+   "vpdpbusds_avx512_vnni",
+   "vpdpwssd_avx512_vnni",
+   "vpdpwssds_avx512_vnni",
+   "vpermb_avx512vl",
+   "vpermb_avx512_vbmi",
+   "vpermi2b_avx512vl",
+   "vpermi2b_avx512_vbmi",
+   "vpermt2b_avx512vl",
+   "vpermt2b_avx512_vbmi",
+   "vpermt2w_avx512vl",
+   "vpermt2w_avx512bw",
+   "vpermt2d_avx512vl",
+   "vpermt2d_avx512f",
+   "vpermt2q_avx512vl",
+   "vpermt2q_avx512f",
+   "vpermt2ps_avx512vl",
+   "vpermt2ps_avx512f",
+   "vpexpandb_avx512_vbmi2",
+   "vpexpandw_avx512_vbmi2",
+   "vpmadd52huq_avx512_ifma",
+   "vpmadd52luq_avx512_ifma",
+   "vpmultishiftqb_avx512_vbmi",
+   "vpopcntb_avx512_bitalg",
+   "vpopcntw_avx512_bitalg",
+   "vpopcntd_avx512_vpopcntdq",
+   "vpopcntq_avx512_vpopcntdq",
+   "vpshldw_avx512_vbmi2",
+   "vpshldd_avx512_vbmi2",
+   "vpshldq_avx512_vbmi2",
+   "vpshldvw_avx512_vbmi2",
+   "vpshldvd_avx512_vbmi2",
+   "vpshldvq_avx512_vbmi2",
+   "vpshrdw_avx512_vbmi2",
+   "vpshrdd_avx512_vbmi2",
+   "vpshrdq_avx512_vbmi2",
+   "vpshrdvw_avx512_vbmi2",
+   "vpshrdvd_avx512_vbmi2",
+   "vpshrdvq_avx512_vbmi2",
+   "vpshufbitqmb_avx512_bitalg",
+   "vrcpph_avx512fp16",
+   "vrcpsh_avx512fp16",
+   "vreduceph_avx512fp16",
+   "vreducesh_avx512fp16",
+   "vrndscaleph_avx512fp16",
+   "vrndscalesh_avx512fp16",
+   "vrsqrtph_avx512fp16",
+   "vrsqrtsh_avx512fp16",
+   "vscalefph_avx512fp16",
+   "vscalefsh_avx512fp16",
+   "vsqrtph_avx512fp16",
+   "vsqrtsh_avx512fp16",
+   "vsubph_avx512fp16",
+   "vsubsh_avx512fp16",
+   "vucomish_avx512fp16",
+   "vcvtps2ph_avx512vl",
+   "vcvtps2ph_avx512f",
+   "vpmovdb_avx512vl",
+   "vpmovsdb_avx512vl",
+   "vpmovusdb_avx512vl",
+   "vpmovdb_avx512f",
+   "vpmovsdb_avx512f",
+   "vpmovusdb_avx512f",
+   "vpmovdw_avx512vl",
+   "vpmovsdw_avx512vl",
+   "vpmovusdw_avx512vl",
+   "vpmovdw_avx512f",
+   "vpmovsdw_avx512f",
+   "vpmovusdw_avx512f",
+   "vpmovqb_avx512vl",
+   "vpmovsqb_avx512vl",
+   "vpmovusqb_avx512vl",
+   "vpmovqb_avx512f",
+   "vpmovsqb_avx512f",
+   "vpmovusqb_avx512f",
+   "vpmovqw_avx512vl",
+   "vpmovsqw_avx512vl",
+   "vpmovusqw_avx512vl",
+   "vpmovqw_avx512f",
+   "vpmovsqw_avx512f",
+   "vpmovusqw_avx512f",
+   "vpmovqd_avx512vl",
+   "vpmovsqd_avx512vl",
+   "vpmovusqd_avx512vl",
+   "vpmovqd_avx512f",
+   "vpmovsqd_avx512f",
+   "vpmovusqd_avx512f",
+   "vpmovwb_avx512vl",
+   "vpmovswb_avx512vl",
+   "vpmovuswb_avx512vl",
+   "vpmovwb_avx512bw",
+   "vpmovswb_avx512bw",
+   "vpmovuswb_avx512bw",
+   "gf2p8affineinvqb",
+   "vgf2p8affineinvqb_avx",
+   "vgf2p8affineinvqb_avx512vl",
+   "vgf2p8affineinvqb_avx512f",
+   "gf2p8affineqb",
+   "vgf2p8affineqb_avx",
+   "vgf2p8affineqb_avx512vl",
+   "vgf2p8affineqb_avx512f",
+   "gf2p8mulb",
+   "vgf2p8mulb_avx",
+   "vgf2p8mulb_avx512vl",
+   "vgf2p8mulb_avx512f",
+   "clwb",
+   "br_exception",
+   "sha1rnds4_sha",
+   "sha1nexte_sha",
+   "sha1msg1_sha",
+   "sha1msg2_sha",
+   "sha256rnds2_sha",
+   "sha256msg1_sha",
+   "sha256msg2_sha",
+   "getsec_capabilities",
+   "getsec_enteraccs",
+   "getsec_exitac",
+   "getsec_senter",
+   "getsec_sexit",
+   "getsec_parameters_EAX",
+   "getsec_parameters_EBX",
+   "getsec_parameters_ECX",
+   "getsec_smctrl",
+   "getsec_wakeup",
+   "getsec_unknown",
+   "ShadowStackPush8B",
+   "ShadowStackPush4B",
+   "ShadowStackLoad8B",
+   "ShadowStackLoad4B",
+   "writeToShadowStack",
+   "writeToUserShadowStack",
+   "markShadowStackBusy",
+   "clearShadowStackBusy",
+   "rdrand",
+   "rdrandIsValid",
+   "rdseed",
+   "rdseedIsValid"
+  ]
+ },
+ "functions": [
+  {
+   "block": "EXE_CODE",
+   "entry": 56242,
+   "instructions": [
+    {
+     "offset": 56242,
+     "address": "1010:dab2",
+     "bytes": "e857d5",
+     "file": "ACAD.EXE",
+     "file_offset": 56498,
+     "instruction": "CALL 0x1000:b10c",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 56245,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "CALL",
+       "out": null,
+       "in": [
+        {
+         "space": "ram",
+         "offset": 110860,
+         "size": 4,
+         "unique": false
+        }
+       ]
+      }
+     ],
+     "compiler_frame": {
+      "local_bytes": 0,
+      "continuation": 56245,
+      "status": "same-block"
+     }
+    },
+    {
+     "offset": 56245,
+     "address": "1010:dab5",
+     "bytes": "ff7608",
+     "file": "ACAD.EXE",
+     "file_offset": 56501,
+     "instruction": "PUSH word ptr [BP + 0x8]",
+     "ops": [
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "unique",
+        "offset": 19968,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 20,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 8,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 37376,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 19968,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 37376,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56248,
+     "address": "1010:dab8",
+     "bytes": "8b7604",
+     "file": "ACAD.EXE",
+     "file_offset": 56504,
+     "instruction": "MOV SI,word ptr [BP + 0x4]",
+     "ops": [
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "unique",
+        "offset": 19968,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 20,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 4,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 37376,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 19968,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 37376,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 24,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56251,
+     "address": "1010:dabb",
+     "bytes": "8b34",
+     "file": "ACAD.EXE",
+     "file_offset": 56507,
+     "instruction": "MOV SI,word ptr [SI]",
+     "ops": [
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 39424,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 262,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 24,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 39424,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 24,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56253,
+     "address": "1010:dabd",
+     "bytes": "56",
+     "file": "ACAD.EXE",
+     "file_offset": 56509,
+     "instruction": "PUSH SI",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 24,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56254,
+     "address": "1010:dabe",
+     "bytes": "ff7606",
+     "file": "ACAD.EXE",
+     "file_offset": 56510,
+     "instruction": "PUSH word ptr [BP + 0x6]",
+     "ops": [
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "unique",
+        "offset": 19968,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 20,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 6,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 37376,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 19968,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 37376,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56257,
+     "address": "1010:dac1",
+     "bytes": "e870fb",
+     "file": "ACAD.EXE",
+     "file_offset": 56513,
+     "instruction": "CALL 0x1000:d734",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 56260,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "CALL",
+       "out": null,
+       "in": [
+        {
+         "space": "ram",
+         "offset": 120628,
+         "size": 4,
+         "unique": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56260,
+     "address": "1010:dac4",
+     "bytes": "83c406",
+     "file": "ACAD.EXE",
+     "file_offset": 56516,
+     "instruction": "ADD SP,0x6",
+     "ops": [
+      {
+       "op": "INT_CARRY",
+       "out": {
+        "space": "register",
+        "offset": 512,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 6,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SCARRY",
+       "out": {
+        "space": "register",
+        "offset": 523,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 6,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 6,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SLESS",
+       "out": {
+        "space": "register",
+        "offset": 519,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_EQUAL",
+       "out": {
+        "space": "register",
+        "offset": 518,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_AND",
+       "out": {
+        "space": "unique",
+        "offset": 301056,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 255,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "POPCOUNT",
+       "out": {
+        "space": "unique",
+        "offset": 301312,
+        "size": 1,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 301056,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_AND",
+       "out": {
+        "space": "unique",
+        "offset": 301568,
+        "size": 1,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 301312,
+         "size": 1,
+         "unique": true
+        },
+        {
+         "space": "const",
+         "offset": 1,
+         "size": 1,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_EQUAL",
+       "out": {
+        "space": "register",
+        "offset": 514,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 301568,
+         "size": 1,
+         "unique": true
+        },
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 1,
+         "unique": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56263,
+     "address": "1010:dac7",
+     "bytes": "b80100",
+     "file": "ACAD.EXE",
+     "file_offset": 56519,
+     "instruction": "MOV AX,0x1",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 0,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 1,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56266,
+     "address": "1010:daca",
+     "bytes": "50",
+     "file": "ACAD.EXE",
+     "file_offset": 56522,
+     "instruction": "PUSH AX",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56267,
+     "address": "1010:dacb",
+     "bytes": "ff7608",
+     "file": "ACAD.EXE",
+     "file_offset": 56523,
+     "instruction": "PUSH word ptr [BP + 0x8]",
+     "ops": [
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "unique",
+        "offset": 19968,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 20,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 8,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 37376,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 19968,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 37376,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56270,
+     "address": "1010:dace",
+     "bytes": "58",
+     "file": "ACAD.EXE",
+     "file_offset": 56526,
+     "instruction": "POP AX",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 269312,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 269312,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 0,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 536576,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56271,
+     "address": "1010:dacf",
+     "bytes": "5e",
+     "file": "ACAD.EXE",
+     "file_offset": 56527,
+     "instruction": "POP SI",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 269312,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 269312,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 24,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 536576,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56272,
+     "address": "1010:dad0",
+     "bytes": "f7ee",
+     "file": "ACAD.EXE",
+     "file_offset": 56528,
+     "instruction": "IMUL SI",
+     "ops": [
+      {
+       "op": "INT_SEXT",
+       "out": {
+        "space": "unique",
+        "offset": 473088,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SEXT",
+       "out": {
+        "space": "unique",
+        "offset": 473344,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 24,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_MULT",
+       "out": {
+        "space": "unique",
+        "offset": 473856,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 473088,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 473344,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "SUBPIECE",
+       "out": {
+        "space": "register",
+        "offset": 8,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 473856,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 4,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "SUBPIECE",
+       "out": {
+        "space": "register",
+        "offset": 0,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 473856,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SEXT",
+       "out": {
+        "space": "unique",
+        "offset": 308992,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_NOTEQUAL",
+       "out": {
+        "space": "register",
+        "offset": 512,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 308992,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 473856,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 523,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 512,
+         "size": 1,
+         "unique": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56274,
+     "address": "1010:dad2",
+     "bytes": "50",
+     "file": "ACAD.EXE",
+     "file_offset": 56530,
+     "instruction": "PUSH AX",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56275,
+     "address": "1010:dad3",
+     "bytes": "8b7604",
+     "file": "ACAD.EXE",
+     "file_offset": 56531,
+     "instruction": "MOV SI,word ptr [BP + 0x4]",
+     "ops": [
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "unique",
+        "offset": 19968,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 20,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 4,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 37376,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 19968,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 37376,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 24,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56278,
+     "address": "1010:dad6",
+     "bytes": "8b04",
+     "file": "ACAD.EXE",
+     "file_offset": 56534,
+     "instruction": "MOV AX,word ptr [SI]",
+     "ops": [
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 39424,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 262,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 24,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 39424,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 0,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56280,
+     "address": "1010:dad8",
+     "bytes": "59",
+     "file": "ACAD.EXE",
+     "file_offset": 56536,
+     "instruction": "POP CX",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 269312,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 269312,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 4,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 536576,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56281,
+     "address": "1010:dad9",
+     "bytes": "03c1",
+     "file": "ACAD.EXE",
+     "file_offset": 56537,
+     "instruction": "ADD AX,CX",
+     "ops": [
+      {
+       "op": "INT_CARRY",
+       "out": {
+        "space": "register",
+        "offset": 512,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 4,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SCARRY",
+       "out": {
+        "space": "register",
+        "offset": 523,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 4,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "register",
+        "offset": 0,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 4,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SLESS",
+       "out": {
+        "space": "register",
+        "offset": 519,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_EQUAL",
+       "out": {
+        "space": "register",
+        "offset": 518,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_AND",
+       "out": {
+        "space": "unique",
+        "offset": 301056,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 255,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "POPCOUNT",
+       "out": {
+        "space": "unique",
+        "offset": 301312,
+        "size": 1,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 301056,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_AND",
+       "out": {
+        "space": "unique",
+        "offset": 301568,
+        "size": 1,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 301312,
+         "size": 1,
+         "unique": true
+        },
+        {
+         "space": "const",
+         "offset": 1,
+         "size": 1,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_EQUAL",
+       "out": {
+        "space": "register",
+        "offset": 514,
+        "size": 1,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 301568,
+         "size": 1,
+         "unique": true
+        },
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 1,
+         "unique": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56283,
+     "address": "1010:dadb",
+     "bytes": "8904",
+     "file": "ACAD.EXE",
+     "file_offset": 56539,
+     "instruction": "MOV word ptr [SI],AX",
+     "ops": [
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 39424,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 262,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 24,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 41472,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 39424,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 41472,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56285,
+     "address": "1010:dadd",
+     "bytes": "b80000",
+     "file": "ACAD.EXE",
+     "file_offset": 56541,
+     "instruction": "MOV AX,0x0",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 0,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56288,
+     "address": "1010:dae0",
+     "bytes": "50",
+     "file": "ACAD.EXE",
+     "file_offset": 56544,
+     "instruction": "PUSH AX",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 263936,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "INT_SUB",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 264704,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 264704,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 263936,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56289,
+     "address": "1010:dae1",
+     "bytes": "8b7604",
+     "file": "ACAD.EXE",
+     "file_offset": 56545,
+     "instruction": "MOV SI,word ptr [BP + 0x4]",
+     "ops": [
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "unique",
+        "offset": 19968,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 20,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 4,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 37376,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 19968,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 37376,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 24,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56292,
+     "address": "1010:dae4",
+     "bytes": "8b34",
+     "file": "ACAD.EXE",
+     "file_offset": 56548,
+     "instruction": "MOV SI,word ptr [SI]",
+     "ops": [
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 39424,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 262,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 24,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 94464,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 39424,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 24,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 94464,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56294,
+     "address": "1010:dae6",
+     "bytes": "58",
+     "file": "ACAD.EXE",
+     "file_offset": 56550,
+     "instruction": "POP AX",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 269312,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 269312,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 0,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 536576,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56295,
+     "address": "1010:dae7",
+     "bytes": "8804",
+     "file": "ACAD.EXE",
+     "file_offset": 56551,
+     "instruction": "MOV byte ptr [SI],AL",
+     "ops": [
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 39424,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 262,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 24,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 41216,
+        "size": 1,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 0,
+         "size": 1,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "STORE",
+       "out": null,
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 39424,
+         "size": 4,
+         "unique": true
+        },
+        {
+         "space": "unique",
+         "offset": 41216,
+         "size": 1,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56297,
+     "address": "1010:dae9",
+     "bytes": "8be5",
+     "file": "ACAD.EXE",
+     "file_offset": 56553,
+     "instruction": "MOV SP,BP",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 20,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56299,
+     "address": "1010:daeb",
+     "bytes": "5d",
+     "file": "ACAD.EXE",
+     "file_offset": 56555,
+     "instruction": "POP BP",
+     "ops": [
+      {
+       "op": "COPY",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 269312,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "unique",
+        "offset": 536576,
+        "size": 2,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 269312,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "COPY",
+       "out": {
+        "space": "register",
+        "offset": 20,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "unique",
+         "offset": 536576,
+         "size": 2,
+         "unique": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "offset": 56300,
+     "address": "1010:daec",
+     "bytes": "c3",
+     "file": "ACAD.EXE",
+     "file_offset": 56556,
+     "instruction": "RET",
+     "ops": [
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "unique",
+        "offset": 269312,
+        "size": 4,
+        "unique": true
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 260,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "LOAD",
+       "out": {
+        "space": "register",
+        "offset": 644,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 497,
+         "size": 8,
+         "unique": false
+        },
+        {
+         "space": "unique",
+         "offset": 269312,
+         "size": 4,
+         "unique": true
+        }
+       ]
+      },
+      {
+       "op": "INT_ADD",
+       "out": {
+        "space": "register",
+        "offset": 16,
+        "size": 2,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "register",
+         "offset": 16,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "const",
+         "offset": 2,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "CALLOTHER",
+       "out": {
+        "space": "register",
+        "offset": 644,
+        "size": 4,
+        "unique": false
+       },
+       "in": [
+        {
+         "space": "const",
+         "offset": 0,
+         "size": 4,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 258,
+         "size": 2,
+         "unique": false
+        },
+        {
+         "space": "register",
+         "offset": 644,
+         "size": 2,
+         "unique": false
+        }
+       ]
+      },
+      {
+       "op": "RETURN",
+       "out": null,
+       "in": [
+        {
+         "space": "register",
+         "offset": 644,
+         "size": 4,
+         "unique": false
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "edges": [
+    {
+     "from": 56242,
+     "kind": "call",
+     "to": 45324,
+     "block": "EXE_CODE",
+     "helper": {
+      "block": "EXE_CODE",
+      "offset": 45324,
+      "kind": [
+       "frame",
+       0
+      ],
+      "status": "same-block",
+      "signature_bytes": "5e33c0eb065efc2eacb400558bec2be03b265d5076e1ffe65efc2eadebed8bdcf7"
+     },
+     "status": "resolved-static-window"
+    },
+    {
+     "from": 56257,
+     "kind": "call",
+     "to": 55092,
+     "block": "EXE_CODE",
+     "helper": null,
+     "status": "resolved-static-window"
+    }
+   ],
+   "inline_data": [],
+   "dependencies": [
+    {
+     "block": "EXE_CODE",
+     "offset": 45324,
+     "kind": [
+      "frame",
+      0
+     ],
+     "status": "same-block",
+     "signature_bytes": "5e33c0eb065efc2eacb400558bec2be03b265d5076e1ffe65efc2eadebed8bdcf7"
+    }
+   ],
+   "errors": []
+  }
+ ]
+}

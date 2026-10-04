@@ -37,10 +37,17 @@ each recovered command outside the scope must be explicitly classified.
 — 57 commands — has been recovered from `ACAD.OVL`; implementation has started
 with geometry creation and basic editing. The current editor supports LINE, CIRCLE,
 POINT, ARC, TEXT, LOAD, SHAPE, ID, BLOCK, INSERT, LIST, DBLIST, STATUS, REDRAW, REGEN, ERASE, MOVE,
-COPY, ROTATE, SCALE, UNDO, AXIS, drawing settings, ZOOM, PAN, SAVE, and END/QUIT.
-Editing selection uses the IDs reported by LIST or
-`ALL`; MOVE and COPY accept a displacement or base and destination points. The basic geometry creation
-and view commands have QEMU oracle coverage. STATUS, REDRAW and REGEN do not alter
+COPY, ROTATE, SCALE, UNDO, AXIS, drawing settings, ZOOM, PAN and SAVE.
+END saves the current document before exiting; an unnamed drawing asks for a
+path. QUIT and window close require Y/YES to discard changes. Session tracks
+the document path, detected format and unsaved changes (marked `*` in the title).
+Editing selection uses canonical IDs reported by LIST, `ALL` or `LAST`: one
+live top-level object or REPEAT owner, excluding LOAD and erased/definition
+records. Explicit selectors may edit hidden objects; mouse/window/highlight
+paths filter visible geometry. MOVE and COPY accept a displacement or base and destination points. The basic geometry creation
+and view commands have retained original observations. STATUS reports drawing
+extents, limits, view and mode/size settings in the window, terminal and API/MCP;
+its layout is a Rust policy. STATUS, REDRAW and REGEN do not alter
 drawing data; QEMU confirms that the original accepts them. The new edit transforms currently have
 Rust model tests only for ROTATE and SCALE. MOVE and COPY now follow the
 original displacement, optional second point, then selection prompt order;
@@ -54,6 +61,16 @@ maps entity clicks to the editor's one-based selection IDs, and highlights picke
 entities in yellow while a selection prompt is active. Escape cancels the current
 command. The entity picker uses the current view transform; point placement and
 LINE/CIRCLE picking have direct tests.
+Mouse point placement now applies SNAP on the world-origin grid and ORTHO from
+the current command's anchor. The crosshair previews the exact submitted point;
+menu toggles take effect during an active prompt. Typed coordinates remain exact,
+and view/selection windows remain free. These mouse rules are tested Rust app
+policies; original digitizer behavior has not been differentially verified.
+Creating geometry updates drawing extents while preserving the current view and
+LIMITS, so mouse drafting keeps a stable coordinate mapping. App workflow tests
+cover keyboard commands, constrained clicks, UNDO, saving and reopening DWG/DXF
+with spaces in filenames, and recovery after a failed save. DWG retains exact
+entity data; historical DXF writes numeric values to six decimal places.
 ARRAY follows the original's rectangular `R` and circular `C` prompts.
 Generated 2×3 rectangular and non-origin circular drawings match the original
 in both the in-tree runner and QEMU, including entity record order and the
@@ -73,13 +90,18 @@ with `cd formal && lake build`.
 
 `DBLIST` reports live entity details, including block and repeat contents, and
 leaves the drawing unchanged. The original QEMU check confirms it switches to
-text mode and shows a `LINE` record. The native app prints the report to its
-launching terminal; matching the original's complete text layout and paging
-remains open.
+text mode and shows a `LINE` record. The native app displays the complete report
+in its window and prints it to the launching terminal. Its wrapping, paging and
+controls are Rust interface policies; original screen/layout parity remains open.
 
 The newly recognized command slice has different levels of coverage. `?` shows
-the recovered command list; `HELP LINE` returns the captured native help page,
-while other named help pages remain unrecovered. `FILES` enters the File Utility
+the recovered command list; HELP now returns retained ACAD.HLP pages for all
+57 dispatcher names, including aliases. The text is embedded in the binary;
+only LINE has a retained original help-screen comparison. The pages describe
+original options, some of which are still unimplemented. LINE now supports C
+to close a sequence at its exact first vertex. See the
+[command implementation audit](docs/native-command-matrix.md) for per-command
+behavior, missing options and evidence. `FILES` enters the File Utility
 Menu; list-by-type, wildcard listing, delete, and rename operations now run on
 the host filesystem. Drive A defaults to the current directory; set
 `AUTOCAD_DRIVE_<letter>` to map a DOS drive letter to a directory (other drives
@@ -87,20 +109,59 @@ require a mapping). `MENU` parses the selected `.MNU` file and retains its
 labels and exact command macro bytes. Its clickable screen panel uses recovered
 repeat-marker page boundaries, wraps NEXT, and dispatches plain-text macros.
 Blank panel slots consume clicks, mixed-case labels render, and loaded menus
-keep the complete panel accessible through a minimum window size. Native GO
-and control-byte click semantics, plus general custom text macros, remain
-unrecovered; see [the handover](docs/HANDOVER-2026-09-30.md).
+keep the complete panel accessible through a minimum window size. GO, text
+macros and the retained SNAP/ORTHO/cancel control bytes dispatch through the
+shared session; see [the handover](docs/HANDOVER-2026-09-30.md).
 `RES` and `RESOLUTION` share
-SNAP state, and `UNITS` stores its format and precision in AC1.40 DWG. `DELAY`
-validates an interval but has no script queue to delay; `RESUME` is a no-op
-without one. `DIM` writes LINE, SOLID, and TEXT primitives for the observed
-linear dimension flow. HATCH reports the captured pattern list and follows the
+SNAP state, and `UNITS` stores its format and precision in AC1.40 DWG. Command
+scripts (`SCRIPT`, `--script`, API/MCP) run `DELAY` as a nonblocking native
+millisecond pause and `RESUME` continues an interrupted script; see
+[the scripts contract](docs/native-scripts.md). `DIM` writes orthogonal LINE, SOLID, and TEXT primitives; A controls
+arrow size, T independently controls inside/outside text orientation, and B/C
+use the preceding dimension's baseline/continuation history. UNDO restores that
+history with the drawing. The Rust editor is compared offline against 29 retained
+native DWGs, including fit boundaries, font ink widths and ordered primitives.
+Large-arrow external text placement and other unmeasured cases remain open;
+see [the DIM fixture coverage](crates/acad-cmd/tests/fixtures/dim/README.md).
+DIMARROW is supported in AC1.40 DWG and original DXF.
+DIM's width calculation now uses derived TXT metrics for all 94 defined printable
+characters, including letters and plus signs, rather than numeric-width guesses.
+All 8,836 glyph pairs were checked against renderer strokes; this extends font
+coverage without adding original DIM placement observations. See
+[TXT metric coverage](crates/acad-cmd/tests/fixtures/dim/txt-metrics.md).
+HATCH reports the captured pattern list and follows the
 observed pattern/scale/angle/object-selection prompts. The `LINE` hatch pattern
 clips against selected closed LINE/ARC loops and circles, and is verified
 against the original for default settings, scale 2 / angle 30°, circle,
-nested-hole, and semicircle-plus-chord boundaries; other listed patterns
-remain open. `SKETCH` stops after its
-increment because it needs a digitizer.
+nested-hole, and semicircle-plus-chord boundaries. `NET` adds a perpendicular
+second family using the same clipping engine, with a shared 100,000-stroke
+limit. Its default rectangle matches the retained original DWG's complete
+ordered block and INSERT; scale/rotation and circular holes have additional
+Rust tests. See [HATCH fixture coverage](crates/acad-cmd/tests/fixtures/hatch/README.md).
+`GRATE`, `NET3`, `PLAST`, `PLASTI` and `STEEL` now use continuous families
+from the retained ACAD.PAT definitions, including each row's origin, angle and
+spacing. Geometry tests cover full rectangle strokes, rotation/scale, circular
+holes, DWG save/reopen, UNDO and atomic overflow. These five patterns have no
+retained native exports; `PLAST`/`PLASTI` row order is checked against the in-tree original.
+The other 14 patterns without zero-length dots now use the retained signed
+dash/gap sequences and per-row drift. Dash phase is anchored to each definition
+origin and continues through holes. Their rotation, clipping, DWG and undo
+contracts have Rust tests; native output parity remains unchecked. See
+[dash definition coverage](crates/acad-cmd/tests/fixtures/hatch/dashed-patterns.md).
+`MUDST` and `SACNCR` now interpret zero dash entries as POINT entities alongside
+their LINE strokes. All 23 catalogue patterns have geometry. Dots share the
+global phase, clipping and entity budget, save through DWG/DXF and use the
+renderer’s existing screen-sized POINT marker. Their primitive representation
+and boundary policy have Rust contracts, not original-export parity; see
+[dot definition coverage](crates/acad-cmd/tests/fixtures/hatch/dot-patterns.md).
+Island styles (`name,N|O|I`) follow [the styles contract](docs/native-hatch-styles.md).
+`U` user patterns and external ACAD.PAT-syntax pattern files follow
+[the U/PAT contract](docs/native-hatch-user.md); the in-tree original confirms
+`U` geometry, the sweep's start row and continuous-row direction, `PLAST`,
+`PLASTI`, `TRANS` and `INSUL` row order, and that the original reads ACAD.PAT at run time.
+`SKETCH` records mouse freehand lines through GUI motion and API/MCP `motion`,
+checked against the original under a QEMU mouse oracle; see
+[the SKETCH contract](docs/native-sketch.md).
 QEMU currently checks the command list/help page,
 FILES menu entry, shared resolution state, and persisted Decimal precision.
 
@@ -109,7 +170,28 @@ digitizer or plotter hardware and are excluded; all other 54 names are now
 recognized by the native editor. Recognition is only a progress count: several
 commands still have prompt shells or partial behavior, and each command needs
 its observable prompts, effects, and file behavior (where applicable) verified
-against AutoCAD under QEMU before this milestone is complete.
+against the retained specifications and evidence before this milestone is complete.
+Original-output parity gaps remain explicit. The active
+[native completion plan](docs/superpowers/plans/2026-10-03-native-editor-completion.md)
+uses existing recovery artifacts without restarting DOS/oracle collection.
+Remaining work runs through [bounded implementation/review loops](docs/superpowers/plans/2026-10-04-agentic-native-completion.md)
+with a [progress ledger](docs/superpowers/plans/2026-10-04-agentic-progress.json).
+Canonical selection, multiple picks/windows and selected LIST are verified, as
+are LAYER ON/OFF/COLOR/? and signed OFF persistence for defined layers/colors
+1..127 in DWG AC1.2/AC1.40 and historical DXF. Unsupported OFF edge states still
+fail before file replacement. Retained static code establishes the signed mapping;
+no new original OFF export was measured. Independent review, native regressions
+and attached GUI/API/MCP save/reopen checks passed. Nested live and native
+uniform-erased REPEAT/BLOCK DWG persistence, live DXF export and bounded WBLOCK
+resource-context preservation are verified. Erased ordinary members inside live
+groups and blocks are retained in DWG; a whole erased owner with prior member
+erasure still checked-refuses DWG output. TEXT C/R/A uses runtime SHP ink metrics;
+point height/angle, repeated lines and single-text CHANGE are integrated.
+Alignment/history are session-local native policies. The combined checkpoint
+passed 520 native tests, Clippy, workspace compilation and independent source
+review; actual GUI/MCP text, group and DWG/DXF save/reopen workflows passed.
+Rendering preflights each owner's expansion and preserves bounded ordered LOAD
+context. The resource walker and selection/budget policies are separate modules.
 
 AXIS accepts ON/OFF or a positive tick interval; an `X` suffix multiplies the
 current SNAP spacing. It draws ruler ticks at the graphics-window edges and is
@@ -245,7 +327,15 @@ The bottom command area shows the current prompt, text as you type, and the late
 status or error. Type a command or response and press Return; menu GO uses the
 same submission path. Backspace edits input and Escape cancels the active command.
 Long input scrolls to its end and caret. Clicks in this area do not place points or
-select entities. Reports such as LIST/DBLIST still print to the launching terminal.
+select entities. HELP, STATUS, LIST, DBLIST, FILES and HATCH pattern reports open
+a full-canvas text viewer above this strip. Use Up/Down, Page Up/Down, Home/End
+or the mouse wheel; click PREV/NEXT/CLOSE (UP/DN/X in narrow frames). Escape or
+an empty Return closes the viewer without answering the pending command prompt.
+Typing resumes command input. Reports also print to the launching terminal.
+The viewer wraps long rows and keeps a text anchor across width changes. It
+preserves drawing/undo state; body clicks do not place or select drawing entities.
+The bitmap viewer covers printable ASCII and displays other characters as `?`;
+the complete original UTF-8 report remains available through API/MCP.
 
 Use `MENU`, then a menu filename (for example `ACAD`), to load or reload a menu;
 Return at its filename prompt unloads the panel while leaving the command area
@@ -255,15 +345,18 @@ locations. The window minimum accommodates all ACAD rows, NEXT, and the command
 area (160×380 physical client pixels); these interface improvements do not claim
 native pixel fidelity or command-history support.
 
-The current command loop accepts `LINE`, `CIRCLE`, `POINT`, `SOLID`, `TRACE`, three-point `ARC`,
+The current command loop accepts `LINE`, `CIRCLE`, `POINT`, `SOLID`, `TRACE`, `ARC`,
 `TEXT`, `BLOCK` (name, base point, then `LAST`, `ALL` or entity IDs),
 `INSERT` for existing blocks (insertion point, optional independent
 X/Y scales and rotation, or an opposite corner point to set both scales),
 `INSERT *name` to copy a block's component entities
-at a new insertion point, `BREAK` on lines, arcs and circles, rectangular and
+at a new insertion point, `INSERT` of an external drawing file
+([contract](docs/native-external-insert.md)), `BREAK` on lines, arcs, circles
+and traces, rectangular and
 circular `ARRAY`, line-to-line
 `FILLET`,
-`CHANGE` (move selected LINE/CIRCLE/INSERT geometry or assign it to a layer),
+`CHANGE` (move selected LINE/CIRCLE/INSERT geometry, edit a single TEXT, or
+assign a layer),
 `DIST`, `ID`, point-by-point `AREA`,
 `ENTITYAREA` for circles, quadrilaterals, and closed line loops (a Rust extension),
 `OOPS` (restore the last ERASE),
@@ -271,9 +364,57 @@ circular `ARRAY`, line-to-line
 `SNAP`, `GRID`, `ORTHO`, `FILL`, `LIMITS`, `LAYER`,
 `COLOR`, numeric-factor `ZOOM`, `ZOOM E` (Extents), `ZOOM W` (Window),
 `ZOOM C` (Center), `ZOOM P` (Previous), coordinate-based `PAN`, `SAVE`
-(then an output path), and `END`/`QUIT`. Output paths ending in `.dxf`
+(then an output path), and `END`/`QUIT`. SAVE output paths ending in `.dxf`
 use the DXF writer;
 other paths use the AC1.40 DWG writer.
+END preserves the detected source codec/revision, including AC1.2 or a file
+with a misleading suffix; unsupported encoding fails with the document still
+open. SAVE can select another destination/format. Complete output is staged
+beside the destination and renamed after successful encoding/writing, preserving
+old file bytes on failure; existing symlinks are followed and permissions retained.
+SAVE/END replacing an existing file keeps its previous bytes as a `.BAK` backup
+(none for `.bak` destinations or WBLOCK; [files/menu contract](docs/native-files-menu.md)).
+WBLOCK exports do not change the current document path or saved baseline.
+
+GRID paints world-origin dots within LIMITS, including in API frames. `0` follows
+the current SNAP interval, and `nX` sets an interval of n times SNAP at command
+entry. Zoomed-out grids display a coarser lattice to bound drawing work; stored
+GRID/SNAP values stay unchanged. Dot color, clipping and density are Rust display
+policies, without a retained original GRID screen comparison.
+
+CIRCLE accepts a center followed by a positive numeric radius or a circumference
+point; `D` selects a numeric diameter. At the first prompt, `2P` accepts diameter
+endpoints and `3P` accepts three circumference points. Subsequent points support
+relative/polar input; mouse points use SNAP and stay free of ORTHO projection.
+Coincident/collinear or unrepresentable constructions retain their prompt for
+retry and create no entity/undo entry. The new forms follow retained HLP with
+Rust geometry contracts; their original export/screen parity is unestablished.
+
+ARC supports three points, start/center/end direction, start/center/angle or
+chord, and start/end/radius, angle or starting direction. Initial `C` selects
+center first; `C`/`E` at the second prompt select the other branches. Included
+angles are signed (positive CCW, negative CW); negative radius/chord selects
+the major CCW arc. Starting direction accepts a degree angle or a point
+relative to the start. Zero/full-circle angles, impossible chords/radii,
+parallel starting directions and nonfinite results remain retryable without
+adding an entity or undo entry. These dialogue/sign choices are Rust contracts
+guided by retained HLP; only the existing three-point path has native comparisons.
+
+Return at LINE's first point resumes the last explicitly created LINE/ARC
+endpoint. Return at ARC's first point also uses its terminal tangent and asks
+only for an end point. The exact entered end survives clockwise record-angle
+reordering. This history survives unrelated additions and reports, is restored
+by UNDO, and is cleared when its source is changed/erased or a drawing is
+opened/new. LINE continuation permits any next point; ARC continuation keeps
+the tangent. This session history is not inferred from imported file order.
+ARC mouse/API points use SNAP without ORTHO; continued LINE keeps ORTHO's anchor.
+
+SOLID accepts Return at its fourth point for a triangle, storing `p4 = p3`.
+Return at the next third-point prompt ends the sequence. Continuation always
+reuses the stored third/fourth pair, including their coincidence after a
+triangle; supply two new distinct points to create another nondegenerate
+section from that collapsed edge. This triangle continuation policy has Rust
+coverage, while the original retained export covers quadrilateral chaining.
 
 The app and PNG renderer accept additional font directories after the drawing
 (after the output path for PNG). Explicit directories take precedence; the
@@ -282,6 +423,152 @@ other libraries beside the drawing. Missing libraries/glyphs are reported.
 
 Tests that need the corpus skip when it is absent, so a fresh checkout is green
 without it.
+
+## Native API and MCP
+
+The native GUI and automation share `acad_app::Session` and the same CPU frame
+composer. The window owns its session; attached API requests run on the window's
+event loop, so commands, mouse input and captured frames use one drawing.
+
+Start a window with its opt-in local API (Unix/macOS/Linux):
+
+```sh
+cargo run -p acad-app --bin acad -- corpus/Samples/SUBDIV.DXF --api-socket /tmp/acad-rust.sock
+python3 tools/acad_api.py --socket /tmp/acad-rust.sock state
+python3 tools/acad_api.py --socket /tmp/acad-rust.sock command --params '{"input":"LINE"}'
+python3 tools/acad_api.py --socket /tmp/acad-rust.sock point --params '{"x":1,"y":2}'
+python3 tools/acad_api.py --socket /tmp/acad-rust.sock point --params '{"x":5,"y":4}'
+python3 tools/acad_api.py --socket /tmp/acad-rust.sock command --params '{"input":""}'
+python3 tools/acad_api.py --socket /tmp/acad-rust.sock frame --output /tmp/acad-frame.png
+```
+
+Each socket connection sends one newline-delimited JSON request, for example
+`{"method":"command","params":{"input":"LINE"}}`, and receives
+`{"result":...}` or `{"error":"..."}`. The socket has mode `0600`, refuses an
+existing path, and is removed on normal shutdown. Submit one prompt answer per
+call and inspect `state`; request errors retain the drawing. A timed-out mutation
+must not be automatically retried because it may already have run.
+
+Build and launch the MCP stdio adapter in either mode:
+
+```sh
+cargo build -p acad-app --bins
+# Control the already-open window:
+target/debug/acad-mcp --socket /tmp/acad-rust.sock
+# Own a session without opening a window:
+target/debug/acad-mcp --drawing corpus/Samples/SUBDIV.DXF --fonts corpus/System
+# Or start with an empty drawing:
+target/debug/acad-mcp --fonts corpus/System
+```
+
+These commands are server entry points for an MCP client, not interactive terminal
+prompts. The adapter uses the
+[MCP 2025-11-25 initialization and tool protocol](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)
+over stdio; older handshake versions are also negotiated. Reports go to stderr
+and structured tool results, keeping stdout exclusively for protocol messages.
+Example client configuration for an attached window:
+
+```json
+{
+  "mcpServers": {
+    "acad": {
+      "command": "/absolute/path/to/autorust/target/debug/acad-mcp",
+      "args": ["--socket", "/tmp/acad-rust.sock"]
+    }
+  }
+}
+```
+
+| MCP tool / API method | Arguments and behavior |
+|---|---|
+| `acad_new` / `new` | Empty drawing, retaining loaded fonts/libraries and menu |
+| `acad_open` / `open` | `path`, optional `directories` for SHP fonts/libraries |
+| `acad_command` / `command` | `input`: command or one prompt answer; blank string means Return |
+| `acad_point` / `point` | World `x`, `y`, using SNAP/ORTHO; exact typed points use `command` |
+| `acad_click` / `click` | Physical client `x`, `y`, optional `width`, `height`; menu/selection routes |
+| `acad_motion` / `motion` | Physical client `x`, `y`, optional `width`, `height`; pointer motion without a click (SKETCH sampling, see `docs/native-sketch.md`) |
+| `acad_state` / `state` | Prompt, input, status/full report, `sketch` (pen, mode, temporary line count, or null), `script` status, `report_view` visibility/text anchor, counts, view, limits, layers/OFF layers, FILLET radius, SNAP/GRID/ORTHO and document `path`, `format`, `dirty` |
+| `acad_drawing` / `drawing` | Current geometry as historical DXF text, without writing a file |
+| `acad_save` / `save` | `path`; `.dxf` is case-insensitive, other extensions write DWG |
+| `acad_cancel` / `cancel` | Cancel the current prompt |
+| `acad_report` / `report` | `action`: `up`, `down`, `page_up`, `page_down`, `home`, `end`, `close`, `open`; optional frame `width`, `height` |
+| `acad_frame` / `frame` | Optional `width`, `height`, `format`: `png` (default) or `rgba` |
+| `acad_quit` / `quit` | Enter QUIT confirmation; optional `discard: true` explicitly exits without saving |
+| `acad_script` / `script` | `path`: start a command script (`.SCR` added without an extension); runs at most 64 due items |
+| `acad_script_status` / `script_status` | Read-only script state, next line/offset, remaining DELAY and interrupt cause |
+| `acad_script_tick` / `script_tick` | Run due script items (at most 64, never waits); repeat while running or after a DELAY |
+| `acad_script_stop` / `script_stop` | Discard the current or interrupted script |
+
+Reply to QUIT with `command {"input":"Y"}` or `YES`; other answers or `cancel`
+keep the session open. Automated teardown can use `quit {"discard":true}`.
+To save and exit, submit `command {"input":"END"}` (then a path if unnamed).
+Explicit API `new`/`open` replace the current drawing without a confirmation
+dialogue. Successful `save` attaches its path and clears `dirty`; failed saves
+retain the previous attachment and baseline. Dirty state compares drawing data,
+so UNDO back to the saved drawing clears it; reports and frame requests do not
+make a drawing dirty.
+
+Report navigation changes only the viewer. `close` retains the complete text
+for `open`; the next editor effect or `new`/`open` clears it. `cancel` cancels
+the editor prompt and clears the report. Supply the dimensions of the frame
+being viewed for matching page sizes. GUI empty Return closes a visible viewer;
+API `command` always submits editor input, so automation should use `report` to
+close or navigate. `report_view.anchor` is an opaque display-text position, not
+an offset to slice the original report.
+
+Frames include the client drawing, menu, command area, selection and cursor;
+OS title bars are excluded. PNG is returned as an MCP image. Raw frames contain
+base64 RGBA8 bytes, top-down rows, opaque alpha and stride `width * 4`. Poll
+`frame` for successive buffers; no video encoder or push-stream is bundled.
+Frame/click dimensions default to the live window, or 800×600 when headless.
+Transport frames are limited to 4096 per dimension and 4,194,304 pixels; provide
+smaller explicit dimensions for a larger Retina window. The GUI composer retains
+support for larger physical windows. `tools/acad_api.py --output` decodes frame
+bytes directly into a PNG or raw file. Font diagnostics accompany captured frames.
+
+The public Rust API exposes `Session::new/open`, `command`, `point`, `click`,
+`drawing`, `prompt`, `status`, `save`, `document_path`, `document_format`,
+`is_dirty`, `request_quit`, `report_text`, `report_visible`, `report_action` and
+`frame`; `Frame` provides RGB words for the
+window plus `rgba()` and `png()` for callers. The app is split into session
+commands/resources/effects/mouse modules, document I/O, bitmap painting,
+presentation, a separate report viewer with cached wrapping and painting,
+window adapter, typed API, socket bridge and MCP adapter. Command
+prompt handling is split by domain; HATCH clipping, area metrics and editing
+geometry are separate modules. Existing native-export parity tests still run
+against the same recovered algorithms.
+
+Run the attached-window regression on a Unix desktop with a graphical session:
+
+```sh
+cargo build -p acad-app --bins
+python3 tools/check_acad_gui_api.py
+```
+
+It creates scratch drawings, exercises the real GUI through both socket/API and
+MCP, captures PNG/RGBA at three sizes, checks DWG/DXF reopen and UNDO, declines
+QUIT, then saves/exits with END and checks socket cleanup. Logs, frames and the
+reopened state remain in the printed temporary directory. It also checks report
+pages, resize, mouse paging, the CLI report method and drawing/undo neutrality.
+The drawing includes numeric-D, 2P and 3P CIRCLE forms, a triangular SOLID,
+LINE/ARC continuation and a center/angle ARC.
+It does not send
+desktop mouse/keyboard events or write source fixtures.
+
+Run the retained corpus through headless Session/MCP with the same binaries:
+
+```sh
+python3 tools/check_acad_corpus_api.py
+```
+
+This requires all 21 drawings, three additional Samples backups and SUBDIV.DXF,
+with manifest hashes intact; missing files fail the check. It captures frames,
+checks Save As AC1.40 and END's attached revision, and reopens scratch DWG/DXF
+files in fresh processes. DWG canvas pixels and canonical DXF text must remain
+stable. Historical DXF rounds to six decimal places and omits AXIS, so its pixel
+differences are recorded separately. Results, PNGs and outputs remain in the
+printed temporary directory. This workflow passed all 25 inputs at the current
+native checkpoint; broader file/command compatibility work remains open.
 
 ## Crates
 

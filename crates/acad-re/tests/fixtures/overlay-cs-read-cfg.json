@@ -1,0 +1,185 @@
+{
+  "architecture": {
+    "language": "x86:LE:16:Real Mode",
+    "ram_space_id": 497,
+    "userops": [
+      "segment"
+    ]
+  },
+  "functions": [
+    {
+      "block": "OVL00_CODE",
+      "entry": 1447,
+      "instructions": [
+        {
+          "offset": 1447,
+          "address": "OVL00_CODE::0205a7",
+          "bytes": "2e8b34",
+          "file": "ACAD.OVL",
+          "file_offset": 1447,
+          "instruction": "MOV SI,word ptr CS:[SI]",
+          "ops": [
+            {
+              "op": "INT_RIGHT",
+              "out": {
+                "space": "unique",
+                "offset": 33536,
+                "size": 4,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "const",
+                  "offset": 132522,
+                  "size": 4,
+                  "unique": false
+                },
+                {
+                  "space": "const",
+                  "offset": 4,
+                  "size": 4,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "INT_AND",
+              "out": {
+                "space": "unique",
+                "offset": 34048,
+                "size": 4,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "unique",
+                  "offset": 33536,
+                  "size": 4,
+                  "unique": true
+                },
+                {
+                  "space": "const",
+                  "offset": 61440,
+                  "size": 4,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "COPY",
+              "out": {
+                "space": "register",
+                "offset": 258,
+                "size": 2,
+                "unique": false
+              },
+              "in": [
+                {
+                  "space": "unique",
+                  "offset": 34048,
+                  "size": 2,
+                  "unique": true
+                }
+              ]
+            },
+            {
+              "op": "CALLOTHER",
+              "out": {
+                "space": "unique",
+                "offset": 39424,
+                "size": 4,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "const",
+                  "offset": 0,
+                  "size": 4,
+                  "unique": false
+                },
+                {
+                  "space": "register",
+                  "offset": 258,
+                  "size": 2,
+                  "unique": false
+                },
+                {
+                  "space": "register",
+                  "offset": 24,
+                  "size": 2,
+                  "unique": false
+                }
+              ]
+            },
+            {
+              "op": "LOAD",
+              "out": {
+                "space": "unique",
+                "offset": 94464,
+                "size": 2,
+                "unique": true
+              },
+              "in": [
+                {
+                  "space": "const",
+                  "offset": 497,
+                  "size": 4,
+                  "unique": false
+                },
+                {
+                  "space": "unique",
+                  "offset": 39424,
+                  "size": 4,
+                  "unique": true
+                }
+              ]
+            },
+            {
+              "op": "COPY",
+              "out": {
+                "space": "register",
+                "offset": 24,
+                "size": 2,
+                "unique": false
+              },
+              "in": [
+                {
+                  "space": "unique",
+                  "offset": 94464,
+                  "size": 2,
+                  "unique": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "offset": 1450,
+          "address": "OVL00_CODE::0205aa",
+          "bytes": "c3",
+          "file": "ACAD.OVL",
+          "file_offset": 1450,
+          "instruction": "RET",
+          "ops": [
+            {
+              "op": "RETURN",
+              "out": null,
+              "in": [
+                {
+                  "space": "register",
+                  "offset": 24,
+                  "size": 2,
+                  "unique": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "edges": [],
+      "inline_data": [],
+      "dependencies": [],
+      "errors": []
+    }
+  ]
+}

@@ -3,15 +3,33 @@
 Date: 2026-09-28
 Status: approved; implementation in progress
 
+**Active execution policy — 2026-10-03.** Finish the handwritten native Rust
+editor using retained reverse-engineering notes, source data and original exports.
+The user explicitly stopped DOS boot/oracle collection and translated-runtime
+work. Older oracle-first milestones below describe historical recovery, not a
+requirement to resume it. Current work is tracked in the
+[native completion plan](../plans/2026-10-03-native-editor-completion.md) and
+[handover](../../HANDOVER-2026-09-30.md). Preserve independent `acad-re` edits.
+Execution update 2026-10-04: [bounded agentic loops](../plans/2026-10-04-agentic-native-completion.md)
+and [ledger](../plans/2026-10-04-agentic-progress.json) own remaining work.
+Canonical owner selection, multiple picks/windows, selected LIST and layer
+visibility are accepted scoped Rust contracts. Signed OFF persistence now works
+for defined layers/colors1..127 in DWG AC1.2/AC1.40 and historical DXF, following
+retained static code rather than a new original export measurement. Live nested
+REPEAT codecs are integrated; native erased-owner and WBLOCK resource-context
+repairs remain under review. Per-owner render expansion is bounded; TEXT/CHANGE
+and remaining options are subsequent milestones.
+
 ## 1. Intent
 
 Rebuild AutoCAD 1.4 (1983, MS-DOS) as a native Rust application: the same commands,
 the same drawing semantics, the same files, running in a modern window.
 
-**Fidelity target.** File I/O, geometry and command semantics are verified against the
-original `ACAD.EXE` executing in an emulator; the display and input layer is modern
-(a window, not CGA/Hercules). The original is the oracle — "is this command right?"
-is answered by differential test, not by judgment.
+**Fidelity target.** Use retained original exports to verify file I/O, geometry and
+command semantics offline. Recovered algorithms and retained data also support
+Rust behavior tests; these are explicitly distinguished from original-output
+parity. The display and input layer is modern (a window, not CGA/Hercules).
+Unmeasured behavior remains a documented compatibility gap.
 
 **Long-term direction.** This is a foundation to keep building on, not a museum piece.
 The architecture must allow deliberate divergence from 1983 later (3D, modern UX,
@@ -24,10 +42,10 @@ extended entity model) without discarding the verified-compatible core. Conseque
   keyboard commands and mouse-based point placement and selection, and every
   software-only 2D command in the recovered 57-command table is implemented
   with its user-visible behavior covered, not merely recognized by name.
-- Drawings authored or edited in Rust load correctly in the original under
-  emulation, and every in-scope command has differential coverage against
-  `ACAD.EXE` under QEMU for its observable prompts, resulting drawing data, and
-  saved file behavior where applicable.
+- Drawings authored or edited in Rust preserve the recovered file semantics.
+  Retained original exports remain regression fixtures for prompts, drawing data
+  and saved behavior where available. Document commands lacking original parity
+  coverage; do not treat command recognition or a Rust test as proof of parity.
 - Every recovered command excluded for hardware or scope reasons is explicitly
   classified. Plotter and digitizer hardware, AutoCAD 2.x, 3D, ADS, and later
   releases are outside this project goal.
@@ -134,10 +152,15 @@ header suffix (for example, `LINE,20`) is a layer number, not a record count.
 two entered points define one displacement vector: its X delta is the column
 spacing and its Y delta is the row spacing. A probe using points `(3,4)` and
 `(8,6)` confirms spacings `(5,2)` independently for both `ENDREP` and
-rectangular `ARRAY`; all four expected copies match the original. The opening
-`REPEAT` record's second word is
-1 in one- and two-entity probes and with 3×4 dimensions; its meaning remains
-unknown, so the model discards it and the writer emits 1.
+rectangular `ARRAY`; all four expected copies match the original. The retained
+static decoder and field descriptors now establish that REPEAT start is an
+independent four-byte type/layer marker. Its second word is the opening layer;
+the next type/layer pair belongs to the first ordinary child, not a fused body.
+ENDREP has its own layer and dimension/spacing fields. The model preserves both
+marker layers independently from actual child layers; marker metadata does not
+create a native group visibility gate. See the
+[format review](../reviews/2026-10-04-repeat-format-review.md) and
+[group persistence contract](../../native-group-persistence.md).
 The AC1.2 and AC1.40 writers emit the model's entity types and blocks. AC1.40
 output matches original QEMU-generated LINE, CIRCLE, and POINT record bytes
 and opens in the original under QEMU with a CGA drawing viewport within 16
@@ -437,6 +460,25 @@ update the saved view; coordinate-based PAN changes its center while keeping
 the current view height. Remaining commands and the full AutoCAD menu/command
 behavior are still open.
 
+The handwritten app now tracks its document path, detected codec/revision and
+semantic saved baseline. END saves before exit, asking for a path for unnamed
+drawings; it preserves the detected revision, while explicit SAVE selects DXF
+by suffix or AC1.40 otherwise. Output is fully encoded and staged before file
+replacement; a failure leaves the document open and prior bytes intact. QUIT,
+window close and default API quit require Y/YES; explicit API `discard:true`
+supports automation. These host lifecycle policies have Rust and real API/MCP
+regressions; original backup/dialogue/screen parity is not established. GRID
+dots use the shared GUI/PNG/RGBA composer, zero follows SNAP and nX sets a SNAP
+multiple. Limits clipping, dot style and bounded display density are Rust policy.
+
+The native window now displays complete HELP/STATUS/LIST/DBLIST/FILES/HATCH
+reports through a separate cached text viewer. Wrapping, line/page navigation,
+resize anchors, keyboard/wheel and mouse controls share Session state with API
+`report`/MCP `acad_report`. Closing a report preserves the underlying editor
+prompt and drawing/undo state; report frames skip obscured drawing rendering.
+The ASCII bitmap style and paging are Rust policy, with original screen parity
+unestablished. API retains the original UTF-8 text even for unsupported glyphs.
+
 A fresh command editor uses the QEMU-observed native LIMITS `(0,0)-(12,9)`
 and saved view centered at approximately `(6.8504901960784315,4.5)`, height `9`.
 Its initial ZOOM All retains that view; both initial states and the native
@@ -485,23 +527,33 @@ and includes a `LINE` record. The native app writes its report to the launching
 terminal; the original's complete field layout and paging behavior are not yet
 matched.
 
-The remaining recognized command slice has explicit limits. `?` displays the
-recovered command list, and QEMU confirms `HELP LINE`'s text page; other named
-help pages have not been recovered. `FILES` enters the native File Utility Menu,
+The remaining recognized command slice has explicit limits, recorded in the
+[command audit](../../native-command-matrix.md). `?` displays the recovered
+command list. HELP embeds retained ACAD.HLP topic pages for all 57 dispatcher
+names and aliases, preserving the earlier exact LINE page; other pages have
+file-data coverage rather than original screen/paging comparisons. LINE C
+closes a sequence at its exact first vertex. STATUS reports stored extents,
+limits, view and drawing modes without mutation; its report layout is a Rust
+policy. `FILES` enters the native File Utility Menu,
 and Rust handles its list, wildcard, delete, and rename operations against
 mapped host directories. QEMU verifies native delete/rename on a disposable
-Samples floppy. `MENU` prompts for a file name; Rust parses `.MNU` labels and retains exact macro bytes, but screen-menu
-rendering and click dispatch remain open. DIM writes primitive LINE, SOLID, and TEXT entities
-for the observed linear dimension cases; there is no dedicated dimension
-record. Native QEMU exports for a short external-arrow case and a longer
-split-line case are compared against Rust with coordinate tolerances. Other DIM
-modes remain open. HATCH lists the captured pattern names, then asks for pattern,
+Samples floppy. `MENU` parses `.MNU` labels and exact macro bytes; the native
+screen panel renders pages and dispatches GO, text macros and SNAP/ORTHO/cancel
+controls. DIM writes orthogonal LINE, SOLID and TEXT primitives, with A/T settings,
+B/C history and UNDO. Offline tests compare 29 retained native drawings;
+large-arrow external text placement remains unresolved. HATCH lists the captured
+pattern names, then asks for pattern,
 scale, angle, and boundary objects. For the LINE pattern, QEMU exports show
 window-selected closed LINE/ARC boundaries and circles become an anonymous `*Xn`
 block of clipped layer-127 LINEs, inserted on the current layer. Rust matches
 the native default square, scale-2 / 30-degree square, circle, nested-hole,
-and semicircle-plus-chord exports. Other listed patterns remain open. SKETCH accepts only a
-record increment before requiring a digitizer.
+and semicircle-plus-chord exports. Default NET also matches a retained native
+export. All 23 catalogue patterns have geometry from retained PAT definitions,
+including MUDST/SACNCR dots as POINT entities. The other patterns have Rust
+geometry/file/undo contracts, not retained original-output parity. External PAT
+and style options remain open. Mouse SKETCH and its P/X/Q/R/E/C/. controls
+are specified in `docs/native-sketch.md` against a QEMU mouse oracle. The Lean
+model still records only its increment prompt.
 These prompt contracts are recorded in `formal/AutoCAD/Geometry.lean` and
 `formal/AutoCAD/HelpFiles.lean`; they are not claims of complete command support.
 
@@ -517,7 +569,8 @@ default is 1; Rust follows the observed runtime behavior. `INSERT *B1` skips
 the scale and rotation prompts and copies B1's component entities, translating
 them by insertion point minus block base. The Rust result and its saved DWG
 match the original's decoded entities, and the original in-tree DWG matches
-QEMU byte for byte. External drawing-file insertion remains open.
+QEMU byte for byte. External drawing-file insertion follows the native
+contract in `docs/native-external-insert.md` (no original-output parity).
 At the X-scale prompt, an opposite corner point also sets both scales: the
 original saves the coordinate differences from the insertion point as X and Y
 scales, then asks for rotation. A generated `(3,3)` → `(5,6)` example saves
@@ -547,9 +600,10 @@ Circular `ARRAY` asks for a center, angle between items, and item count. The
 original moves each copied entity's anchor around
 the center while preserving its orientation; a generated line array confirms
 this under the in-tree runner and QEMU. The implementation rejects dimensions
-that overflow or generate over 100,000 entities. Angle-to-cover input and
-optional rotation of inserted blocks remain open. One `UNDO` reverses either
-array operation.
+that overflow or generate over 100,000 entities. A non-positive item count is
+an angle to cover and a single selected INSERT may rotate at each step; see
+`docs/native-array-break.md` for the in-tree measured arithmetic. One `UNDO`
+reverses either array operation.
 
 `CHANGE` asks for selected entities, then an intersection point or `L`. `L`
 opens the new-layer prompt; a point changes a LINE's nearer endpoint or sets
@@ -570,13 +624,17 @@ segments, and radii that exceed the available segment lengths are rejected
 without mutation. Right-angle geometry, rejection cases, and undo are
 model-tested; differential verification against AutoCAD remains open.
 
-`BREAK` removes the interval between two interior points on a selected line,
-leaving the two ordered remainder segments on the original layer. On a circle,
-it removes the counter-clockwise arc between two circumference points and keeps
-the complementary arc on the original layer. Off-geometry, endpoint, and
-coincident points are rejected. Line, circle and arc splits, layer
-preservation, undo, wraparound angles, and rejection cases are model-tested.
-Oracle comparison remains open.
+`BREAK` picks one object by point (the pick is the first break point, `F`
+re-enters it) or by entity number, projects both points onto the LINE, ARC,
+CIRCLE or TRACE, removes the span between them, and cuts an end off when a point
+lies at or beyond it. On a circle it removes the counter-clockwise arc from the
+first point to the second. Pieces keep the original layer; when only the
+end-side piece remains the source becomes an erased record and the remainder is
+appended, as the original does; a span covering the whole object erases it.
+Coincident points, TRACE cuts inside a mitered end and unknown TRACE windings
+are rejected without mutation. `crates/acad-oracle/tests/array_break.rs` pins
+the original's results, including where the native editor differs; see
+`docs/native-array-break.md`.
 
 The QEMU oracle shows `DIST` reporting `Distance=5.0000` for `(0,0)` to
 `(3,4)`. It shows `AREA` accepting polygon vertices `(0,0)`, `(4,0)`,
@@ -599,6 +657,38 @@ accepting another third/fourth pair until a blank line. A two-solid QEMU
 export establishes both the file-order corners and this chaining behavior;
 the Rust command's item list is compared directly against that export.
 
+The native editor now implements the retained HLP triangular-section input:
+Return at the fourth prompt stores p4=p3. It keeps the existing stored third/
+fourth continuation pair, so a triangle's next baseline is coincident. Two
+distinct new points can form another section; Return at the next third prompt
+ends the command. Triangle storage/continuation is a tested Rust policy, without
+an original triangular export. FILL ON/OFF rendering, codecs and UNDO are covered.
+
+CIRCLE now accepts circumference radius points, numeric D, 2P diameter endpoints
+and 3P circumference points per retained HLP. Separate dialogue/geometry modules
+share typed relative/polar input and mouse/API points. Translated/scaled circle
+math avoids coordinate-square overflow/cancellation; degenerate or nonfinite
+results fail before add/undo. These forms have Rust behavior, both DWG-revision
+round trips, DXF/API and GUI/MCP coverage; their native-form export parity is open.
+
+ARC also implements retained HLP center-first, start/center/end direction,
+start/center/angle or chord, and start/end/radius, angle or starting direction.
+Separate dialogue/geometry modules commit only after validation; 3P uses the
+shared translated/scaled circumcircle calculation. Positive angles travel CCW,
+negative angles CW, and negative radius/chord chooses a major CCW arc. These
+sign/dialogue policies and tangent-continuation math have Rust contracts;
+native exports still establish only the existing three-point behavior.
+
+Return at the initial LINE prompt resumes the last explicitly created LINE/ARC
+endpoint; ARC also retains its ending direction and asks only for an endpoint.
+Exact user endpoints survive clockwise CCW-record reordering. History is session
+local, preserved by unrelated entities/reports, restored by UNDO, invalidated
+when the source record changes/is erased, and reset by new/open. It is not
+recovered from imported file order. LINE continuation remains freely directed;
+ARC preserves the tangent. Mouse ARC points snap without ORTHO, while LINE
+continues with its usual anchor. Full-circle, collinear, parallel-direction,
+impossible-radius/chord and nonfinite construction errors remain retryable.
+
 `TRACE` accepts a width and a chain of centerline points. At a bend it
 miters both sides: the QEMU export of a width-0.5 path `(1,1)` → `(4,1)` →
 `(4,4)` places the shared corners at `(3.75,1.25)` and `(4.25,0.75)`, and
@@ -608,10 +698,13 @@ place the four corners on two coordinate rows, which the writer now matches.
 
 ## 9. Testing
 
-TDD throughout. For `acad-cmd` and the codecs the oracle supplies the expected side, so
-tests are written before implementation without inventing expectations. `acad-model`,
-`acad-render` and `acad-app` are tested conventionally. The corpus manifest from ① is a
-fixture: corrupt files are excluded explicitly and by name, never silently.
+Retained original exports supply differential expectations for `acad-cmd` and
+the codecs. For recovered algorithms/data without native exports, test geometry,
+file round trips, errors and undo and document their narrower evidence scope.
+Exercise app workflows through the shared Session/API/MCP routes, including
+renderer PNG/RGBA buffers. No new guest runs are part of the active plan.
+The corpus manifest from ① is a fixture: corrupt files are excluded explicitly
+and by name, never silently.
 
 ## 10. Risks
 

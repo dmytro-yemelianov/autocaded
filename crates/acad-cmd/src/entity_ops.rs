@@ -4,9 +4,13 @@ use crate::input_state::Transform;
 use acad_model::{Entity, Item, Point};
 use std::collections::BTreeSet;
 
+/// Stored dependency closure retains definitions referenced by erased records;
+/// unlike resource traversal, it intentionally looks through the status tag.
 pub(crate) fn collect_insert_names(entity: &Entity, names: &mut BTreeSet<String>) {
     match entity {
-        Entity::OnLayer { entity, .. } => collect_insert_names(entity, names),
+        Entity::OnLayer { entity, .. } | Entity::Erased(entity) => {
+            collect_insert_names(entity, names)
+        }
         Entity::Insert { name, .. } => {
             names.insert(name.to_ascii_uppercase());
         }
@@ -19,8 +23,30 @@ pub(crate) fn collect_insert_names(entity: &Entity, names: &mut BTreeSet<String>
     }
 }
 
+/// Promote a stored block member to a drawing-root item. An erased ordinary
+/// member becomes the root erased record with its exact layer/fields; it is
+/// never revived as live. Other wrapper stacks pass through unchanged; an erased
+/// structural member (e.g. `Erased(Repeat)`) becomes a valid erased root group,
+/// while its malformed source block still makes checked codecs refuse the save.
+pub(crate) fn root_item(entity: Entity) -> Item {
+    match entity {
+        Entity::Erased(inner) => Item::Erased(*inner),
+        Entity::OnLayer { layer, entity } if matches!(entity.as_ref(), Entity::Erased(_)) => {
+            let Entity::Erased(inner) = *entity else {
+                unreachable!("matched erased member")
+            };
+            Item::Erased(Entity::OnLayer {
+                layer,
+                entity: inner,
+            })
+        }
+        other => Item::Entity(other),
+    }
+}
+
+/// Native whole-owner edits transform retained fields without changing status.
 pub(crate) fn transform_entity(entity: &mut Entity, transform: Transform) {
-    if let Entity::OnLayer { entity, .. } = entity {
+    if let Entity::OnLayer { entity, .. } | Entity::Erased(entity) = entity {
         transform_entity(entity, transform);
         return;
     }
@@ -122,10 +148,60 @@ pub(crate) fn transform_entity(entity: &mut Entity, transform: Transform) {
             point(p4);
         }
         Entity::Load { .. } => {}
-        Entity::OnLayer { .. } => unreachable!("layer wrapper was removed above"),
+        Entity::OnLayer { .. } | Entity::Erased(_) => {
+            unreachable!("status/layer wrappers were removed above")
+        }
     }
 }
 
+pub(crate) fn transform_item(item: &mut Item, transform: Transform) {
+    match item {
+        Item::Entity(entity) => transform_entity(entity, transform),
+        Item::Repeat(repeat) => {
+            let mut entity = Entity::Repeat(repeat.clone());
+            transform_entity(&mut entity, transform);
+            let Entity::Repeat(changed) = entity else {
+                unreachable!()
+            };
+            *repeat = changed;
+        }
+        _ => unreachable!("only live objects are transformed"),
+    }
+}
+
+/// REPEAT has no persisted owner-layer field: CHANGE applies to every stored
+/// descendant record, including metadata, for either top-level representation.
+pub(crate) fn change_entity_layer(entity: &mut Entity, layer: u8) {
+    match entity {
+        Entity::Erased(entity) => change_entity_layer(entity, layer),
+        Entity::OnLayer {
+            layer: current,
+            entity,
+        } => {
+            *current = layer;
+            if matches!(bare(entity), Entity::Repeat(_)) {
+                change_entity_layer(entity, layer);
+            }
+        }
+        Entity::Repeat(repeat) => {
+            for entity in &mut repeat.entities {
+                change_entity_layer(entity, layer);
+            }
+        }
+        _ => crate::geometry::assign_layer(entity, layer),
+    }
+}
+
+pub(crate) fn has_repeat_lattice(entity: &Entity) -> bool {
+    match bare(entity) {
+        Entity::Repeat(repeat) => {
+            repeat.columns > 1 || repeat.rows > 1 || repeat.entities.iter().any(has_repeat_lattice)
+        }
+        _ => false,
+    }
+}
+
+/// Live-purpose layer view: preserve an erased member as an opaque status tag.
 pub(crate) fn bare(mut entity: &Entity) -> &Entity {
     while let Entity::OnLayer { entity: inner, .. } = entity {
         entity = inner;
@@ -152,7 +228,7 @@ pub(crate) fn load_library_name(entity: &Entity) -> Option<String> {
 
 pub(crate) fn entity_anchor(entity: &Entity) -> Option<Point> {
     match bare(entity) {
-        Entity::Repeat(repeat) => repeat.entities.first().and_then(entity_anchor),
+        Entity::Repeat(repeat) => repeat.entities.iter().find_map(entity_anchor),
         Entity::Line { start, .. } => Some(*start),
         Entity::Circle { center, .. } | Entity::Arc { center, .. } => Some(*center),
         Entity::Point { origin } | Entity::Text { origin, .. } | Entity::Shape { origin, .. } => {
@@ -160,13 +236,14 @@ pub(crate) fn entity_anchor(entity: &Entity) -> Option<Point> {
         }
         Entity::Trace { p1, .. } | Entity::Solid { p1, .. } => Some(*p1),
         Entity::Insert { origin, .. } => Some(*origin),
-        Entity::Load { .. } | Entity::OnLayer { .. } => None,
+        Entity::Load { .. } | Entity::OnLayer { .. } | Entity::Erased(_) => None,
     }
 }
 
 pub(crate) fn item_anchor(item: &Item) -> Option<Point> {
     match item {
         Item::Entity(entity) => entity_anchor(entity),
+        Item::Repeat(repeat) => repeat.entities.iter().find_map(entity_anchor),
         _ => None,
     }
 }
@@ -195,7 +272,8 @@ pub(crate) fn apply_change_point(entity: &mut Entity, point: Point) {
             *radius = ((center.x - point.x).powi(2) + (center.y - point.y).powi(2)).sqrt();
         }
         Entity::Insert { origin, .. } => *origin = point,
-        Entity::Repeat(_)
+        Entity::Erased(_)
+        | Entity::Repeat(_)
         | Entity::Load { .. }
         | Entity::Shape { .. }
         | Entity::Arc { .. }
@@ -443,7 +521,8 @@ mod tests {
     fn fillet_trims_two_intersecting_lines_and_adds_the_tangent_arc() {
         let mut editor = Editor::default();
         for input in [
-            "LINE", "-5,0", "5,0", "", "LINE", "0,-5", "0,5", "", "FILLET", "1,2", "1",
+            "LINE", "-5,0", "5,0", "", "LINE", "0,-5", "0,5", "", "FILLET", "R", "1", "FILLET",
+            "1,2",
         ] {
             editor.submit(input).unwrap();
         }

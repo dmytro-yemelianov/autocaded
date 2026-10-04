@@ -1,0 +1,28 @@
+# R1 L1 preflight review, pass 1
+
+Date 2026-10-04. Inspected the current working diff and untracked tests/policy in the private layers repository. Read-only; no tests executed and no implementation approval. Final staged patch must be reviewed separately. Worker test counts are reported by worker, not independently verified here.
+
+## Finding requiring correction
+
+**P1 — bare entity visibility uses a different layer than its model/codec representation.** `crates/acad-model/src/header.rs:127,150` documents/selects layer 0 for bare geometry and INSERT. Existing `acad-model/src/entity.rs` OnLayer documentation defines unwrapped geometry as layer 1, `acad-dwg/src/write.rs:55–58` encodes it with `(1,e)`, and `acad-dxf/src/write.rs:12–15` does likewise. `acad-cmd/src/entity_ops.rs` layer_of also defaults to 1. Therefore OFF 0 hides a bare LINE stored on layer 1, while OFF 1 leaves it visible. Bare block/repeat children and INSERT owners share the mismatch. Recommend fallback layer 1 and corrected policy text, without reintroducing an owner layer for bare REPEAT. Add a focused bare LINE/INSERT/repeat-child check against OFF 0 and OFF 1 and the existing codec layer contract. Sent to L1/root immediately.
+
+## Focused inspections with no additional blocking finding
+
+- **Bare repeat correction is structurally sound.** `Header::item_is_visible` handles `Item::Repeat` through child eligibility; `Entity::Repeat` does the same. Top-level renderer always visits the marker via Walker::repeat. Thus OFF 0 no longer accidentally gates all explicitly layered members. Empty groups produce no geometry. An explicit OnLayer wrapper is the owner gate, and repeat members still enter Walker::entity and filter their own layer. This is an explicit Rust contract; retained evidence does not establish historical group ownership/visibility semantics.
+- **Nested repeats retain the gate.** Visible_entity unwraps a checked owner without imposing the default bare-entity layer a second time, then repeat recursively invokes self.entity for children. Nested explicit wrappers are checked by Header recursion. Hidden groups traverse only LOAD effects through hidden_loads. A repeat containing LOAD only can return true from the eligibility helper; this means record traversal eligibility rather than evidence of drawable content. Selection must still require actual pick geometry.
+- **LOAD ordering is preserved by code path.** Direct or immediately wrapped LOAD is treated as eligible independent of OFF. If an enclosing hidden wrapper blocks it, hidden_loads recursively descends wrappers/repeats and block INSERTs, running only the LOAD arms. INSERT traversal decreases the same depth counter as visible traversal. The font state remains shared in stream order, matching existing renderer behavior. Existing new font test checks a hidden direct LOAD and a hidden wrapped repeat LOAD. It does not independently demonstrate hidden INSERT -> nested repeat -> LOAD; useful focused follow-up coverage, not a second observed bug.
+- **No silent DXF bypass observed.** Public `write` delegates to `try_write(...).expect(...)`; public `try_write` rejects nonempty off_layers before producing bytes. The serializer is within try_write; helper entity is private. Both module and root reexports therefore reach checked behavior. New test verifies typed error, legacy explicit panic and successful ON state round trip.
+- **Production output routes propagate failure.** `acad-app/src/document.rs:35–42` calls try_write before storage::replace; `api.rs:117` direct drawing export also calls try_write. Remaining legacy writer references found in crates are tests, including excluded acad-oracle tests. DWG write_version checks semantic OFF and returns an error before bytes reach staging. Session save_as_format updates attachment/baseline only after successful Format::save; END only reports success after save.
+- **Lifecycle regression scope is useful but precise.** New lifecycle test covers existing DWG/DXF destination unchanged, attachment, dirty state, END error, direct API export error, absent WBLOCK output and ON/UNDO recovery. It does not explicitly assert Session exit flag or absent SAVE destination/staging residue; source ordering supports these, while root integrated checks should verify actual route outcomes.
+
+## Preflight verdict
+
+Needs fix for P1 above. No final approval; await final patch and verify correction plus integration of picking/highlight IDs separately. Maximum three review passes for this milestone; this is pass 1.
+
+## Final L1 staged patch review, pass 2
+
+Reviewed exact `/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-native-loops-20261004-548e_3pv/layers.patch`, SHA256 `843d631ac8bcbffc812c8746b632d0c5954813879f9ea3323d24d2a9ea80c833`. Verified its bytes equal `git diff --cached --binary` in the layers repository; no unstaged diff.
+
+**Verdict: pass for the scoped L1 source review, pending root integrated validation.** P1 is closed: Header fallback now layer 1 and policy text agrees. Added rendering coverage checks bare LINE, bare INSERT and bare repeat child under OFF0/OFF1; added both DWG revisions' default-layer reopen/helper agreement. Reviewed assertions substantively; did not execute worker tests or independently certify their reported counts.
+
+No remaining blocking finding within the assigned layer/visibility/LOAD/persistence review. Bare marker/explicit owner distinction and checked DXF routes remain as examined above. Full integrated picking/highlighting is root's merge responsibility and is not approved by this standalone L1 verdict. Persisted OFF state remains evidence gap L2; explicit save refusal is correct, not evidence that LAYER persistence is complete.

@@ -2,6 +2,23 @@ use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DxfError {
+    UnsupportedFilletRadius,
+    UnsupportedGroup {
+        reason: &'static str,
+    },
+    InvalidLayerVisibility {
+        layer: u8,
+        color: Option<u8>,
+    },
+    InvalidLayerColor {
+        layer: u8,
+        value: i16,
+    },
+    InvalidLayerTable {
+        layer: u8,
+        color: u8,
+    },
+    UnsupportedNestedRepeat,
     Corrupt {
         offset: usize,
     },
@@ -38,6 +55,17 @@ pub enum DxfError {
 impl fmt::Display for DxfError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::UnsupportedFilletRadius => f.write_str("historical DXF has no supported nonzero FILLET radius mapping"),
+            Self::UnsupportedGroup { reason } => f.write_str(reason),
+            Self::UnsupportedNestedRepeat => {
+                write!(f, "nested REPEAT is unsupported by historical DXF readers")
+            }
+            Self::InvalidLayerVisibility { layer, color } => write!(f,
+                "OFF layer {layer} (color {color:?}) requires a defined layer 1..127 with color 1..127"),
+            Self::InvalidLayerColor { layer, value } => write!(f,
+                "invalid LAYERC slot {layer}: signed color {value}"),
+            Self::InvalidLayerTable { layer, color } => write!(f,
+                "invalid layer table slot {layer} color {color}: indices must be 0..127 and colors 0..254"),
             Self::Corrupt { offset } => {
                 write!(f, "non-text byte at offset {offset}: file is corrupt")
             }

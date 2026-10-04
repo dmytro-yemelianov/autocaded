@@ -1,5 +1,6 @@
+use crate::resource_walker::{LibraryState, Walker};
 use crate::viewport::Viewport;
-use acad_model::{Drawing, Entity, Item, Point, Repeat};
+use acad_model::{Drawing, Entity, Item, Point};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Prim {
@@ -9,7 +10,7 @@ pub enum Prim {
     ColoredFilledPolygon { points: Vec<Point>, rgb: [u8; 3] },
 }
 
-fn aci_rgb(index: u8) -> [u8; 3] {
+pub(crate) fn aci_rgb(index: u8) -> [u8; 3] {
     match index {
         // Color 0 is BYBLOCK; use white until block color inheritance is
         // modeled. Index 7 switches between white and black by background;
@@ -57,7 +58,7 @@ fn aci_rgb(index: u8) -> [u8; 3] {
     }
 }
 
-fn style(prims: Vec<Prim>, rgb: [u8; 3]) -> Vec<Prim> {
+pub(crate) fn style(prims: Vec<Prim>, rgb: [u8; 3]) -> Vec<Prim> {
     if rgb == [255, 255, 255] {
         return prims;
     }
@@ -101,12 +102,20 @@ fn arc_points(c: Point, r: f64, start: f64, sweep: f64, vp: &Viewport) -> Vec<Po
 }
 
 pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
+    if !crate::selection_policy::bounded_geometry(e) {
+        return Vec::new();
+    }
+    flatten_entity_bounded(e, vp)
+}
+
+fn flatten_entity_bounded(e: &Entity, vp: &Viewport) -> Vec<Prim> {
     match e {
+        Entity::Erased(_) => Vec::new(),
         Entity::Repeat(repeat) => {
             let base: Vec<Prim> = repeat
                 .entities
                 .iter()
-                .flat_map(|e| flatten_entity(e, vp))
+                .flat_map(|e| flatten_entity_bounded(e, vp))
                 .collect();
             let origin = vp.to_screen(Point { x: 0.0, y: 0.0 });
             let mut out = Vec::new();
@@ -129,7 +138,7 @@ pub fn flatten_entity(e: &Entity, vp: &Viewport) -> Vec<Prim> {
             }
             out
         }
-        Entity::OnLayer { entity, .. } => flatten_entity(entity, vp),
+        Entity::OnLayer { entity, .. } => flatten_entity_bounded(entity, vp),
         Entity::Line { start, end } => vec![Prim::Polyline(vec![
             vp.to_screen(*start),
             vp.to_screen(*end),
@@ -233,227 +242,68 @@ pub struct RenderOutput {
     pub diagnostics: Vec<String>,
 }
 
-#[derive(Clone)]
-struct LibraryState {
-    font: String,
-    shapes: Vec<String>,
-}
-
-struct Walker<'a> {
-    drawing: &'a Drawing,
-    viewport: &'a Viewport,
-    libraries: &'a crate::Libraries,
-    diagnostics: Vec<String>,
-}
-
-impl Walker<'_> {
-    fn repeat(&mut self, repeat: &Repeat, state: &mut LibraryState, depth: u32) -> Vec<Prim> {
-        let base: Vec<Prim> = repeat
-            .entities
-            .iter()
-            .flat_map(|e| self.entity(e, state, depth))
-            .collect();
-        let origin = self.viewport.to_screen(Point { x: 0.0, y: 0.0 });
-        let mut out = Vec::new();
-        for row in 0..repeat.rows {
-            for column in 0..repeat.columns {
-                let offset = self.viewport.to_screen(Point {
-                    x: f64::from(column) * repeat.column_spacing,
-                    y: f64::from(row) * repeat.row_spacing,
-                });
-                let delta = Point {
-                    x: offset.x - origin.x,
-                    y: offset.y - origin.y,
-                };
-                out.extend(base.iter().cloned().map(|p| shift_prim(p, delta)));
-            }
-        }
-        out
-    }
-    fn report(&mut self, message: String) {
-        if !self.diagnostics.contains(&message) {
-            self.diagnostics.push(message);
-        }
-    }
-    fn entity(&mut self, entity: &Entity, state: &mut LibraryState, depth: u32) -> Vec<Prim> {
-        match entity {
-            Entity::Repeat(repeat) => self.repeat(repeat, state, depth),
-            Entity::OnLayer { layer, entity } => {
-                let color_index = self.drawing.header.layers.get(layer).copied().unwrap_or(7);
-                style(self.entity(entity, state, depth), aci_rgb(color_index))
-            }
-            Entity::Load { name } => {
-                match self.libraries.get(name) {
-                    Some(library) if library.cap_height.is_some() => state.font = name.clone(),
-                    Some(_) => state.shapes.push(name.clone()),
-                    None => {
-                        self.report(format!("LOAD: missing SHP library {name}"));
-                        // Do not render following text with a stale font.
-                        state.font = name.clone();
-                    }
-                }
-                Vec::new()
-            }
-            Entity::Text {
-                origin,
-                height,
-                rotation_deg,
-                value,
-            } => {
-                let name = &state.font;
-                let Some(library) = self.libraries.get(name) else {
-                    self.report(format!("TEXT: missing SHP font {name}"));
-                    return Vec::new();
-                };
-                match library.text(value) {
-                    Ok(glyph) => self.place(
-                        glyph,
-                        *origin,
-                        *height / library.cap_height.unwrap(),
-                        *rotation_deg,
-                    ),
-                    Err(e) => {
-                        self.report(format!("TEXT {value:?}, font {name}: {e}"));
-                        Vec::new()
-                    }
-                }
-            }
-            Entity::Shape {
-                origin,
-                height,
-                rotation_deg,
-                number,
-            } => {
-                let library = state.shapes.iter().rev().find_map(|name| {
-                    self.libraries
-                        .get(name)
-                        .filter(|l| l.contains(*number))
-                        .map(|l| (name, l))
-                });
-                let Some((name, library)) = library else {
-                    self.report(format!(
-                        "SHAPE {number}: no loaded library defines this shape"
-                    ));
-                    return Vec::new();
-                };
-                match library.shape(*number) {
-                    Ok(glyph) => self.place(glyph, *origin, *height, *rotation_deg),
-                    Err(e) => {
-                        self.report(format!("SHAPE {number}, library {name}: {e}"));
-                        Vec::new()
-                    }
-                }
-            }
-            Entity::Insert {
-                origin,
-                x_scale,
-                y_scale,
-                rotation_deg,
-                name,
-            } => {
-                if depth == 0 {
-                    self.report(format!("INSERT {name}: block recursion limit reached"));
-                    return Vec::new();
-                }
-                let Some(block) = self.drawing.block(name) else {
-                    self.report(format!("INSERT: missing block {name}"));
-                    return Vec::new();
-                };
-                let (sin, cos) = rotation_deg.to_radians().sin_cos();
-                let mut out = Vec::new();
-                for inner in &block.entities {
-                    for prim in self.entity(inner, state, depth - 1) {
-                        let (points, filled, color) = match prim {
-                            Prim::Polyline(points) => (points, false, None),
-                            Prim::FilledPolygon(points) => (points, true, None),
-                            Prim::ColoredPolyline { points, rgb } => (points, false, Some(rgb)),
-                            Prim::ColoredFilledPolygon { points, rgb } => (points, true, Some(rgb)),
-                        };
-                        let points = points
-                            .into_iter()
-                            .map(|p| {
-                                let p = self.viewport.to_world(p);
-                                let x = (p.x - block.base.x) * x_scale;
-                                let y = (p.y - block.base.y) * y_scale;
-                                self.viewport.to_screen(Point {
-                                    x: origin.x + x * cos - y * sin,
-                                    y: origin.y + x * sin + y * cos,
-                                })
-                            })
-                            .collect();
-                        out.push(match (filled, color) {
-                            (true, Some(rgb)) => Prim::ColoredFilledPolygon { points, rgb },
-                            (false, Some(rgb)) => Prim::ColoredPolyline { points, rgb },
-                            (true, None) => Prim::FilledPolygon(points),
-                            (false, None) => Prim::Polyline(points),
-                        });
-                    }
-                }
-                out
-            }
-            Entity::Trace { p1, p2, p3, p4 } | Entity::Solid { p1, p2, p3, p4 } => {
-                let points = vec![
-                    self.viewport.to_screen(*p1),
-                    self.viewport.to_screen(*p2),
-                    self.viewport.to_screen(*p4),
-                    self.viewport.to_screen(*p3),
-                    self.viewport.to_screen(*p1),
-                ];
-                let mut out = Vec::with_capacity(2);
-                if self.drawing.header.fill {
-                    out.push(Prim::FilledPolygon(points.clone()));
-                }
-                out.push(Prim::Polyline(points));
-                out
-            }
-            other => flatten_entity(other, self.viewport),
-        }
-    }
-    fn place(
-        &self,
-        glyph: crate::shp::Glyph,
-        origin: Point,
-        scale: f64,
-        rotation: f64,
-    ) -> Vec<Prim> {
-        let (sin, cos) = rotation.to_radians().sin_cos();
-        glyph
-            .strokes
-            .into_iter()
-            .map(|points| {
-                Prim::Polyline(
-                    points
-                        .into_iter()
-                        .map(|p| {
-                            self.viewport.to_screen(Point {
-                                x: origin.x + scale * (p.x * cos - p.y * sin),
-                                y: origin.y + scale * (p.x * sin + p.y * cos),
-                            })
-                        })
-                        .collect(),
-                )
-            })
-            .collect()
-    }
-}
-
 pub fn flatten_with_libraries(
     d: &Drawing,
     vp: &Viewport,
     libraries: &crate::Libraries,
+) -> RenderOutput {
+    flatten_owners(d, vp, libraries, None)
+}
+
+/// Selected owners use original drawing order and complete library context.
+/// Unselected and hidden owners still execute their ordered LOAD effects.
+/// Oversized owners emit no partial highlight; diagnostics explain the cap.
+pub fn flatten_selected_with_libraries(
+    d: &Drawing,
+    vp: &Viewport,
+    libraries: &crate::Libraries,
+    selected_indexes: &std::collections::BTreeSet<usize>,
+) -> RenderOutput {
+    flatten_owners(d, vp, libraries, Some(selected_indexes))
+}
+
+fn flatten_owners(
+    d: &Drawing,
+    vp: &Viewport,
+    libraries: &crate::Libraries,
+    selected: Option<&std::collections::BTreeSet<usize>>,
 ) -> RenderOutput {
     let mut walker = Walker {
         drawing: d,
         viewport: vp,
         libraries,
         diagnostics: Vec::new(),
+        context_failed: false,
     };
     let mut state = LibraryState {
         font: "TXT".into(),
         shapes: Vec::new(),
     };
     let mut primitives = Vec::new();
-    for item in &d.items {
+    for (index, item) in d.items.iter().enumerate() {
+        if walker.context_failed {
+            break;
+        }
+        let emit = selected.is_none_or(|selected| selected.contains(&index));
+        let bounded = !emit || crate::selection_policy::bounded_owner(d, item);
+        if !bounded {
+            let (kind, work) = if selected.is_some() {
+                ("Selected owner", "highlight")
+            } else {
+                ("Owner", "render")
+            };
+            walker.report(format!("{kind} {} exceeds {work} work budget", index + 1));
+        }
+        if !emit || !bounded {
+            match item {
+                Item::Entity(entity) => walker.hidden_loads(entity, &mut state, MAX_INSERT_DEPTH),
+                Item::Repeat(repeat) => {
+                    walker.hidden_repeat_loads(repeat, &mut state, MAX_INSERT_DEPTH)
+                }
+                Item::Block(_) | Item::Erased(_) => {}
+            }
+            continue;
+        }
         match item {
             Item::Entity(e) => primitives.extend(walker.entity(e, &mut state, MAX_INSERT_DEPTH)),
             Item::Block(_) | Item::Erased(_) => {}
@@ -462,13 +312,16 @@ pub fn flatten_with_libraries(
             }
         }
     }
+    if selected.is_some() && walker.context_failed {
+        primitives.clear();
+    }
     RenderOutput {
         primitives,
         diagnostics: walker.diagnostics,
     }
 }
 
-fn shift_prim(mut prim: Prim, delta: Point) -> Prim {
+pub(crate) fn shift_prim(mut prim: Prim, delta: Point) -> Prim {
     let points = match &mut prim {
         Prim::Polyline(p) | Prim::FilledPolygon(p) => p,
         Prim::ColoredPolyline { points, .. } | Prim::ColoredFilledPolygon { points, .. } => points,
@@ -508,9 +361,9 @@ mod tests {
     }
 
     /// `Header` has no `Default` and `acad-model`'s own `test_header` is private
-    /// to its test module. `flatten` reads only `Drawing::items`, so every field
-    /// here is a zero that no assertion depends on.
-    fn test_header() -> Header {
+    /// to its test module. Zero-valued defaults keep geometry tests independent
+    /// of color, visibility and fill until a test explicitly changes them.
+    pub(super) fn test_header() -> Header {
         let zero = Extents {
             xmin: 0.0,
             xmax: 0.0,
@@ -541,12 +394,15 @@ mod tests {
             fill: false,
             text_size: 0.0,
             trace_width: 0.0,
+            fillet_radius: 0.0,
+            dim_arrow: None,
             units: acad_model::Units {
                 format: acad_model::UnitFormat::Decimal,
                 precision: 4,
             },
             current_layer: 0,
             layers: Default::default(),
+            off_layers: Default::default(),
             dwg_header_passthrough: None,
         }
     }
@@ -556,6 +412,8 @@ mod tests {
         let drawing = Drawing {
             header: test_header(),
             items: vec![Item::Repeat(acad_model::Repeat {
+                start_layer: 1,
+                end_layer: 1,
                 entities: vec![Entity::Line {
                     start: Point { x: 1.0, y: 1.0 },
                     end: Point { x: 2.0, y: 1.0 },
@@ -580,6 +438,8 @@ mod tests {
     #[test]
     fn repeat_inside_an_insert_expands_with_the_block() {
         let pattern = acad_model::Repeat {
+            start_layer: 1,
+            end_layer: 1,
             entities: vec![Entity::Line {
                 start: Point { x: 1.0, y: 1.0 },
                 end: Point { x: 2.0, y: 1.0 },
@@ -964,5 +824,195 @@ mod tests {
             (world.x - expected.x).abs() < 1e-9 && (world.y - expected.y).abs() < 1e-9,
             "composed transform landed at {world:?}, expected {expected:?}"
         );
+    }
+}
+
+#[cfg(test)]
+mod visibility_tests {
+    use super::*;
+    use acad_model::{Block, Extents, Repeat};
+
+    fn line(layer: u8) -> Entity {
+        Entity::OnLayer {
+            layer,
+            entity: Box::new(Entity::Line {
+                start: Point { x: 1.0, y: 1.0 },
+                end: Point { x: 2.0, y: 2.0 },
+            }),
+        }
+    }
+    #[test]
+    fn visibility_filters_nested_inserts_and_repeats_without_mutating_records() {
+        let mut drawing = drawing_fixture();
+        drawing.items = vec![
+            Item::Entity(line(1)),
+            Item::Entity(line(2)),
+            Item::Block(Block {
+                name: "MIX".into(),
+                base: Point { x: 0.0, y: 0.0 },
+                entities: vec![line(1), line(2)],
+            }),
+            Item::Entity(Entity::OnLayer {
+                layer: 3,
+                entity: Box::new(Entity::Insert {
+                    origin: Point { x: 0.0, y: 0.0 },
+                    x_scale: 1.0,
+                    y_scale: 1.0,
+                    rotation_deg: 0.0,
+                    name: "MIX".into(),
+                }),
+            }),
+            Item::Repeat(Repeat {
+                start_layer: 1,
+                end_layer: 1,
+                entities: vec![line(1), line(2)],
+                columns: 2,
+                rows: 1,
+                column_spacing: 3.0,
+                row_spacing: 0.0,
+            }),
+        ];
+        let vp = Viewport::fit(
+            &Extents {
+                xmin: 0.0,
+                ymin: 0.0,
+                xmax: 10.0,
+                ymax: 10.0,
+            },
+            100,
+            100,
+        );
+        assert_eq!(flatten(&drawing, &vp).len(), 8);
+        drawing.header.off_layers.insert(2);
+        let before = drawing.clone();
+        assert_eq!(flatten(&drawing, &vp).len(), 4);
+        assert_eq!(drawing, before);
+        assert!(drawing.header.item_is_visible(&drawing.items[4]));
+        let empty = Item::Repeat(Repeat {
+            start_layer: 1,
+            end_layer: 1,
+            entities: vec![],
+            columns: 1,
+            rows: 1,
+            column_spacing: 0.0,
+            row_spacing: 0.0,
+        });
+        assert!(!drawing.header.item_is_visible(&empty));
+        drawing.header.off_layers.insert(3);
+        assert_eq!(flatten(&drawing, &vp).len(), 3);
+        drawing.header.off_layers.insert(0);
+        assert_eq!(
+            flatten(&drawing, &vp).len(),
+            3,
+            "bare repeat marker has no owner; explicit layer 1 children stay visible"
+        );
+    }
+    #[test]
+    fn explicitly_layered_repeat_owner_and_children_both_gate_geometry() {
+        let mut drawing = drawing_fixture();
+        let repeat = Repeat {
+            start_layer: 1,
+            end_layer: 1,
+            entities: vec![line(1), line(2)],
+            columns: 1,
+            rows: 1,
+            column_spacing: 0.0,
+            row_spacing: 0.0,
+        };
+        drawing.items = vec![Item::Entity(Entity::OnLayer {
+            layer: 4,
+            entity: Box::new(Entity::Repeat(repeat.clone())),
+        })];
+        let vp = Viewport::fit(
+            &Extents {
+                xmin: 0.0,
+                ymin: 0.0,
+                xmax: 10.0,
+                ymax: 10.0,
+            },
+            100,
+            100,
+        );
+        drawing.header.off_layers.insert(0);
+        assert_eq!(flatten(&drawing, &vp).len(), 2);
+        drawing.header.off_layers.insert(2);
+        assert_eq!(flatten(&drawing, &vp).len(), 1);
+        drawing.header.off_layers.insert(4);
+        assert_eq!(flatten(&drawing, &vp).len(), 0);
+        assert!(!drawing.header.item_is_visible(&drawing.items[0]));
+        drawing.items = vec![Item::Repeat(repeat)];
+        assert_eq!(
+            flatten(&drawing, &vp).len(),
+            1,
+            "bare marker has no layer-4 owner"
+        );
+        assert!(drawing.header.item_is_visible(&drawing.items[0]));
+        drawing.header.off_layers.insert(1);
+        assert!(!drawing.header.item_is_visible(&drawing.items[0]));
+        assert!(flatten(&drawing, &vp).is_empty());
+    }
+    #[test]
+    fn bare_geometry_insert_and_repeat_children_use_existing_layer_one_default() {
+        let mut drawing = drawing_fixture();
+        let bare_line = Entity::Line {
+            start: Point { x: 1.0, y: 1.0 },
+            end: Point { x: 2.0, y: 2.0 },
+        };
+        let bare_insert = Entity::Insert {
+            origin: Point { x: 0.0, y: 0.0 },
+            x_scale: 1.0,
+            y_scale: 1.0,
+            rotation_deg: 0.0,
+            name: "BARE".into(),
+        };
+        drawing.items = vec![
+            Item::Block(Block {
+                name: "BARE".into(),
+                base: Point { x: 0.0, y: 0.0 },
+                entities: vec![bare_line.clone()],
+            }),
+            Item::Entity(bare_line.clone()),
+            Item::Entity(bare_insert),
+            Item::Repeat(Repeat {
+                start_layer: 1,
+                end_layer: 1,
+                entities: vec![bare_line],
+                columns: 1,
+                rows: 1,
+                column_spacing: 0.0,
+                row_spacing: 0.0,
+            }),
+        ];
+        let vp = Viewport::fit(
+            &Extents {
+                xmin: 0.0,
+                ymin: 0.0,
+                xmax: 10.0,
+                ymax: 10.0,
+            },
+            100,
+            100,
+        );
+        drawing.header.off_layers.insert(0);
+        assert_eq!(
+            flatten(&drawing, &vp).len(),
+            3,
+            "OFF0 cannot hide default layer1 records"
+        );
+        for item in &drawing.items[1..] {
+            assert!(drawing.header.item_is_visible(item));
+        }
+        drawing.header.off_layers.insert(1);
+        assert!(flatten(&drawing, &vp).is_empty());
+        for item in &drawing.items[1..] {
+            assert!(!drawing.header.item_is_visible(item));
+        }
+    }
+    fn drawing_fixture() -> Drawing {
+        // Build through the model fixture helper shared by this module.
+        Drawing {
+            header: super::tests::test_header(),
+            items: vec![],
+        }
     }
 }

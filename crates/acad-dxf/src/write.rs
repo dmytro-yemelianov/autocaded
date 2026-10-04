@@ -8,20 +8,35 @@ fn pt(p: &Point) -> String {
     format!("{},{}", f(p.x), f(p.y))
 }
 
+// Preflight bounds recursion to 64 groups/two record wrappers. A LOAD is
+// exportable content, even without geometry; prune only erased-only subtrees.
+fn exportable(entity: &Entity) -> bool {
+    match entity {
+        Entity::Erased(_) => false,
+        Entity::OnLayer { entity, .. } => exportable(entity),
+        Entity::Repeat(repeat) => repeat.entities.iter().any(exportable),
+        _ => true,
+    }
+}
 fn entity(out: &mut String, e: &Entity) {
     let (layer, e) = match e {
         Entity::OnLayer { layer, entity } => (*layer, entity.as_ref()),
         _ => (1, e),
     };
     match e {
+        Entity::Erased(_) => {}
         Entity::Repeat(repeat) => {
-            let _ = write!(out, "REPEAT,{layer}\r\n");
+            if !repeat.entities.iter().any(exportable) {
+                return;
+            }
+            let _ = write!(out, "REPEAT,{}\r\n", repeat.start_layer);
             for inner in &repeat.entities {
                 entity(out, inner);
             }
             let _ = write!(
                 out,
-                "ENDREP,{layer}\r\n{},{},{},{}\r\n",
+                "ENDREP,{}\r\n{},{},{},{}\r\n",
+                repeat.end_layer,
                 repeat.columns,
                 repeat.rows,
                 f(repeat.column_spacing),
@@ -129,9 +144,40 @@ fn entity(out: &mut String, e: &Entity) {
     }
 }
 
+/// Legacy convenience writer. Panics when drawing data cannot be encoded.
+/// Production save/export callers should use `try_write` for an explicit error.
+/// Like `try_write`, this omits erased owners/members and prunes now-empty patterns.
 pub fn write(d: &Drawing) -> Vec<u8> {
-    let mut s = String::new();
+    try_write(d).expect("drawing cannot be encoded as historical DXF")
+}
+
+/// Checked live-only exchange export. Erased ordinary/group owners and their
+/// marker metadata/history are omitted as complete subtrees. Erased members are
+/// skipped; recursively empty patterns and their marker metadata are pruned.
+/// The session is unchanged.
+/// Use DWG for retained erased native owner content. OOPS/UNDO history is not persisted.
+pub fn try_write(d: &Drawing) -> Result<Vec<u8>, crate::DxfError> {
+    acad_model::group_codec::validate_live_export_records(d).map_err(|error| {
+        crate::DxfError::UnsupportedGroup {
+            reason: error.message(),
+        }
+    })?;
     let h = &d.header;
+    if h.fillet_radius != 0.0 {
+        return Err(crate::DxfError::UnsupportedFilletRadius);
+    }
+    for (&layer, &color) in &h.layers {
+        if layer >= 128 || color == 255 {
+            return Err(crate::DxfError::InvalidLayerTable { layer, color });
+        }
+    }
+    for &layer in &h.off_layers {
+        let color = h.layers.get(&layer).copied();
+        if layer == 0 || layer >= 128 || !color.is_some_and(|n| (1..=127).contains(&n)) {
+            return Err(crate::DxfError::InvalidLayerVisibility { layer, color });
+        }
+    }
+    let mut s = String::new();
     let _ = write!(
         s,
         "EXTENTS,1\r\n{},{},{},{}\r\n",
@@ -155,6 +201,9 @@ pub fn write(d: &Drawing) -> Vec<u8> {
         pt(&h.view.center),
         f(h.view.height)
     );
+    if let Some(value) = h.dim_arrow {
+        let _ = write!(s, "DIMARROW,1\r\n{}\r\n", f(value));
+    }
     let _ = write!(
         s,
         "MODERES,1\r\n{},{}\r\n",
@@ -175,11 +224,15 @@ pub fn write(d: &Drawing) -> Vec<u8> {
     // Marshal the model's sparse layer map back into the record's fixed
     // 8x16 grid, writing the unused sentinel for every absent slot.
     s.push_str("LAYERC,1\r\n");
-    let slots: Vec<u8> = (0..crate::parse::LAYER_SLOTS)
+    let slots: Vec<i16> = (0..crate::parse::LAYER_SLOTS)
         .map(|i| {
-            *h.layers
-                .get(&(i as u8))
-                .unwrap_or(&crate::parse::LAYER_UNUSED)
+            let layer = i as u8;
+            let color = *h.layers.get(&layer).unwrap_or(&crate::parse::LAYER_UNUSED) as i16;
+            if h.off_layers.contains(&layer) {
+                -color
+            } else {
+                color
+            }
         })
         .collect();
     for row in slots.chunks(16) {
@@ -199,13 +252,17 @@ pub fn write(d: &Drawing) -> Vec<u8> {
             Item::Entity(e) => entity(&mut s, e),
             Item::Erased(_) => {}
             Item::Repeat(r) => {
-                s.push_str("REPEAT,1\r\n");
+                if !r.entities.iter().any(exportable) {
+                    continue;
+                }
+                let _ = write!(s, "REPEAT,{}\r\n", r.start_layer);
                 for e in &r.entities {
                     entity(&mut s, e);
                 }
                 let _ = write!(
                     s,
-                    "ENDREP,1\r\n{},{},{},{}\r\n",
+                    "ENDREP,{}\r\n{},{},{},{}\r\n",
+                    r.end_layer,
                     r.columns,
                     r.rows,
                     f(r.column_spacing),
@@ -216,5 +273,5 @@ pub fn write(d: &Drawing) -> Vec<u8> {
     }
     let mut bytes = s.into_bytes();
     bytes.push(0x1a);
-    bytes
+    Ok(bytes)
 }

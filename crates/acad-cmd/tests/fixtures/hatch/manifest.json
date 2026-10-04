@@ -1,0 +1,22 @@
+[
+  {
+    "case": "HNETDEF",
+    "source_head": "d48e7c4740a9755076543c584746e6da1d8d265f",
+    "source_directory": ".worktrees/hatch-pattern/target/hatch-pattern-recovery/collection-20261002-01/HNETDEF",
+    "sha256": {
+      "dwg": "6b75d61f75daa918eab7b2ee08a5201ba57259c1b09c6cdb70449e13a94851a4",
+      "dxf": "2102f4b84de52fd1b17d035716938b08d8c1ac5dc599b0641061c287b2889ff0",
+      "inputs.json": "3aabeef31accb2d3c65b7a72607118ef33b6233d60bc199625e8b232661ba41d"
+    }
+  },
+  {
+    "case": "HLINCIRC",
+    "source_head": "d48e7c4740a9755076543c584746e6da1d8d265f",
+    "source_directory": ".worktrees/hatch-pattern/target/hatch-pattern-recovery/collection-20261002-01/HLINCIRC",
+    "sha256": {
+      "dwg": "d71ff73dbe2b7c93f375bdf579d72b3f53d0a47b41368f01763633a6bbb543f0",
+      "dxf": "8ce37c8ebcd22e10a2e84a23ff3322f73c43867fd8b99e79b7f22e4447525e3d",
+      "inputs.json": "a522fccf421974a89b52d341692af79e9934d7d2ee78127021813522160d6823"
+    }
+  }
+]

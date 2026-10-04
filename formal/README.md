@@ -62,7 +62,10 @@ for closed LINE/ARC loops and circles is represented as an anonymous block and
 insert, verified against native DWG for default settings, scale 2 / angle 30°,
 and circle boundaries, a nested line-loop hole, and an upper semicircle closed
 by a diameter. Other listed patterns remain outside this model. SKETCH takes a record increment before awaiting a digitizer, so it
-remains dependent on an input device.
+remains dependent on an input device. That `unsupportedDevice` outcome is
+superseded: a QEMU mouse oracle shows that the original accepts a mouse, and
+`docs/native-sketch.md` specifies the implemented mouse SKETCH. The Lean model
+still covers only the increment prompt.
 
 The original behavior still needs the QEMU oracle. Lean checks the stated model's
 obligations. No Rust refinement proof is supplied by this package; Rust regression tests establish correspondence separately. Lean

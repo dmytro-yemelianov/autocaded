@@ -1,16 +1,15 @@
 //! `Editor` mutation methods invoked by command dispatch.
 
 use crate::entity_ops::{
-    apply_change_point, bare, can_change_point, collect_insert_names, entity_anchor,
-    transform_entity,
+    bare, change_entity_layer, collect_insert_names, entity_anchor, has_repeat_lattice, root_item,
+    transform_entity, transform_item,
 };
 use crate::geometry::{
-    area_perimeter, assign_layer, break_entity_geometry, entity_layer, entity_points,
-    fillet_geometry, hatch_line_geometry, line_points, repeat_points, rotate_point,
-    set_line_points,
+    area_perimeter, break_entity_geometry, entity_layer, entity_points, hatch_geometry,
+    repeat_points, rotate_point, HatchRequest,
 };
 use crate::input_state::Transform;
-use crate::selection::selected_item_indexes;
+use crate::selection::{item_entity, selected_item_indexes};
 use crate::{Editor, Effect, ErasedItem, UndoSnapshot};
 use acad_model::{Block, Drawing, Entity, Extents, Item, Point};
 use std::collections::BTreeSet;
@@ -27,7 +26,7 @@ impl Editor {
             layer: self.drawing.header.current_layer,
             entity: Box::new(entity),
         }));
-        self.refresh_limits();
+        self.refresh_after_edit();
     }
 
     pub(crate) fn ensure_layer(&mut self, layer: u8) {
@@ -49,9 +48,7 @@ impl Editor {
             .enumerate()
         {
             if selected.contains(&(index + 1)) {
-                let Item::Entity(entity) = item else {
-                    unreachable!("only entities can be selected for BLOCK");
-                };
+                let entity = item_entity(&item).expect("selected live object");
                 entities.push(entity.clone());
                 retained.push(Item::Erased(entity));
             } else {
@@ -68,11 +65,28 @@ impl Editor {
         self.status = format!("Created block {name}");
     }
 
-    pub(crate) fn wblock_entire_drawing(&self) -> Drawing {
+    pub(crate) fn wblock_entire_drawing(&self) -> Result<Drawing, String> {
+        self.wblock_closure(false)
+    }
+
+    /// Live-only whole export omits erased root records. A named-block export
+    /// instead retains them: there every root erased record is a promoted erased
+    /// block member, kept with its exact sign/layer/fields and dependencies.
+    fn wblock_closure(&self, retain_erased: bool) -> Result<Drawing, String> {
+        acad_model::group_codec::validate_group_items(
+            self.drawing
+                .items
+                .iter()
+                .filter(|item| retain_erased || !matches!(item, Item::Erased(_))),
+        )
+        .map_err(|error| format!("WBLOCK: {}", error.message()))?;
         let mut referenced = BTreeSet::new();
         for item in &self.drawing.items {
             match item {
                 Item::Entity(entity) => collect_insert_names(entity, &mut referenced),
+                Item::Erased(entity) if retain_erased => {
+                    collect_insert_names(entity, &mut referenced)
+                }
                 Item::Repeat(repeat) => {
                     for entity in &repeat.entities {
                         collect_insert_names(entity, &mut referenced);
@@ -107,15 +121,16 @@ impl Editor {
                 Item::Block(block) if referenced.contains(&block.name.to_ascii_uppercase()) => {
                     Some(Item::Block(block.clone()))
                 }
+                Item::Erased(entity) if retain_erased => Some(Item::Erased(entity.clone())),
                 Item::Block(_) | Item::Erased(_) => None,
                 Item::Entity(entity) => Some(Item::Entity(entity.clone())),
                 Item::Repeat(repeat) => Some(Item::Repeat(repeat.clone())),
             })
             .collect();
-        Drawing {
+        Ok(Drawing {
             header: self.drawing.header.clone(),
             items,
-        }
+        })
     }
 
     pub(crate) fn wblock_named_block(&self, name: &str) -> Result<Drawing, String> {
@@ -126,25 +141,65 @@ impl Editor {
             .ok_or_else(|| format!("WBLOCK block not found: {name}"))?;
         let mut header = self.drawing.header.clone();
         header.base = block.base;
-        Ok(Drawing {
-            header,
-            items: block.entities.iter().cloned().map(Item::Entity).collect(),
-        })
+        // Preserve the referenced definition closure, including INSERTs inside
+        // stored Repeat members; the named block itself becomes root geometry.
+        acad_model::group_codec::validate_group_items(
+            self.drawing
+                .items
+                .iter()
+                .filter(|item| matches!(item, Item::Block(_))),
+        )
+        .map_err(|error| format!("WBLOCK: {}", error.message()))?;
+        let mut context = crate::export_context::Context::new(&self.drawing);
+        let mut items: Vec<Item> = self.drawing.blocks().cloned().map(Item::Block).collect();
+        for item in &self.drawing.items {
+            if matches!(item, Item::Block(candidate) if std::ptr::eq(candidate, block)) {
+                break;
+            }
+            items.extend(context.project(item)?);
+        }
+        // Members become root records; erased members stay negative records.
+        items.extend(block.entities.iter().cloned().map(root_item));
+        let exporter = Editor::new(Drawing { header, items });
+        exporter.wblock_closure(true)
     }
 
-    pub(crate) fn wblock_selected_entities(&self, ids: &[usize], base: Point) -> Drawing {
+    pub(crate) fn wblock_selected_entities(
+        &self,
+        ids: &[usize],
+        base: Point,
+    ) -> Result<Drawing, String> {
         let selected = selected_item_indexes(&self.drawing, ids);
         let mut header = self.drawing.header.clone();
         header.base = base;
-        let items = self
-            .drawing
-            .items
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| selected.contains(&(index + 1)))
-            .map(|(_, item)| item.clone())
-            .collect();
-        Drawing { header, items }
+        // Reuse whole-drawing reachability with only the selected live objects:
+        // dependencies may be nested through repeat members and block INSERTs.
+        acad_model::group_codec::validate_group_items(
+            self.drawing
+                .items
+                .iter()
+                .enumerate()
+                .filter(|(index, item)| {
+                    selected.contains(&(index + 1)) || matches!(item, Item::Block(_))
+                })
+                .map(|(_, item)| item),
+        )
+        .map_err(|error| format!("WBLOCK: {}", error.message()))?;
+        let mut context = crate::export_context::Context::new(&self.drawing);
+        let mut items = Vec::new();
+        for (index, item) in self.drawing.items.iter().enumerate() {
+            if selected.contains(&(index + 1)) || matches!(item, Item::Block(_)) {
+                items.push(item.clone());
+            } else {
+                items.extend(context.project(item)?);
+            }
+        }
+        let exporter = Editor::new(Drawing {
+            header: self.drawing.header.clone(),
+            items,
+        });
+        let items = exporter.wblock_entire_drawing()?.items;
+        Ok(Drawing { header, items })
     }
 
     pub(crate) fn explode_block(&mut self, name: &str, origin: Point) -> Result<(), String> {
@@ -161,10 +216,11 @@ impl Editor {
         for entity in &mut copies {
             transform_entity(entity, Transform::Translate(delta));
         }
+        // Erased members are copied as root erased records (transformed like their
+        // live siblings), never revived. They were not erased by this session's
+        // ERASE, so OOPS does not restore them; the single UNDO removes them.
         self.save_undo();
-        self.drawing
-            .items
-            .extend(copies.into_iter().map(Item::Entity));
+        self.drawing.items.extend(copies.into_iter().map(root_item));
         self.refresh_after_edit();
         self.status = format!("Inserted {name} as separate entities");
         Ok(())
@@ -177,9 +233,7 @@ impl Editor {
         for (index, item) in self.drawing.items.iter_mut().enumerate() {
             if selected.contains(&(index + 1)) {
                 let previous = item.clone();
-                let Item::Entity(entity) = previous.clone() else {
-                    unreachable!("only live entities are selectable");
-                };
+                let entity = item_entity(&previous).expect("selected live object");
                 *item = Item::Erased(entity);
                 erased.push(ErasedItem {
                     index,
@@ -229,10 +283,9 @@ impl Editor {
             .iter()
             .enumerate()
             .filter_map(|(index, item)| {
-                source_indexes.contains(&(index + 1)).then(|| match item {
-                    Item::Entity(entity) => Some(entity.clone()),
-                    Item::Block(_) | Item::Repeat(_) | Item::Erased(_) => None,
-                })?
+                source_indexes
+                    .contains(&(index + 1))
+                    .then(|| item_entity(item))?
             })
             .collect();
         let copies_count = rows * columns - 1;
@@ -252,10 +305,13 @@ impl Editor {
                 }));
             }
         }
-        self.save_undo();
         let copy_count = copies.len();
-        self.drawing.items.extend(copies);
-        self.refresh_after_edit();
+        if copy_count > 0 {
+            // An array that adds nothing records no undo step.
+            self.save_undo();
+            self.drawing.items.extend(copies);
+            self.refresh_after_edit();
+        }
         self.status = format!("Created {rows}x{columns} array with {copy_count} copies");
     }
 
@@ -265,7 +321,8 @@ impl Editor {
         center: Point,
         angle: f64,
         count: usize,
-    ) {
+        rotate_blocks: bool,
+    ) -> Result<(), String> {
         let source_indexes = selected_item_indexes(&self.drawing, ids);
         let sources: Vec<Entity> = self
             .drawing
@@ -273,12 +330,16 @@ impl Editor {
             .iter()
             .enumerate()
             .filter_map(|(index, item)| {
-                source_indexes.contains(&(index + 1)).then(|| match item {
-                    Item::Entity(entity) => Some(entity.clone()),
-                    Item::Block(_) | Item::Repeat(_) | Item::Erased(_) => None,
-                })?
+                source_indexes
+                    .contains(&(index + 1))
+                    .then(|| item_entity(item))?
             })
             .collect();
+        if sources.iter().any(|source| entity_anchor(source).is_none()) {
+            return Err(
+                "circular ARRAY requires a geometric anchor for each selected object".into(),
+            );
+        }
         let mut copies = Vec::with_capacity(sources.len().saturating_mul(count.saturating_sub(1)));
         for item in 1..count {
             let degrees = angle * item as f64;
@@ -293,90 +354,101 @@ impl Editor {
                 };
                 let mut entity = source.clone();
                 transform_entity(&mut entity, Transform::Translate(delta));
+                if rotate_blocks {
+                    rotate_insert(&mut entity, degrees);
+                }
                 copies.push(Item::Entity(entity));
             }
         }
-        self.save_undo();
         let copy_count = copies.len();
-        self.drawing.items.extend(copies);
-        self.refresh_after_edit();
+        if copy_count > 0 {
+            // An array that adds nothing records no undo step.
+            self.save_undo();
+            self.drawing.items.extend(copies);
+            self.refresh_after_edit();
+        }
         self.status = format!("Created circular array with {copy_count} copies");
+        Ok(())
     }
 
     pub(crate) fn change_layer(&mut self, ids: &[usize], layer: u8) {
-        self.save_undo();
         let selected = selected_item_indexes(&self.drawing, ids);
-        for (index, item) in self.drawing.items.iter_mut().enumerate() {
+        let mut replacements = Vec::new();
+        for (index, item) in self.drawing.items.iter().enumerate() {
             if selected.contains(&(index + 1)) {
-                if let Item::Entity(entity) = item {
-                    assign_layer(entity, layer);
+                let mut changed = item.clone();
+                match &mut changed {
+                    Item::Entity(entity) => change_entity_layer(entity, layer),
+                    Item::Repeat(repeat) => {
+                        for entity in &mut repeat.entities {
+                            change_entity_layer(entity, layer);
+                        }
+                    }
+                    _ => unreachable!("selected live object"),
+                }
+                if changed != *item {
+                    replacements.push((index, changed));
                 }
             }
         }
-        self.ensure_layer(layer);
+        if !replacements.is_empty() || !self.drawing.header.layers.contains_key(&layer) {
+            self.save_undo();
+            for (index, item) in replacements {
+                self.drawing.items[index] = item;
+            }
+            self.ensure_layer(layer);
+        }
         self.status = format!("Changed {} entities to layer {layer}", ids.len());
     }
 
-    pub(crate) fn change_point(&mut self, ids: &[usize], point: Point) -> Result<(), String> {
-        let selected = selected_item_indexes(&self.drawing, ids);
-        for (index, item) in self.drawing.items.iter().enumerate() {
-            if selected.contains(&(index + 1)) {
-                let Item::Entity(entity) = item else {
-                    return Err("CHANGE point mode only supports top-level entities".into());
-                };
-                if !can_change_point(entity) {
-                    return Err(
-                        "CHANGE point mode currently supports LINE, CIRCLE and INSERT".into(),
-                    );
-                }
-            }
-        }
-        self.save_undo();
-        for (index, item) in self.drawing.items.iter_mut().enumerate() {
-            if selected.contains(&(index + 1)) {
-                if let Item::Entity(entity) = item {
-                    apply_change_point(entity, point);
-                }
-            }
-        }
-        self.refresh_after_edit();
-        self.status = format!("Changed {} entities at the specified point", ids.len());
-        Ok(())
+    /// Whether the selection is exactly one top-level INSERT, the only case
+    /// in which circular ARRAY offers to rotate copies.
+    pub(crate) fn single_insert_selected(&self, ids: &[usize]) -> bool {
+        let indexes = selected_item_indexes(&self.drawing, ids);
+        indexes.len() == 1
+            && indexes.first().is_some_and(|index| {
+                matches!(
+                    self.drawing.items.get(index - 1),
+                    Some(Item::Entity(entity)) if matches!(bare(entity), Entity::Insert { .. })
+                )
+            })
     }
 
-    pub(crate) fn fillet(&mut self, ids: &[usize], radius: f64) -> Result<(), String> {
-        let indexes = selected_item_indexes(&self.drawing, ids);
-        let selected: Vec<_> = indexes.into_iter().collect();
-        let get_line = |position: usize| -> Result<(Point, Point), String> {
-            match self.drawing.items.get(position - 1) {
-                Some(Item::Entity(entity)) => {
-                    line_points(entity).ok_or_else(|| "FILLET only supports LINE entities".into())
-                }
-                _ => Err("FILLET selection is not a top-level entity".into()),
-            }
-        };
-        let (first_start, first_end) = get_line(selected[0])?;
-        let (second_start, second_end) = get_line(selected[1])?;
-        let fillet = fillet_geometry((first_start, first_end), (second_start, second_end), radius)?;
+    /// World aperture for a typed BREAK object point: 1% of the effective
+    /// view height (the view, else LIMITS, else one unit), as the renderer
+    /// chooses the shown box.
+    pub(crate) fn typed_pick_aperture(&self) -> f64 {
+        let header = &self.drawing.header;
+        let limits = header.limits.ymax - header.limits.ymin;
+        let height = [header.view.height, limits]
+            .into_iter()
+            .find(|height| height.is_finite() && *height > 0.0)
+            .unwrap_or(1.0);
+        height * 0.01
+    }
 
-        self.save_undo();
-        for (index, line) in selected.iter().zip([fillet.first, fillet.second]) {
-            if let Some(Item::Entity(entity)) = self.drawing.items.get_mut(index - 1) {
-                set_line_points(entity, line.0, line.1);
-            }
-        }
-        self.drawing.items.push(Item::Entity(Entity::OnLayer {
-            layer: self.drawing.header.current_layer,
-            entity: Box::new(Entity::Arc {
-                center: fillet.center,
-                radius,
-                start_deg: fillet.start_deg,
-                end_deg: fillet.end_deg,
-            }),
-        }));
-        self.refresh_after_edit();
-        self.status = "Filleted two lines".into();
-        Ok(())
+    /// Point-to-object step of BREAK: pick the nearest visible live object and
+    /// use the pick as the first break point. Misses return `None` and leave
+    /// the prompt; unbreakable objects are refused without changing state.
+    pub(crate) fn break_pick(
+        &mut self,
+        pick: Point,
+        aperture: f64,
+    ) -> Result<Option<usize>, String> {
+        let Some(id) = self.pick_entity_at(pick, aperture) else {
+            self.status = "No object found".into();
+            return Ok(None);
+        };
+        let index = *selected_item_indexes(&self.drawing, &[id])
+            .first()
+            .expect("picked a selectable object");
+        match &self.drawing.items[index - 1] {
+            Item::Entity(entity) => breakable_kind(entity)?,
+            _ => return Err("BREAK does not support REPEAT groups".into()),
+        };
+        self.state = crate::InputState::BreakSecondPoint(vec![id], pick, true);
+        self.status = format!("Selected entity {id}");
+        Ok(Some(id))
     }
 
     pub(crate) fn break_entity(
@@ -392,35 +464,47 @@ impl Editor {
         let Some(Item::Entity(entity)) = self.drawing.items.get(item_index - 1) else {
             return Err("BREAK selection is not a top-level entity".into());
         };
-        let entity_kind = match bare(entity) {
-            Entity::Line { .. } => "line",
-            Entity::Circle { .. } => "circle",
-            Entity::Arc { .. } => "arc",
-            _ => return Err("BREAK supports LINE, ARC and CIRCLE entities".into()),
-        };
-        let geometry = break_entity_geometry(entity, first, second)?;
+        let entity_kind = breakable_kind(entity)?;
+        let pieces = break_entity_geometry(entity, first, second)?;
         let layer = entity_layer(entity);
+        let source = entity.clone();
+        let layered = |piece: Entity| Entity::OnLayer {
+            layer,
+            entity: Box::new(piece),
+        };
 
         self.save_undo();
-        if let Some(Item::Entity(entity)) = self.drawing.items.get_mut(item_index - 1) {
-            *entity = Entity::OnLayer {
-                layer,
-                entity: Box::new(geometry.primary),
-            };
-        }
-        if let Some(secondary) = geometry.secondary {
-            self.drawing.items.push(Item::Entity(Entity::OnLayer {
-                layer,
-                entity: Box::new(secondary),
-            }));
+        // Record policy measured on the original: the start-side piece keeps
+        // the record; without one, the record is erased and any end-side
+        // remainder appended.
+        self.drawing.items[item_index - 1] = match pieces.start {
+            Some(start) => Item::Entity(layered(start)),
+            None => Item::Erased(source),
+        };
+        let whole =
+            pieces.end.is_none() && matches!(self.drawing.items[item_index - 1], Item::Erased(_));
+        if let Some(end) = pieces.end {
+            self.drawing.items.push(Item::Entity(layered(end)));
         }
         self.refresh_after_edit();
-        self.status = format!("Broke {entity_kind}");
+        // BREAK's erased record is not an ERASE set: OOPS keeps restoring the
+        // last ERASE only, as the original does (in-tree anchored).
+        self.status = if whole {
+            format!("Broke {entity_kind}: whole object removed")
+        } else {
+            format!("Broke {entity_kind}")
+        };
         Ok(())
     }
 
     pub(crate) fn measure_area(&mut self, ids: &[usize]) -> Result<(), String> {
         let indexes = selected_item_indexes(&self.drawing, ids);
+        if indexes
+            .iter()
+            .any(|index| matches!(self.drawing.items[index - 1], Item::Repeat(_)))
+        {
+            return Err("ENTITYAREA does not support REPEAT groups".into());
+        }
         let entities: Vec<_> = self
             .drawing
             .items
@@ -444,17 +528,12 @@ impl Editor {
 
     pub(crate) fn add_hatch(
         &mut self,
-        pattern: &str,
+        request: &HatchRequest,
         scale: f64,
         angle_deg: f64,
         ids: &[usize],
     ) -> Result<(), String> {
-        if pattern != "LINE" {
-            return Err(format!(
-                "HATCH pattern {pattern} is listed but its geometry is not implemented"
-            ));
-        }
-        let lines = hatch_line_geometry(&self.drawing, ids, scale, angle_deg)?;
+        let lines = hatch_geometry(&self.drawing, ids, request, scale, angle_deg)?;
         if lines.is_empty() {
             return Err("HATCH boundary produced no pattern lines".into());
         }
@@ -498,32 +577,44 @@ impl Editor {
     pub(crate) fn save_undo(&mut self) {
         self.undo.push(UndoSnapshot {
             drawing: self.drawing.clone(),
+            last_curve: self.last_curve.clone(),
+            last_text: self.last_text.clone(),
+            last_dimension: self.last_dimension,
             last_erased: self.last_erased.clone(),
             active_shape_library: self.active_shape_library.clone(),
         });
     }
 
-    pub(crate) fn transform(&mut self, ids: &[usize], transform: Transform, copy: bool) {
-        self.save_undo();
+    pub(crate) fn transform(
+        &mut self,
+        ids: &[usize],
+        transform: Transform,
+        copy: bool,
+    ) -> Result<(), String> {
         let selected = selected_item_indexes(&self.drawing, ids);
+        if matches!(transform, Transform::Rotate { .. })
+            && selected.iter().any(|index| {
+                item_entity(&self.drawing.items[index - 1])
+                    .is_some_and(|entity| has_repeat_lattice(&entity))
+            })
+        {
+            return Err("ROTATE of a REPEAT lattice is not supported; its rectangular axes cannot store rotation".into());
+        }
+        self.save_undo();
         if copy {
             let mut copies = Vec::new();
             for (index, item) in self.drawing.items.iter().enumerate() {
                 if selected.contains(&(index + 1)) {
-                    if let Item::Entity(entity) = item {
-                        let mut entity = entity.clone();
-                        transform_entity(&mut entity, transform);
-                        copies.push(Item::Entity(entity));
-                    }
+                    let mut item = item.clone();
+                    transform_item(&mut item, transform);
+                    copies.push(item);
                 }
             }
             self.drawing.items.extend(copies);
         } else {
             for (index, item) in self.drawing.items.iter_mut().enumerate() {
                 if selected.contains(&(index + 1)) {
-                    if let Item::Entity(entity) = item {
-                        transform_entity(entity, transform);
-                    }
+                    transform_item(item, transform);
                 }
             }
         }
@@ -533,6 +624,7 @@ impl Editor {
             if copy { "Copied" } else { "Transformed" },
             ids.len()
         );
+        Ok(())
     }
 
     fn refresh_limits(&mut self) {
@@ -573,6 +665,11 @@ impl Editor {
     }
 
     pub(crate) fn refresh_after_edit(&mut self) {
+        // A changed/erased source cannot regain continuation merely by later
+        // acquiring identical coordinates. UNDO restores its own history.
+        if self.curve_tangent().is_none() {
+            self.last_curve = None;
+        }
         let view = self.drawing.header.view;
         let limits = self.drawing.header.limits;
         self.refresh_limits();
@@ -590,5 +687,29 @@ impl Editor {
                 ymax: 0.0,
             };
         }
+    }
+}
+
+fn breakable_kind(entity: &Entity) -> Result<&'static str, String> {
+    match bare(entity) {
+        Entity::Line { .. } => Ok("line"),
+        Entity::Trace { .. } => Ok("trace"),
+        Entity::Circle { .. } => Ok("circle"),
+        Entity::Arc { .. } => Ok("arc"),
+        Entity::Insert { .. } => Err("Can't break a block".into()),
+        Entity::Repeat(_) => Err("BREAK does not support REPEAT groups".into()),
+        _ => Err("BREAK needs a LINE, TRACE, CIRCLE or ARC".into()),
+    }
+}
+
+/// Rotate a copied INSERT's own angle, normalized to `[0, 360)` as the
+/// original stores it.
+fn rotate_insert(entity: &mut Entity, degrees: f64) {
+    match entity {
+        Entity::OnLayer { entity, .. } => rotate_insert(entity, degrees),
+        Entity::Insert { rotation_deg, .. } => {
+            *rotation_deg = (*rotation_deg + degrees).rem_euclid(360.0);
+        }
+        _ => {}
     }
 }

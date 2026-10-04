@@ -2,6 +2,14 @@ use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DwgError {
+    InvalidHeaderScalar {
+        field: &'static str,
+        value: String,
+    },
+    NonFiniteEntity {
+        index: u32,
+        at: usize,
+    },
     /// The first bytes are neither `AC1.2` nor `AC1.40`.
     UnknownVersion {
         found: [u8; 8],
@@ -60,6 +68,17 @@ pub enum DwgError {
     NestedRepeat {
         at: usize,
     },
+    UnsupportedErasedStructure {
+        code: u16,
+        at: usize,
+    },
+    InvalidGroupStream {
+        at: usize,
+        reason: &'static str,
+    },
+    ReadLimit {
+        at: usize,
+    },
     /// The record walk stopped at a byte offset that is not the header's
     /// own `entity_end` — either a record decoded past it, or `entity_end`
     /// was already at or before the fixed start of the entity region (a
@@ -79,6 +98,22 @@ pub enum DwgError {
 impl fmt::Display for DwgError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidHeaderScalar { field, value } => {
+                write!(f, "invalid header {field}: {value}")
+            }
+            Self::NonFiniteEntity { index, at } => {
+                write!(f, "entity {index} has a nonfinite field at {at:#x}")
+            }
+            Self::UnsupportedErasedStructure { code, at } => write!(
+                f,
+                "erased structural record {code} at {at:#x} has no verified group scope"
+            ),
+            Self::InvalidGroupStream { at, reason } => {
+                write!(f, "invalid group stream at {at:#x}: {reason}")
+            }
+            Self::ReadLimit { at } => {
+                write!(f, "native codec record/depth limit exceeded at {at:#x}")
+            }
             Self::UnknownVersion { found } => write!(
                 f,
                 "not a DWG: magic is {:?}, expected \"AC1.2\" or \"AC1.40\"",

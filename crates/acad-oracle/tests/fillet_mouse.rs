@@ -133,8 +133,10 @@ fn original_fillets_two_mouse_selected_lines() {
         "6.86274509803926,0.0588235294117652",
         "",
         "FILLET",
-        "1,2",
+        "R",
         "1",
+        "FILLET",
+        "1,2",
     ] {
         rust.submit(input).unwrap();
     }

@@ -1,0 +1,234 @@
+[
+  {
+    "case": "DPRIOR",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "0a4f4dcad0ae4ae44d4626cc5cfcf73fb92bb602d947526429d501049e581a20",
+      "inputs.json": "87c078ef89441ee90932c4eec1e5270d02f23cfd57526d98ed22f35ef231fa36"
+    }
+  },
+  {
+    "case": "DAR025",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "be81814b71c8888836fb18c22be8424d9c3b4dace7af48981f7b25df26e64a07",
+      "inputs.json": "7ce4b356b3db0f1f11e4d9bbaf1ca90199748f9d54df643e3720ad88d7cb437c"
+    }
+  },
+  {
+    "case": "DBASE1",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "d7d3e21a88b36f7ca8e24e5db289f2f39e8f4ceff3c75ad78c5d1b258ea56357",
+      "inputs.json": "506d3e4c017751d17474d68adae1cbbc5f70c01faf63f8f4f39bb68c1f875c1a"
+    }
+  },
+  {
+    "case": "DBASE2",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "4c167b77e8c0d3ba77a7e08f853bcfc9b9fc1168d9ff5195183e670368f46bf6",
+      "inputs.json": "5dc427e6af503a9ae558d3e02988df96da231667cadd1b67bab4fbcabdf4d08c"
+    }
+  },
+  {
+    "case": "DBSHIFT",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "6beae8ccc1b0d1407091748d38f4382676937d821f2b14524f5284032eb91d5e",
+      "inputs.json": "347eefc8aeef47b0a26c7ceb350727fb180e8fc6c602ad1bca75c9fd65b0a714"
+    }
+  },
+  {
+    "case": "DBOBLIQ",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "daccf0e4ea57e93661b54a8f6d81709d028cec241f8b8024d06ba929601de420",
+      "inputs.json": "5eac0f458637791415e450b0311c744b9f2db7e08a7e40c72b714ad5f0577fa2"
+    }
+  },
+  {
+    "case": "DCONT1",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "9370f4c501099d4454ddc47ac10eea6d6b34136eccbb3a8e464c5381c78601d8",
+      "inputs.json": "c43c75e55e6b3b97cf13f0e4406565501480febb59718c6cd4ae2fd00b706a2f"
+    }
+  },
+  {
+    "case": "DCONT2",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "63a5a1a36545816e6e92421608d96bc31df2812b081b0f55b90c626298f4a39f",
+      "inputs.json": "20ed1e26ecebe002912ae706ee9b28f465e3adc18dc723657e190c98e0eacb6c"
+    }
+  },
+  {
+    "case": "DCSCALE",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "681b9dffa4ab436f5385eeb1b80763caf7d061e0205b9845e295bdd51caaafc4",
+      "inputs.json": "321e60f96962381d971859f5d41b53765b87e77c250d6942953031fade154b35"
+    }
+  },
+  {
+    "case": "DCMIRR2",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "81122953aa763861bd63ca652b1c56b3ed0a17ffbd386f736645404c329212a3",
+      "inputs.json": "55cf17a03dfe9dfe3be079b79fad2a539cd6aaaf2cd97e2e88c63fdca2a412ea"
+    }
+  },
+  {
+    "case": "DLINE",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "51ca86fa0a16f3484bbb63604d88ce27f9c8786ac3dd88b37747d5e623faeb57",
+      "inputs.json": "0fcc4b05c3dd8cce83b21650a600d88d3ddf214eeb0be3816fa5a9b811eade17"
+    }
+  },
+  {
+    "case": "DT1111",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "fa021dcfdc64ab4b53515110c470e0de26a9ed84d2326736e4a128d7825cbe9f",
+      "inputs.json": "258f71160083b1dbe6acdc1af29abd716fc188168eb639c52b7ed46853312672"
+    }
+  },
+  {
+    "case": "DT8888",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "ab303430a005db144d9dc6f2207f00b219ae5b2ef59cba7955aefca11ae0315b",
+      "inputs.json": "515ea375a45f7592f709d235ac3ecfb0f3554befc221d77e72c0fcc76185bd3d"
+    }
+  },
+  {
+    "case": "DTPUNCT",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "375763806a55f230ed31fa310912f3f7d1af47981216762e3e7e4a6ca556ee77",
+      "inputs.json": "29c40bdfe7e063934543971d0a0b6788153345b67453eba6388bd065504e11d6"
+    }
+  },
+  {
+    "case": "DTWIDE",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "c0f5a244c2cf402e950a5993bd7ca4da36c2748eb9ef022012accf8518df4083",
+      "inputs.json": "a45083562e5c50d940892986f511b8c9d10f43c18f3bef464fc9f5eee19661e3"
+    }
+  },
+  {
+    "case": "DTNARROW",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "77e04cb37894b6dce349b8cbb395282f09bf0283e68f7ca2296604634a3ad7a2",
+      "inputs.json": "d4e45a4cd9c7d54876ea4884829f7c29af983f783da238117fef90a51981fc82"
+    }
+  },
+  {
+    "case": "DTYN2",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "3d5e870537f36e8764b86b42199ea868a83f69ae26bec9b248bb0c8e4631fd88",
+      "inputs.json": "b87a32ef1c162ad9ac3186d822fee7aaedf1ebcb0532eab0a56457e379ac4725"
+    }
+  },
+  {
+    "case": "DTYY3",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "abfbc77130b08038c2353569f2fff06f66a43215b15e564d9ae7892109e10c8c",
+      "inputs.json": "8d5f2c7277b218174703af3b48f1a118cf535053d7cc78653d0574ee5ce90424"
+    }
+  },
+  {
+    "case": "DTPREC",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "e20c7f5e31b21d1fd99b5e681626d046517c0b13da276f957a9d9db655ba08a7",
+      "inputs.json": "be66847e28503e9dae69b5a32899a3d6c8dcb513b454a59053a58f338abfe76b"
+    }
+  },
+  {
+    "case": "DTH1COM",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "38263e70b003d3279a275ae83a60944fb838c9a434f30109a7d14453e5ec6b5b",
+      "inputs.json": "48ce224b4cced2b6cd538bc8de44f7d2de519433931b47f7524b17e553f64e6b"
+    }
+  },
+  {
+    "case": "DTH8COM",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "26ad15a066b56af6e32ded4811222b7d38f8debf4493cbb8a77dc11d2989083e",
+      "inputs.json": "ee82860673870c6f72e2241c190255e2fa727dc9ef44e9a496ebbd381c869e70"
+    }
+  },
+  {
+    "case": "DTH1LOW",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "31dd01b582c416bfc2fc2227f64d4d3ab197078b78b587392ad6a79c68e3a2bf",
+      "inputs.json": "5e435c36b67b4ef41c41b0c623f828d0ca314804e1c2584037c32b218e119781"
+    }
+  },
+  {
+    "case": "DTH1AT",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "b4604b922e49d46da9a4cd0c7fe54f5f71825ca788cf2284c5b3fbfc15e2c0e0",
+      "inputs.json": "88dc04857728f0c3e29fbd47f93f628bbfb9fdb1660d75091267c050cbc4cba1"
+    }
+  },
+  {
+    "case": "DTH1HI",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "60f425f734f37c4bbb897cf960c00265631d225888ac4955d7e36efd56222f55",
+      "inputs.json": "78606cdcbf99093aba70c6aab5cff02a04780877e04748370dd8423503a23be5"
+    }
+  },
+  {
+    "case": "DTH8AT",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "eb7e4afa1c795289017a79bf52f220453388dddff528ab7e46e900b040ba670b",
+      "inputs.json": "03e1e9a771febbb901dca3f7ef5a4ec164ff0c3db226d34eeaff498aaaccdf64"
+    }
+  },
+  {
+    "case": "PFTLOW",
+    "source_bundle": "dim-supplement",
+    "sha256": {
+      "dwg": "355d2899e9d0180e9768375abfcc4b4a3d53feeadbc685f4c9c2ac997c8f8da3",
+      "inputs.json": "413e30eacce60f679d53a7376cb392fcced3f893e0dd26f6b928052c7c90ad11"
+    }
+  },
+  {
+    "case": "PFTAT",
+    "source_bundle": "dim-supplement",
+    "sha256": {
+      "dwg": "9a0954d27b61faffa44f11150f77f72e5b038c2f0283d5a2a1563d3b2fed4021",
+      "inputs.json": "f854b64c14ed832a0e61b5b803c9928e0b75d79902994eb7703f94e8233cf208"
+    }
+  },
+  {
+    "case": "PFTHI",
+    "source_bundle": "dim-supplement",
+    "sha256": {
+      "dwg": "c6fae7cf6af0625af21600450347f5f5ac56b6a95c4dbf809f427f28bf78346f",
+      "inputs.json": "38366414f1ce616ecfbed11ccc8704fb63ec4a5b7532fd3f27b1052c134d5ba5"
+    }
+  },
+  {
+    "case": "PORIENT",
+    "source_bundle": "dim-supplement",
+    "sha256": {
+      "dwg": "c5e64efb4396a2014168a6de1e5715b2f2d1759a7c5980eee9caff62c24c1de9",
+      "inputs.json": "ddd1b548a6028d5456f1c73361b67cc62d8424013f4f5a100f951aab55788586"
+    }
+  }
+]

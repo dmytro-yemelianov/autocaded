@@ -1,0 +1,706 @@
+                      Command List
+
+ARC         DELAY       HELP        ORTHO       SKETCH *
+AREA        DIM *       ID          PAN         SNAP
+ARRAY       DIST        INSERT      PLOT        SOLID
+AXIS *      END         LAYER       POINT       STATUS
+BASE        ENDREP      LIMITS      (QPLOT)     TABLET
+BLOCK       ERASE       LINE        QUIT        TEXT
+BREAK *     FILES       LIST        REDRAW      TRACE
+CHANGE      FILL        LOAD        REGEN       UNITS *
+CIRCLE      FILLET *    MENU        REPEAT      WBLOCK
+COPY        GRID        MOVE        RESUME      ZOOM
+DBLIST      HATCH *     OOPS        SHAPE       ?
+
+  () = machine dependent    * = ADEX optional feature
+
+Point Entry:      Absolute: x,y     Relative: @dx,dy    Distance, angle: @d<a
+Object selection: L = Last object   W = Within window
+
+Command repeat:   To repeat the last command, press space or RETURN.
+\ARC
+The  ARC  command draws an arc (circle segment), and accepts several
+different arc specifications:
+
+  - three points on the arc
+  - start point, center, end point
+  - start point, center, included angle
+  - start point, center, length of chord
+  - start point, end point, radius
+  - start point, end point, included angle
+  - start point, end point, starting direction
+  - continuation of previous line or arc
+
+3-point format:  ARC  Start point or C:  <point>
+                 Second point or C or E: <point>
+                 End point or R or A or L:  <point>
+
+Options:  A = included Angle    D = starting Direction    L = Length of chord
+          C = Center point      E = End point             R = Radius
+          To continue previous line or arc, reply to "Start point" prompt
+          with a space or RETURN
+
+Reference:  Section 3.3 of User Guide.
+\AREA
+The  AREA  command calculates the area of an enclosed space.
+You define the space by designating at least three points.
+
+Format:     AREA  First point: <point>
+            Next point:  <point>
+            Next point:  <point>
+            Next point:  ...
+                         press RETURN to end point entry
+
+Reference:  Section 6.3 of User Guide.
+\ARRAY
+The  ARRAY  command makes multiple copies of selected objects, in a
+rectangular or circular pattern.
+
+Format:     ARRAY 
+            Select objects or Window or Last: <select>
+            Rectangular or circular array (R/C):
+
+For a rectangular array, you will be asked for the number of columns and 
+rows, and the spacing between them.
+
+For a circular array, you must supply a center point, the angle between
+items, and the number of items (or the angle to be covered).  If only
+one object is being replicated and that object is a Block, it may 
+optionally be rotated about its insertion point at each step.
+
+Reference:  Section 6.2 of User Guide
+\AXIS
+The  AXIS  command controls the display of axes, or ruler lines,
+along the edge of the graphics display.  This is an Advanced Drafting
+Extensions feature.
+
+Format:     AXIS  On/Off/Tick Spacing(X): 
+
+The axis display may be turned on and off, and the tick spacing may be
+specified in terms of drawing units or as a multiple of the Snap
+resolution.  For example, a value of "5X" would place a tick mark
+at every fifth Snap point.
+
+Reference:  Section 9.1 of User Guide
+\BASE
+The  BASE  command is defines a reference point for insertion
+and rotation of the current drawing in subsequent drawings.
+
+Format:     BASE  Base point:  <point>
+
+Reference:  Section 7.1 of User Guide.
+\BLOCK
+The  BLOCK  command allows you to name a group of objects which can
+then be INSERTed as a unit anywhere in the current drawing, with 
+specified X and Y scales and rotation.
+
+Format:     BLOCK  Block name:  <name>
+            Insertion base point:  <point>
+            Select objects or Window or Last:  <select>
+
+Reference:  Section 7.2 of User Guide.
+\BREAK
+The  BREAK  command deletes part of a line, trace, circle, or arc.
+This is an Advanced Drafting Extensions feature.
+
+Format:     BREAK  Point to object: <point>
+            Enter second point: <point>
+
+A line, trace, or arc can be broken into two lines, or one end can be
+cut off.  A circle will be changed into an arc by deleting the portion
+from the first point to the second, going counterclockwise.
+
+Reference:  Section 9.4 of User Guide
+\CHANGE
+The  CHANGE  command allows you to modify the properties of
+existing entities in the drawing.
+
+Format:     CHANGE   Select objects or Window or Last:  <select>
+            Intersection point/L:  <point>
+
+The following entity types may be modified (IP = intersection point):
+
+   Line   - Endpoint closest to IP changes to IP (ORTHO can affect this).
+   Circle - Radius changes so that IP is on circumference.
+   Block  - Location changes to IP.  New angle may be specified.
+   Text   - Location changes to IP.  New angle and text may be specified.
+
+Any entity's layer number may be changed by replying "L" when prompted
+for the intersection point.
+
+Format:     CHANGE  Select objects or Window or Last:  <select>
+            Intersection point/L:  L
+            New layer:  <layer number>
+
+Reference:  Section 6.2 of User Guide.
+\CIRCLE
+The CIRCLE command is used to draw a circle.  You may specify the circle
+using a center point and radius.
+
+Format:     CIRCLE  Center point (or 3P or 2P):  <point>
+            Radius (or D):  <radius value>
+
+When specifying the radius, you may enter a point rather than a value.
+The designated point will be on the circumference.  If it is more
+convenient to enter the diameter than the radius, reply to the "Radius"
+prompt with a "D".
+
+The circle may also be specified using three points on the
+circumference (reply "3P" when prompted for the center point),
+or by designating two endpoints of its diameter (reply "2P").
+
+3-point format:   CIRCLE  Center point (or 3P or 2P):  3P
+                  First point:  <point>
+                  Second point: <point>
+                  Third point:  <point>
+
+Reference:  Section 3.2 of User Guide.
+\COLOR
+\COLORS
+Drawing colors are controlled by the LAYER command.
+
+Color numbers 1 through 7 have standard meanings as follows:
+
+         1 - Red
+         2 - Yellow
+         3 - Green
+         4 - Cyan
+         5 - Blue
+         6 - Magenta
+         7 - White
+
+Reference:  LAYER command, Section 5.4 of User Guide
+\COPY
+The  COPY  command is used to duplicate an existing drawing entity
+at another location without erasing the original.
+
+Format:     COPY  Displacement:  <1st point, or x-y distance>
+            Second point:  <2nd point, or RETURN>
+            Select objects or Window or Last:  <select>
+
+Reference:  Section 6.2 of User Guide.
+\DBLIST
+The  DBLIST  command produces a complete list of the contents
+of the drawing database for the current drawing.  This command
+is used mostly for debugging.
+
+Format:     DBLIST
+
+Reference:  Section 6.3 of User Guide.
+\DELAY
+The  DELAY  command is used in command scripts to allow the display
+to be viewed before the next command is automatically issued.
+
+Format      DELAY <number>
+
+The larger the number, the longer the delay.
+
+Reference:  Command scripts, Section 8.4 of User Guide
+\DIM
+\DIMENSION
+The  DIM  command is used to add dimension notations to a drawing.  It
+measures the horizontal or vertical distance between designated points,
+and draws arrows, witness lines, and dimension text.  This is an
+Advanced Drafting Extensions feature.
+
+Formats:    DIM  First extension line origin (or ABCT):  <point> *
+            Dimension line intersection:  <point>
+            Second extension line origin:  <point>
+            Dimension text:  <text or RETURN>
+
+         *  When prompted for the first extension line origin, you
+            may enter any of the following options:
+
+            A       = Set arrow size
+            B       = Continue from 1st extension line
+            C       = Continue from 2nd extension line
+            T       = Set dimension text orientation
+
+Reference:  Section 9.6 of User Guide.
+\DIST
+The  DIST  command displays the distance (in drawing units)
+between two designated points.
+
+Format:     DIST  First point:  <point>
+            Second point: <point>
+
+If a single number is entered in response to the "First point:" prompt,
+DIST will simply display that number in the current UNITS format
+(Advanced Drafting Extensions feature).
+
+Reference:  Section 6.3 of User Guide.
+\END
+The  END  command causes AutoCAD to exit from the Drawing Editor
+(after saving the updated version of the current drawing), and
+returns you to the Main Menu.  If you then wish to exit AutoCAD
+entirely, select item 0 from the Main Menu.
+
+Format:     END
+
+Reference:  Section 2.10 of User Guide.
+\ENDREP
+The  ENDREP  command allows you to make a rectangular pattern of the
+objects drawn since the last  REPEAT  command.  
+
+Format:     ENDREP  Columns:  <integer>
+            Rows:  <integer>
+            Column distance:  <value or point>
+            Row distance:     <value or point>
+
+See the ARRAY command for another (preferred) method of creating
+patterns.
+
+Reference:  Section 6.2 of User Guide.
+\ERASE
+The  ERASE  command lets you delete selected entities from the drawing.
+
+Format:     ERASE  Select objects or Window or Last:  <select>
+
+You can easily erase just the last object you drew by responding to
+the "Select objects" prompt with "L".  
+
+The  OOPS  command may be used to retrieve the last thing you erased.
+
+Reference:  Section 6.2 of User Guide.
+\FILES
+The  FILES  command is used to gain access to disk file directories.
+
+Format:     FILES
+
+This invokes the File Utility menu, which displays a list of
+subtasks.  Using this menu, you may list the names of files on disk,
+delete selected files, or rename a file.
+
+Reference:  Section 8.3 of User Guide
+\FILL
+The  FILL  command controls whether solids and traces are to be
+solid-filled or just outlined.
+
+Formats:    FILL ON    = Solids and traces filled
+            FILL OFF   = Solids and traces outlined
+
+Reference:  Section 4.6 of User Guide.
+\FILLET
+The  FILLET  command connects two lines with a smooth arc of specified 
+radius.  The two lines will first be extended until they intersect,
+and then they will be trimmed until they meet the arc precisely.
+This is an Advanced Drafting Extensions feature.
+
+Format:     FILLET  Select two lines or R: <select>
+
+Respond "R" if you want to set the fillet radius.  The fillet radius is
+remembered as part of the drawing, and will be used in subsequent FILLET
+commands until you change it again.  The initial value of the fillet radius
+is zero; a zero radius results in the two lines intersecting precisely.
+
+Reference:  Section 9.5 of User Guide
+\GRID
+The  GRID  command controls the display of a grid of alignment dots
+which may assist in the placement of objects in the drawing.
+
+Formats:    GRID ON       - turns grid on with previous spacing
+            GRID OFF      - turns grid off
+            GRID number   - sets grid spacing in drawing units (zero
+                            causes it to equal the Snap resolution)
+            GRID numberX  - sets spacing to multiple of Snap resolution
+
+Reference:  Section 5.2 of User Guide.
+\HATCH
+The  HATCH  command is used to crosshatch or pattern-fill an area.
+This is an Advanced Drafting Extensions feature.
+
+Format:     HATCH  Pattern (name,style / U / ?): <enter name and style>
+
+If you reply with a standard pattern, AutoCAD will ask for a scale and
+angle to be applied to the pattern.  "?" will list the standard patterns
+on file, and "U" prompts you to define a pattern on the fly:
+
+            Angle for crosshatch lines:  <angle>
+            Spacing between lines:  <distance>
+            Double hatch area (Y/N) <N>:
+
+The styles available are:
+
+            N = Normal (the default)
+            O = Outermost area only
+            I = Ignore internal structure
+
+Reference:  Section 9.7 of User Guide
+\HELP
+\?
+The  HELP  (or "?")  command causes AutoCAD to display help information.
+
+Formats:    HELP (or ?)
+            Command name (RETURN for list): <command name or RETURN>
+
+If a <command name> is given, information about that command will be
+displayed.  Otherwise, the display will consist of a list of AutoCAD
+commands, and a brief reminder of the methods of point specification.
+
+Reference:  Section 2.9 of User Guide.
+\ID
+The  ID  command displays the coordinates of a designated point
+in the drawing.
+
+Format:     ID  Point:  <point>
+
+Reference:  Section 6.3 of User Guide.
+\INSERT
+The  INSERT  command copies an existing drawing file into the current
+drawing at a designated point, applying scale factors and rotation.
+
+Format:     INSERT  File name:  <file>
+            Insertion point:  <point>
+            X scale factor (default = 1):  <value>
+            Y scale factor (default = 1):  <value>
+            Rotation angle:  <angle>
+
+Normally, the named drawing file will be copied into the current
+drawing as a "block" which can later be manipulated as a whole.
+However, if the file name is preceded by "*", the individual
+components of the inserted drawing will be retained.
+
+The X and Y scale factors may be specified simultaneously by using
+the insertion point as the lower left corner of a box, and a new point
+as the upper right corner.  To do this, just enter the new point in
+response to the "X scale factor" prompt.
+
+Reference:  Section 7.1 of User Guide.
+\LAYER
+The  LAYER  command allows you to control which drawing layer you
+are currently drawing on, and which drawing layers are to be displayed,
+If you are using a color display, you also use  LAYER  to define the
+color of each drawing layer.
+
+Formats:    LAYER number       =  Set current layer number
+            LAYER ON n,n,...   =  Turn on layers
+            LAYER OFF n,n,...  =  Turn off layers
+            LAYER COLOR x      =  Set layer color
+            LAYER ?            =  List layers and colors
+
+Reference:  Section 5.4 of User Guide.
+\LIMITS
+The  LIMITS  command allows you to change the upper and lower limits
+of the drawing area while working on a drawing.
+
+Format:     LIMITS
+            Old lower left corner   X =    0.0000  Y =   0.0000
+            Enter new lower left corner or RETURN:  <enter>
+            Old upper right corner  X =   10.0000  Y =  10.0000
+            Enter new upper right corner or RETURN:  <enter>
+
+Reference:  Section 4.8 of User Guide.
+\LINE
+The  LINE  command allows you to draw straight lines.
+
+Format:     LINE  From point:  <point>
+            To point:  <point>
+            To point:  <point>
+            To point:  RETURN to end line sequence
+
+You can continue the previous line or arc by responding to the
+"From point:" prompt with a space or RETURN.  If you are drawing
+a sequence of lines which will become a closed polygon, you may
+reply to the "to point" prompt with "C" to draw the last segment
+(close the polygon).
+
+Lines may be constrained to horizontal or vertical by the ORTHO command.
+
+Reference:  Section 3.1 of User Guide.
+\LIST
+The  LIST  command displays database information about selected
+objects.
+
+Format:     LIST  Select objects or Window or Last:  <select>
+
+Reference:  Section 6.3 of User Guide.
+\LOAD
+The  LOAD  command is used to load Shape or Text Font definitions
+from a disk file.
+
+Format:     LOAD  File name:  <file>
+
+No file type should be specified on the LOAD command:  type ".SHP"
+is assumed by AutoCAD.
+
+Reference:  Sections 3.7 and 7.3 of User Guide.
+\MENU
+The  MENU  command is used to load a new set of commands into the
+screen menu and tablet menu from a disk file.
+
+Format:     MENU  File name:  <file>
+
+If you respond with a space or RETURN (null file name), the screen
+menu will be erased.
+
+Reference:  Section 8.1 of User Guide.
+\MOVE
+The  MOVE  command allows you to erase an existing entity or group of
+entities, and re-insert them at a different point in the drawing.
+
+Format:     MOVE  Displacement:  <1st point, or x-y distance>
+            Second point:  <2nd point, or RETURN>
+            Select objects or Window or Last:  <select>
+
+Reference:  Section 6.2 of User Guide.
+\OOPS
+The  OOPS  command re-inserts the object or objects which were deleted
+by the most recent ERASE command.
+
+Format:     OOPS
+
+Reference:  Section 6.2 of User Guide.
+\ORTHO
+The  ORTHO  command allows you to control AutoCAD's "orthogonal"
+drawing mode.  All lines and traces drawn while this mode is on will
+be constrained to be horizontal or vertical.
+
+Formats:    ORTHO ON     = Turn orthogonal mode on.
+            ORTHO OFF    = Turn orthogonal mode off.
+
+Reference:  Section 5.3 of User Guide.
+\PAN
+The  PAN  command allows you to move the display window in any
+direction, without changing its magnification.  This lets you
+see details which are currently off the screen.
+
+You can specify a relative movement, as in:
+
+Format:     PAN  From - to:  <relative coordinates>
+            Second point:  <RETURN>
+
+Or you can designate two points to specify the displacement you wish.
+
+Format:     PAN  From - to:  <point>
+            Second point:  <point>
+
+Reference:  Section 4.4 of User Guide.
+\PLOT
+The  PLOT  command causes a hard copy of the drawing (as most recently
+displayed) to be produced on the plotter.
+
+Format:     PLOT
+
+Reference:  Chapter 10 of User Guide.
+\POINT
+The  POINT  command permits you to place a point in the drawing.
+A point will plot as a dot the width of the pen tip your plotter uses.
+
+Format:     POINT  Point:  <designate point>
+
+Reference:  Section 3.8 of User Guide.
+\QPLOT
+The  QPLOT  command (not available on some machines) causes a
+rough-draft hard copy of the screen display to be produced on an
+Epson dot-matrix printer.
+
+Format:     QPLOT
+
+Reference:  Section 10.5 of User Guide.
+\QUIT
+The  QUIT  command causes AutoCAD to exit from the Drawing Editor,
+discarding all updates to the current drawing, and returns you
+to the Main Menu.  If you then wish to exit AutoCAD entirely,
+select item 0 from the Main Menu.
+
+Format:     QUIT  Really want to discard all changes?  Y
+
+If you reply with anything other that "Y" or "YES", the QUIT command
+will be ignored, and you will remain in the Drawing Editor.
+
+Reference:  Section 2.10 of User Guide.
+\REDRAW
+The  REDRAW  command causes the display screen to be redrawn,
+eliminating any point entry "blips" from the display.
+
+Format:     REDRAW
+
+Reference:  Section 4.5 of User Guide.
+\REGEN
+The  REGEN  command forces AutoCAD to regenerate the entire
+drawing and redraw it on the screen.
+
+Format:     REGEN
+
+Reference:  Section 4.7 of User Guide.
+\REPEAT
+The REPEAT command specifies that the following objects being drawn (up to the
+next ENDREP command) are to be grouped to form a rectangular pattern, or
+"array".  See the ENDREP command for further details.
+
+Format:     REPEAT
+
+Reference:  Section 6.2 of User Guide.
+
+Also see the  ARRAY  command for an alternate method of constructing
+rectangular (and circular) patterns.
+\RESUME
+The  RESUME  command may be used to return to a command script
+which has been interrupted due to an error or keyboard input.
+
+Format:     RESUME
+
+Reference:  Command scripts, Section 8.4 of User Guide
+\SNAP
+The "snap resolution" is the spacing of an imaginary grid of dots
+with which newly designated points must align.  The  SNAP  command
+allows you to change the snap resolution at any time, or to turn it
+off entirely for "free-hand" drawing.
+
+Format:     SNAP number  = Set alignment spacing
+            SNAP ON      = Align designated points
+            SNAP OFF     = Do not align designated points
+
+Reference:  Section 5.1 of User Guide.
+\SHAPE
+The  SHAPE  command inserts a defined shape into the drawing,
+assuming that the shape definitions have been loaded using the
+LOAD command.
+
+Format:     SHAPE  Name:  <shape name>
+            Starting point:  <point>
+            Height:  <value>
+            Angle:  <angle>
+
+Reference:  Section 7.3 of User Guide.
+\SKETCH
+The  SKETCH  command allows you to do freehand drawings.  This is
+an Advanced Drafting Extensions feature, and requires a pointing
+device such as a digitizing tablet, mouse, or light pen.
+
+Format:     SKETCH
+            Record increment: <value>
+            Sketch.  Pen eXit Quit Record Erase Connect .
+
+Subcommands:  P = Raise/lower sketching pen
+              X = Record temporary lines, and exit Sketch
+              Q = Discard temporary lines, and exit Sketch
+              R = Record temporary lines, but remain in Sketch
+              E = Erase temporary lines from a specified point to the end
+              C = Connect:  restart sketch at last end point
+              . = Draw line from end to current point (pen up)
+
+Reference:  Section 9.8 of User Guide
+\SOLID
+The  SOLID  command allows you to draw solid filled regions by
+entering them as quadrilateral or triangular sections.
+
+Format:     SOLID  First point:  <point>
+            Second point:  <point>
+            Third point:   <point>
+            Fourth point:  <point, or RETURN for triangular section>
+            Third point:   <point, or RETURN to end solid>
+
+Reference:  Section 3.5 of User Guide.
+\STATUS
+The  STATUS  command produces several lines on the display,
+denoting the current drawing extents and the current settings
+of various drawing modes and parameters.
+
+Format:     STATUS
+
+Reference:  Section 5.5 of User Guide.
+\TABLET
+The  TABLET  command is used when an existing hard copy drawing
+is to be "copied" with a digitizing tablet.
+
+Formats:    TABLET ON      = Turn tablet mode on
+            TABLET OFF     = Turn tablet mode off
+            TABLET CAL     = Calibrate tablet
+
+Reference:  Section 8.2 of User Guide.
+\TEXT
+The  TEXT  command allows you to add text of any desired size
+and angle to your drawing.
+
+Format:     TEXT  Starting point (or ACR):  <point>
+            Height:  <value or two points>
+            Angle:  <angle or point>
+            Text:   <text string be be drawn>
+
+If you enter a point for the "Starting point", the text will be
+drawn left-justified at that point.  Alternatively, you may reply:
+
+    A - To align the text between two designated end points.
+        Height and Angle will not be requested in this case.
+    C - To center the text around a specified point.
+    R - To right-justify the text at a designated end point.
+
+If a TEXT command is repeated (by just pressing space or RETURN),
+the new text will be placed below the previous line, with the same
+height, angle, and alignment as the first text line.
+
+Reference:  Section 3.6 of User Guide.
+\TRACE
+The  TRACE  command allows you to draw traces (solid-filled lines
+of specified width).
+
+Format:     TRACE  From point:  <point>
+            To point:  <point>
+            To point:  <point>
+            To point:  <point>
+            To point:  RETURN to end trace entry
+
+Traces may be constrained to horizontal or vertical by the ORTHO command.
+
+Reference:  Section 3.4 of User Guide.
+\UNITS
+The  UNITS  command instructs AutoCAD to display coordinates and distances
+in any of four formats, and to accept input in these formats.  This is an
+Advanced Drafting Extensions feature.
+
+Format:     UNITS
+
+A menu will be displayed, allowing you to select one of the following
+display/input formats (assume a distance of 15.5 drawing units is to
+be displayed):
+
+            Scientific        1.55E+01
+            Decimal           15.5000
+            Engineering       1'-3.5"
+            Architectural     1'-3 1/2"
+
+You may also specify the precision of the display (the number of digits
+after the decimal point, or the smallest fraction of an inch to display).
+
+Reference:  Section 9.2 of User Guide
+\WBLOCK
+The WBLOCK command writes all or part of a drawing out to a disk file.
+
+Format:     WBLOCK  File name: <output file name>
+            Block name: <see below>
+
+No file type should be specified; type ".DWG" is assumed.
+The different responses to the "Block name" prompt are:
+
+            name      - The named block will be written to the disk file.
+            =         - Same as above, but the block name is the same
+                        as the file name.
+            *         - The entire drawing will be written to disk.  Useful
+                        for periodic saves of the drawing, but note that any
+                        unreferenced Block definitions will not be written.
+            <blank>   - Permits selection of individual objects to be written
+                        to disk.  Also requests an insertion base point.
+
+Reference:  Section 7.2 of User Guide.
+\ZOOM
+The ZOOM command magnifies the drawing on the display screen (to see more
+detail) or shrinks it (to view more or the drawing with less detail).
+
+Formats:    ZOOM number  = Magnification relative to ZOOM All display
+                           (ZOOM All = ZOOM 1).  Higher numbers magnify,
+                           lower numbers shrink.
+            ZOOM numberX = Magnification relative to current display (1X).
+            ZOOM A       = All (place entire drawing -- all visible
+                           layers -- on display at once).
+            ZOOM C       = Center (designate desired center point and
+                           new display height).
+            ZOOM E       = Extents (displays current drawing content as 
+                           large as possible).
+            ZOOM L       = Lower left corner (designate desired lower
+                           left corner and new display height).
+            ZOOM P       = Previous (restore previous view).
+            ZOOM W       = Window (designate rectangular area to
+                           be drawn as large as possible).
+
+Reference:  Section 4.3 of User Guide.

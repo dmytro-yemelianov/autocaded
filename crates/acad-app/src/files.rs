@@ -8,7 +8,7 @@ pub fn execute(request: FilesRequest) -> Result<String, String> {
     execute_in(request, &cwd, &drives)
 }
 
-fn drive_roots() -> BTreeMap<char, PathBuf> {
+pub(crate) fn drive_roots() -> BTreeMap<char, PathBuf> {
     ('A'..='Z')
         .filter_map(|letter| {
             std::env::var_os(format!("AUTOCAD_DRIVE_{letter}"))
@@ -18,7 +18,7 @@ fn drive_roots() -> BTreeMap<char, PathBuf> {
         .collect()
 }
 
-fn drive_path(
+pub(crate) fn drive_path(
     letter: char,
     cwd: &Path,
     drives: &BTreeMap<char, PathBuf>,
@@ -167,7 +167,8 @@ fn execute_in(
             if !source.is_file() {
                 return Err(format!("file not found: {}", source.display()));
             }
-            if destination.exists() {
+            // Any existing entry, including a dangling symlink, is kept.
+            if std::fs::symlink_metadata(&destination).is_ok() {
                 return Err(format!(
                     "destination already exists: {}",
                     destination.display()
@@ -219,18 +220,22 @@ fn wildcard_match(pattern: &str, name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     struct TempDir(PathBuf);
 
     impl TempDir {
         fn new() -> Self {
+            // Concurrent tests can observe the same macOS wall-clock tick.
+            static NEXT: AtomicU64 = AtomicU64::new(0);
             let nonce = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_nanos();
-            let path =
-                std::env::temp_dir().join(format!("acad-files-{}-{nonce}", std::process::id()));
+            let id = NEXT.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir()
+                .join(format!("acad-files-{}-{nonce}-{id}", std::process::id()));
             std::fs::create_dir(&path).unwrap();
             Self(path)
         }
@@ -275,5 +280,28 @@ mod tests {
         );
         assert!(!dir.0.join("TWO.DWG").exists());
         assert!(dir.0.join("RENAMED.DWG").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rename_never_replaces_an_existing_entry_even_a_dangling_symlink() {
+        let dir = TempDir::new();
+        std::fs::write(dir.0.join("ONE.DWG"), b"one").unwrap();
+        std::os::unix::fs::symlink("MISSING.DWG", dir.0.join("LINK.DWG")).unwrap();
+        let drives = BTreeMap::from([('B', dir.0.clone())]);
+        let error = execute_in(
+            FilesRequest::Rename {
+                source: "B:ONE.DWG".into(),
+                destination: "B:LINK.DWG".into(),
+            },
+            &dir.0,
+            &drives,
+        )
+        .unwrap_err();
+        assert!(error.contains("destination already exists"), "{error}");
+        assert_eq!(std::fs::read(dir.0.join("ONE.DWG")).unwrap(), b"one");
+        assert!(std::fs::symlink_metadata(dir.0.join("LINK.DWG"))
+            .unwrap()
+            .is_symlink());
     }
 }

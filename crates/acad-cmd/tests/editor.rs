@@ -169,7 +169,7 @@ fn circle_and_point_use_current_layer_and_report_effects() {
         editor.submit("sample.dwg").unwrap(),
         Effect::Save("sample.dwg".into())
     );
-    assert_eq!(editor.submit("END").unwrap(), Effect::Quit);
+    assert_eq!(editor.submit("END").unwrap(), Effect::End);
 }
 
 #[test]
@@ -231,7 +231,7 @@ fn redraw_and_regen_leave_drawing_data_unchanged() {
         editor.submit(input).unwrap();
     }
     let original = editor.drawing().clone();
-    for command in ["STATUS", "REDRAW", "REGEN"] {
+    for command in ["REDRAW", "REGEN"] {
         assert_eq!(editor.submit(command).unwrap(), Effect::Continue);
         assert_eq!(editor.prompt(), "Command");
         assert_eq!(editor.drawing(), &original);
@@ -261,7 +261,7 @@ fn insert_rejects_unknown_blocks_without_mutation() {
     let mut editor = Editor::default();
     editor.submit("INSERT").unwrap();
     assert!(editor.submit("MISSING").is_err());
-    assert_eq!(editor.prompt(), "INSERT: block name");
+    assert_eq!(editor.prompt(), "INSERT: block or file name");
     assert!(editor.drawing().entities().next().is_none());
 }
 
@@ -363,7 +363,7 @@ fn zoom_extents_centers_on_the_drawing_and_previous_restores_the_view() {
         editor.drawing().header.view.center,
         Point { x: 1.0, y: 6.0 }
     );
-    assert_eq!(editor.drawing().header.view.height, 10.0);
+    assert_eq!(editor.drawing().header.view.height, 8.0);
     editor.submit("ZOOM").unwrap();
     editor.submit("P").unwrap();
     assert_eq!(editor.drawing().header.view, zoomed);
@@ -433,7 +433,10 @@ fn zoom_window_and_center_set_views_and_reject_empty_extents() {
         editor.drawing().header.view.center,
         Point { x: 5.0, y: 2.5 }
     );
-    assert_eq!(editor.drawing().header.view.height, 10.0);
+    assert_eq!(
+        editor.drawing().header.view.height,
+        10.0 / 1.522_331_154_684_095_9
+    );
     for input in ["ZOOM", "C", "-2,3", "20"] {
         editor.submit(input).unwrap();
     }
@@ -456,10 +459,14 @@ fn pan_changes_view_center_without_changing_height_and_previous_restores_it() {
     editor.submit("2").unwrap();
     let before_pan = editor.drawing().header.view;
     editor.submit("PAN").unwrap();
-    editor.submit("12,-4").unwrap();
+    editor.submit("@12,-4").unwrap();
+    editor.submit("").unwrap();
     assert_eq!(
         editor.drawing().header.view.center,
-        Point { x: 12.0, y: -4.0 }
+        Point {
+            x: before_pan.center.x - 12.0,
+            y: before_pan.center.y + 4.0
+        }
     );
     assert_eq!(editor.drawing().header.view.height, before_pan.height);
     editor.submit("ZOOM").unwrap();
@@ -474,6 +481,7 @@ fn list_erase_and_undo_use_stable_one_based_entity_selection() {
         editor.submit(input).unwrap();
     }
     editor.submit("LIST").unwrap();
+    editor.submit("ALL").unwrap();
     assert_eq!(editor.status(), "1 POINT, 2 CIRCLE");
     editor.submit("ERASE").unwrap();
     assert_eq!(editor.prompt(), "ERASE: entity numbers or ALL");
@@ -506,6 +514,8 @@ fn dblist_reports_live_top_level_block_and_repeat_entities_without_editing() {
             }],
         }),
         Item::Repeat(acad_model::Repeat {
+            start_layer: 1,
+            end_layer: 1,
             entities: vec![Entity::Point {
                 origin: Point { x: 7.0, y: 8.0 },
             }],
@@ -600,14 +610,16 @@ fn files_dialog_builds_list_delete_and_rename_requests() {
 fn dim_creates_dimension_geometry_after_the_observed_point_prompt_sequence() {
     let mut editor = Editor::default();
     let before = editor.drawing().clone();
-    for (input, prompt) in [
-        ("DIM", "DIM: first extension line origin or (ABCT)"),
-        ("1,1", "DIM: dimension line intersection"),
-        ("5,1", "DIM: second extension line origin"),
-        ("3,2", "DIM: dimension text"),
+    for (input, prompt, mouse_point) in [
+        ("DIM", "DIM: first extension line origin or (ABCT)", true),
+        ("1,1", "DIM: dimension line intersection", true),
+        ("5,1", "DIM: second extension line origin", true),
+        ("3,2", "DIM: dimension text", false),
     ] {
         editor.submit(input).unwrap();
         assert_eq!(editor.prompt(), prompt);
+        assert_eq!(editor.accepts_mouse_point(), mouse_point);
+        assert!(!editor.accepts_mouse_selection());
     }
     editor.submit("").unwrap();
     assert_eq!(editor.prompt(), "Command");
@@ -632,6 +644,119 @@ fn dim_creates_dimension_geometry_after_the_observed_point_prompt_sequence() {
         if *p3 == Point { x: 5.0, y: 2.0 } && *p4 == *p3));
     assert!(matches!(entities[6], Entity::Text { value, height, .. }
         if value == "1.0000" && *height == 0.2109375));
+}
+
+#[test]
+fn dim_settings_arrow_is_single_shot_and_drawing_neutral() {
+    let mut editor = Editor::default();
+    for input in ["LINE", "1,1", "2,2", ""] {
+        editor.submit(input).unwrap();
+    }
+    let before = editor.drawing().clone();
+    for answer in ["0.140625", "0.25", "0.5", "2", "0.21875"] {
+        editor.submit("DIM").unwrap();
+        editor.submit("a").unwrap();
+        assert_eq!(editor.prompt(), "DIM: dimension arrow size");
+        assert!(!editor.accepts_mouse_point());
+        assert!(!editor.accepts_mouse_selection());
+        assert!(editor.submit_mouse_point(Point { x: 1.0, y: 2.0 }).is_err());
+        assert_eq!(editor.prompt(), "DIM: dimension arrow size");
+        editor.submit(answer).unwrap();
+        assert_eq!(editor.prompt(), "Command");
+        assert_eq!(editor.drawing(), &before);
+    }
+    for answer in ["", "NaN", "inf", "-inf", "0", "-0", "-1", "0,0", "1'-2\""] {
+        editor.submit("DIM").unwrap();
+        editor.submit("A").unwrap();
+        assert!(editor.submit(answer).is_err(), "{answer:?}");
+        assert_eq!(editor.prompt(), "Command", "{answer:?}");
+        assert_eq!(editor.drawing(), &before, "{answer:?}");
+    }
+}
+
+#[test]
+fn dim_settings_text_remembers_independent_questions_and_blank_defaults() {
+    let mut editor = Editor::default();
+    let before = editor.drawing().clone();
+    for (inside, outside, inside_prompt, outside_prompt) in [
+        (
+            "y",
+            "n",
+            "DIM: inside horizontal text? <Y>",
+            "DIM: outside horizontal text? <Y>",
+        ),
+        (
+            "n",
+            "",
+            "DIM: inside horizontal text? <Y>",
+            "DIM: outside horizontal text? <N>",
+        ),
+        (
+            "",
+            "",
+            "DIM: inside horizontal text? <N>",
+            "DIM: outside horizontal text? <N>",
+        ),
+        (
+            "Y",
+            "Y",
+            "DIM: inside horizontal text? <N>",
+            "DIM: outside horizontal text? <N>",
+        ),
+        (
+            "",
+            "",
+            "DIM: inside horizontal text? <Y>",
+            "DIM: outside horizontal text? <Y>",
+        ),
+    ] {
+        editor.submit("DIM").unwrap();
+        editor.submit("t").unwrap();
+        for (answer, prompt) in [(inside, inside_prompt), (outside, outside_prompt)] {
+            assert_eq!(editor.prompt(), prompt);
+            assert!(!editor.accepts_mouse_point());
+            assert!(!editor.accepts_mouse_selection());
+            assert!(editor.submit_mouse_point(Point { x: 1.0, y: 2.0 }).is_err());
+            assert_eq!(editor.prompt(), prompt);
+            editor.submit(answer).unwrap();
+            assert_eq!(editor.drawing(), &before);
+        }
+        assert_eq!(editor.prompt(), "Command");
+    }
+}
+
+#[test]
+fn dim_settings_text_errors_retry_and_cancellation_discards_pending_answers() {
+    let mut editor = Editor::default();
+    let before = editor.drawing().clone();
+    for menu_cancel in [false, true] {
+        editor.submit("DIM").unwrap();
+        editor.submit("T").unwrap();
+        for answer in ["YES", "ON", "1", "bad"] {
+            assert!(editor.submit(answer).is_err());
+            assert_eq!(editor.prompt(), "DIM: inside horizontal text? <Y>");
+            assert_eq!(editor.drawing(), &before);
+        }
+        editor.submit("N").unwrap();
+        assert!(editor.submit("NO").is_err());
+        assert_eq!(editor.prompt(), "DIM: outside horizontal text? <Y>");
+        if menu_cancel {
+            editor
+                .apply_menu_control(acad_cmd::MenuControl::Cancel)
+                .unwrap();
+        } else {
+            editor.cancel_command().unwrap();
+        }
+        assert_eq!(editor.prompt(), "Command");
+        editor.submit("DIM").unwrap();
+        editor.submit("T").unwrap();
+        assert_eq!(editor.prompt(), "DIM: inside horizontal text? <Y>");
+        editor.submit("").unwrap();
+        assert_eq!(editor.prompt(), "DIM: outside horizontal text? <Y>");
+        editor.submit("").unwrap();
+        assert_eq!(editor.prompt(), "Command");
+        assert_eq!(editor.drawing(), &before);
+    }
 }
 
 #[test]
@@ -694,10 +819,12 @@ fn hatch_lists_patterns_and_creates_clipped_line_pattern_blocks() {
     assert_eq!(editor.prompt(), "SKETCH: record increment");
     assert!(editor.submit("0").unwrap_err().contains("must be positive"));
     assert_eq!(editor.prompt(), "SKETCH: record increment");
-    assert!(editor
-        .submit("0.5")
-        .unwrap_err()
-        .contains("digitizer input device"));
+    editor.submit("0.5").unwrap();
+    assert_eq!(
+        editor.prompt(),
+        "Sketch.  Pen eXit Quit Record Erase Connect ."
+    );
+    editor.submit("Q").unwrap();
     assert_eq!(editor.prompt(), "Command");
     assert!(editor.drawing().items.is_empty());
 }
@@ -716,7 +843,7 @@ fn hatch_rejects_an_open_boundary_without_adding_pattern_geometry() {
         .unwrap_err()
         .contains("closed, unbranched loops"));
     assert_eq!(editor.drawing().items, before);
-    assert_eq!(editor.prompt(), "HATCH: upper right corner");
+    assert!(editor.prompt().starts_with("Select objects:"));
 }
 
 #[test]
@@ -833,63 +960,99 @@ fn fillet_rejects_parallel_lines_and_excessive_radius_without_mutation() {
         editor.submit(input).unwrap();
     }
     let original = editor.drawing().items.clone();
-    for input in ["FILLET", "1,2"] {
+    for input in ["FILLET", "R", "1", "FILLET"] {
         editor.submit(input).unwrap();
     }
-    assert!(editor.submit("1").is_err());
+    assert!(editor.submit("1,2").is_err());
     assert_eq!(editor.drawing().items, original);
-    assert_eq!(editor.prompt(), "FILLET: radius");
+    assert_eq!(editor.prompt(), "FILLET: select two LINE entities or R");
 
     editor = Editor::default();
     for input in ["LINE", "-5,0", "5,0", "", "LINE", "0,-5", "0,5", ""] {
         editor.submit(input).unwrap();
     }
-    editor.submit("FILLET").unwrap();
-    editor.submit("1,2").unwrap();
-    assert!(editor.submit("100").is_err());
+    for input in ["FILLET", "R", "100", "FILLET"] {
+        editor.submit(input).unwrap();
+    }
+    assert!(editor.submit("1,2").is_err());
     assert_eq!(editor.drawing().items.len(), 2);
 }
 
+fn line_points(entity: &Entity) -> Option<(Point, Point)> {
+    match entity {
+        Entity::OnLayer { entity, .. } => line_points(entity),
+        Entity::Line { start, end } => Some((*start, *end)),
+        _ => None,
+    }
+}
+
 #[test]
-fn break_rejects_points_off_the_line_or_at_an_endpoint_without_mutation() {
+fn break_projects_off_line_points_and_cuts_an_end_at_an_endpoint() {
+    // In-tree original: `7,1` on LINE 0,0-10,0 cuts at 7,0 (docs/native-array-break.md).
     let mut editor = Editor::default();
     for input in ["LINE", "0,0", "10,0", ""] {
         editor.submit(input).unwrap();
     }
-    let original = editor.drawing().items.clone();
     for input in ["BREAK", "1", "2,1"] {
         editor.submit(input).unwrap();
     }
-    assert!(editor.submit("7,0").is_err());
-    assert_eq!(editor.drawing().items, original);
     assert_eq!(editor.prompt(), "BREAK: second point");
+    editor.submit("7,0").unwrap();
+    let lines: Vec<_> = editor
+        .drawing()
+        .entities()
+        .filter_map(line_points)
+        .collect();
+    assert_eq!(
+        lines,
+        [
+            (Point { x: 0.0, y: 0.0 }, Point { x: 2.0, y: 0.0 }),
+            (Point { x: 7.0, y: 0.0 }, Point { x: 10.0, y: 0.0 })
+        ]
+    );
 
     let mut endpoint_editor = Editor::default();
-    for input in ["LINE", "0,0", "10,0", ""] {
+    for input in ["LINE", "0,0", "10,0", "", "BREAK", "1", "0,0", "5,0"] {
         endpoint_editor.submit(input).unwrap();
     }
-    let endpoint_original = endpoint_editor.drawing().items.clone();
-    for input in ["BREAK", "1", "0,0"] {
-        endpoint_editor.submit(input).unwrap();
-    }
-    assert!(endpoint_editor.submit("5,0").is_err());
-    assert_eq!(endpoint_editor.drawing().items, endpoint_original);
+    let lines: Vec<_> = endpoint_editor
+        .drawing()
+        .entities()
+        .filter_map(line_points)
+        .collect();
+    assert_eq!(
+        lines,
+        [(Point { x: 5.0, y: 0.0 }, Point { x: 10.0, y: 0.0 })]
+    );
+    endpoint_editor.submit("UNDO").unwrap();
+    assert_eq!(endpoint_editor.drawing().items.len(), 1);
 }
 
 #[test]
-fn break_circle_rejects_points_inside_the_circumference() {
+fn break_circle_projects_points_radially_and_rejects_the_center() {
     let mut editor = Editor::default();
     for input in ["CIRCLE", "1,2", "3", "BREAK", "1", "4,2"] {
         editor.submit(input).unwrap();
     }
     let original = editor.drawing().items.clone();
-    assert!(editor.submit("1,4").is_err());
+    assert!(editor.submit("1,2").is_err(), "the center has no angle");
     assert_eq!(editor.drawing().items, original);
     assert_eq!(editor.prompt(), "BREAK: second point");
+    editor.submit("1,4").unwrap();
+    let Some(Entity::Arc {
+        start_deg, end_deg, ..
+    }) = editor.drawing().entities().next().map(|e| match e {
+        Entity::OnLayer { entity, .. } => entity.as_ref(),
+        other => other,
+    })
+    else {
+        panic!("BREAK leaves an arc");
+    };
+    assert!((start_deg - 90.0).abs() < 1e-9 && end_deg.abs() < 1e-9);
 }
 
 #[test]
-fn break_arc_rejects_a_point_outside_its_sweep_without_mutation() {
+fn break_arc_snaps_a_point_outside_its_sweep_to_the_nearer_end() {
     let mut editor = Editor::default();
     editor.drawing_mut().items.push(Item::Entity(Entity::Arc {
         center: Point { x: 0.0, y: 0.0 },
@@ -897,12 +1060,25 @@ fn break_arc_rejects_a_point_outside_its_sweep_without_mutation() {
         start_deg: 20.0,
         end_deg: 160.0,
     }));
-    for input in ["BREAK", "1", "0,2"] {
+    for input in ["BREAK", "1", "0,2", "-2,0"] {
         editor.submit(input).unwrap();
     }
-    let original = editor.drawing().items.clone();
-    assert!(editor.submit("-2,0").is_err());
-    assert_eq!(editor.drawing().items, original);
+    let arcs: Vec<_> = editor
+        .drawing()
+        .entities()
+        .map(|e| match e {
+            Entity::OnLayer { entity, .. } => entity.as_ref().clone(),
+            other => other.clone(),
+        })
+        .collect();
+    let [Entity::Arc {
+        start_deg, end_deg, ..
+    }] = arcs.as_slice()
+    else {
+        panic!("one retained arc: {arcs:?}");
+    };
+    assert_eq!(*start_deg, 20.0);
+    assert!((end_deg - 90.0).abs() < 1e-9);
 }
 
 #[test]
@@ -1279,6 +1455,33 @@ fn editing_geometry_preserves_the_user_view_and_limits() {
     assert_eq!(editor.drawing().header.extents.xmax, 11.0);
 }
 
+#[test]
+fn adding_geometry_preserves_view_and_limits_and_undo_restores_extents() {
+    let mut editor = Editor::default();
+    for input in ["ZOOM", "C", "-2,3", "20", "LIMITS", "-50,-40", "60,70"] {
+        editor.submit(input).unwrap();
+    }
+    let original = editor.drawing().clone();
+    for input in ["LINE", "1,2", "11,7", ""] {
+        editor.submit(input).unwrap();
+        assert_eq!(editor.drawing().header.view, original.header.view);
+        assert_eq!(editor.drawing().header.limits, original.header.limits);
+    }
+    assert_eq!(editor.drawing().header.extents.xmin, 1.0);
+    assert_eq!(editor.drawing().header.extents.xmax, 11.0);
+    assert_eq!(editor.drawing().header.extents.ymin, 2.0);
+    assert_eq!(editor.drawing().header.extents.ymax, 7.0);
+    editor.submit("UNDO").unwrap();
+    assert_eq!(editor.drawing(), &original);
+    for input in ["CIRCLE", "4,5", "2"] {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(editor.drawing().header.view, original.header.view);
+    assert_eq!(editor.drawing().header.limits, original.header.limits);
+    assert_eq!(editor.drawing().header.extents.xmin, 2.0);
+    assert_eq!(editor.drawing().header.extents.xmax, 6.0);
+}
+
 fn menu_control_editor() -> Editor {
     let mut editor = Editor::default();
     editor.drawing_mut().header.snap.spacing = 0.5;
@@ -1363,7 +1566,7 @@ fn menu_control_preserves_circle_radius_pending_state() {
         editor.submit("CIRCLE").unwrap();
         editor.submit("2,3").unwrap();
         editor.apply_menu_control(control).unwrap();
-        assert_eq!(editor.prompt(), "CIRCLE: radius");
+        assert_eq!(editor.prompt(), "CIRCLE: radius or point (D for diameter)");
         assert!(editor.drawing().items.is_empty());
         editor.submit("1.25").unwrap();
         assert_eq!(editor.prompt(), "Command");
@@ -1508,10 +1711,10 @@ fn menu_return_empty_active_prompts_match_native() {
     // No correction to unobserved nonempty parser errors or other prompts.
     editor.submit_return("CIRCLE").unwrap();
     assert!(editor.submit_return("").is_err());
-    assert_eq!(editor.prompt(), "CIRCLE: center point");
+    assert_eq!(editor.prompt(), "CIRCLE: center point (or 2P/3P)");
     editor.submit_return("2,3").unwrap();
     assert!(editor.submit_return("bad").is_err());
-    assert_eq!(editor.prompt(), "CIRCLE: radius");
+    assert_eq!(editor.prompt(), "CIRCLE: radius or point (D for diameter)");
 }
 
 #[test]

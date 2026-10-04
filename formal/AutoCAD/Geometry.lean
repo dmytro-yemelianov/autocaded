@@ -10,6 +10,12 @@ Rust matches the native default, scale-2 / 30-degree, circle, nested-hole, and
 semicircle-plus-chord cases. The implementation is limited to closed LINE/ARC
 loops, circles, and the LINE pattern. SKETCH proceeds from its record increment to digitizer input, so
 it is hardware-dependent.
+
+Superseded for SKETCH: the `unsupportedDevice` outcome below models only the
+increment prompt. A QEMU mouse oracle (`crates/acad-oracle/tests/sketch_mouse.rs`)
+shows that the original accepts a mouse after the increment, and the native editor
+implements that contract (`docs/native-sketch.md`). The Lean transition is kept
+unchanged and is not a claim about post-increment behaviour.
 -/
 
 namespace AutoCAD.Geometry
