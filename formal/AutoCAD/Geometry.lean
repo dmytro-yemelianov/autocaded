@@ -32,6 +32,7 @@ inductive Prompt where
   | hatchWindowFirst
   | hatchWindowSecond
   | sketchRecordIncrement
+  | sketchDigitizer
   deriving DecidableEq, Repr
 
 inductive Phase where
@@ -70,7 +71,7 @@ inductive Outcome where
   | hatchLineBlock
   | patternList
   | unsupportedGeometry
-  | unsupportedDevice
+  | sketchMode
   | invalid
   deriving DecidableEq, Repr
 
@@ -90,7 +91,8 @@ def advance : Phase → Input → Outcome
   | .hatchWindowFirst, .point => .prompt .hatchWindowSecond
   | .hatchWindowSecond, .point => .hatchLineBlock
   | .command, .sketch => .prompt .sketchRecordIncrement
-  | .sketchIncrement, .increment => .unsupportedDevice
+  | .sketchIncrement, .increment => .prompt .sketchDigitizer
+  | .sketchDigitizer, .point => .sketchMode
   | _, _ => .invalid
 
 /-! The DIM prompts and primitive-entity output are QEMU-observed. This contract
@@ -113,6 +115,7 @@ example : advance .hatchWindowFirst .point = .prompt .hatchWindowSecond := by de
 example : advance .hatchWindowSecond .point = .hatchLineBlock := by decide
 example : advance .hatchPattern .question = .patternList := by decide
 example : advance .command .sketch = .prompt .sketchRecordIncrement := by decide
-example : advance .sketchIncrement .increment = .unsupportedDevice := by decide
+example : advance .sketchIncrement .increment = .prompt .sketchDigitizer := by decide
+example : advance .sketchDigitizer .point = .sketchMode := by decide
 
 end AutoCAD.Geometry

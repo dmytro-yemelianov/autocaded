@@ -129,7 +129,14 @@ def findBlock (items : List Item) (id : Nat) : Option Block :=
 
 def exportNamed (drawing : Drawing) (id : Nat) : Option Snapshot := do
   let block ← findBlock drawing.items id
-  pure { base := block.base, items := block.entities.map Item.entity }
+  let bodyItems := block.entities.map Item.entity
+  let allBlocks := drawing.items.filter fun item => match item with | .block _ => true | _ => false
+  let reachable := reachableBlocks (bodyItems ++ allBlocks)
+  let neededBlocks := drawing.items.filterMap fun item =>
+    match item with
+    | .block b => if reachable.contains b.id then some (Item.block b) else none
+    | _ => none
+  pure { base := block.base, items := bodyItems ++ neededBlocks }
 
 def selectableCount (items : List Item) : Nat :=
   items.foldl (fun count item =>
@@ -156,7 +163,14 @@ def exportSelected (drawing : Drawing) (numbers : List Nat) (base : Point) : Opt
   if numbers.isEmpty || numbers.any (fun number => number == 0 || number > selectableCount drawing.items) then
     none
   else
-    some { base := base, items := selectItems drawing.items numbers }
+    let selected := selectItems drawing.items numbers
+    let allBlocks := drawing.items.filter fun item => match item with | .block _ => true | _ => false
+    let reachable := reachableBlocks (selected ++ allBlocks)
+    let neededBlocks := drawing.items.filterMap fun item =>
+      match item with
+      | .block b => if reachable.contains b.id then some (Item.block b) else none
+      | _ => none
+    some { base := base, items := selected ++ neededBlocks }
 
 def evaluate (drawing : Drawing) : Request → Option Snapshot
   | .whole => some (exportWhole drawing)
@@ -207,11 +221,13 @@ example : exportWhole sample = ⟨p0, [
   .entity e1, .entity eLoad, .entity e2, .block bA, .block bB
 ]⟩ := by decide
 
-example : exportNamed sample 1 = some ⟨bA.base, [.entity eA]⟩ := by decide
+example : exportNamed sample 1 = some ⟨bA.base, [.entity eA, .block bB]⟩ := by decide
 
 example : exportNamed sample 99 = none := by decide
 
 example : exportSelected sample [2] pBase = some ⟨pBase, [.entity e2]⟩ := by decide
+
+example : exportSelected sample [1] pBase = some ⟨pBase, [.entity e1, .block bA, .block bB]⟩ := by decide
 
 example : exportSelected sample [0] pBase = none := by decide
 
@@ -226,11 +242,14 @@ example : advance sample (.name 1) .blankName = .prompt .insertionBase := by dec
 example : advance sample (.name 1) .wholeDrawing = .save 1 (exportWhole sample) := by decide
 
 example : advance sample (.name 1) (.blockId 1) =
-    .save 1 ⟨bA.base, [.entity eA]⟩ := by decide
+    .save 1 ⟨bA.base, [.entity eA, .block bB]⟩ := by decide
 
 example : advance sample (.base 1) (.point pBase) = .prompt .entitySelection := by decide
 
 example : advance sample (.selection 1 pBase) (.entities [2]) =
     .save 1 ⟨pBase, [.entity e2]⟩ := by decide
+
+example : advance sample (.selection 1 pBase) (.entities [1]) =
+    .save 1 ⟨pBase, [.entity e1, .block bA, .block bB]⟩ := by decide
 
 end AutoCAD.Wblock
