@@ -22,6 +22,9 @@ namespace AutoCAD.Geometry
 
 inductive Prompt where
   | firstExtensionOrigin
+  | dimArrowSize
+  | dimInsideHorizontal
+  | dimOutsideHorizontal
   | dimensionIntersection
   | secondExtensionOrigin
   | dimensionText
@@ -38,6 +41,9 @@ inductive Prompt where
 inductive Phase where
   | command
   | dimFirstExtension
+  | dimArrowSize
+  | dimInsideHorizontal
+  | dimOutsideHorizontal
   | dimIntersection
   | dimSecondExtension
   | dimText
@@ -53,6 +59,8 @@ inductive Phase where
 
 inductive Input where
   | dim
+  | dimArrowOption
+  | dimTextOption
   | hatch
   | sketch
   | point
@@ -60,6 +68,7 @@ inductive Input where
   | pattern
   | question
   | scalar
+  | yesNo
   | selection
   | window
   | increment
@@ -77,6 +86,11 @@ inductive Outcome where
 
 def advance : Phase → Input → Outcome
   | .command, .dim => .prompt .firstExtensionOrigin
+  | .dimFirstExtension, .dimArrowOption => .prompt .dimArrowSize
+  | .dimArrowSize, .scalar => .prompt .firstExtensionOrigin
+  | .dimFirstExtension, .dimTextOption => .prompt .dimInsideHorizontal
+  | .dimInsideHorizontal, .yesNo => .prompt .dimOutsideHorizontal
+  | .dimOutsideHorizontal, .yesNo => .prompt .firstExtensionOrigin
   | .dimFirstExtension, .point => .prompt .dimensionIntersection
   | .dimIntersection, .point => .prompt .secondExtensionOrigin
   | .dimSecondExtension, .point => .prompt .dimensionText
@@ -101,6 +115,11 @@ does not specify the geometry calculations or claim parity for every DIM mode.
 
 example : advance .command .dim = .prompt .firstExtensionOrigin := by decide
 example : advance .dimFirstExtension .point = .prompt .dimensionIntersection := by decide
+example : advance .dimFirstExtension .dimArrowOption = .prompt .dimArrowSize := by decide
+example : advance .dimArrowSize .scalar = .prompt .firstExtensionOrigin := by decide
+example : advance .dimFirstExtension .dimTextOption = .prompt .dimInsideHorizontal := by decide
+example : advance .dimInsideHorizontal .yesNo = .prompt .dimOutsideHorizontal := by decide
+example : advance .dimOutsideHorizontal .yesNo = .prompt .firstExtensionOrigin := by decide
 example : advance .dimIntersection .point = .prompt .secondExtensionOrigin := by decide
 example : advance .dimSecondExtension .point = .prompt .dimensionText := by decide
 example : advance .dimText .text = .dimensionEntities := by decide

@@ -25,11 +25,16 @@ structure Block where
   entities : List Entity
   deriving DecidableEq, Repr
 
+structure GroupMember where
+  entity : Entity
+  erased : Bool := false
+  deriving DecidableEq, Repr
+
 inductive Item where
   | entity : Entity → Item
   | erased : Entity → Item
   | block : Block → Item
-  | repeat : List Entity → Item
+  | repeat : (layer : Nat) → List GroupMember → Item
   deriving DecidableEq, Repr
 
 structure Drawing where
@@ -86,7 +91,7 @@ def blockRefsInItems (items : List Item) : List Nat :=
   items.flatMap fun item =>
     match item with
     | .entity entity => entity.blockRefs
-    | .repeat entities => entities.flatMap Entity.blockRefs
+    | .repeat _ members => members.flatMap fun m => if m.erased then [] else m.entity.blockRefs
     | .erased _ | .block _ => []
 
 def blockRefsInDefinitions (blocks : List Block) (names : List Nat) : List Nat :=
@@ -111,7 +116,7 @@ def keepWholeItem (reachable : List Nat) : Item → Bool
   | .entity _ => true
   | .erased _ => false
   | .block block => reachable.contains block.id
-  | .repeat _ => true
+  | .repeat _ _ => true
 
 def exportWhole (drawing : Drawing) : Snapshot :=
   let reachable := reachableBlocks drawing.items
