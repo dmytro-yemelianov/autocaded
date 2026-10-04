@@ -1,7 +1,8 @@
 //! Compact visible bounds for windows and the INSERT-origin pick gate.
 use super::*;
+use acad_model::EngineLimits;
 
-const MAX_STORED_VISITS: usize = 100_000;
+const MAX_STORED_VISITS: usize = EngineLimits::DEFAULT_1983.max_traversal_visits;
 
 /// A drawing plus its block-name index, built once per pick, window or
 /// bounds pass: `Drawing::block` is a linear scan of every item (RB2).
@@ -21,7 +22,7 @@ impl<'a> Scene<'a> {
 
 /// Bytes of a block name hashed per visit unit (long names are not free).
 const NAME_BYTES_PER_VISIT: usize = 16;
-const MAX_DEPTH: usize = 256;
+const MAX_DEPTH: usize = EngineLimits::DEFAULT_1983.max_stored_depth;
 
 // REPEAT markers have no own layer. Layer wrappers gate a whole group;
 // LOAD is metadata and never provides selectable geometry.

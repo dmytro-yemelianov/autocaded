@@ -1,10 +1,10 @@
 //! Standalone TXT eligibility. Iterator frames retain O(stored/INSERT depth)
 //! pending state even for branching cyclic blocks; no sibling work is copied.
-use acad_model::{Block, Drawing, Entity, Item};
+use acad_model::{Block, Drawing, EngineLimits, Entity, Item};
 
-const MAX_VISITS: usize = 100_000;
-const MAX_STORED_DEPTH: usize = 256;
-const MAX_INSERT_DEPTH: usize = 16;
+const MAX_VISITS: usize = EngineLimits::DEFAULT_1983.max_traversal_visits;
+const MAX_STORED_DEPTH: usize = EngineLimits::DEFAULT_1983.max_stored_depth;
+const MAX_INSERT_DEPTH: usize = EngineLimits::DEFAULT_1983.max_insert_depth;
 struct Frame<'a> {
     entities: std::slice::Iter<'a, Entity>,
     stored_depth: usize,

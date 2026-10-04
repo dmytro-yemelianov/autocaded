@@ -1,8 +1,8 @@
 //! Preflight owner work before any generated repeat cells allocate.
-use acad_model::{BlockIndex, Entity, Item, Repeat};
+use acad_model::{BlockIndex, EngineLimits, Entity, Item, Repeat};
 
-const MAX_GENERATED_RECORDS: usize = 100_000;
-const MAX_STORED_DEPTH: usize = 256;
+const MAX_GENERATED_RECORDS: usize = EngineLimits::DEFAULT_1983.max_array_entities;
+const MAX_STORED_DEPTH: usize = EngineLimits::DEFAULT_1983.max_stored_depth;
 
 /// Whether the owner fits the per-owner budget, plus the stored records the
 /// preflight visited (charged to the whole-frame budget by the caller).

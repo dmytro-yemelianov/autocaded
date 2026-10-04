@@ -90,7 +90,7 @@ impl Entity {
     /// is conservatively excluded from live traversal; codecs validate it separately.
     pub fn is_erased(&self) -> bool {
         let mut entity = self;
-        for _ in 0..=256 {
+        for _ in 0..=crate::EngineLimits::DEFAULT_1983.max_stored_depth {
             match entity {
                 Self::OnLayer { entity: inner, .. } => entity = inner,
                 Self::Erased(_) => return true,

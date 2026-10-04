@@ -1,8 +1,8 @@
 //! Shared native codec safety policy. Limits apply to stored records, never instances.
-use crate::{Drawing, Entity, Item, Repeat};
+use crate::{Drawing, EngineLimits, Entity, Item, Repeat};
 
-pub const MAX_GROUP_DEPTH: usize = 64;
-pub const MAX_STORED_RECORDS: usize = u16::MAX as usize;
+pub const MAX_GROUP_DEPTH: usize = EngineLimits::DEFAULT_1983.max_group_depth;
+pub const MAX_STORED_RECORDS: usize = EngineLimits::DEFAULT_1983.max_stored_records;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GroupCodecError {

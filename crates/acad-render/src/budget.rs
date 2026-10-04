@@ -3,6 +3,7 @@
 //! Per-owner preflight (`selection_policy`) bounds a single owner; this budget
 //! bounds the sum over every owner drawn in one frame, including the
 //! selection-highlight pass when a caller shares one budget between passes.
+use acad_model::EngineLimits;
 use crate::flatten::Prim;
 
 /// Work units one frame may spend before rendering stops at an owner boundary.
@@ -13,10 +14,10 @@ use crate::flatten::Prim;
 /// [`PRIMITIVE_SETUP_UNITS`]. Measured debug rasterization costs about 3 µs
 /// per unit (release about 0.1 µs); the largest retained corpus drawing
 /// (DISC.BAK) spends about 88,000 units.
-pub const FRAME_WORK_LIMIT: usize = 1_000_000;
+pub const FRAME_WORK_LIMIT: usize = EngineLimits::DEFAULT_1983.frame_work_limit;
 
 /// Fixed per-primitive cost (path setup in the rasterizer) in vertex units.
-pub const PRIMITIVE_SETUP_UNITS: usize = 4;
+pub const PRIMITIVE_SETUP_UNITS: usize = EngineLimits::DEFAULT_1983.primitive_setup_units;
 
 /// Monotonic work counter for one frame. Charging never succeeds past the
 /// limit; the first refused charge latches `exhausted`.
@@ -40,6 +41,9 @@ impl FrameBudget {
             used: 0,
             exhausted: false,
         }
+    }
+    pub fn with_limits(limits: &EngineLimits) -> Self {
+        Self::new(limits.frame_work_limit)
     }
     pub fn limit(&self) -> usize {
         self.limit

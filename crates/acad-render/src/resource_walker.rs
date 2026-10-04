@@ -2,7 +2,7 @@
 use crate::budget::{name_units, prim_units, FrameBudget};
 use crate::flatten::{aci_rgb, flatten_entity, shift_prim, style, Prim};
 use crate::Viewport;
-use acad_model::{BlockIndex, Drawing, Entity, Point, Repeat};
+use acad_model::{BlockIndex, Drawing, EngineLimits, Entity, Point, Repeat};
 
 #[derive(Clone)]
 pub(crate) struct LibraryState {
@@ -40,7 +40,7 @@ pub(crate) enum Reason {
 }
 
 /// Distinct diagnostics kept per render pass; bounds diagnostic memory/time.
-pub(crate) const MAX_DIAGNOSTICS: usize = 64;
+pub(crate) const MAX_DIAGNOSTICS: usize = EngineLimits::DEFAULT_1983.max_diagnostics;
 /// Characters of a TEXT value quoted in a diagnostic.
 const QUOTED_TEXT_CHARS: usize = 40;
 
@@ -192,7 +192,8 @@ impl Walker<'_> {
     }
     // Library records keep their ordered effect even inside hidden groups.
     pub(crate) fn hidden_loads(&mut self, entity: &Entity, state: &mut LibraryState, depth: u32) {
-        self.hidden_loads_bounded(entity, state, depth, 0, &mut 100_000);
+        let mut remaining = EngineLimits::DEFAULT_1983.max_traversal_visits;
+        self.hidden_loads_bounded(entity, state, depth, 0, &mut remaining);
     }
     pub(crate) fn hidden_repeat_loads(
         &mut self,
@@ -200,7 +201,7 @@ impl Walker<'_> {
         state: &mut LibraryState,
         depth: u32,
     ) {
-        let mut remaining = 100_000;
+        let mut remaining = EngineLimits::DEFAULT_1983.max_traversal_visits;
         for child in &repeat.entities {
             self.hidden_loads_bounded(child, state, depth, 0, &mut remaining);
             if self.context_failed {
@@ -219,7 +220,7 @@ impl Walker<'_> {
         if !self.budget.charge(1) {
             return;
         }
-        if stored_depth > 256 || *remaining == 0 {
+        if stored_depth > EngineLimits::DEFAULT_1983.max_stored_depth || *remaining == 0 {
             self.context_failed = true;
             self.report_reason(
                 Reason::ContextFailure,

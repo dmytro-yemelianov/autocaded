@@ -4,13 +4,13 @@
 //! entries gaps, and zero entries dots.
 
 use crate::MAX_ARRAY_ENTITIES;
-use acad_model::Point;
+use acad_model::{EngineLimits, Point};
 use std::borrow::Cow;
 
 /// Total HATCH work: every sweep row and every dash cycle visited, across
 /// all families. Bounds files whose rows draw nothing (or nothing visible),
 /// which the emitted-stroke budget alone cannot catch.
-pub(crate) const MAX_HATCH_WORK: usize = 10_000_000;
+pub(crate) const MAX_HATCH_WORK: usize = EngineLimits::DEFAULT_1983.max_hatch_work;
 
 #[derive(Default)]
 pub(crate) struct HatchWork {
@@ -159,23 +159,6 @@ const fn family(angle: f64, y: f64, spacing: f64) -> HatchFamily {
     }
 }
 
-const fn dashed(
-    angle: f64,
-    x: f64,
-    y: f64,
-    drift: f64,
-    spacing: f64,
-    dashes: &'static [f64],
-) -> HatchFamily {
-    HatchFamily {
-        angle,
-        origin: Point { x, y },
-        spacing,
-        drift,
-        dashes: Cow::Borrowed(dashes),
-    }
-}
-
 /// HLP `U`: continuous lines through the origin at the user angle, plus the
 /// perpendicular family when double-hatching (the original's order).
 pub(crate) fn user_families(spacing: f64, double: bool) -> Vec<HatchFamily> {
@@ -297,188 +280,12 @@ fn pattern_row(line: &str) -> Result<HatchFamily, String> {
     })
 }
 
-pub(crate) fn pattern_families(pattern: &str) -> Result<&'static [HatchFamily], String> {
-    // Preserve file row order. Origin is in world-pattern coordinates; spacing
-    // and drift are perpendicular and parallel to the row, respectively.
-    const LINE: &[HatchFamily] = &[family(0.0, 0.0, 0.125)];
-    const NET: &[HatchFamily] = &[family(0.0, 0.0, 0.125), family(90.0, 0.0, 0.125)];
-    const GRATE: &[HatchFamily] = &[family(0.0, 0.0, 0.03125), family(90.0, 0.0, 0.125)];
-    const NET3: &[HatchFamily] = &[
-        family(0.0, 0.0, 0.125),
-        family(60.0, 0.0, 0.125),
-        family(120.0, 0.0, 0.125),
-    ];
-    const PLAST: &[HatchFamily] = &[
-        family(0.0, 0.0, 0.25),
-        family(0.0, 0.03125, 0.25),
-        family(0.0, 0.0625, 0.25),
-    ];
-    const PLASTI: &[HatchFamily] = &[
-        family(0.0, 0.0, 0.25),
-        family(0.0, 0.03125, 0.25),
-        family(0.0, 0.0625, 0.25),
-        family(0.0, 0.15625, 0.25),
-    ];
-    const STEEL: &[HatchFamily] = &[family(45.0, 0.0, 0.125), family(45.0, 0.0625, 0.125)];
-    const EARTH: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.25, 0.25, &[0.25, -0.25]),
-        dashed(0.0, 0.0, 0.09375, 0.25, 0.25, &[0.25, -0.25]),
-        dashed(0.0, 0.0, 0.1875, 0.25, 0.25, &[0.25, -0.25]),
-        dashed(90.0, 0.03125, 0.21875, 0.25, 0.25, &[0.25, -0.25]),
-        dashed(90.0, 0.125, 0.21875, 0.25, 0.25, &[0.25, -0.25]),
-        dashed(90.0, 0.21875, 0.21875, 0.25, 0.25, &[0.25, -0.25]),
-    ];
-    const ESCHER: &[HatchFamily] = &[
-        dashed(60.0, 0.0, 0.0, -0.6, 1.039230484, &[1.1, -0.1]),
-        dashed(180.0, 0.0, 0.0, -0.6, 1.039230484, &[1.1, -0.1]),
-        dashed(300.0, 0.0, 0.0, 0.6, 1.039230484, &[1.1, -0.1]),
-        dashed(60.0, 0.1, 0.0, -0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(300.0, 0.1, 0.0, 0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(60.0, -0.05, 0.08660254, -0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(180.0, -0.05, 0.08660254, -0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(300.0, -0.05, -0.08660254, 0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(180.0, -0.05, -0.08660254, -0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(60.0, -0.4, 0.0, -0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(300.0, -0.4, 0.0, 0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(60.0, 0.2, -0.346410161, -0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(180.0, 0.2, -0.346410161, -0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(300.0, 0.2, 0.346410161, 0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(180.0, 0.2, 0.346410161, -0.6, 1.039230484, &[0.2, -1.0]),
-        dashed(0.0, 0.2, 0.173205081, -0.6, 1.039230484, &[0.7, -0.5]),
-        dashed(0.0, 0.2, -0.173205081, -0.6, 1.039230484, &[0.7, -0.5]),
-        dashed(120.0, 0.05, 0.259807621, 0.6, 1.039230484, &[0.7, -0.5]),
-        dashed(120.0, -0.25, 0.08660254, 0.6, 1.039230484, &[0.7, -0.5]),
-        dashed(240.0, -0.25, -0.08660254, 0.6, 1.039230484, &[0.7, -0.5]),
-        dashed(240.0, 0.05, -0.259807621, 0.6, 1.039230484, &[0.7, -0.5]),
-    ];
-    const FLEX: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.0, 0.25, &[0.25, -0.25]),
-        dashed(
-            45.0,
-            0.25,
-            0.0,
-            0.176776695,
-            0.176776695,
-            &[0.0625, -0.228553391, 0.0625, -0.353553391],
-        ),
-    ];
-    // Retain the file's decimal precision rather than replacing it with sqrt(1/2).
-    #[allow(clippy::approx_constant)]
-    const GRASS: &[HatchFamily] = &[
-        dashed(
-            90.0,
-            0.0,
-            0.0,
-            0.707106781,
-            0.707106781,
-            &[0.1875, -1.226713563],
-        ),
-        dashed(45.0, 0.0, 0.0, 0.0, 1.0, &[0.1875, -0.8125]),
-        dashed(135.0, 0.0, 0.0, 0.0, 1.0, &[0.1875, -0.8125]),
-    ];
-    const HEX: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.0, 0.216506351, &[0.125, -0.25]),
-        dashed(120.0, 0.0, 0.0, 0.0, 0.216506351, &[0.125, -0.25]),
-        dashed(60.0, 0.125, 0.0, 0.0, 0.216506351, &[0.125, -0.25]),
-    ];
-    const HONEY: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.1875, 0.108253175, &[0.125, -0.25]),
-        dashed(120.0, 0.0, 0.0, 0.1875, 0.108253175, &[0.125, -0.25]),
-        dashed(60.0, 0.0, 0.0, 0.1875, 0.108253175, &[-0.25, 0.125]),
-    ];
-    const HOUND: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.25, 0.0625, &[1.0, -0.5]),
-        dashed(90.0, 0.0, 0.0, -0.25, 0.0625, &[1.0, -0.5]),
-    ];
-    const INSUL: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.0, 0.375, &[]),
-        dashed(0.0, 0.0, 0.125, 0.0, 0.375, &[0.125, -0.125]),
-        dashed(0.0, 0.0, 0.25, 0.0, 0.375, &[0.125, -0.125]),
-    ];
-    const SQUARE: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.0, 0.125, &[0.125, -0.125]),
-        dashed(90.0, 0.0, 0.0, 0.0, 0.125, &[0.125, -0.125]),
-    ];
-    const STARS: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.0, 0.216506351, &[0.125, -0.125]),
-        dashed(60.0, 0.0, 0.0, 0.0, 0.216506351, &[0.125, -0.125]),
-        dashed(
-            120.0,
-            0.0625,
-            0.108253176,
-            0.0,
-            0.216506351,
-            &[0.125, -0.125],
-        ),
-    ];
-    const SWAMP: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.5, 0.866025403, &[0.125, -0.875]),
-        dashed(90.0, 0.0625, 0.0, 0.866025403, 0.5, &[0.0625, -1.669550806]),
-        dashed(90.0, 0.078125, 0.0, 0.866025403, 0.5, &[0.05, -1.682050806]),
-        dashed(90.0, 0.046875, 0.0, 0.866025403, 0.5, &[0.05, -1.682050806]),
-        dashed(60.0, 0.09375, 0.0, 0.5, 0.866025403, &[0.04, -0.96]),
-        dashed(120.0, 0.03125, 0.0, 0.5, 0.866025403, &[0.04, -0.96]),
-    ];
-    const TRANS: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.0, 0.25, &[]),
-        dashed(0.0, 0.0, 0.125, 0.0, 0.25, &[0.125, -0.125]),
-    ];
-    const TRIANG: &[HatchFamily] = &[
-        dashed(60.0, 0.0, 0.0, 0.1875, 0.324759526, &[0.1875, -0.1875]),
-        dashed(120.0, 0.0, 0.0, 0.1875, 0.324759526, &[0.1875, -0.1875]),
-        dashed(
-            0.0,
-            -0.09375,
-            0.162379763,
-            0.1875,
-            0.324759526,
-            &[0.1875, -0.1875],
-        ),
-    ];
-    const ZIGZAG: &[HatchFamily] = &[
-        dashed(0.0, 0.0, 0.0, 0.125, 0.125, &[0.125, -0.125]),
-        dashed(90.0, 0.125, 0.0, 0.125, 0.125, &[0.125, -0.125]),
-    ];
-    const MUDST: &[HatchFamily] = &[dashed(
-        0.0,
-        0.0,
-        0.0,
-        0.5,
-        0.25,
-        &[0.25, -0.25, 0.0, -0.25, 0.0, -0.25],
-    )];
-    const SACNCR: &[HatchFamily] = &[
-        family(45.0, 0.0, 0.09375),
-        dashed(45.0, 0.066291261, 0.0, 0.0, 0.09375, &[0.0, -0.09375]),
-    ];
-    match pattern {
-        "EARTH" => Ok(EARTH),
-        "ESCHER" => Ok(ESCHER),
-        "FLEX" => Ok(FLEX),
-        "GRASS" => Ok(GRASS),
-        "HEX" => Ok(HEX),
-        "HONEY" => Ok(HONEY),
-        "HOUND" => Ok(HOUND),
-        "INSUL" => Ok(INSUL),
-        "SQUARE" => Ok(SQUARE),
-        "STARS" => Ok(STARS),
-        "SWAMP" => Ok(SWAMP),
-        "TRANS" => Ok(TRANS),
-        "TRIANG" => Ok(TRIANG),
-        "ZIGZAG" => Ok(ZIGZAG),
-        "MUDST" => Ok(MUDST),
-        "SACNCR" => Ok(SACNCR),
-        "LINE" => Ok(LINE),
-        "NET" => Ok(NET),
-        "GRATE" => Ok(GRATE),
-        "NET3" => Ok(NET3),
-        "PLAST" => Ok(PLAST),
-        "PLASTI" => Ok(PLASTI),
-        "STEEL" => Ok(STEEL),
-        _ => Err(format!(
-            "HATCH pattern {pattern} is listed but its geometry is not implemented"
-        )),
-    }
+/// The default built-in ACAD.PAT pattern library transcribed from the original
+/// 1983 AutoCAD 1.4 System disk, embedded as a fallback when no external file is provided.
+pub const DEFAULT_ACAD_PAT: &[u8] = include_bytes!("../../../assets/acad.pat");
+
+pub(crate) fn pattern_families(pattern: &str) -> Result<Vec<HatchFamily>, String> {
+    parse_pattern_file(DEFAULT_ACAD_PAT, pattern, "ACAD.PAT")
 }
 
 #[cfg(test)]

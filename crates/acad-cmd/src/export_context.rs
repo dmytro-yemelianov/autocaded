@@ -1,5 +1,5 @@
 //! Bounded projection of ordered library effects, without generated geometry.
-use acad_model::{Drawing, Entity, Item};
+use acad_model::{Drawing, EngineLimits, Entity, Item};
 
 pub(crate) struct Context<'a> {
     drawing: &'a Drawing,
@@ -10,7 +10,7 @@ impl<'a> Context<'a> {
     pub(crate) fn new(drawing: &'a Drawing) -> Self {
         Self {
             drawing,
-            remaining: 100_000,
+            remaining: EngineLimits::DEFAULT_1983.max_traversal_visits,
             inserts: Vec::new(),
         }
     }
@@ -38,7 +38,7 @@ impl<'a> Context<'a> {
         layer: Option<u8>,
         out: &mut Vec<Entity>,
     ) -> Result<(), String> {
-        if depth > 256 || self.remaining == 0 {
+        if depth > EngineLimits::DEFAULT_1983.max_stored_depth || self.remaining == 0 {
             return Err("WBLOCK: LOAD context exceeds the stored traversal budget".into());
         }
         self.remaining -= 1;
@@ -64,7 +64,7 @@ impl<'a> Context<'a> {
                 }
             }
             Entity::Insert { name, .. } => {
-                if self.inserts.len() >= 16
+                if self.inserts.len() >= EngineLimits::DEFAULT_1983.max_insert_depth
                     || self
                         .inserts
                         .iter()

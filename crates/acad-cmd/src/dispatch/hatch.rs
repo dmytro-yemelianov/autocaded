@@ -28,7 +28,7 @@ impl Editor {
                     return Err(format!("unknown HATCH pattern: {}", spec.pattern));
                 }
                 self.state = InputState::HatchScale(HatchRequest {
-                    families: Cow::Borrowed(pattern_families(&spec.pattern)?),
+                    families: Cow::Owned(pattern_families(&spec.pattern)?),
                     style: spec.style,
                 });
                 Ok(Effect::Continue)

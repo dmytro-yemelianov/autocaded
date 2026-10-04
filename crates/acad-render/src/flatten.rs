@@ -1,7 +1,7 @@
 use crate::budget::{BudgetStop, FrameBudget};
 use crate::resource_walker::{LibraryState, Reason, Walker};
 use crate::viewport::Viewport;
-use acad_model::{Drawing, Entity, Item, Point};
+use acad_model::{Drawing, EngineLimits, Entity, Item, Point};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Prim {
@@ -233,7 +233,7 @@ fn flatten_entity_bounded(e: &Entity, vp: &Viewport) -> Vec<Prim> {
 /// open question above should start at `DS:0x3740`.
 ///
 /// The resource-aware renderer reports a diagnostic when this cap is reached.
-const MAX_INSERT_DEPTH: u32 = 16;
+const MAX_INSERT_DEPTH: u32 = EngineLimits::DEFAULT_1983.max_insert_depth as u32;
 
 /// Geometry plus actionable diagnostics; bad library data never silently
 /// masquerades as a successfully rendered text or shape entity.

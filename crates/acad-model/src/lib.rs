@@ -3,8 +3,10 @@ pub mod entity;
 pub mod geom;
 pub mod group_codec;
 pub mod header;
+pub mod policy;
 
 pub use drawing::{BlockIndex, Drawing, Item, Repeat};
 pub use entity::{Block, Entity};
 pub use geom::{Extents, Point};
 pub use header::{DwgView, Header, Mode, UnitFormat, Units};
+pub use policy::EngineLimits;

@@ -28,14 +28,14 @@ mod view;
 pub use sketch::{SketchMode, SketchPreview, MAX_SKETCH_SEGMENTS};
 pub use text::{TextMetricProvider, TextMetrics};
 
-use acad_model::{Drawing, Extents, Header, Item, Point, UnitFormat, Units};
+use acad_model::{Drawing, EngineLimits, Extents, Header, Item, Point, UnitFormat, Units};
 use entity_ops::{load_library_name, normalize_library_name};
 use input_state::{InputState, RepeatDistanceInput};
 use selection::item_pick_distance;
 pub use selection::{selectable_items, SelectableItem};
 use std::collections::BTreeMap;
 
-pub(crate) const MAX_ARRAY_ENTITIES: usize = 100_000;
+pub(crate) const MAX_ARRAY_ENTITIES: usize = EngineLimits::DEFAULT_1983.max_array_entities;
 
 pub(crate) const HATCH_PATTERNS: &[(&str, &str)] = &[
     ("EARTH", "Earth or ground (subterranean)"),
