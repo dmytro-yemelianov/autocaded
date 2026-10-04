@@ -1776,3 +1776,23 @@ fn menu_return_invalid_repeat_columns_retains_marker() {
         assert_eq!(editor.drawing().items.len(), 2);
     }
 }
+
+#[test]
+fn empty_repeat_creates_empty_group_interactively() {
+    let mut editor = Editor::default();
+    for input in ["REPEAT", "ENDREP", "2", "1", "5", "0"] {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(editor.prompt(), "Command");
+    assert_eq!(editor.drawing().items.len(), 1);
+    match &editor.drawing().items[0] {
+        Item::Repeat(repeat) => {
+            assert!(repeat.entities.is_empty());
+            assert_eq!(repeat.columns, 2);
+            assert_eq!(repeat.rows, 1);
+            assert_eq!(repeat.column_spacing, 5.0);
+            assert_eq!(repeat.row_spacing, 0.0);
+        }
+        other => panic!("expected Item::Repeat, got {other:?}"),
+    }
+}

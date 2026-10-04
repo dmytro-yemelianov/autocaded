@@ -396,10 +396,29 @@ fn hatch_line_geometry(
     // offsets at which they can produce a crossing, so a row visits only
     // the items it can cross. Rows run in two monotone passes (up from
     // `first_index`, then down), each swept with an active set.
-    let flat_edges: Vec<(usize, HatchEdge)> = loops
+    struct FlatEdge {
+        loop_id: usize,
+        edge: HatchEdge,
+        line_da: f64,
+        line_db: f64,
+    }
+    let flat_edges: Vec<FlatEdge> = loops
         .iter()
         .enumerate()
-        .flat_map(|(loop_id, edges)| edges.iter().map(move |edge| (loop_id, *edge)))
+        .flat_map(|(loop_id, edges)| {
+            edges.iter().map(move |edge| {
+                let (line_da, line_db) = match *edge {
+                    HatchEdge::Line(a, b) => (project(a, normal), project(b, normal)),
+                    HatchEdge::Arc { .. } => (0.0, 0.0),
+                };
+                FlatEdge {
+                    loop_id,
+                    edge: *edge,
+                    line_da,
+                    line_db,
+                }
+            })
+        })
         .collect();
     // `magnitude` is the coordinate size of the item's points. The margin
     // covers the 1e-10 vertex snap and the rounding of projected points,
@@ -419,9 +438,9 @@ fn hatch_line_geometry(
     };
     let ranges: Vec<(f64, f64)> = flat_edges
         .iter()
-        .map(|(_, edge)| match *edge {
+        .map(|fe| match fe.edge {
             HatchEdge::Line(a, b) => {
-                let (da, db) = (project(a, normal), project(b, normal));
+                let (da, db) = (fe.line_da, fe.line_db);
                 let magnitude = a.x.abs().max(b.x.abs()) + a.y.abs().max(b.y.abs());
                 widen(da.min(db), da.max(db), magnitude)
             }
@@ -435,9 +454,26 @@ fn hatch_line_geometry(
                 .map(|(center, radius)| disk_range(*center, *radius)),
         )
         .collect();
+    struct PrepCircle {
+        center_offset: f64,
+        center_along: f64,
+        radius: f64,
+    }
+    let prep_circles: Vec<PrepCircle> = circles
+        .iter()
+        .map(|(center, radius)| PrepCircle {
+            center_offset: project(*center, normal),
+            center_along: project(*center, direction),
+            radius: *radius,
+        })
+        .collect();
     let mut active = ActiveItems::new(&ranges);
     let mut row_items = Vec::new();
     let mut lines = Vec::with_capacity(count);
+    let mut intersections: Vec<(f64, usize)> = Vec::new();
+    let mut normal_values: Vec<f64> = Vec::new();
+    let mut parity_buf: Vec<bool> = Vec::new();
+    let mut inside_buf: Vec<bool> = Vec::new();
     for (index, offset) in offsets {
         work.charge(1)?;
         active.advance(offset, index >= first_index, &mut row_items);
@@ -455,13 +491,13 @@ fn hatch_line_geometry(
                 value
             }
         };
-        let mut intersections = Vec::new();
-        for (loop_id, edge) in edge_items.iter().map(|item| &flat_edges[*item]) {
-            let loop_id = *loop_id;
-            match *edge {
+        intersections.clear();
+        for fe in edge_items.iter().map(|item| &flat_edges[*item]) {
+            let loop_id = fe.loop_id;
+            match fe.edge {
                 HatchEdge::Line(a, b) => {
-                    let da = at_offset(project(a, normal));
-                    let db = at_offset(project(b, normal));
+                    let da = at_offset(fe.line_da);
+                    let db = at_offset(fe.line_db);
                     if (da <= offset && offset < db) || (db <= offset && offset < da) {
                         let fraction = (offset - da) / (db - da);
                         let crossing = Point {
@@ -519,31 +555,40 @@ fn hatch_line_geometry(
         }
         for item in circle_items {
             let circle = item - flat_edges.len();
-            let (center, radius) = &circles[circle];
+            let c = &prep_circles[circle];
             let loop_id = loops.len() + circle;
-            let center_offset = project(*center, normal);
-            let delta = offset - center_offset;
-            if delta.abs() < *radius {
-                let half_chord = (radius * radius - delta * delta).sqrt();
-                let center_along = project(*center, direction);
-                intersections.push((center_along - half_chord, loop_id));
-                intersections.push((center_along + half_chord, loop_id));
+            let delta = offset - c.center_offset;
+            if delta.abs() < c.radius {
+                let half_chord = (c.radius * c.radius - delta * delta).sqrt();
+                intersections.push((c.center_along - half_chord, loop_id));
+                intersections.push((c.center_along + half_chord, loop_id));
             }
         }
         let segments = match sweep.style {
             HatchStyle::Normal => {
                 // Retain the original parity rule exactly: crossings from all
                 // loops are merged before pairing.
-                let mut values: Vec<f64> = intersections.iter().map(|(along, _)| *along).collect();
-                values.sort_by(f64::total_cmp);
-                values.dedup_by(|a, b| (*a - *b).abs() <= 1e-9);
-                values
+                normal_values.clear();
+                normal_values.extend(intersections.iter().map(|(along, _)| *along));
+                normal_values.sort_by(f64::total_cmp);
+                normal_values.dedup_by(|a, b| (*a - *b).abs() <= 1e-9);
+                normal_values
                     .chunks_exact(2)
                     .map(|pair| (pair[0], pair[1]))
                     .collect()
             }
-            HatchStyle::Outermost => depth_segments(intersections, |depth| depth == 1)?,
-            HatchStyle::Ignore => depth_segments(intersections, |depth| depth >= 1)?,
+            HatchStyle::Outermost => depth_segments(
+                &mut intersections,
+                |depth| depth == 1,
+                &mut parity_buf,
+                &mut inside_buf,
+            )?,
+            HatchStyle::Ignore => depth_segments(
+                &mut intersections,
+                |depth| depth >= 1,
+                &mut parity_buf,
+                &mut inside_buf,
+            )?,
         };
         // The original orders a continuous row's crossings by x when the row
         // is closer to horizontal and by y otherwise (ties by y), so such
@@ -686,19 +731,23 @@ impl<'a> ActiveItems<'a> {
 /// count (for example near-coincident junctions) fails rather than corrupting
 /// the row.
 fn depth_segments(
-    mut crossings: Vec<(f64, usize)>,
+    crossings: &mut [(f64, usize)],
     keep: impl Fn(usize) -> bool,
+    parity: &mut Vec<bool>,
+    inside: &mut Vec<bool>,
 ) -> Result<Vec<(f64, f64)>, String> {
     let loop_count = crossings.iter().map(|(_, id)| id + 1).max().unwrap_or(0);
-    let mut parity = vec![false; loop_count];
-    for (_, id) in &crossings {
+    parity.clear();
+    parity.resize(loop_count, false);
+    for (_, id) in crossings.iter() {
         parity[*id] = !parity[*id];
     }
     if parity.contains(&true) {
         return Err("HATCH boundary crossings are inconsistent on a sweep line".into());
     }
     crossings.sort_by(|a, b| a.0.total_cmp(&b.0));
-    let mut inside = vec![false; loop_count];
+    inside.clear();
+    inside.resize(loop_count, false);
     let mut depth = 0usize;
     let mut start = None;
     let mut segments = Vec::new();

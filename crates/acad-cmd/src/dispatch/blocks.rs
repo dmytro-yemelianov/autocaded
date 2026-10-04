@@ -176,7 +176,7 @@ impl Editor {
                         Item::Entity(entity) => entity_anchor(entity),
                         _ => None,
                     })
-                    .ok_or("REPEAT needs one or more ordinary entities")?;
+                    .unwrap_or(Point { x: 0.0, y: 0.0 });
                 self.state = InputState::RepeatColumnSpacing(columns, rows, anchor);
                 Ok(Effect::Continue)
             }
@@ -208,8 +208,8 @@ impl Editor {
                 };
                 let start = self.repeat_start.ok_or("ENDREP without REPEAT")?;
                 let slice = &self.drawing.items[start..];
-                if slice.is_empty() || slice.iter().any(|i| !matches!(i, Item::Entity(_))) {
-                    return Err("REPEAT needs one or more ordinary entities".into());
+                if slice.iter().any(|i| !matches!(i, Item::Entity(_))) {
+                    return Err("REPEAT can only contain ordinary entities".into());
                 }
                 self.save_undo();
                 let entities = self
