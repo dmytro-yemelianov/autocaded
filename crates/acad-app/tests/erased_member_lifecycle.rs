@@ -88,10 +88,12 @@ fn erased_partial_owner_save_end_fail_atomically_and_oops_undo_keep_prior_member
         assert_eq!(s.input(), "pending point");
         assert_eq!(s.drawing(), &erased);
         s.cancel().unwrap();
-        assert!(s
-            .command("END")
-            .unwrap_err()
-            .contains("already erased members"));
+        // END asks the AutoCAD 1.4 member-erasure question; declining writes nothing.
+        assert!(!s.command("END").unwrap());
+        assert!(s.prompt().starts_with("END: Lose earlier member erasure"));
+        assert!(!s.command("N").unwrap());
+        assert_eq!(s.prompt(), "Command");
+        assert!(s.status().contains("nothing written"));
         assert_eq!(std::fs::read(&path).unwrap(), bytes);
         assert_eq!(s.drawing(), &erased);
         assert!(s.is_dirty());
@@ -179,10 +181,9 @@ fn block_partial_owner_source_refuses_full_save_but_named_export_preserves_live_
         .save(&path)
         .unwrap_err()
         .contains("already erased members"));
-    assert!(s
-        .command("END")
-        .unwrap_err()
-        .contains("already erased members"));
+    assert!(!s.command("END").unwrap());
+    assert!(s.prompt().starts_with("END: Lose earlier member erasure"));
+    assert!(!s.command("").unwrap());
     assert_eq!(std::fs::read(&path).unwrap(), bytes);
     assert_eq!(s.drawing(), &blocked);
     assert!(s.is_dirty());
@@ -254,4 +255,130 @@ fn named_export_ignores_preceding_erased_load_and_insert_resource_effects() {
         assert_eq!(s.drawing(), &before);
         assert!(!s.is_dirty());
     }
+}
+
+/// The erased owner after `ERASE 1` on `source()`, in AutoCAD 1.4's form:
+/// live markers, every member erased (docs/native-group-persistence.md).
+fn original_form(erased: &acad_model::Drawing) -> Vec<Item> {
+    let Item::Erased(Entity::Repeat(r)) = &erased.items[0] else {
+        panic!("erased owner")
+    };
+    let mut r = r.clone();
+    r.entities[1] = Entity::Erased(Box::new(r.entities[1].clone()));
+    vec![Item::Repeat(r)]
+}
+
+#[test]
+fn confirmed_save_writes_original_member_erasure_and_keeps_session_history() {
+    let root = Scratch::new("confirm");
+    for (index, version) in [
+        acad_dwg::header::Version::Ac12,
+        acad_dwg::header::Version::Ac140,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let path = root.0.join(format!("input-{index}.dwg"));
+        let bytes = acad_dwg::write_version(&source(), version).unwrap();
+        std::fs::write(&path, &bytes).unwrap();
+        let mut s = Session::open(&path, &[]).unwrap();
+        let live = s.drawing().clone();
+        commands(&mut s, &["ERASE", "1"]);
+        let erased = s.drawing().clone();
+        let expected = original_form(&erased);
+        let other = root.0.join(format!("other-{index}.dwg"));
+        let other_text = other.to_str().unwrap();
+        // SAVE: decline (Return, N or anything not starting with Y) and cancel write nothing.
+        for answer in ["", "N", "no"] {
+            commands(&mut s, &["SAVE", other_text]);
+            assert!(s.prompt().starts_with("SAVE: Lose earlier member erasure"));
+            assert!(!other.exists());
+            commands(&mut s, &[answer]);
+            assert_eq!(s.prompt(), "Command");
+            assert!(s.status().contains("nothing written"));
+        }
+        commands(&mut s, &["SAVE", other_text]);
+        s.cancel().unwrap();
+        assert_eq!(s.prompt(), "Command");
+        assert!(!other.exists());
+        assert_eq!(s.drawing(), &erased);
+        assert!(s.is_dirty());
+        assert_eq!(s.document_path(), Some(path.as_path()));
+        // The direct API save keeps the checked refusal and names the choice.
+        let error = api::dispatch(
+            &mut s,
+            api::Request::Save {
+                path: other_text.into(),
+            },
+            (800, 600),
+        )
+        .unwrap_err();
+        assert!(error.contains("already erased members") && error.contains("AutoCAD 1.4"));
+        assert!(!other.exists());
+        // DXF is live-only exchange: no question, the whole owner is omitted.
+        let dxf = root.0.join(format!("other-{index}.dxf"));
+        commands(&mut s, &["SAVE", dxf.to_str().unwrap()]);
+        assert_eq!(s.prompt(), "Command");
+        assert!(Session::open(&dxf, &[]).unwrap().drawing().items.is_empty());
+        // Confirmed SAVE writes the original's form; the session keeps its model.
+        commands(&mut s, &["SAVE", other_text, "y"]);
+        assert!(s.status().contains("AutoCAD 1.4"));
+        assert_eq!(s.drawing(), &erased);
+        assert!(!s.is_dirty());
+        assert_eq!(s.document_path(), Some(other.as_path()));
+        let written = std::fs::read(&other).unwrap();
+        assert_eq!(acad_dwg::parse(&written).unwrap().items, expected);
+        // OOPS and UNDO are unchanged by the confirmed save.
+        commands(&mut s, &["OOPS"]);
+        assert_eq!(s.drawing(), &live);
+        commands(&mut s, &["UNDO"]);
+        assert_eq!(s.drawing(), &erased);
+        // END on the source document keeps its revision and quits after Y.
+        let mut s = Session::open(&path, &[]).unwrap();
+        commands(&mut s, &["ERASE", "1"]);
+        assert!(!s.command("END").unwrap());
+        assert!(s.command("Y").unwrap());
+        let written = std::fs::read(&path).unwrap();
+        assert_eq!(
+            acad_dwg::header::parse_header(&written).unwrap().1.version,
+            version
+        );
+        // Reopened: the group is live with every member erased; there is no
+        // OOPS history, as in the original after reopening.
+        let mut reopened = Session::open(&path, &[]).unwrap();
+        assert_eq!(reopened.drawing().items, expected);
+        let opened = reopened.drawing().clone();
+        let state = api::dispatch(&mut reopened, api::Request::State {}, (800, 600)).unwrap();
+        assert_eq!(state["selectable_objects"], 1);
+        commands(&mut reopened, &["OOPS"]);
+        assert_eq!(reopened.drawing(), &opened);
+    }
+}
+
+#[test]
+fn confirmed_save_failure_is_atomic() {
+    let root = Scratch::new("confirm-fail");
+    let path = root.0.join("input.dwg");
+    let bytes = acad_dwg::write(&source()).unwrap();
+    std::fs::write(&path, &bytes).unwrap();
+    let mut s = Session::open(&path, &[]).unwrap();
+    commands(&mut s, &["ERASE", "1"]);
+    let erased = s.drawing().clone();
+    let missing = root.0.join("missing-directory").join("out.dwg");
+    commands(&mut s, &["SAVE", missing.to_str().unwrap()]);
+    assert!(s.command("Y").unwrap_err().starts_with("Save failed"));
+    assert!(!missing.exists());
+    assert_eq!(s.prompt(), "Command");
+    assert_eq!(s.drawing(), &erased);
+    assert!(s.is_dirty());
+    assert_eq!(s.document_path(), Some(path.as_path()));
+    assert_eq!(std::fs::read(&path).unwrap(), bytes);
+    // A failed END save stays in the editor.
+    std::fs::remove_file(&path).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    assert!(!s.command("END").unwrap());
+    assert!(s.command("Y").unwrap_err().starts_with("Save failed"));
+    assert!(path.is_dir());
+    assert!(s.is_dirty());
+    assert_eq!(s.drawing(), &erased);
 }

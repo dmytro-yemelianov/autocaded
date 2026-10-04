@@ -29,6 +29,14 @@
 //! counts all 7 erased records too), with all 7 landing on `LINE` or
 //! `INSERT`. `SUBDIV` and the other 15 `AC1.2` drawings have none.
 //!
+//! **Task 6 placeholders.** The original's Load DXF (Main Menu task 6)
+//! writes one zero-filled erased record per DXF header record, typed by the
+//! keyword's index (1..=13, including unpaired erased ENDREP, BLOCK and
+//! ENDBLK). At the top level `read_items` counts the structural ones toward
+//! the header's count/end and drops them, as the original's own END does;
+//! the ordinary ones are ordinary erased records. Any other erased structure
+//! keeps its named error (docs/native-group-persistence.md).
+//!
 //! **`POINT`, `TRACE`, `SOLID` (Task 8, Part B).** Straightforward
 //! fixed-field records like `LINE`/`CIRCLE`: `POINT` is a header plus one
 //! point (20 bytes); `TRACE` and `SOLID` are a header plus four points, 8

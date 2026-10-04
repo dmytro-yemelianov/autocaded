@@ -15,6 +15,19 @@ impl Editor {
                     Effect::Save(line.to_owned())
                 })
             }
+            InputState::OriginalErasureSave { path, quit } => {
+                // As WBLOCK's replace question: an answer starting with Y
+                // confirms; anything else, including Return, writes nothing.
+                self.state = InputState::Command;
+                if line.trim_start().starts_with(['Y', 'y']) {
+                    return Ok(Effect::SaveOriginalErasure { path, quit });
+                }
+                self.status = format!(
+                    "{}: nothing written; the erased REPEAT group keeps its members' earlier erasure in this session (OOPS or UNDO before saving)",
+                    if quit { "END" } else { "SAVE" }
+                );
+                Ok(Effect::Continue)
+            }
             InputState::QuitConfirmation => {
                 let suspended = self.suspended_sketch.take();
                 if line.eq_ignore_ascii_case("Y") || line.eq_ignore_ascii_case("YES") {

@@ -33,6 +33,7 @@ impl Session {
         while let Some(step) = steps.pop_front() {
             match step {
                 MacroStep::Return(piece) => {
+                    let asked = self.editor.asking_original_erasure();
                     let result = if let Some(spec) = self.editor.insert_file_request(&piece) {
                         self.submit_insert_file(&piece, &spec)
                     } else if let Some(spec) = self.editor.hatch_pattern_file_request(&piece) {
@@ -40,7 +41,14 @@ impl Session {
                     } else {
                         self.editor.submit(&piece)
                     };
+                    let result = self.automated_erasure_answer(asked, result);
+                    let declined = asked && result.is_err();
                     handle_result(self, result);
+                    if declined {
+                        // The macro has no answer to this native question:
+                        // drop its remaining steps.
+                        return;
+                    }
                     if self.main_menu.is_some() {
                         // END/QUIT returned to the Main Menu: the rest of
                         // the macro belonged to the closed drawing.

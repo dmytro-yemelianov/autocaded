@@ -242,6 +242,7 @@ impl Editor {
             | InputState::RepeatRowSpacing(..)) => self.submit_blocks(state, line),
             state @ (InputState::SavePath
             | InputState::EndSavePath
+            | InputState::OriginalErasureSave { .. }
             | InputState::QuitConfirmation
             | InputState::WblockPath
             | InputState::WblockReplace { .. }

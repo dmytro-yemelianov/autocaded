@@ -203,6 +203,77 @@ fn whole_owner_with_prior_erased_member_history_is_ambiguous_and_checked() {
 }
 
 #[test]
+fn confirmed_original_form_keeps_markers_live_and_erases_every_member() {
+    use acad_model::group_codec::{has_ambiguous_owner, original_member_erasure};
+    let parsed = acad_dxf::parse(b"REPEAT,7\r\nPOINT,3\r\n0,1\r\nREPEAT,8\r\nPOINT,2\r\n1,2\r\nPOINT,4\r\n3,4\r\nENDREP,9\r\n2,1,3,0\r\nENDREP,10\r\n2,1,4,0\r\n").unwrap();
+    let Item::Repeat(mut outer) = parsed.items[0].clone() else {
+        panic!("outer")
+    };
+    let mut drawing = parsed.clone();
+    // Unambiguous erased owner: unchanged native uniform-negative form.
+    drawing.items = vec![Item::Erased(Entity::Repeat(outer.clone()))];
+    assert!(!has_ambiguous_owner(&drawing));
+    assert_eq!(original_member_erasure(&drawing), (drawing.clone(), 0));
+    let Entity::Repeat(inner) = &mut outer.entities[1] else {
+        panic!("inner")
+    };
+    let prior = inner.entities[0].clone();
+    inner.entities[0] = Entity::Erased(Box::new(prior));
+    drawing.items = vec![Item::Erased(Entity::Repeat(outer.clone()))];
+    let before = drawing.clone();
+    assert!(has_ambiguous_owner(&drawing));
+    let (converted, count) = original_member_erasure(&drawing);
+    assert_eq!(count, 1);
+    assert_eq!(drawing, before);
+    let Item::Repeat(group) = &converted.items[0] else {
+        panic!("live markers")
+    };
+    assert_eq!((group.start_layer, group.end_layer), (7, 10));
+    assert!(group.entities[0].is_erased());
+    let Entity::Repeat(nested) = &group.entities[1] else {
+        panic!("nested live markers")
+    };
+    assert_eq!((nested.start_layer, nested.end_layer), (8, 9));
+    // The earlier erased member keeps a single tag, never a stacked one.
+    assert_eq!(
+        nested.entities[0],
+        match &outer.entities[1] {
+            Entity::Repeat(inner) => inner.entities[0].clone(),
+            _ => unreachable!(),
+        }
+    );
+    assert!(nested.entities.iter().all(Entity::is_erased));
+    for version in [Version::Ac12, Version::Ac140] {
+        let bytes = acad_dwg::write_version(&converted, version).unwrap();
+        assert_eq!(acad_dwg::parse(&bytes).unwrap().items, converted.items);
+        let (_, meta) = acad_dwg::header::parse_header(&bytes).unwrap();
+        assert_eq!(meta.entity_count, 7);
+        // Signed type words in physical order: +5, -2, +5, -2, -2, +6, +6.
+        let mut pos = version.entity_start();
+        let mut types = Vec::new();
+        for size in [4, 4 + 16, 4, 4 + 16, 4 + 16, 4 + 20, 4 + 20] {
+            types.push(i16::from_le_bytes([bytes[pos], bytes[pos + 1]]));
+            pos += size;
+        }
+        assert_eq!(types, [5, -2, 5, -2, -2, 6, 6]);
+        assert_eq!(pos, meta.entity_end as usize);
+    }
+    // A malformed explicit owner layer is left for the checked refusal.
+    drawing.items = vec![Item::Erased(Entity::Repeat(acad_model::Repeat {
+        entities: vec![
+            Entity::OnLayer {
+                layer: 2,
+                entity: Box::new(Entity::Repeat(group.clone())),
+            },
+            Entity::Erased(Box::new(group.entities[0].clone())),
+        ],
+        ..group.clone()
+    }))];
+    let (converted, _) = original_member_erasure(&drawing);
+    assert!(acad_dwg::write(&converted).is_err());
+}
+
+#[test]
 fn ordinary_erasure_and_layer_wrapper_orders_preserve_one_physical_sign_and_layer() {
     let mut drawing =
         acad_dxf::parse(b"REPEAT,7\r\nPOINT,2\r\n1,2\r\nENDREP,9\r\n2,1,3,0\r\n").unwrap();

@@ -712,3 +712,66 @@ fn api_open_keeps_the_injected_clock() {
     api(&mut session, json!({"method":"script_tick","params":{}}));
     assert_eq!(points(&session), vec![(1.0, 1.0)]);
 }
+
+/// A live group whose first member is already erased: `ERASE 1` makes the
+/// ambiguous whole erased owner (docs/native-group-persistence.md, E1).
+fn prior_erased_group() -> (Session, Arc<FakeClock>) {
+    let mut drawing = acad_dxf::parse(
+        b"REPEAT,1\r\nLINE,1\r\n0,0,0,4\r\nLINE,1\r\n1,0,5,0\r\nENDREP,1\r\n1,1,0,0\r\n",
+    )
+    .unwrap();
+    let acad_model::Item::Repeat(r) = &mut drawing.items[0] else {
+        panic!("group")
+    };
+    r.entities[0] = Entity::Erased(Box::new(r.entities[0].clone()));
+    let mut session = Session::with_editor(acad_cmd::Editor::new(drawing), Libraries::default());
+    let clock = Arc::new(FakeClock::default());
+    session.set_script_clock(clock.clone());
+    (session, clock)
+}
+
+#[test]
+fn a_script_item_declining_the_native_erasure_question_interrupts_the_script() {
+    let dir = Dir::new("erasure-decline");
+    let out = dir.0.join("OUT.DWG");
+    let (mut session, _) = prior_erased_group();
+    // Written for the original, which never asks: REDRAW would be the answer.
+    let script = dir.write(
+        "D.SCR",
+        format!("ERASE 1\nSAVE\n{}\nREDRAW\nQUIT\nY\n", out.display()),
+    );
+    session.start_script(script.to_str().unwrap()).unwrap();
+    assert!(!session.pump_script().quit);
+    assert_eq!(interrupted(&session), Some((ScriptInterrupt::Error, 4)));
+    assert!(
+        session.status().contains("nothing written") && session.status().contains("line 4"),
+        "{}",
+        session.status()
+    );
+    assert_eq!(session.prompt(), "Command");
+    assert!(!out.exists());
+    assert!(session.is_dirty());
+    // RESUME continues after the declining item, as after any script error.
+    session.command("RESUME").unwrap();
+    assert!(session.pump_script().quit);
+    assert!(!out.exists());
+}
+
+#[test]
+fn an_explicit_y_script_item_confirms_the_native_erasure_question() {
+    let dir = Dir::new("erasure-confirm");
+    let out = dir.0.join("OUT.DWG");
+    let (mut session, _) = prior_erased_group();
+    let script = dir.write(
+        "Y.SCR",
+        format!("ERASE 1\nSAVE\n{}\nY\nPOINT 1,1\n", out.display()),
+    );
+    session.start_script(script.to_str().unwrap()).unwrap();
+    assert!(!session.pump_script().quit);
+    assert!(session.script_phase().is_none(), "{}", session.status());
+    assert_eq!(points(&session), vec![(1.0, 1.0)]);
+    let written = acad_dwg::parse(&std::fs::read(&out).unwrap()).unwrap();
+    assert!(
+        matches!(&written.items[0], acad_model::Item::Repeat(r) if r.entities.iter().all(Entity::is_erased))
+    );
+}

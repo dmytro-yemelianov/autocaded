@@ -90,7 +90,8 @@ serialization and never expands repeat cells or INSERT references. Invalid
 empty/zero-dimension/nonfinite-spacing groups, stacked layer wrappers and
 explicit `OnLayer(REPEAT)` owner gates are checked errors. The latter has no
 established lossless file discriminator from bare marker metadata. DWG decoding
-also refuses negative BLOCK markers, erased subgroups inside live blocks or
+also refuses negative BLOCK markers (except the original's zero-filled task 6
+placeholders, which are counted and dropped), erased subgroups inside live blocks or
 groups, mixed-sign erased owners and cross-block grouping (erased ordinary
 members inside live groups and blocks are retained since B4,
 [group persistence](native-group-persistence.md)). These cannot silently

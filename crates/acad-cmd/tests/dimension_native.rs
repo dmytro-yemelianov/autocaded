@@ -62,7 +62,7 @@ fn retained_native_dimensions_match_complete_ordered_primitives() {
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join("manifest.json")).unwrap()).unwrap();
     let rows = manifest.as_array().unwrap();
-    assert_eq!(rows.len(), 29, "the native comparison set must not shrink");
+    assert_eq!(rows.len(), 32, "the native comparison set must not shrink");
     let mut seen = std::collections::BTreeSet::new();
     let mut failures = Vec::new();
     for row in rows {
@@ -224,4 +224,30 @@ fn failed_dimension_preserves_drawing_and_previous_history() {
     }
     editor.submit("UNDO").unwrap();
     assert_eq!(editor.drawing(), &prior);
+}
+
+#[test]
+fn crossing_text_push_reverses_with_the_extension_direction() {
+    // Native pin of the measured rule (docs/native-dim.md); the original
+    // values are asserted by acad-oracle/tests/dim_arrows.rs.
+    for (inputs, x) in [
+        (["DIM", "A", "0.5", "DIM", "1,1", "5,1", "3,2", ""], 3.5),
+        (
+            ["DIM", "A", "0.5", "DIM", "9,1", "5,1", "7,2", ""],
+            5.0 - (100.0 * 0.75 / 21.0 - 1.5),
+        ),
+        (["DIM", "A", "3", "DIM", "1,1", "5,1", "3,2", ""], 6.0),
+    ] {
+        let mut editor = Editor::default();
+        for input in inputs {
+            editor.submit(input).unwrap();
+        }
+        let Some(Entity::OnLayer { entity, .. }) = editor.drawing().entities().last() else {
+            panic!("layered text")
+        };
+        let Entity::Text { origin, .. } = entity.as_ref() else {
+            panic!("text")
+        };
+        assert!(near(origin.x, x), "{inputs:?}: {origin:?}");
+    }
 }

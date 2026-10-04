@@ -21,7 +21,9 @@ impl GroupCodecError {
         match self {
             Self::ErasedRoot => "erased member tag at drawing root must use Item::Erased",
             Self::ErasedWrapper => "erased member must wrap one ordinary record, without stacked erasure",
-            Self::AmbiguousOwner => "whole erased owner contains already erased members; DWG cannot retain their prior status; use OOPS or UNDO before saving",
+            Self::AmbiguousOwner => {
+                "whole erased owner contains already erased members; DWG cannot retain their prior status; use OOPS or UNDO before saving, or answer Y to the SAVE/END question to write AutoCAD 1.4's form (earlier member erasure lost)"
+            },
             Self::OwnerLayer => "explicit REPEAT owner layer has no lossless file mapping",
             Self::LayerWrappers => "multiple layer wrappers have no lossless file mapping",
             Self::InvalidEntity => "entity fields and block bases must be finite",
@@ -238,4 +240,104 @@ fn validate_items<'a>(
         }
     }
     Ok(())
+}
+
+/// Whether an erased top-level REPEAT owner contains a member that was already
+/// erased before the owner (the state DWG checked save refuses as ambiguous).
+pub fn has_ambiguous_owner(drawing: &Drawing) -> bool {
+    drawing.items.iter().any(|item| match item {
+        Item::Erased(Entity::Repeat(repeat)) => holds_erased_member(&repeat.entities),
+        _ => false,
+    })
+}
+
+fn holds_erased_member(entities: &[Entity]) -> bool {
+    let mut stack = vec![(entities.iter(), 0)];
+    while let Some((entities, depth)) = stack.last_mut() {
+        let Some(entity) = entities.next() else {
+            stack.pop();
+            continue;
+        };
+        let depth = *depth;
+        match stored_record(entity) {
+            Ok(record) if record.erased => return true,
+            Ok(StoredRecord {
+                entity: Entity::Repeat(repeat),
+                ..
+            }) if depth < MAX_GROUP_DEPTH => stack.push((repeat.entities.iter(), depth + 1)),
+            _ => {}
+        }
+    }
+    false
+}
+
+/// AutoCAD 1.4's own representation of a whole erased REPEAT group, for an
+/// explicitly confirmed save (docs/native-group-persistence.md). The original
+/// never negates REPEAT/ENDREP markers: erasing a whole group negates each
+/// source member, and its file cannot tell a member erased earlier from one
+/// erased with the group. Each ambiguous top-level erased owner therefore
+/// becomes a live group (positive markers, nested markers too) whose every
+/// ordinary member is erased; members already erased keep one tag. Erased
+/// owners without prior member erasure keep the native uniform-negative form.
+/// Returns the converted drawing and how many owners were converted. The
+/// input is not changed. Malformed or over-deep content is left as it is, so
+/// the checked writer still reports it.
+pub fn original_member_erasure(drawing: &Drawing) -> (Drawing, usize) {
+    let mut converted = drawing.clone();
+    let mut count = 0;
+    for item in &mut converted.items {
+        if let Item::Erased(Entity::Repeat(repeat)) = item {
+            if holds_erased_member(&repeat.entities) {
+                let mut repeat = std::mem::replace(
+                    repeat,
+                    Repeat {
+                        start_layer: 1,
+                        end_layer: 1,
+                        entities: Vec::new(),
+                        columns: 1,
+                        rows: 1,
+                        column_spacing: 0.0,
+                        row_spacing: 0.0,
+                    },
+                );
+                erase_members(&mut repeat.entities, 0);
+                *item = Item::Repeat(repeat);
+                count += 1;
+            }
+        }
+    }
+    (converted, count)
+}
+
+fn erase_members(entities: &mut [Entity], depth: usize) {
+    for entity in entities {
+        let Ok(record) = stored_record(entity) else {
+            continue;
+        };
+        let shape = (
+            matches!(record.entity, Entity::Repeat(_)),
+            record.erased,
+            record.has_layer,
+        );
+        match shape {
+            // An explicit owner layer stays as it is for the checked refusal.
+            (true, _, true) | (_, true, _) => {}
+            (true, false, false) => {
+                if let Entity::Repeat(repeat) = entity {
+                    if depth < MAX_GROUP_DEPTH {
+                        erase_members(&mut repeat.entities, depth + 1);
+                    }
+                }
+            }
+            _ => {
+                let member = std::mem::replace(
+                    entity,
+                    Entity::Load {
+                        name: String::new(),
+                    },
+                );
+                *entity = Entity::Erased(Box::new(member));
+            }
+        }
+    }
 }

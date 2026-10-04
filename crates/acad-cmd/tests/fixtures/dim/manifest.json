@@ -230,5 +230,29 @@
       "dwg": "c5e64efb4396a2014168a6de1e5715b2f2d1759a7c5980eee9caff62c24c1de9",
       "inputs.json": "ddd1b548a6028d5456f1c73361b67cc62d8424013f4f5a100f951aab55788586"
     }
+  },
+  {
+    "case": "DAR050",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "f49c96ff095109bb8d087e39656d006968688e45667f27644357b72c4d0b21ce",
+      "inputs.json": "62e9cd0f8c92558fcdf1b8d20ac5faee2e8a1ae377c6984192d16dbf8d10b6f1"
+    }
+  },
+  {
+    "case": "DAR200",
+    "source_bundle": "dim",
+    "sha256": {
+      "dwg": "0549d7f28ac9160371039056e513a8a467aa2c77f64139b4bb058466ae92247e",
+      "inputs.json": "6716110634e26c4fa23a17e846fb629d9110f46dcf491722fec751568f7e6d93"
+    }
+  },
+  {
+    "case": "PTEXT50",
+    "source_bundle": "dim-text-origin",
+    "sha256": {
+      "dwg": "67adfda3abae5274dbbe794e0d093c1088b077f8a043c3e5242b312003edf03d",
+      "inputs.json": "70b5508a73893dd42212eea3e01c6e86410e8eed56518d36c11c2c19ecfc2dcb"
+    }
   }
 ]

@@ -89,6 +89,13 @@ pub(crate) enum InputState {
     UnitsPrecision(acad_model::UnitFormat),
     SavePath,
     EndSavePath,
+    /// A DWG save met an erased REPEAT owner holding members erased before
+    /// it. `path` is the SAVE/END output, `None` for the attached document;
+    /// `quit` leaves the editor after an END save.
+    OriginalErasureSave {
+        path: Option<String>,
+        quit: bool,
+    },
     QuitConfirmation,
     Base,
     Axis,
@@ -268,6 +275,12 @@ impl InputState {
             Self::UnitsPrecision(_) => "UNITS: digits to right of decimal point (0 to 8)",
             Self::SavePath => "SAVE: output file",
             Self::EndSavePath => "END: output file",
+            // Short enough for an 800-pixel command line; the session's
+            // status row carries the explanation.
+            Self::OriginalErasureSave { quit: false, .. } => {
+                "SAVE: Lose earlier member erasure? <N>"
+            }
+            Self::OriginalErasureSave { quit: true, .. } => "END: Lose earlier member erasure? <N>",
             Self::QuitConfirmation => "QUIT: really want to discard all changes? Y/YES",
             Self::Base => "BASE: x,y",
             Self::Axis => "AXIS: ON, OFF, or tick spacing (X for snap multiples)",

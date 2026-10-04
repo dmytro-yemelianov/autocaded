@@ -44,12 +44,22 @@ impl Session {
             acad_cmd::Effect::Quit => return Ok(self.leave_editor()),
             acad_cmd::Effect::End => return self.end(),
             acad_cmd::Effect::SaveAndQuit(path) => {
-                self.save(std::path::Path::new(&path))?;
-                return Ok(self.leave_editor());
+                if !self.ask_original_erasure(Some(path.clone()), true) {
+                    self.save(std::path::Path::new(&path))?;
+                    return Ok(self.leave_editor());
+                }
             }
             acad_cmd::Effect::UnloadMenu => self.unload_menu(),
             acad_cmd::Effect::Save(path) => {
-                self.save(std::path::Path::new(&path))?;
+                if !self.ask_original_erasure(Some(path.clone()), false) {
+                    self.save(std::path::Path::new(&path))?;
+                }
+            }
+            acad_cmd::Effect::SaveOriginalErasure { path, quit } => {
+                self.save_original_erasure(path.as_deref())?;
+                if quit {
+                    return Ok(self.leave_editor());
+                }
             }
             acad_cmd::Effect::CheckWblockDestination(path) => {
                 let open = self.document.path.as_deref();

@@ -18,7 +18,6 @@ pub(crate) struct DimInput {
     intersection: Point,
     axis: ExtensionAxis,
     sign: f64,
-    baseline: bool,
 }
 
 impl DimInput {
@@ -55,7 +54,6 @@ impl DimInput {
             intersection,
             axis,
             sign,
-            baseline: false,
         })
     }
 
@@ -109,7 +107,6 @@ impl DimHistory {
         DimInput {
             first,
             intersection,
-            baseline,
             ..self.input
         }
     }
@@ -277,6 +274,21 @@ pub(crate) fn dimension_geometry(
             p4: tip,
         });
     }
+    // Horizontal text across a vertical dimension line (X extensions) is
+    // centred on the line unless its half-width exceeds the shorter extension
+    // line's reach, min(|first.x - line.x|, |second.x - line.x|) - A. The
+    // excess pushes the text centre along the extension direction. Measured
+    // by the in-tree original (crates/acad-oracle/tests/dim_arrows.rs,
+    // docs/native-dim.md); the retained B 3A offset is this rule's case
+    // reach = 4A - A.
+    let crossing_text_x = || {
+        let reach = (input.first.x - input.intersection.x)
+            .abs()
+            .min((second.x - end.x).abs())
+            - arrow;
+        let push = (width / 2.0 - reach).max(0.0);
+        middle.x + input.sign * push - width / 2.0
+    };
     let origin = if internal {
         if rotate {
             Point {
@@ -284,15 +296,11 @@ pub(crate) fn dimension_geometry(
                 y: middle.y - width / 2.0,
             }
         } else {
-            // The retained B chain uses a 3A horizontal text offset rather
-            // than stroke centering. C and plain DIM retain stroke centering.
-            let half_width = if input.baseline && matches!(input.axis, ExtensionAxis::X) {
-                3.0 * arrow
-            } else {
-                width / 2.0
-            };
             Point {
-                x: middle.x - half_width,
+                x: match input.axis {
+                    ExtensionAxis::X => crossing_text_x(),
+                    ExtensionAxis::Y => middle.x - width / 2.0,
+                },
                 y: middle.y - height / 2.0,
             }
         }
@@ -302,7 +310,7 @@ pub(crate) fn dimension_geometry(
                 x: if rotate {
                     middle.x + height / 2.0
                 } else {
-                    middle.x - width / 2.0
+                    crossing_text_x()
                 },
                 y: end.y + offset.signum() * 3.0 * arrow
                     - if offset < 0.0 {

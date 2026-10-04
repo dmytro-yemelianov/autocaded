@@ -1805,3 +1805,112 @@ fn menu_macro_wblock_answers_the_replace_question_with_its_next_piece() {
     assert_eq!(acad_dwg::parse(&written).unwrap().entities().count(), 1);
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn unnamed_end_asks_the_original_erasure_question_after_the_path() {
+    let directory = WorkflowDirectory::new();
+    let mut drawing = acad_dxf::parse(
+        b"REPEAT,1\r\nLINE,1\r\n0,0,0,4\r\nLINE,1\r\n1,0,5,0\r\nENDREP,1\r\n1,1,0,0\r\n",
+    )
+    .unwrap();
+    let acad_model::Item::Repeat(r) = &mut drawing.items[0] else {
+        panic!("group")
+    };
+    r.entities[0] = acad_model::Entity::Erased(Box::new(r.entities[0].clone()));
+    let mut session = Session::with_editor(acad_cmd::Editor::new(drawing), Libraries::default());
+    session.command("ERASE").unwrap();
+    session.command("1").unwrap();
+    let erased = session.drawing().clone();
+    let path = directory.0.join("FRESH.DWG");
+    assert!(!session.command("END").unwrap());
+    assert_eq!(session.prompt(), "END: output file");
+    assert!(!session.command(path.to_str().unwrap()).unwrap());
+    assert!(session
+        .prompt()
+        .starts_with("END: Lose earlier member erasure"));
+    assert!(!path.exists());
+    assert!(session.command("YES").unwrap());
+    let (expected, count) = acad_model::group_codec::original_member_erasure(&erased);
+    assert_eq!(count, 1);
+    assert_eq!(
+        acad_dwg::parse(&std::fs::read(&path).unwrap())
+            .unwrap()
+            .items,
+        expected.items
+    );
+}
+
+/// A macro has no answer to the native-only member-erasure question: a
+/// non-`Y` piece declines and drops the rest of the macro; `y` confirms.
+#[test]
+fn menu_macro_declining_the_native_erasure_question_drops_its_remaining_steps() {
+    let dir = std::env::temp_dir().join(format!("acad-macro-erasure-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir(&dir).unwrap();
+    let out = dir.join("out.dwg");
+    let target = out.to_str().unwrap();
+    let start = || {
+        let mut drawing = acad_dxf::parse(
+            b"REPEAT,1\r\nLINE,1\r\n0,0,0,4\r\nLINE,1\r\n1,0,5,0\r\nENDREP,1\r\n1,1,0,0\r\n",
+        )
+        .unwrap();
+        let acad_model::Item::Repeat(r) = &mut drawing.items[0] else {
+            panic!("group")
+        };
+        r.entities[0] = acad_model::Entity::Erased(Box::new(r.entities[0].clone()));
+        Session::with_editor(acad_cmd::Editor::new(drawing), Libraries::default())
+    };
+    let run = |app: &mut Session, text: &str| {
+        app.run_macro(text, &mut |app, result| {
+            let _ = app.apply_effect(result);
+        });
+    };
+    let mut app = start();
+    run(&mut app, &format!("erase 1 save {target} redraw point 1,1"));
+    assert!(!out.exists());
+    assert!(app.status().contains("nothing written"), "{}", app.status());
+    assert_eq!(app.prompt(), "Command");
+    assert!(app.paused_macro.is_none());
+    assert_eq!(app.drawing().entities().count(), 0);
+    assert!(app.is_dirty());
+    let mut app = start();
+    run(&mut app, &format!("erase 1 save {target} y point 1,1"));
+    let written = acad_dwg::parse(&std::fs::read(&out).unwrap()).unwrap();
+    assert!(matches!(&written.items[0], acad_model::Item::Repeat(r)
+        if r.entities.iter().all(acad_model::Entity::is_erased)));
+    assert_eq!(app.drawing().entities().count(), 1);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn the_member_erasure_question_fits_an_800_pixel_command_line_and_explains_on_status() {
+    let mut drawing = acad_dxf::parse(
+        b"REPEAT,1\r\nLINE,1\r\n0,0,0,4\r\nLINE,1\r\n1,0,5,0\r\nENDREP,1\r\n1,1,0,0\r\n",
+    )
+    .unwrap();
+    let acad_model::Item::Repeat(r) = &mut drawing.items[0] else {
+        panic!("group")
+    };
+    r.entities[0] = acad_model::Entity::Erased(Box::new(r.entities[0].clone()));
+    let mut app = Session::with_editor(acad_cmd::Editor::new(drawing), Libraries::default());
+    app.command("ERASE").unwrap();
+    app.command("1").unwrap();
+    let cells = (800 - 8) / 16;
+    for (command, path) in [("SAVE", Some("never-written.dwg")), ("END", None)] {
+        app.command(command).unwrap();
+        if let Some(path) = path {
+            app.command(path).unwrap();
+        } else {
+            assert_eq!(app.prompt(), "END: output file");
+            app.command("never-written.dwg").unwrap();
+        }
+        assert!(app.prompt().starts_with(command));
+        assert!(format!("{}: _", app.prompt()).chars().count() <= cells);
+        assert!(app
+            .status()
+            .starts_with("Erased REPEAT group holds earlier erased members"));
+        assert!(app.status().contains("AutoCAD 1.4"));
+        app.cancel().unwrap();
+    }
+    assert!(!std::path::Path::new("never-written.dwg").exists());
+}

@@ -2,6 +2,10 @@
 use super::*;
 use std::path::Path;
 
+/// Status row at the SAVE/END member-erasure question; its start fits an
+/// 800-pixel window, the API `state` status carries all of it.
+pub(crate) const ORIGINAL_ERASURE_EXPLANATION: &str = "Erased REPEAT group holds earlier erased members; Y writes every member erased, as AutoCAD 1.4 does (their earlier erasure is lost); anything else writes nothing";
+
 impl Session {
     pub fn document_path(&self) -> Option<&Path> {
         self.document.path.as_deref()
@@ -33,6 +37,77 @@ impl Session {
         };
         Ok(())
     }
+    /// SAVE/END to DWG with an ambiguous erased REPEAT owner asks the
+    /// editor's AutoCAD 1.4 member-erasure question instead of refusing
+    /// (docs/native-group-persistence.md). `path` is the SAVE/END output,
+    /// `None` the attached document. Returns whether the question is open;
+    /// nothing has been written then.
+    pub(crate) fn ask_original_erasure(&mut self, path: Option<String>, quit: bool) -> bool {
+        let format = match &path {
+            Some(path) => Format::for_path(Path::new(path)),
+            None => match self.document.format {
+                Some(format) => format,
+                None => return false,
+            },
+        };
+        if !matches!(format, Format::Dwg(_))
+            || !acad_model::group_codec::has_ambiguous_owner(self.drawing())
+        {
+            return false;
+        }
+        self.editor.ask_original_erasure_save(path, quit);
+        self.status = ORIGINAL_ERASURE_EXPLANATION.into();
+        true
+    }
+    /// A command script item or menu-macro piece that answers the question
+    /// with anything but `Y` (docs/native-scripts.md): the question is native
+    /// only, so scripts and macros written for the original carry no answer
+    /// and their next item would be taken as one. The decline becomes an
+    /// error, which interrupts a script (RESUME continues after the item)
+    /// and ends a macro, keeping the "nothing written" message visible.
+    pub(crate) fn automated_erasure_answer(
+        &self,
+        asked: bool,
+        result: Result<acad_cmd::Effect, String>,
+    ) -> Result<acad_cmd::Effect, String> {
+        if asked && matches!(result, Ok(acad_cmd::Effect::Continue)) {
+            Err(self.editor.status().to_owned())
+        } else {
+            result
+        }
+    }
+    /// The confirmed answer: write AutoCAD 1.4's form of each ambiguous
+    /// erased owner. The session drawing, its OOPS/UNDO history and the
+    /// failure behaviour of an ordinary save are unchanged; the written
+    /// drawing becomes the saved baseline of the session drawing.
+    pub(crate) fn save_original_erasure(&mut self, path: Option<&str>) -> Result<(), String> {
+        let (path, format) = match path {
+            Some(path) => {
+                self.refuse_at_main_menu()?;
+                let path = std::path::absolute(path).map_err(|e| format!("Save failed: {e}"))?;
+                let format = Format::for_path(&path);
+                (path, format)
+            }
+            None => match (self.document.path.clone(), self.document.format) {
+                (Some(path), Some(format)) => (path, format),
+                _ => return Err("Save failed: no attached drawing file".into()),
+            },
+        };
+        let (converted, count) = acad_model::group_codec::original_member_erasure(self.drawing());
+        let warning = format
+            .save(&path, &converted)
+            .map_err(|e| format!("Save failed: {e}"))?;
+        self.document = Document::saved(path.clone(), format, self.drawing());
+        let mut status = format!(
+            "Saved {}; {count} erased REPEAT group(s) written as AutoCAD 1.4 does, every member erased (earlier member erasure not kept)",
+            path.display()
+        );
+        if let Some(warning) = warning {
+            status = format!("{status}; {warning}");
+        }
+        self.status = status;
+        Ok(())
+    }
     pub(crate) fn end(&mut self) -> Result<bool, String> {
         let Some(path) = self.document.path.clone() else {
             self.editor.request_end_path();
@@ -40,6 +115,9 @@ impl Session {
             return Ok(false);
         };
         let format = self.document.format.expect("attached document has a codec");
+        if self.ask_original_erasure(None, true) {
+            return Ok(false);
+        }
         // Preserve the detected source codec/revision even when its suffix is
         // misleading or .BAK. END writes even when the baseline is pristine.
         self.save_as_format(&path, format)?;

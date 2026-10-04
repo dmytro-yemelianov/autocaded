@@ -125,6 +125,12 @@ pub(super) enum RecordBody {
         base: Point,
     },
     BlockEnd,
+    /// An erased (negative) BLOCK or ENDBLK record. Only the original's
+    /// task 6 placeholders are accepted (stream assembly decides); any other
+    /// is `UnsupportedErasedStructure`.
+    ErasedStructure {
+        code: u16,
+    },
 }
 
 /// Decode one ordinary entity's fields after its independent four-byte header.
@@ -348,7 +354,8 @@ fn read_entity_fields(
 
 /// Decode one independent physical record; every marker and leaf counts once.
 /// Signed records retain full fields; assembly validates the native whole-owner
-/// sign policy. Negative BLOCK markers remain unsupported.
+/// sign policy. Negative BLOCK markers are returned as `ErasedStructure` for
+/// stream assembly to accept as task 6 placeholders or refuse.
 pub(super) fn read_record_body(
     bytes: &[u8],
     pos: usize,
@@ -445,11 +452,11 @@ pub(super) fn read_record_body(
         let body = match body {
             RecordBody::Entity(entity) => RecordBody::ErasedEntity(entity),
             marker @ (RecordBody::RepeatStart { .. } | RecordBody::RepeatEnd { .. }) => marker,
-            _ => {
-                return Err(DwgError::UnsupportedErasedStructure {
-                    code: type_code,
-                    at: pos,
-                })
+            RecordBody::BlockStart { .. } | RecordBody::BlockEnd => {
+                RecordBody::ErasedStructure { code: type_code }
+            }
+            classified @ (RecordBody::ErasedEntity(_) | RecordBody::ErasedStructure { .. }) => {
+                classified
             }
         };
         Ok((body, next, logical))

@@ -3,7 +3,7 @@
   "goal": "Evidence-supported native Rust AutoCAD 1.4 completion through bounded multi-agent loops",
   "status": "active",
   "created_at": "2026-10-03T21:20:32.120196+00:00",
-  "updated_at": "2026-10-04T19:02:41.562181+00:00",
+  "updated_at": "2026-10-04T20:10:14.564519+00:00",
   "backend": "builtin collaboration API; coordinator protocol adapted from superset-orchestrate",
   "worker_limit": 3,
   "max_fix_attempts": 3,
@@ -1687,7 +1687,7 @@
     },
     {
       "kind": "implementation",
-      "status": "review",
+      "status": "verified",
       "model": "claude-opus-5-5",
       "effort": "high",
       "agent": "claude/erased_owner_loop",
@@ -1709,17 +1709,28 @@
           "result": "passed",
           "at": "2026-10-04T19:00:02.134215+00:00",
           "note": "Repair1 c7c949f1: non-Y script/macro answer interrupts script (line reported) or drops macro; short prompt fits 800px with status explanation; OOPS byte identity asserted; doc cites B3 analysis, lists unmeasured cases, R6 reference. 800 tests, oracle 4 (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T19:03:54.649126+00:00",
+          "note": "Review pass2 pass: script/macro decline interrupts, W1 script semantics unchanged, mutation checks fail as expected. P3: script end overwrites explanation status (safe). Integration after R5/D2 checks."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T20:10:14.525721+00:00",
+          "note": "Root integration after R5/D2: doc conflicts resolved as unions (group persistence sections, REPEAT matrix row). AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1193 passed 0 failed 0 skipped, clippy workspace, fmt, build, GUI harness, corpus API."
         }
       },
-      "review": "changes_requested",
-      "integrated": false,
+      "review": "pass",
+      "integrated": true,
       "artifacts": [
         "target/agentic-artifacts/e1.patch",
         "target/agentic-artifacts/e1-handoff.json",
         "target/agentic-artifacts/reviews/e1-review.md",
-        "target/agentic-artifacts/e1-repair1.patch"
+        "target/agentic-artifacts/e1-repair1.patch",
+        "target/agentic-artifacts/reviews/e1-review-pass2.md"
       ],
-      "updated_at": "2026-10-04T19:00:02.134215+00:00",
+      "updated_at": "2026-10-04T20:10:14.564519+00:00",
       "id": "E1",
       "objective": "Save whole erased groups that already contain erased members",
       "depends_on": [
@@ -1732,7 +1743,7 @@
         "Both DWG revisions; atomic failure paths"
       ],
       "baseline_commit": "d63fd972337d4c7639a9017efa9593a993bf55af",
-      "latest_note": "Repair1 c7c949f1: non-Y script/macro answer interrupts script (line reported) or drops macro; short prompt fits 800px with status explanation; OOPS byte identity asserted; doc cites B3 analysis, lists unmeasured cases, R6 reference. 800 tests, oracle 4 (worker). Review pass2 launched."
+      "latest_note": "Verified."
     },
     {
       "kind": "implementation",
@@ -1767,7 +1778,7 @@
     },
     {
       "kind": "implementation",
-      "status": "review",
+      "status": "verified",
       "model": "claude-opus-5-5",
       "effort": "high",
       "agent": "claude/dim_arrow_loop",
@@ -1794,10 +1805,15 @@
           "result": "passed",
           "at": "2026-10-04T18:52:02.697976+00:00",
           "note": "Review pass2 pass: held-out set disjoint, predictions literal, docs honest; reviewer 15 independent probes also match. Awaiting integration."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T19:35:56.135863+00:00",
+          "note": "Root integration with D2/R5 (clean 3-way, binary fixtures byte-verified): AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1181 passed 0 failed 0 skipped, clippy workspace, fmt, build, GUI harness, corpus API."
         }
       },
       "review": "pass",
-      "integrated": false,
+      "integrated": true,
       "artifacts": [
         "target/agentic-artifacts/d2.patch",
         "target/agentic-artifacts/d2-handoff.json",
@@ -1805,7 +1821,7 @@
         "target/agentic-artifacts/d2-repair1.patch",
         "target/agentic-artifacts/reviews/d2-review-pass2.md"
       ],
-      "updated_at": "2026-10-04T18:52:02.697976+00:00",
+      "updated_at": "2026-10-04T19:35:56.173651+00:00",
       "id": "D2",
       "objective": "DIM large-arrow external text placement from black-box runs",
       "depends_on": [
@@ -1818,27 +1834,49 @@
         "Existing strict DIM fixtures stay strict"
       ],
       "baseline_commit": "d63fd972337d4c7639a9017efa9593a993bf55af",
-      "latest_note": "Review pass2 pass: held-out set disjoint, predictions literal, docs honest; reviewer 15 independent probes also match. Awaiting integration."
+      "latest_note": "Verified."
     },
     {
       "kind": "implementation",
-      "status": "pending",
+      "status": "review",
       "model": "claude-opus-5-5",
       "effort": "high",
-      "agent": null,
-      "workspace": null,
-      "fix_attempts": 0,
+      "agent": "claude/insert_change_loop",
+      "workspace": "/Users/dmytro/github/autorust/target/agentic-snapshots/insert-change",
+      "fix_attempts": 1,
       "required_checks": [
         "focused_tests",
         "scoped_clippy",
         "independent_review",
         "integrated_native_checks"
       ],
-      "checks": {},
-      "review": null,
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-04T20:03:05.007183+00:00",
+          "note": "Repair1 6e7ebec1: CHGH in-place oracle case, CHGO/CHGO2 OOPS cases, CHGIA blank-intersection angle case, doc accuracy, TEXT/SHAPE angle wrap. 833 tests, 83 oracle (worker). Review pass2 launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-04T20:03:05.007183+00:00",
+          "note": "Repair1 6e7ebec1: CHGH in-place oracle case, CHGO/CHGO2 OOPS cases, CHGIA blank-intersection angle case, doc accuracy, TEXT/SHAPE angle wrap. 833 tests, 83 oracle (worker). Review pass2 launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-04T20:05:19.715181+00:00",
+          "note": "Review pass2 pass: new oracle cases discriminate, 756 placements still renderer-identical. Integration after E1 checks."
+        }
+      },
+      "review": "pass",
       "integrated": false,
-      "artifacts": [],
-      "updated_at": "2026-10-04T16:31:52.075465+00:00",
+      "artifacts": [
+        "target/agentic-artifacts/i2.patch",
+        "target/agentic-artifacts/i2-handoff.json",
+        "target/agentic-artifacts/reviews/i2-review.md",
+        "target/agentic-artifacts/i2-repair1.patch",
+        "target/agentic-artifacts/reviews/i2-review-pass2.md"
+      ],
+      "updated_at": "2026-10-04T20:05:19.715181+00:00",
       "id": "I2",
       "objective": "INSERT *file scale/rotation and multi-object CHANGE",
       "depends_on": [
@@ -1850,13 +1888,15 @@
         "Oracle-backed prompts/geometry for star-form scale and rotation (or explicit native policy)",
         "CHANGE over mixed selections with atomic staging and one UNDO",
         "File round trips and API route covered"
-      ]
+      ],
+      "baseline_commit": "36b7fe0",
+      "latest_note": "Review pass2 pass: new oracle cases discriminate, 756 placements still renderer-identical. Integration after E1 checks."
     },
     {
       "id": "R5",
       "objective": "Open drawings written by the original Load DXF task (leading empty erased placeholder records)",
       "kind": "implementation",
-      "status": "review",
+      "status": "verified",
       "depends_on": [
         "B3",
         "M1"
@@ -1887,24 +1927,29 @@
           "result": "passed",
           "at": "2026-10-04T18:51:25.375984+00:00",
           "note": "Review pass1 pass, no findings: 609,274-input differential fuzz vs baseline, no panics, no regressions, no hidden records. Awaiting integration after RB2 final checks."
+        },
+        "integrated_native_checks": {
+          "result": "passed",
+          "at": "2026-10-04T19:35:56.059993+00:00",
+          "note": "Root integration with D2/R5 (clean 3-way, binary fixtures byte-verified): AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1181 passed 0 failed 0 skipped, clippy workspace, fmt, build, GUI harness, corpus API."
         }
       },
       "review": "pass",
-      "integrated": false,
+      "integrated": true,
       "artifacts": [
         "target/agentic-artifacts/reviews/m1-review.md",
         "target/agentic-artifacts/r5.patch",
         "target/agentic-artifacts/r5-handoff.json",
         "target/agentic-artifacts/reviews/r5-review.md"
       ],
-      "updated_at": "2026-10-04T18:51:25.375984+00:00",
+      "updated_at": "2026-10-04T19:35:56.098569+00:00",
       "acceptance": [
         "Committed fixture of the original raw Load DXF output (12 empty erased placeholders incl. unmatched ENDREP) opens natively via all routes",
         "Placeholders preserved or normalised by an explicit, tested policy; save/reopen safe in both revisions",
         "Malformed-stream refusals for genuinely corrupt files unchanged"
       ],
       "baseline_commit": "d63fd972337d4c7639a9017efa9593a993bf55af",
-      "latest_note": "Review pass1 pass, no findings: 609,274-input differential fuzz vs baseline, no panics, no regressions, no hidden records. Awaiting integration after RB2 final checks."
+      "latest_note": "Verified."
     },
     {
       "id": "R6",
@@ -4516,6 +4561,139 @@
     {
       "at": "2026-10-04T19:02:41.562181+00:00",
       "task": "RB2",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:03:15.969139+00:00",
+      "task": "I2",
+      "from": "pending",
+      "to": "ready",
+      "note": "Clone of main 36b7fe0.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:03:16.021559+00:00",
+      "task": "I2",
+      "from": "ready",
+      "to": "running",
+      "note": "Worker launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:03:54.649126+00:00",
+      "task": "E1",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: script/macro decline interrupts, W1 script semantics unchanged, mutation checks fail as expected. P3: script end overwrites explanation status (safe). Integration after R5/D2 checks.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T19:35:56.059993+00:00",
+      "task": "R5",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration with D2/R5 (clean 3-way, binary fixtures byte-verified): AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1181 passed 0 failed 0 skipped, clippy workspace, fmt, build, GUI harness, corpus API.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:35:56.098569+00:00",
+      "task": "R5",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:35:56.135863+00:00",
+      "task": "D2",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration with D2/R5 (clean 3-way, binary fixtures byte-verified): AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1181 passed 0 failed 0 skipped, clippy workspace, fmt, build, GUI harness, corpus API.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:35:56.173651+00:00",
+      "task": "D2",
+      "from": "review",
+      "to": "verified",
+      "note": "Verified.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:38:34.142382+00:00",
+      "task": "I2",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate 8d374d4d: oracle: star INSERT has no scale/rotation prompts (native S extension with renderer-equivalent transform, unrepresentable placements refused); multi-object CHANGE measured (reverse order, per-TEXT prompts, shared INSERT angle, text change = erase + append) implemented with staging/one UNDO; REPEAT in CHANGE refused (pinned divergence). Behaviour change: single-TEXT CHANGE now erase+append like original (5 tests updated). 832 tests, 80 oracle (worker). Review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T19:45:51.057562+00:00",
+      "task": "I2",
+      "from": "review",
+      "to": "fixing",
+      "note": "Review pass1: no code defects; 756 star placements renderer-identical, 5 original probes match. P2 in-place blank-text claim lacks oracle assertion; P3 90/270 REPEAT refusal optional, OOPS after CHANGE undocumented, doc accuracy, rotation not wrapped (375 deg). Repair1 requested.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-04T20:03:05.007183+00:00",
+      "task": "I2",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 6e7ebec1: CHGH in-place oracle case, CHGO/CHGO2 OOPS cases, CHGIA blank-intersection angle case, doc accuracy, TEXT/SHAPE angle wrap. 833 tests, 83 oracle (worker). Review pass2 launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T20:05:19.715181+00:00",
+      "task": "I2",
+      "from": "review",
+      "to": "review",
+      "note": "Review pass2 pass: new oracle cases discriminate, 756 placements still renderer-identical. Integration after E1 checks.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-04T20:10:14.525721+00:00",
+      "task": "E1",
+      "from": "review",
+      "to": "review",
+      "note": "Root integration after R5/D2: doc conflicts resolved as unions (group persistence sections, REPEAT matrix row). AUTOCAD_REQUIRE_CORPUS=1 cargo test --workspace 1193 passed 0 failed 0 skipped, clippy workspace, fmt, build, GUI harness, corpus API.",
+      "checks": [
+        "integrated_native_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-04T20:10:14.564519+00:00",
+      "task": "E1",
       "from": "review",
       "to": "verified",
       "note": "Verified.",

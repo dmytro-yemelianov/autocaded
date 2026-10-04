@@ -74,6 +74,14 @@ pub enum Effect {
     /// Save the attached document, prompting for a path if it is unnamed.
     End,
     SaveAndQuit(String),
+    /// Save confirmed at [`Editor::ask_original_erasure_save`]: write each
+    /// ambiguous erased REPEAT owner in AutoCAD 1.4's form (live markers,
+    /// every member erased). `None` is the attached document; `quit` leaves
+    /// the editor afterwards, as END.
+    SaveOriginalErasure {
+        path: Option<String>,
+        quit: bool,
+    },
     /// WBLOCK output to a destination that must not exist yet: the host
     /// creates it and never replaces a file (docs/native-files-menu.md).
     SaveDrawing(String, Box<Drawing>),
@@ -307,6 +315,19 @@ impl Editor {
         self.state = InputState::EndSavePath;
     }
 
+    /// A DWG save found an erased REPEAT owner whose members include one
+    /// erased before it (docs/native-group-persistence.md). Ask whether to
+    /// write it as AutoCAD 1.4 does; nothing is written until `Y`.
+    pub fn ask_original_erasure_save(&mut self, path: Option<String>, quit: bool) {
+        self.state = InputState::OriginalErasureSave { path, quit };
+        self.status.clear();
+    }
+
+    /// Whether the SAVE/END AutoCAD 1.4 member-erasure question is open.
+    pub fn asking_original_erasure(&self) -> bool {
+        matches!(self.state, InputState::OriginalErasureSave { .. })
+    }
+
     /// The WBLOCK destination reported by `Effect::CheckWblockDestination`
     /// exists: ask the original's replace question before the block name.
     /// `open_drawing` names the attached document's own file. Ignored unless
@@ -335,7 +356,9 @@ impl Editor {
     pub fn awaiting_document_input(&self) -> bool {
         matches!(
             self.state,
-            InputState::EndSavePath | InputState::QuitConfirmation
+            InputState::EndSavePath
+                | InputState::OriginalErasureSave { .. }
+                | InputState::QuitConfirmation
         )
     }
 

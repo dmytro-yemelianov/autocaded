@@ -30,12 +30,14 @@ symbols include the plus sign used in positive scientific exponents.
 Unit tests pin these widths, spacing, earlier numeric/native labels and the
 unchanged fallback for absent characters. The editor test covers a MMMM label
 whose wider ink changes arrows from internal to external, every text field,
-DWG save/reopen and UNDO. The existing 29 original scripts still compare all
-316 ordered native primitives at absolute 1e-10 geometry tolerance.
+DWG save/reopen and UNDO. The 32 original scripts (29 at the time of this
+metric work, plus DAR050/DAR200/PTEXT50) compare all 344 ordered native
+primitives at absolute 1e-10 geometry tolerance.
 
 The new glyph widths have renderer evidence, not additional original DIM
 placement exports. Vertical bounds, fonts other than TXT, unsupported characters
-and large-arrow placement retain their documented limitations.
+and the vertical-line arrow-fit comparator retain their documented limitations;
+large-arrow text placement is measured in [native DIM](../../../../../docs/native-dim.md).
 
 Static inspection of the retained recovered code confirms the original DIM
 measure helper (OVL04:14B0) calls the font bounds helper (EXE:8DDF), then subtracts

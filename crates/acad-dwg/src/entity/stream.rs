@@ -35,6 +35,55 @@ fn finished(pos: usize, index: u32, meta: &HeaderMeta) -> Result<(), DwgError> {
     }
     Ok(())
 }
+/// The original's Load DXF (Main Menu task 6) writes one zero-filled erased
+/// record per DXF header record, typed by the keyword's 1-based index
+/// (EXTENTS 1 .. DIMARROW 5, MODERES 6 .. LAYER 12, LAYERC 13). Ordinary
+/// ones (1-4, 7-11) cannot be told from natively erased records at the
+/// origin and stay `Item::Erased`. The structural ones (5, 6, 12, 13) have
+/// no model form and no other producer; they are dropped here.
+/// See docs/native-group-persistence.md, "Task 6 placeholder records".
+///
+/// Whether the physical record at `pos..next` has the placeholder shape: a
+/// layer a DXF record can carry and an all-zero body. The erased sign is
+/// checked on the decoded body by the caller.
+fn placeholder_shape(bytes: &[u8], pos: usize, next: usize) -> bool {
+    let layer = u16::from_le_bytes([bytes[pos + 2], bytes[pos + 3]]);
+    let zero = bytes[pos + 4..next].iter().all(|&byte| byte == 0);
+    layer <= u16::from(u8::MAX) && zero
+}
+
+/// A top-level structural placeholder: an erased ENDREP, BLOCK or ENDBLK of
+/// placeholder shape, or an erased REPEAT start (DIMARROW) only when the
+/// next record is such an ENDREP (MODERES, which the native DXF writer
+/// always puts after it), because a lone erased REPEAT start cannot be told
+/// from a malformed erased owner. A zero-filled ENDREP never closes a group
+/// (its zero dimensions are invalid), so it is unambiguous.
+fn is_placeholder(
+    bytes: &[u8],
+    body: &RecordBody,
+    pos: usize,
+    next: usize,
+    index: u32,
+    meta: &HeaderMeta,
+) -> bool {
+    if !placeholder_shape(bytes, pos, next) {
+        return false;
+    }
+    match body {
+        RecordBody::RepeatEnd { erased: true, .. } | RecordBody::ErasedStructure { .. } => true,
+        RecordBody::RepeatStart { erased: true, .. } => {
+            let end = meta.entity_end as usize;
+            next < end
+                && matches!(
+                    read_record_body(bytes, next, index + 1, meta.version),
+                    Ok((RecordBody::RepeatEnd { erased: true, .. }, after, _))
+                        if after <= end && placeholder_shape(bytes, next, after)
+                )
+        }
+        _ => false,
+    }
+}
+
 /// Geometry-only convenience view in physical record order, without layer metadata.
 /// Use read_items/parse for drawing structure and layers.
 pub fn read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Entity>, DwgError> {
@@ -58,6 +107,7 @@ pub fn read_entities(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Entity>, Dwg
             body,
             RecordBody::RepeatStart { erased: true, .. }
                 | RecordBody::RepeatEnd { erased: true, .. }
+                | RecordBody::ErasedStructure { .. }
         );
         if let RecordBody::Entity(entity) = body {
             out.push(match entity {
@@ -99,6 +149,7 @@ fn push_entity(
 /// Preserve ordered items, nested patterns and flat sibling block definitions.
 /// BLOCKs nested in BLOCKs close into the global table as established by SELEXOL.
 /// REPEATs cannot cross BLOCK/ENDBLK boundaries; unsupported erasure is never dropped.
+/// Top-level task 6 placeholder records are counted, then omitted.
 pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError> {
     let bytes = region(bytes, meta)?;
     let mut pos = meta.version.entity_start();
@@ -117,7 +168,21 @@ pub fn read_items(bytes: &[u8], meta: &HeaderMeta) -> Result<Vec<Item>, DwgError
                 entity_end: meta.entity_end as usize,
             });
         }
+        // The original's task 6 placeholders are dead records: they count
+        // toward the header's count and end, but are not drawing content, so
+        // a rewrite omits them as the original's own END does.
+        if blocks.is_empty()
+            && repeats.is_empty()
+            && is_placeholder(bytes, &body, pos, next, index, meta)
+        {
+            pos = next;
+            index += logical;
+            continue;
+        }
         match body {
+            RecordBody::ErasedStructure { code } => {
+                return Err(DwgError::UnsupportedErasedStructure { code, at: pos });
+            }
             RecordBody::Entity(e) => {
                 if repeats.last().is_some_and(|open| open.erased) {
                     return Err(DwgError::InvalidGroupStream {

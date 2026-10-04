@@ -3,9 +3,11 @@
 Status: B3a independent-marker candidate plus a separately approved B3b native
 erased-owner candidate. Static original REPEAT selection is source-member based;
 Rust whole-owner editing/persistence is an explicit native policy. B4 retains
-ordinary erased members inside live groups. Whole-owner erasure with prior member
-erasure, negative structural subgroups and explicit owner-layer wrappers remain
-checked compatibility gaps. This document
+ordinary erased members inside live groups. E1 measured whole-group erasure after
+prior member erasure on the original: its file loses the prior status too, so
+DWG save writes the original's form only after an explicit question. Negative
+structural subgroups and explicit owner-layer wrappers remain checked
+compatibility gaps. This document
 does not claim original group-edit completion.
 
 ## Retained evidence
@@ -172,7 +174,8 @@ uniformly negative subtree; nested metadata lives beneath that single owner.
 Any positive marker/member in the subtree rejects. Negative structural subgroups
 in live Repeat/Block bodies remain checked errors. B4 preserves ordinary negative
 members under positive markers, separately from the whole-owner rule below.
-Negative BLOCK/ENDBLK markers remain unsupported. Empty groups are consistently
+Negative BLOCK/ENDBLK markers remain unsupported, except the zero-filled
+top-level task 6 placeholders, which are dropped (section below). Empty groups are consistently
 refused for either sign. Fields, layers, count/end, nesting and truncation checks
 apply to erased records too; nonfinite ordinary fields/block bases reject before
 writing or accepting malformed input. Unknown magnitude, including abs(-32768),
@@ -228,8 +231,9 @@ referenced definitions. Resource execution does not enter that INSERT.
 Uniform-negative DWG whole-owner encoding cannot distinguish a previously erased
 member from a member erased by the current owner action. A whole erased owner
 containing any prior erased lexical ordinary member therefore checked-refuses
-DWG output with an explicit OOPS/UNDO recovery reason. This also applies to the
-retained erased source created by BLOCK. Referenced INSERT definitions are
+direct DWG output with an explicit OOPS/UNDO recovery reason. This also applies
+to the retained erased source created by BLOCK. Since E1 the SAVE/END commands
+ask before refusing and can write the original's own form instead (next section). Referenced INSERT definitions are
 independent lexical streams: an erased INSERT can still save when its live block
 contains ordinary erased members. Named WBLOCK of a live block exports its
 members as root records independently of an ambiguous erased source: a live
@@ -265,3 +269,181 @@ agreement, BLOCK/WBLOCK, existing/absent destination safety, END and OOPS/UNDO.
 Original corpus comparisons remain unchanged. Retained static evidence proves
 per-physical-record sign handling and skipping; these constructed tests do not
 claim original group selection or nested editing completion.
+
+## Task 6 placeholder records (R5)
+
+Main Menu task 6 (Load DXF) in the original writes dead records into the
+drawing. Without a reader rule, its output cannot be opened natively
+(`StrayEndrep` at the erased ENDREP).
+
+Evidence: the in-tree emulator, asserted in
+`crates/acad-oracle/tests/task6_placeholders.rs`.
+- For each DXF header record, task 6 writes one erased record of type
+  `-(keyword index)`, with every body byte zero, at that record's place in
+  the stream, even after entities. The indices are EXTENTS 1, LIMITS 2,
+  BASE 3, DWGVIEW 4, DIMARROW 5, MODERES 6, MODEGRID 7, MODEORTHO 8,
+  MODEFILL 9, TXTSIZE 10, TRACEWID 11, LAYER 12, LAYERC 13. The record keeps
+  the layer field of the DXF record. All of these placeholders count toward
+  the header's count and end.
+- The original's own task 5 DXF has 12 header records, so its task 6 output
+  holds -1..-13 without -5. That output includes an unpaired erased ENDREP
+  (-6), an erased BLOCK with an empty name (-12) and an erased ENDBLK (-13).
+  The native DXF writer puts DIMARROW directly before MODERES, so task 6 of a
+  native DXF that has DIMARROW produces -5 immediately followed by the
+  zero-filled -6.
+- Task 6 into an existing drawing appends another run of placeholders after
+  the existing records. With no header records in the DXF, no placeholders
+  are written.
+- When the original opens such a drawing and ENDs it, edited or not, only the
+  live records remain (`task6-line-ended.dwg`). QUIT leaves the file
+  unchanged. The original's task 5 output for the raw file is identical to
+  its output for the ENDed file.
+- The original also drops an ordinary record ERASEd in an earlier session
+  when a later session ENDs. Native B3/B4 policy keeps such records, and that
+  difference is unchanged here.
+
+Decision: the placeholders are split by whether the model can represent
+them.
+- **Ordinary placeholders (1-4, 7-11) are preserved.** They are erased
+  LINE/POINT/CIRCLE/SHAPE/TEXT/ARC/TRACE/LOAD/SOLID records with zero
+  fields, and nothing distinguishes them from a record erased natively at
+  the origin. A native BLOCK of a POINT at (0,0) leaves exactly such a
+  record, and the existing tests require it to survive. They stay
+  top-level `Item::Erased` under the B4 policy: they never render, select,
+  count as entities or reach DXF. Saving re-emits them byte for byte, in
+  both revisions.
+- **Structural placeholders are normalised away.** These are the erased
+  ENDREP (6), the erased BLOCK with an empty name (12), the erased ENDBLK
+  (13), and the erased REPEAT start (5) that pairs with the zero-filled
+  ENDREP. They have no model form, and no native or original record of that
+  shape carries meaning: an unpaired erased ENDREP or ENDBLK, or a BLOCK
+  with no name. They are dropped, as the original's END drops them.
+
+`read_items` drops a record as a structural placeholder only when all of
+these hold:
+- it is at the top level (no BLOCK or REPEAT open);
+- it is an erased ENDREP, BLOCK or ENDBLK;
+- its layer is at most 255;
+- every body byte is zero.
+
+A dropped record is counted and checked against the header's count and end
+like any other record. Native writers never emit one. A native rewrite of the
+fixture keeps the nine ordinary placeholders and the LINE (10 records), not
+the original END's single record. This is the same retained-erased-record
+difference as above.
+
+An erased REPEAT start is always body-less, so a lone one cannot be told from
+a malformed erased owner. It is a placeholder only when the next record is a
+zero-filled erased ENDREP. A genuine erased owner can never close with that
+record, because zero dimensions are invalid.
+
+These cases keep their existing errors:
+- a stray ENDREP with any non-zero byte, or one that is not erased
+  (`StrayEndrep`);
+- a zero-filled erased ENDREP that closes an open erased or live REPEAT
+  (`InvalidGroupStream`);
+- a lone erased REPEAT start, or one followed by any other record
+  (`UnterminatedRepeat`, `InvalidGroupStream`; the B3b mixed-sign rules are
+  unchanged);
+- a named erased BLOCK, any erased BLOCK or ENDBLK inside an open block, and
+  an erased ENDBLK whose layer is above 255 (`UnsupportedErasedStructure`);
+- a placeholder pair inside a block (`InvalidGroupStream`);
+- count and end mismatches.
+
+A zero-filled erased record inside a live group is still a B4 member.
+
+Tests: `crates/acad-dwg/tests/task6_placeholders.rs` covers the fixtures in
+both revisions, each placeholder alone, the DIMARROW pair, every refusal
+listed above, and byte-exact rewrites. `crates/acad-app/tests/task6_placeholders.rs`
+covers Session::open (used by `acad DRAWING` and `acad-mcp --drawing`),
+Main Menu task 2, API `open`, the real `acad-mcp --drawing` binary, render
+and selection equality with the ENDed file, END (exact kept records, the
+backup holding the original bytes, and a stable second END), and native
+task 6 appending to such a drawing.
+
+Remaining limit: when a DIMARROW record is not directly followed by MODERES
+(only possible with a hand-made DXF), the original writes a lone -5. That
+output is still refused, and the oracle test asserts the refusal.
+
+## E1 whole-owner erasure after prior member erasure
+
+### Original evidence (in-tree emulator, `crates/acad-oracle/tests/erased_owner.rs`)
+
+Each claim below is asserted by that test against original ACAD.EXE runs on
+the retained System floppy (skipped visibly without `System.img`, failing under
+`AUTOCAD_REQUIRE_CORPUS`). Fixture: `REPEAT`, LINE A (1,1)-(2,1), LINE B
+(1,3)-(2,3), `ENDREP` 2 columns, 1 row, spacing 5. "Erase A" is
+`ERASE W 0,0 3,2` (A's source instance); "erase the group" is `ERASE W 0,0 10,5`.
+
+- Erasing A alone writes positive REPEAT/ENDREP markers, negative A, positive B.
+- Erasing the whole group after A writes **byte-identical files** to erasing
+  the whole group with no prior erasure. The markers stay positive (type 5 and
+  6); each source member is negative, so a whole erased group is a live group
+  whose members are all erased, and its file cannot tell an earlier erased
+  member from one erased with the group. That markers are never negated by
+  editor selection in general rests on the B3 static analysis above (source
+  leaf addresses only; `RUN/reviews/b3-erased-scope.md`, retained as
+  `docs/superpowers/reviews/2026-10-04-repeat-erased-scope-review.md`), which this depth-1
+  fixture confirms by execution.
+- Selection is per source member: a window holding only the repeated column
+  (`5,0 10,5`) writes the same file. After A was erased the group window
+  reports `3 found.` (A is found again through its repeated instance) against
+  `4 found.` without it.
+- In-session OOPS after that whole-group erase revives A as well: the file is
+  byte-identical to erase-then-OOPS with no prior erasure. Control: two ungrouped LINEs
+  with the same windows keep A erased after OOPS.
+- BLOCK by the same window leaves the source in that form (positive markers,
+  every member negative) and copies one live record per found instance into the
+  definition (`B, A, B` after the prior erasure, `B, A, B, A` without); the
+  erased A is copied live. OOPS after BLOCK revives A in the source.
+- After reopening either file, OOPS answers `*Invalid*`. END after reopening
+  writes only the REPEAT/ENDREP marker pair (count 2): erased members are not
+  kept. The native reader refuses that empty pair (`REPEAT needs members`).
+
+The original therefore loses the distinction itself, in the file and even in
+its own session. No original bit distinguishes the cases, so none is invented.
+
+### Native policy
+
+The native model, ERASE/BLOCK, OOPS and UNDO are unchanged: the session keeps
+`Item::Erased(Repeat)` with the prior member tag and OOPS/UNDO restore the exact
+prior partial group. Direct DWG encoding (`acad_dwg::write*`, the API `save`
+request shared by MCP, `Session::save`) still checked-refuses with the OOPS/UNDO
+reason, which now also names the SAVE/END question. DXF stays live-only and never asks.
+
+SAVE, END (attached or unnamed path) to a DWG destination with such an owner
+asks first instead of refusing: `SAVE: Lose earlier member erasure? <N>` (or
+`END: ...`), short enough for an 800-pixel command line, while the status row
+explains `Erased REPEAT group holds earlier erased members; Y writes every member
+erased, as AutoCAD 1.4 does (their earlier erasure is lost); anything else writes
+nothing`. As at the WBLOCK replace question, an answer starting with `Y`
+confirms; Return, `N`, anything else or cancel writes nothing and keeps the
+session, dirty state and attachment. The question is native only, so scripts and
+menu macros written for the original carry no answer for it: when a command-script
+item or menu-macro piece answers with anything but `Y`, the decline is an error.
+It interrupts the script (cause `error`, the item's line reported, RESUME
+continues after it) or drops the macro's remaining steps, and its "nothing
+written" message stays on the status row (`docs/native-scripts.md`). An explicit
+`Y` item or piece still confirms. A confirmed save uses
+`group_codec::original_member_erasure`: each ambiguous top-level erased owner is
+written as a live Repeat (outer and nested markers positive, marker layers
+kept) whose every ordinary member is erased, with earlier erased members kept as
+one tag. Erased owners without prior member erasure keep the native
+uniform-negative form. For the fixture, opening the original's erase-A file,
+`ERASE 1` and the confirmed save write exactly the original's record bytes for
+the whole-group erasure; BLOCK's retained source reopens equal to the original's
+BLOCK source. Both revisions round-trip; END keeps the attached codec/revision.
+The status reports the number of groups written in the original form and that
+earlier member erasure was not kept. The saved baseline is the session drawing,
+so it is not dirty; reopening gives the live all-erased group (one selectable
+owner without geometry) and no OOPS history, as in the original. Write failures
+are atomic like any save (destination, attachment and dirty state unchanged).
+
+Remaining gaps: the original's END-after-reopen purge (empty marker pair) is not
+reproduced and its output is not readable natively (ledger task R6: read the
+original's empty REPEAT/ENDREP pair); the original's per-instance BLOCK copies
+and OOPS revival of earlier erased members are not reproduced. Unmeasured:
+nested original groups (the nested positive-marker form written on `Y` is a
+native extrapolation of the static marker rule) and point picks (typed-point
+selection did not complete in the in-tree runner); only window selection of the
+depth-1 fixture is executed evidence.

@@ -304,6 +304,10 @@ fn load_dxf_makes_a_drawing_with_the_interchange_entities() {
         !run.console.contains("Drawing editor."),
         "stays at the menu"
     );
+    // The raw drawing (with the original's erased placeholder records, see
+    // task6_placeholders.rs) opens natively with only the DXF's entities.
+    let raw = acad_dwg::parse(&run.files["D3.DWG"]).unwrap();
+    assert_eq!(entities(&raw), one_line());
     // The original's drawing, edited and ENDed by the original, holds the
     // DXF's entities.
     let ended = self::run(&disk, &[("D3.DXF", &dxf)], "6\rD3\r\r2\rD3\rEND\r");

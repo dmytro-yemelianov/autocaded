@@ -168,11 +168,17 @@ policy. Plotting is out of scope by user decision.
 
 - No plotting (task 3) or real configuration (task 4); the original's
   screen layout, banner and DOS 8.3 name rules are not reproduced.
-- Drawings made by the original's task 6 and never re-saved by the original
-  cannot be opened natively (task 2, `acad DRAWING`, API `open`, MCP
-  `--drawing`) and are refused as task 6 targets: the original writes
-  zero-filled erased placeholder records, including an unpaired erased
-  ENDREP, that `acad-dwg` rejects (`StrayEndrep`). Once the original edits
-  and ENDs such a drawing it opens. Reader fix tracked as ledger task R5.
+- R5 (done): drawings made by the original's task 6 and never re-saved by
+  the original hold zero-filled erased placeholder records, one per DXF
+  header record, including an unpaired erased ENDREP. They now open through
+  task 2, `acad DRAWING`, API `open` and MCP `--drawing`, and native task 6
+  can append to them. The structural placeholders (erased ENDREP, BLOCK and
+  ENDBLK) are dropped on read, as the original's END drops them. The
+  ordinary ones remain non-live erased records and are saved byte for byte,
+  under the existing erased-record policy.
+  docs/native-group-persistence.md "Task 6 placeholder records" has the
+  rule, the evidence and the one remaining limit: a lone erased REPEAT
+  start, written for a DIMARROW record that is not followed by MODERES, is
+  still refused.
 - Disk-full and write-failure behaviour of the original's tasks 5/6 is not
   measured; native failures leave the destination untouched (staged write).

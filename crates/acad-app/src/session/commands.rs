@@ -28,7 +28,9 @@ impl Session {
         } else {
             input
         };
+        let asked = self.script_stepping && self.editor.asking_original_erasure();
         let result = self.editor.submit_return(&command_input);
+        let result = self.automated_erasure_answer(asked, result);
         handle_result(self, result);
         self.resume_macro(handle_result);
     }
