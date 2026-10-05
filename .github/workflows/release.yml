@@ -85,9 +85,42 @@ jobs:
           name: autorust-${{ matrix.target }}
           path: dist/*.${{ matrix.archive_ext }}
 
+  wasm:
+    name: build (wasm32 web bundle)
+    runs-on: [self-hosted, raps-ci, autorust]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Environment PATH (self-hosted)
+        run: |
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      # No corpus on the runner, and its bytes must not ship: users copy
+      # TXT.SHP, ACAD.MNU and samples into assets/ themselves.
+      - name: Build web bundle
+        run: ./scripts/build-wasm.sh --no-assets
+
+      - name: Package artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          stage="autorust-${tag}-wasm"
+          mkdir -p "dist/${stage}/pkg" "dist/${stage}/assets"
+          cp web/index.html "dist/${stage}/"
+          cp web/pkg/acad_wasm.js web/pkg/acad_wasm_bg.wasm "dist/${stage}/pkg/"
+          cp README.md LICENSE "dist/${stage}/"
+          tar -C dist -czf "dist/${stage}.tar.gz" "${stage}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autorust-wasm
+          path: dist/*.tar.gz
+
   release:
     name: Create GitHub Release
-    needs: [build]
+    needs: [build, wasm]
     runs-on: [self-hosted, raps-ci, autorust]
     steps:
       - uses: actions/checkout@v4
