@@ -472,11 +472,13 @@ fn pan_changes_view_center_without_changing_height_and_previous_restores_it() {
     editor.submit("PAN").unwrap();
     editor.submit("@12,-4").unwrap();
     editor.submit("").unwrap();
+    // The view centre moves by the displacement, as in the original
+    // (acad-oracle tests/header_commands.rs).
     assert_eq!(
         editor.drawing().header.view.center,
         Point {
-            x: before_pan.center.x - 12.0,
-            y: before_pan.center.y + 4.0
+            x: before_pan.center.x + 12.0,
+            y: before_pan.center.y - 4.0
         }
     );
     assert_eq!(editor.drawing().header.view.height, before_pan.height);

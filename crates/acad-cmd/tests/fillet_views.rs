@@ -193,14 +193,15 @@ fn viewport_window_reverse_corners_lower_left_and_pan_displacement() {
     run(&mut e, &["PAN", "@2.5,-1"]);
     assert_eq!(e.drawing().header.view, before);
     run(&mut e, &[""]);
-    assert_eq!(e.drawing().header.view.center, p(2.5, 1.0));
+    // PAN moves the view centre by the displacement, as the original does.
+    assert_eq!(e.drawing().header.view.center, p(7.5, -1.0));
     run(&mut e, &["PAN", "1.25,2.5", "@-2,3"]);
-    assert_eq!(e.drawing().header.view.center, p(4.5, -2.0));
+    assert_eq!(e.drawing().header.view.center, p(5.5, 2.0));
     assert_eq!(e.drawing().header.view.height, 8.0);
     run(&mut e, &["PAN", "1,2"]);
     assert!(e.submit("").is_err());
     e.cancel_command().unwrap();
-    assert_eq!(e.drawing().header.view.center, p(4.5, -2.0));
+    assert_eq!(e.drawing().header.view.center, p(5.5, 2.0));
 }
 #[test]
 fn views_use_visible_repeat_and_rotated_insert_geometry_not_hidden_or_definitions() {

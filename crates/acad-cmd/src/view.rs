@@ -208,11 +208,13 @@ impl Editor {
                         y: second.y - first.y,
                     }
                 };
+                // AutoCAD 1.4 moves the view centre by the displacement (QEMU
+                // original: acad-oracle tests/header_commands.rs).
                 let view = self.drawing.header.view;
                 return self.commit_view(DwgView {
                     center: Point {
-                        x: view.center.x - delta.x,
-                        y: view.center.y - delta.y,
+                        x: view.center.x + delta.x,
+                        y: view.center.y + delta.y,
                     },
                     height: view.height,
                 });

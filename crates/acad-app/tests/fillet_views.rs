@@ -45,7 +45,8 @@ fn api_canvas_aspect_points_pan_and_previous_use_shared_navigation() {
     cmd(&mut s, "1,2");
     assert_eq!(s.drawing().header.view, view);
     cmd(&mut s, "@2,-3");
-    assert_eq!(s.drawing().header.view.center, Point { x: 3.25, y: 5.5 });
+    // PAN moves the view centre by the displacement, as the original does.
+    assert_eq!(s.drawing().header.view.center, Point { x: 7.25, y: -0.5 });
     cmd(&mut s, "ZOOM");
     cmd(&mut s, "P");
     assert_eq!(s.drawing().header.view, view);
