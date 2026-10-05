@@ -65,9 +65,12 @@ visually inspected. No oracle or translated boot process was run.
   First: document path/dirty state and END save versus QUIT discard; GUI report
   display; GRID painting; CIRCLE options/triangular SOLID/continuation. Then
   selection/LIST/layer visibility, TEXT/CHANGE, FILLET and view forms.
-- [ ] Complete HATCH styles/user patterns and DELAY/RESUME script semantics. SKETCH mouse support
-  needs a deliberate native input policy; tablet/plotter drivers stay excluded.
-  Each item needs a bounded behavior contract before implementation.
+- [ ] Complete HATCH styles/user patterns and DELAY/RESUME script semantics;
+  tablet/plotter drivers stay excluded. Each item needs a bounded behavior
+  contract before implementation.
+- [x] SKETCH mouse input policy (decided 2026-10-05): the GUI mouse draws
+  press-and-hold; P and API clicks keep the original toggle
+  ([SKETCH](../../native-sketch.md)).
 
 DIM audit D1 (2026-10-04) is accepted as an evidence deliverable only; it is not
 DIM completion. [Audit](../reviews/2026-10-04-dim-evidence.md) and

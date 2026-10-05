@@ -181,3 +181,112 @@ fn window_close_declined_resumes_sketch() {
     assert!(app.sketch_active());
     assert_eq!(app.editor.sketch_preview().unwrap(), before);
 }
+
+fn drag_motion(app: &mut Session, x: f64, y: f64) {
+    app.motion(x, y, W, H).unwrap();
+}
+
+#[test]
+fn gui_press_drag_release_draws_one_stroke() {
+    let mut app = sketching("0.25");
+    app.press(100.0, 200.0, W, H).unwrap();
+    assert!(app.editor.sketch_preview().unwrap().pen_down);
+    drag_motion(&mut app, 200.0, 200.0);
+    drag_motion(&mut app, 200.0, 300.0);
+    app.release(220.0, 300.0, W, H).unwrap();
+    let sketch = app.editor.sketch_preview().unwrap();
+    assert!(!sketch.pen_down);
+    let [start, corner, end, tail] = [
+        (100.0, 200.0),
+        (200.0, 200.0),
+        (200.0, 300.0),
+        (220.0, 300.0),
+    ]
+    .map(|(x, y)| world(&app, x, y));
+    // The release records the short tail to the release point (O4).
+    assert_eq!(
+        sketch.temporary,
+        vec![[start, corner], [corner, end], [end, tail]]
+    );
+    // Moving with the button up draws nothing.
+    drag_motion(&mut app, 400.0, 100.0);
+    assert_eq!(app.editor.sketch_preview().unwrap().temporary.len(), 3);
+    app.type_characters("x").unwrap();
+    assert_eq!(app.drawing().entities().count(), 3);
+}
+
+#[test]
+fn a_second_drag_starts_a_new_stroke_and_release_without_drag_is_ignored() {
+    let mut app = sketching("0.25");
+    // A stray release (no press) changes nothing.
+    app.release(100.0, 100.0, W, H).unwrap();
+    assert!(!app.editor.sketch_preview().unwrap().pen_down);
+    for (from, to) in [
+        ((100.0, 100.0), (300.0, 100.0)),
+        ((100.0, 300.0), (300.0, 300.0)),
+    ] {
+        app.press(from.0, from.1, W, H).unwrap();
+        drag_motion(&mut app, to.0, to.1);
+        app.release(to.0, to.1, W, H).unwrap();
+    }
+    assert_eq!(app.editor.sketch_preview().unwrap().temporary.len(), 2);
+}
+
+#[test]
+fn release_outside_the_drawing_lifts_at_the_last_pointer() {
+    let mut app = sketching("0.25");
+    app.press(100.0, 100.0, W, H).unwrap();
+    drag_motion(&mut app, 300.0, 100.0);
+    app.release(f64::NAN, f64::NAN, W, H).unwrap();
+    let sketch = app.editor.sketch_preview().unwrap();
+    assert!(!sketch.pen_down);
+    assert_eq!(
+        sketch.temporary,
+        vec![[world(&app, 100.0, 100.0), world(&app, 300.0, 100.0)]]
+    );
+}
+
+#[test]
+fn a_press_near_the_last_end_point_connects_and_drags_on() {
+    let mut app = sketching("0.25");
+    app.press(100.0, 100.0, W, H).unwrap();
+    drag_motion(&mut app, 300.0, 100.0);
+    app.release(300.0, 100.0, W, H).unwrap();
+    // Away from the end point, so C waits instead of connecting at once.
+    drag_motion(&mut app, 300.0, 400.0);
+    app.type_characters("c").unwrap();
+    assert_eq!(
+        app.editor.sketch_preview().unwrap().mode,
+        acad_cmd::SketchMode::Connect
+    );
+    // A press away from the end point aborts connect, like P (O10 policy).
+    app.press(300.0, 400.0, W, H).unwrap();
+    assert_eq!(
+        app.editor.sketch_preview().unwrap().mode,
+        acad_cmd::SketchMode::Draw
+    );
+    assert!(!app.editor.sketch_preview().unwrap().pen_down);
+    app.release(300.0, 400.0, W, H).unwrap();
+    app.type_characters("c").unwrap();
+    // A press on the end point connects there and keeps drawing.
+    app.press(300.0, 100.0, W, H).unwrap();
+    assert!(app.editor.sketch_preview().unwrap().pen_down);
+    drag_motion(&mut app, 300.0, 300.0);
+    app.release(300.0, 300.0, W, H).unwrap();
+    let temporary = app.editor.sketch_preview().unwrap().temporary;
+    assert_eq!(temporary.len(), 2);
+    assert_eq!(temporary[1][0], world(&app, 300.0, 100.0));
+}
+
+#[test]
+fn erase_mode_press_confirms_and_menu_presses_stay_clicks() {
+    let mut app = sketching("0.25");
+    app.press(100.0, 100.0, W, H).unwrap();
+    drag_motion(&mut app, 300.0, 100.0);
+    app.release(300.0, 100.0, W, H).unwrap();
+    app.type_characters("e").unwrap();
+    app.press(100.0, 100.0, W, H).unwrap();
+    assert!(app.editor.sketch_preview().unwrap().temporary.is_empty());
+    app.release(100.0, 100.0, W, H).unwrap();
+    assert!(!app.editor.sketch_preview().unwrap().pen_down);
+}

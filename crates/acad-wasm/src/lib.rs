@@ -146,6 +146,33 @@ impl AutoCadSession {
             .map_err(|e| JsValue::from_str(&e))
     }
 
+    /// Left-button press: a click, except in SKETCH over the drawing, where
+    /// it lowers the pen for a drag that [`AutoCadSession::release`] ends.
+    pub fn press(
+        &mut self,
+        client_x: f64,
+        client_y: f64,
+        width: u32,
+        height: u32,
+    ) -> Result<bool, JsValue> {
+        self.session
+            .press(client_x, client_y, width, height)
+            .map_err(|e| JsValue::from_str(&e))
+    }
+
+    /// Left-button release: ends a SKETCH drag, recording the stroke's tail.
+    pub fn release(
+        &mut self,
+        client_x: f64,
+        client_y: f64,
+        width: u32,
+        height: u32,
+    ) -> Result<bool, JsValue> {
+        self.session
+            .release(client_x, client_y, width, height)
+            .map_err(|e| JsValue::from_str(&e))
+    }
+
     /// Handle mouse motion / hover for crosshair and freehand sketch.
     pub fn motion(
         &mut self,

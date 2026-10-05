@@ -50,8 +50,22 @@ quantization is not reproduced (see divergences).
 ## Native contract
 
 **Input model.** The native app has no digitizer. The pointer is the
-mouse, the window cursor or the API/MCP `motion` route. The left mouse button,
-or a point given through API `point`/`click`, is the pen toggle (O2). The
+mouse, the window cursor or the API/MCP `motion` route.
+
+The GUI mouse (native window and browser) uses **press-and-hold**, a native
+policy chosen over the original's click toggle (owner decision 2026-10-05:
+digitizer-style toggling is unfamiliar today). Over the drawing, pressing the
+left button lowers the pen at the pointer, dragging samples as below, and
+releasing lifts it, recording the tail to the release point (O4, O13). A release
+outside the drawing lifts at the last pointer inside it. A press while the pen is
+already down (lowered with P) keeps it down until the release. In connect mode a
+press within the increment of the last end point connects and the drag continues
+the path from there; a press farther away aborts connect, as P does. In erase
+mode the press confirms, as P does. Presses on the screen menu or command area
+stay ordinary clicks (`Session::press`/`release`).
+
+API/MCP `point`/`click` and the P key keep the original's pen toggle (O2): API
+clients have no held button, and the oracle tests are stated that way. The
 keyboard letters P X Q R E C `.` are case-insensitive. A typed letter takes
 effect at once in the GUI, without Return. Through the API it is one
 `command` input. Return (empty input) is X (O14). Whitespace typed in the GUI
@@ -88,7 +102,8 @@ same point, a `.` line, a connect) therefore also merges into it.
 
 | Key | Native behaviour |
 |---|---|
-| P / click | Pen up → down at the constrained pointer, starting a new stroke. Down → up after recording the tail (O4, O13). Erase mode: confirm (O12). Connect mode: P aborts connect. A click first moves the pointer, so a click within the connect tolerance connects and then lifts the pen, recording the line from the end point to the click. A click outside the tolerance aborts connect (native policy) |
+| Mouse press / drag / release (GUI) | Pen down at the press, sampling while held, pen up with the tail at the release (native policy, above) |
+| P / API click | Pen up → down at the constrained pointer, starting a new stroke. Down → up after recording the tail (O4, O13). Erase mode: confirm (O12). Connect mode: P aborts connect. A click first moves the pointer, so a click within the connect tolerance connects and then lifts the pen, recording the line from the end point to the click. A click outside the tolerance aborts connect (native policy) |
 | R | Record the tail if the pen is down, then record all temporary lines as LINE entities on the current layer. Status `N lines recorded.`; stay in SKETCH (O6) |
 | X / Return | R, then exit to `Command` (O6, O14) |
 | Q | Discard temporary lines and exit (O7) |
@@ -131,6 +146,8 @@ temporary count.
 
 ## Divergences and limits
 
+- The GUI mouse draws while the button is held; the original toggled the pen
+  per click (O2). P and API clicks still toggle.
 - Points are not re-quantized to CGA pixels. A snapped native point is exact.
 - The original samples a moving pointer at its own polling rate. The native
   editor samples once per delivered motion event. Fast moves can therefore

@@ -193,6 +193,60 @@ impl Session {
     /// Pointer-motion seam shared by the GUI `CursorMoved` handler and the
     /// API `motion` request: SKETCH samples the stored cursor's world point.
     /// Motion outside the drawing area, or outside SKETCH, changes nothing.
+    /// GUI left-button press. In SKETCH over the drawing it starts a drag
+    /// (native policy, docs/native-sketch.md): the press lowers the pen there,
+    /// or connects when the press is within the increment of the last end
+    /// point, and [`Session::release`] lifts it. Erase confirmation, the
+    /// screen menu and every other prompt treat the press as a click.
+    pub fn press(&mut self, x: f64, y: f64, width: u32, height: u32) -> Result<bool, String> {
+        self.sketch_drag = false;
+        if self.editor.sketch_active() && !self.report_visible() {
+            if !x.is_finite() || !y.is_finite() {
+                return Err("press must be inside the frame".into());
+            }
+            self.set_viewport_size(width, height)?;
+            self.cursor = Some((x, y));
+            if self.drawing_cursor_world(width, height).is_some() {
+                let before = self.editor.sketch_preview().expect("SKETCH is active");
+                if before.mode != acad_cmd::SketchMode::Erase {
+                    self.pointer_motion(width, height)?;
+                    let after = self.editor.sketch_preview().expect("SKETCH is active");
+                    // A connect within the increment has lowered the pen.
+                    if after.pen_down {
+                        self.sketch_drag = true;
+                        return Ok(false);
+                    }
+                    if before.mode == acad_cmd::SketchMode::Draw {
+                        let quit = self.command("P")?;
+                        self.sketch_drag = self.editor.sketch_preview().is_some_and(|s| s.pen_down);
+                        return Ok(quit);
+                    }
+                }
+            }
+        }
+        self.click(x, y, width, height)
+    }
+
+    /// GUI left-button release: ends a SKETCH drag by lifting the pen, which
+    /// records the tail to the last pointer inside the drawing. A release
+    /// outside the frame (or with no position) lifts at that last pointer.
+    pub fn release(&mut self, x: f64, y: f64, width: u32, height: u32) -> Result<bool, String> {
+        if !std::mem::take(&mut self.sketch_drag) {
+            return Ok(false);
+        }
+        let Some(sketch) = self.editor.sketch_preview() else {
+            return Ok(false);
+        };
+        if !sketch.pen_down || sketch.mode != acad_cmd::SketchMode::Draw {
+            return Ok(false);
+        }
+        if x.is_finite() && y.is_finite() {
+            self.cursor = Some((x, y));
+            self.pointer_motion(width, height)?;
+        }
+        self.command("P")
+    }
+
     pub fn pointer_motion(&mut self, width: u32, height: u32) -> Result<bool, String> {
         if !self.editor.sketch_active() || self.report_visible() {
             return Ok(false);

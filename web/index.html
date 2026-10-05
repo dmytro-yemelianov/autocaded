@@ -104,6 +104,7 @@
       display: block;
       cursor: crosshair;
       image-rendering: pixelated;
+      touch-action: none;
     }
 
     #loading-overlay {
@@ -299,18 +300,32 @@
       return [e.clientX - rect.left, e.clientY - rect.top];
     }
 
-    canvas.addEventListener('click', (e) => {
-      if (!cad) return;
+    // Press and release, not click: SKETCH draws while the button is held.
+    // Capture keeps the release (and motion) coming if the drag leaves the canvas.
+    canvas.addEventListener('pointerdown', (e) => {
+      if (!cad || e.button !== 0) return;
+      canvas.setPointerCapture(e.pointerId);
       const [x, y] = canvasPoint(e);
       try {
-        cad.click(x, y, canvas.width, canvas.height);
+        cad.press(x, y, canvas.width, canvas.height);
       } catch (err) {
         // Reported in the command area.
       }
       redraw();
     });
 
-    canvas.addEventListener('mousemove', (e) => {
+    canvas.addEventListener('pointerup', (e) => {
+      if (!cad || e.button !== 0) return;
+      const [x, y] = canvasPoint(e);
+      try {
+        cad.release(x, y, canvas.width, canvas.height);
+      } catch (err) {
+        // Reported in the command area.
+      }
+      redraw();
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
       if (!cad) return;
       const [x, y] = canvasPoint(e);
       try {

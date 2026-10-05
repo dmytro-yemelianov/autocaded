@@ -455,6 +455,7 @@ fn load_accepts_a_new_shp_path_and_makes_its_shapes_available() {
         main_menu_drawing: None,
         exit_requested: false,
         default_name_prompt: String::new(),
+        sketch_drag: false,
     };
     app.editor.submit("LOAD").unwrap();
     let library_name = app.resolve_shape_library(path.to_str().unwrap()).unwrap();
@@ -518,6 +519,7 @@ fn menu_app(page: usize) -> Option<Session> {
         main_menu_drawing: None,
         exit_requested: false,
         default_name_prompt: String::new(),
+        sketch_drag: false,
     })
 }
 

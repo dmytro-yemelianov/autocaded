@@ -66,6 +66,8 @@ pub struct Session {
     exit_requested: bool,
     /// "Enter NAME of drawing (default NAME)" once a name was given.
     default_name_prompt: String,
+    /// A GUI press lowered (or kept down) the SKETCH pen; its release lifts it.
+    sketch_drag: bool,
 }
 
 #[cfg(test)]
@@ -122,6 +124,7 @@ impl Session {
             main_menu_drawing: None,
             exit_requested: false,
             default_name_prompt: String::new(),
+            sketch_drag: false,
         };
         session
             .set_viewport_size(800, 600)
@@ -507,6 +510,23 @@ impl Session {
             self.click(x, y, width, height)
         } else {
             Ok(false)
+        }
+    }
+
+    /// GUI left-button press at the stored cursor; see [`Session::press`].
+    pub fn press_cursor(&mut self, width: u32, height: u32) -> Result<bool, String> {
+        if let Some((x, y)) = self.cursor {
+            self.press(x, y, width, height)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// GUI left-button release at the stored cursor; see [`Session::release`].
+    pub fn release_cursor(&mut self, width: u32, height: u32) -> Result<bool, String> {
+        match self.cursor {
+            Some((x, y)) => self.release(x, y, width, height),
+            None => self.release(f64::NAN, f64::NAN, width, height),
         }
     }
 }

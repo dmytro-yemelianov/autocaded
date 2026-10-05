@@ -216,13 +216,17 @@ impl ApplicationHandler<ApiEvent> for WindowApp {
                 window.request_redraw();
             }
             WindowEvent::MouseInput {
-                state: ElementState::Pressed,
+                state,
                 button: winit::event::MouseButton::Left,
                 ..
             } => {
-                // A click uses the same cursor position stored for frame preview.
+                // Press and release use the cursor position stored for frame
+                // preview; outside a SKETCH drag the press is the click.
                 let size = window.inner_size();
-                let result = self.session.click_cursor(size.width, size.height);
+                let result = match state {
+                    ElementState::Pressed => self.session.press_cursor(size.width, size.height),
+                    ElementState::Released => self.session.release_cursor(size.width, size.height),
+                };
                 self.finish(el, result);
             }
             WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
