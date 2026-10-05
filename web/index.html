@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Cpath d='M2 14L8 2l6 12M5 9h6' stroke='%2300ff66' stroke-width='1.5' fill='none'/%3E%3C/svg%3E">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#222228">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AutoCADED">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <title>AutoCADED — AutoCAD-86 1.40 (1983) in WebAssembly</title>
   <style>
     :root {
@@ -29,7 +36,10 @@
       color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       font-size: 13px;
-      height: 100vh;
+      /* The visible viewport, kept current by JS so the command line stays
+         above an on-screen keyboard; dvh is the fallback. */
+      height: var(--app-height, 100dvh);
+      padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -41,9 +51,61 @@
       border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
-      padding: 6px 14px;
-      gap: 12px;
+      padding: calc(6px + env(safe-area-inset-top)) 14px 6px;
+      gap: 8px 12px;
       flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    header button {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 5px 10px;
+      font-size: 13px;
+      border-radius: 4px;
+      cursor: pointer;
+      min-width: 40px;
+      min-height: 32px;
+    }
+
+    header button.on {
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+
+    /* Touch controls: keyboard, Return, Esc and zoom, for devices without
+       a physical keyboard or wheel. */
+    #touch-bar {
+      display: none;
+      gap: 6px;
+    }
+
+    @media (hover: none), (pointer: coarse) {
+      #touch-bar { display: flex; }
+      select { min-height: 32px; }
+    }
+
+    /* The on-screen keyboard's target: focusable but invisible. 16px stops
+       iOS zooming into it. */
+    #soft-keys {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      font-size: 16px;
+      border: 0;
+      padding: 0;
+    }
+
+    @media (max-width: 640px) {
+      header { padding-left: 8px; padding-right: 8px; }
+      h1 { font-size: 14px; }
+      select { flex: 1 1 0; min-width: 0; padding: 5px 6px; }
+      #message { flex-basis: 100%; order: 10; margin-left: 0; }
+      #message:empty { display: none; }
     }
 
     h1 {
@@ -158,8 +220,18 @@
       <option value="aci256">ACI 256 (modern)</option>
     </select>
 
+    <div id="touch-bar">
+      <button id="btn-keys" title="On-screen keyboard">Keys</button>
+      <button id="btn-return" title="Return">⏎</button>
+      <button id="btn-esc" title="Cancel (Esc)">Esc</button>
+      <button id="btn-zoom-in" title="Zoom in">＋</button>
+      <button id="btn-zoom-out" title="Zoom out">－</button>
+    </div>
+
     <span id="message"></span>
   </header>
+  <input id="soft-keys" type="text" value=" " autocomplete="off" autocorrect="off"
+    autocapitalize="characters" spellcheck="false" enterkeyhint="go" aria-label="Command input">
 
   <!-- The engine draws its own command area and screen menu on the canvas;
        keyboard input goes straight to it. -->
@@ -204,10 +276,21 @@
       }
     }
 
+    // Canvas pixels per CSS pixel. The engine draws its menu and command
+    // line at a fixed pixel size, so narrow screens render finer: the screen
+    // menu then takes about a third of a phone's width, not half.
+    function pixelRatio() {
+      const narrow = Math.min(window.innerWidth, window.innerHeight) < 600;
+      return narrow ? Math.min(window.devicePixelRatio || 1, 1.5) : 1;
+    }
+
     function resizeCanvas() {
       const container = canvas.parentElement;
-      const w = Math.max(container.clientWidth, 320);
-      const h = Math.max(container.clientHeight, 240);
+      const ratio = pixelRatio();
+      // Follow the box exactly: a floor above it would push the engine's
+      // command line under a landscape phone's on-screen keyboard.
+      const w = Math.max(Math.round(container.clientWidth * ratio), 100);
+      const h = Math.max(Math.round(container.clientHeight * ratio), 100);
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -215,7 +298,17 @@
       }
     }
 
-    window.addEventListener('resize', resizeCanvas);
+    // Rotation, window resizing and the on-screen keyboard all change the
+    // canvas box; the visual viewport is what stays visible above a keyboard.
+    new ResizeObserver(resizeCanvas).observe(canvas.parentElement);
+    function fitViewport() {
+      const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', `${Math.round(height)}px`);
+    }
+    fitViewport();
+    window.visualViewport?.addEventListener('resize', fitViewport);
+    window.addEventListener('resize', fitViewport);
+    window.addEventListener('orientationchange', () => setTimeout(fitViewport, 300));
 
     async function fetchAsset(name) {
       const res = await fetch(`./assets/${name}`);
@@ -226,6 +319,7 @@
     function openBytes(bytes, name) {
       try {
         cad.open_auto(bytes);
+        fitToScreen();
         drawingName = name.replace(/\.[^.]*$/, '') || 'drawing';
         message(`Opened ${name}`);
       } catch (err) {
@@ -260,6 +354,7 @@
         await tryLoad(assets.menu, (bytes) => cad.load_menu(bytes));
         await tryLoad(assets.start, (bytes) => {
           cad.open_auto(bytes);
+          fitToScreen();
           drawingName = assets.start.replace(/\.[^.]*$/, '');
         });
         redraw();
@@ -272,9 +367,20 @@
       }
     }
 
+    function key(name) {
+      if (!cad) return;
+      try {
+        cad.key_down(name, false, false, false);
+      } catch (err) {
+        // A rejected command is already reported in the command area.
+      }
+      redraw();
+    }
+
     // Keyboard goes to the engine's command area, as in the native window.
+    const softKeys = document.getElementById('soft-keys');
     window.addEventListener('keydown', (e) => {
-      if (!cad || e.isComposing) return;
+      if (!cad || e.isComposing || e.target === softKeys) return;
       // A focused, closed Open/Save list would treat typing as type-ahead
       // ("S" picks SVG and downloads it); the keys belong to the command area.
       if (e.target instanceof HTMLSelectElement) e.target.blur();
@@ -297,7 +403,23 @@
 
     function canvasPoint(e) {
       const rect = canvas.getBoundingClientRect();
-      return [e.clientX - rect.left, e.clientY - rect.top];
+      return [
+        (e.clientX - rect.left) * (canvas.width / rect.width),
+        (e.clientY - rect.top) * (canvas.height / rect.height),
+      ];
+    }
+
+    // A saved view is a centre and a height; on a screen narrower than the
+    // drawing's, show the whole drawing instead of a cropped middle.
+    function fitToScreen() {
+      try {
+        cad.command('ZOOM');
+        cad.command('E');
+        cad.command('ZOOM');
+        cad.command('0.9X');
+      } catch (err) {
+        // An empty drawing has no extents; keep its view.
+      }
     }
 
     // Press and release, not click: SKETCH draws while the button is held.
@@ -337,20 +459,72 @@
       redraw();
     });
 
-    // Wheel zoom, only when it cannot interleave with a command in progress.
-    canvas.addEventListener('wheel', (e) => {
+    // Wheel and zoom buttons zoom relative to the current view (`nX`; a bare
+    // number is relative to the whole drawing), only when they cannot
+    // interleave with a command in progress.
+    function zoom(factor) {
       if (!cad) return;
-      e.preventDefault();
       const state = JSON.parse(cad.get_state_json());
       if (state.prompt !== 'Command' || state.input || state.report_visible) return;
       try {
         cad.command('ZOOM');
-        cad.command(e.deltaY < 0 ? '1.2' : '0.8');
+        cad.command(`${factor}X`);
       } catch (err) {
         // Reported in the command area.
       }
       redraw();
+    }
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      zoom(e.deltaY < 0 ? 1.2 : 0.8);
     }, { passive: false });
+
+    // On-screen keyboard: a hidden input holds one sentinel space, so every
+    // keystroke, Backspace included, shows up as a change to its value.
+    const SENTINEL = ' ';
+    const keysButton = document.getElementById('btn-keys');
+    function resetSoftKeys() {
+      softKeys.value = SENTINEL;
+      // Caret after the sentinel: typing appends, Backspace deletes it.
+      softKeys.setSelectionRange(SENTINEL.length, SENTINEL.length);
+    }
+    function feedSoftKeys() {
+      const value = softKeys.value;
+      if (value.length < SENTINEL.length) {
+        key('Backspace');
+      } else {
+        // Wherever the caret was, the typed text is the value minus one sentinel.
+        const at = value.indexOf(SENTINEL);
+        const typed = at < 0 ? value : value.slice(0, at) + value.slice(at + SENTINEL.length);
+        for (const ch of typed) key(ch);
+      }
+      resetSoftKeys();
+    }
+    softKeys.addEventListener('input', (e) => { if (!e.isComposing) feedSoftKeys(); });
+    softKeys.addEventListener('compositionend', feedSoftKeys);
+    softKeys.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === 'Escape') {
+        e.preventDefault();
+        key(e.key);
+      }
+    });
+    softKeys.addEventListener('focus', () => {
+      keysButton.classList.add('on');
+      resetSoftKeys();
+    });
+    softKeys.addEventListener('blur', () => keysButton.classList.remove('on'));
+    // Touch buttons act without taking focus, so an open keyboard stays open.
+    for (const [id, action] of [
+      ['btn-keys', () => (document.activeElement === softKeys ? softKeys.blur() : softKeys.focus())],
+      ['btn-return', () => key('Enter')],
+      ['btn-esc', () => key('Escape')],
+      ['btn-zoom-in', () => zoom(1.5)],
+      ['btn-zoom-out', () => zoom(0.67)],
+    ]) {
+      const button = document.getElementById(id);
+      button.addEventListener('pointerdown', (e) => e.preventDefault());
+      button.addEventListener('click', action);
+    }
 
     // Open: local file or a staged sample.
     const fileInput = document.getElementById('file-input');
@@ -462,6 +636,10 @@
       try { localStorage.setItem('autocaded.palette', paletteSelect.value); } catch (err) { /* private mode */ }
       paletteSelect.blur();
     });
+
+    if ('serviceWorker' in navigator && window.isSecureContext) {
+      navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('offline cache:', err));
+    }
 
     start().then(() => {
       let saved = null;

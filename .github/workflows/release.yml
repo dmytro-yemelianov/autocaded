@@ -106,7 +106,7 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           stage="autocaded-${tag}-wasm"
           mkdir -p "dist/${stage}/pkg"
-          cp web/index.html "dist/${stage}/"
+          cp web/index.html web/manifest.webmanifest web/sw.js web/icon.svg web/*.png "dist/${stage}/"
           cp web/pkg/acad_wasm.js web/pkg/acad_wasm_bg.wasm "dist/${stage}/pkg/"
           cp -R web/assets "dist/${stage}/assets"
           cp README.md LICENSE "dist/${stage}/"
