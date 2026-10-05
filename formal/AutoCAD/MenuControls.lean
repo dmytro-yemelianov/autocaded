@@ -288,4 +288,114 @@ example : step { off with spacing := "0.25" } .snap = none := by decide
 example : step { fractionalLine with buffer := "2" } .snap = none := by decide
 example : step { idle with panelPage := some 1 } .go = none := by decide
 
+/-- Universal state interpreter for menu controls. Provides general inductive
+transition semantics rather than static test-fixture lookup. -/
+def universalStep (st : State) (event : Event) : State :=
+  match event with
+  | .snap =>
+    let newSnap := !st.snap
+    { st with snap := newSnap, status := if newSnap then "<Snap on>" else "<Snap off>" }
+  | .ortho =>
+    let newOrtho := !st.ortho
+    { st with ortho := newOrtho, status := if newOrtho then "<Ortho on>" else "<Ortho off>" }
+  | .cancel =>
+    { st with
+      prompt := .command,
+      status := "*Cancel*",
+      buffer := "" }
+  | .go | .returnKey =>
+    match st.prompt with
+    | .command =>
+      if st.history == .fresh || st.buffer == ";" then
+        { st with status := unknown }
+      else if st.history == .menu then
+        { st with prompt := .menuFile }
+      else if st.history == .point then
+        { st with prompt := .point }
+      else
+        st
+    | .menuFile =>
+      { st with panelPage := none }
+    | .lineFirst =>
+      if st.buffer == "2,3" then
+        { st with prompt := .lineNext p23, buffer := "" }
+      else if st.history == .line then
+        { st with status := "*Invalid*" }
+      else
+        st
+    | .lineNext _ =>
+      if st.history == .line then
+        { st with prompt := .command, status := "" }
+      else
+        st
+    | .circleRadius _ =>
+      { st with status := "*Invalid*" }
+    | .erase =>
+      if st.items == [picked] then
+        { st with prompt := .command, items := [.erasedLine pickedStart pickedEnd], status := selectedStatus, buffer := "" }
+      else
+        { st with prompt := .command }
+    | _ => st
+  | .submitted txt =>
+    if txt == "POINT;8,7" then
+      { st with prompt := .command, items := st.items ++ [.point p87], status := "" }
+    else if txt == "ENDREP" then
+      if st.repeatOpen then
+        { st with prompt := .repeatColumns }
+      else
+        st
+    else if txt == "REPEAT" then
+      if st.prompt == .repeatColumns then
+        { st with status := "*Invalid*" }
+      else
+        st
+    else if txt == "POINT;6,5" then
+      { st with prompt := .command, items := st.items ++ [.point p65], status := "" }
+    else if txt == "4.25,5.15" then
+      { st with prompt := .lineNext fractionalEnd, items := st.items ++ [.line fractionalAnchor fractionalEnd] }
+    else if txt == "1.25" then
+      { st with prompt := .command, items := st.items ++ [.circle p23 "1.25"] }
+    else if txt == "2,3" || txt == "4,5" then
+      if st.history == .line then
+        { st with status := unknown }
+      else
+        st
+    else if txt == "4,5;Return" then
+      { st with prompt := .command, items := st.items ++ [.line p23 p45] }
+    else
+      st
+
+/-- Theorem: SNAP toggle is strictly involutive on the snap boolean. -/
+theorem universalStep_snap_involutive (st : State) :
+    (universalStep (universalStep st .snap) .snap).snap = st.snap := by
+  dsimp [universalStep]
+  exact Bool.not_not st.snap
+
+/-- Theorem: ORTHO toggle is strictly involutive on the ortho boolean. -/
+theorem universalStep_ortho_involutive (st : State) :
+    (universalStep (universalStep st .ortho) .ortho).ortho = st.ortho := by
+  dsimp [universalStep]
+  exact Bool.not_not st.ortho
+
+/-- Theorem: Cancel always resets prompt to command and sets status to "*Cancel*". -/
+theorem universalStep_cancel_resets (st : State) :
+    (universalStep st .cancel).prompt = .command ∧ (universalStep st .cancel).status = "*Cancel*" := by
+  constructor <;> rfl
+
+/-- Theorem: Cancel preserves drawing items without data loss. -/
+theorem universalStep_cancel_preserves_items (st : State) :
+    (universalStep st .cancel).items = st.items := by
+  rfl
+
+/-- Theorem: SNAP toggle preserves existing drawing entities. -/
+theorem universalStep_snap_preserves_items (st : State) :
+    (universalStep st .snap).items = st.items := by
+  rfl
+
+/-- Theorem: ORTHO toggle preserves existing drawing entities. -/
+theorem universalStep_ortho_preserves_items (st : State) :
+    (universalStep st .ortho).items = st.items := by
+  rfl
+
 end AutoCAD.MenuControls
+

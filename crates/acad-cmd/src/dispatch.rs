@@ -370,7 +370,7 @@ impl Editor {
             "BASE" => self.state = InputState::Base,
             "AXIS" => self.state = InputState::Axis,
             "SNAP" | "RES" | "RESOLUTION" => self.state = InputState::Snap,
-            "DIM" => self.state = InputState::DimFirstExtension,
+            "DIM" | "DIMENSION" => self.state = InputState::DimFirstExtension,
             "HATCH" => self.state = InputState::HatchPattern,
             "SKETCH" => self.state = InputState::SketchIncrement,
             "DELAY" => self.state = InputState::Delay,
@@ -386,7 +386,7 @@ impl Editor {
             "FILL" => self.state = InputState::Fill,
             "LIMITS" => self.state = InputState::LimitsMin,
             "LAYER" => self.state = InputState::Layer,
-            "COLOR" => self.state = InputState::ColorValue,
+            "COLOR" | "COLORS" => self.state = InputState::ColorValue,
             "ZOOM" | "Z" => self.state = InputState::View(crate::view::ViewInput::Zoom),
             "PAN" | "P" => self.state = InputState::View(crate::view::ViewInput::PanFirst),
             "LIST" => self.state = InputState::ListSelection,
@@ -405,6 +405,17 @@ impl Editor {
             "STATUS" => {
                 self.status = "Drawing status".into();
                 return Ok(Effect::Report(status_report(&self.drawing)));
+            }
+            // Hardware device commands recognized by AutoCAD 1.4 dispatcher
+            // but requiring external peripherals.
+            "PLOT" | "PRPLOT" => {
+                return Err("PLOT: plotter device not configured in this environment".into())
+            }
+            "QPLOT" => {
+                return Err("QPLOT: printer plotter device not configured in this environment".into())
+            }
+            "TABLET" => {
+                return Err("TABLET: digitizer tablet device not configured in this environment".into())
             }
             // REDRAW and REGEN do not edit the drawing model. The
             // native window already redraws and regenerates each requested

@@ -165,3 +165,39 @@ fn change_layer_drops_an_explicit_owner_and_saves_what_the_session_shows() {
     submit(&mut editor, &["UNDO"]);
     assert_eq!(editor.drawing().items, [owned]);
 }
+
+#[test]
+fn interactive_repeat_with_erased_member_and_empty() {
+    let mut editor = Editor::default();
+    submit(
+        &mut editor,
+        &[
+            "REPEAT",
+            "LINE", "1,1", "2,1", "",
+            "ERASE", "L", "",
+            "ENDREP", "2", "1", "5", "0",
+        ],
+    );
+    assert_eq!(
+        editor.drawing().items,
+        [Item::Repeat(group(
+            1,
+            1,
+            vec![Entity::Erased(Box::new(on(1, line(1.0))))]
+        ))]
+    );
+    let reopened = reopen(editor.drawing());
+    assert_eq!(reopened[0], editor.drawing().items);
+    assert_eq!(reopened[1], editor.drawing().items);
+
+    let mut editor2 = Editor::default();
+    submit(&mut editor2, &["REPEAT", "ENDREP", "2", "1", "5", "0"]);
+    assert_eq!(
+        editor2.drawing().items,
+        [Item::Repeat(group(1, 1, vec![]))]
+    );
+    let reopened2 = reopen(editor2.drawing());
+    assert_eq!(reopened2[0], editor2.drawing().items);
+    assert_eq!(reopened2[1], editor2.drawing().items);
+}
+
