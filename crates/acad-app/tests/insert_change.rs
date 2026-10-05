@@ -339,6 +339,9 @@ fn check_changed(d: &Drawing, label: &str, erased: bool) {
 
 #[test]
 fn multi_object_change_commits_once_and_round_trips_in_every_format() {
+    if corpus("System/TXT.SHP").is_none() {
+        return;
+    }
     let root = Scratch::new("change");
     let mut s = Session::default();
     commands(&mut s, &change_setup());
@@ -363,6 +366,9 @@ fn multi_object_change_commits_once_and_round_trips_in_every_format() {
 
 #[test]
 fn api_and_mcp_route_star_placement_and_multi_object_change() {
+    if corpus("System/TXT.SHP").is_none() {
+        return;
+    }
     let mut s = Session::default();
     let call = |s: &mut Session, input: &str| {
         api::dispatch(
@@ -436,4 +442,22 @@ fn api_and_mcp_route_star_placement_and_multi_object_change() {
         "{last}"
     );
     check_changed(session.drawing(), "mcp", true);
+}
+
+/// `corpus/<path>` when the retained corpus is extracted. Otherwise the
+/// caller skips visibly; `AUTOCAD_REQUIRE_CORPUS=1` makes absence a failure.
+fn corpus(path: &str) -> Option<std::path::PathBuf> {
+    let full = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../corpus")
+        .join(path);
+    if full.exists() {
+        return Some(full);
+    }
+    let message = format!("corpus {} absent", full.display());
+    assert!(
+        std::env::var_os("AUTOCAD_REQUIRE_CORPUS").is_none(),
+        "{message}"
+    );
+    eprintln!("skipping corpus test, NOT validated: {message}");
+    None
 }
