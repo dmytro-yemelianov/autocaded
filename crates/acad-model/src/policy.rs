@@ -23,6 +23,8 @@ pub struct EngineLimits {
     pub max_diagnostics: usize,
     /// Maximum stored records in a single drawing.
     pub max_stored_records: usize,
+    /// Maximum undo history snapshots retained in memory.
+    pub max_undo_depth: usize,
 }
 
 impl EngineLimits {
@@ -38,6 +40,7 @@ impl EngineLimits {
         max_hatch_work: 10_000_000,
         max_diagnostics: 64,
         max_stored_records: 65_535,
+        max_undo_depth: 64,
     };
 
     /// High-capacity profile for modern large-scale CAD models.
@@ -52,6 +55,7 @@ impl EngineLimits {
         max_hatch_work: 500_000_000,
         max_diagnostics: 1024,
         max_stored_records: usize::MAX,
+        max_undo_depth: 1024,
     };
 }
 

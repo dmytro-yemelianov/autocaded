@@ -366,7 +366,7 @@ impl InputState {
             Self::TraceWidth => "TRACE: width",
             Self::TraceStart(_) => "TRACE: first point",
             Self::TraceNext(_, _) => "TRACE: next point (Enter to finish)",
-            Self::AreaFirstPoint => "AREA: first point",
+            Self::AreaFirstPoint => "AREA: first point or E (Entity)",
             Self::AreaNextPoint(_) => "AREA: next point (Enter to finish)",
             Self::AreaSelection => "ENTITYAREA: entity numbers or ALL",
             Self::RepeatColumns => "ENDREP: columns",

@@ -38,6 +38,11 @@ impl Editor {
                 if line.is_empty() {
                     return self.cancel();
                 }
+                let trimmed = line.trim();
+                if trimmed.eq_ignore_ascii_case("E") || trimmed.eq_ignore_ascii_case("ENTITY") {
+                    self.state = InputState::AreaSelection;
+                    return Ok(Effect::Continue);
+                }
                 self.state = InputState::AreaNextPoint(vec![point(line)?]);
                 Ok(Effect::Continue)
             }

@@ -1239,6 +1239,18 @@ fn entity_area_measures_circles_and_reordered_closed_line_loops() {
 }
 
 #[test]
+fn area_command_with_e_option_selects_entity() {
+    let mut editor = Editor::default();
+    for input in ["CIRCLE", "1,2", "3", "AREA", "E", "1"] {
+        editor.submit(input).unwrap();
+    }
+    assert_eq!(
+        editor.status(),
+        "Area=28.274334, Perimeter=18.849556"
+    );
+}
+
+#[test]
 fn entity_area_rejects_an_open_line_selection_without_mutating_it() {
     let mut editor = Editor::default();
     for (start, end) in [("0,0", "4,0"), ("4,0", "4,3")] {
@@ -1807,3 +1819,27 @@ fn empty_repeat_creates_empty_group_interactively() {
         other => panic!("expected Item::Repeat, got {other:?}"),
     }
 }
+
+#[test]
+fn undo_history_is_bounded_by_max_undo_depth() {
+    let mut editor = Editor::default();
+    let limit = acad_model::EngineLimits::DEFAULT_1983.max_undo_depth;
+    for i in 0..(limit + 20) {
+        editor.submit("POINT").unwrap();
+        editor.submit(&format!("{i},{i}")).unwrap();
+    }
+    // We created limit + 20 points.
+    // UNDO can pop at most limit times before running out of history.
+    let mut undos = 0;
+    loop {
+        let before_count = editor.drawing().entities().count();
+        editor.submit("UNDO").unwrap();
+        let after_count = editor.drawing().entities().count();
+        if after_count == before_count {
+            break;
+        }
+        undos += 1;
+    }
+    assert_eq!(undos, limit);
+}
+

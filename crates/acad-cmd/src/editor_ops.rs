@@ -593,6 +593,11 @@ impl Editor {
     }
 
     pub(crate) fn save_undo(&mut self) {
+        let max_depth = acad_model::EngineLimits::DEFAULT_1983.max_undo_depth;
+        if self.undo.len() >= max_depth {
+            let overflow = self.undo.len() - max_depth + 1;
+            self.undo.drain(0..overflow);
+        }
         self.undo.push(UndoSnapshot {
             drawing: self.drawing.clone(),
             last_curve: self.last_curve.clone(),

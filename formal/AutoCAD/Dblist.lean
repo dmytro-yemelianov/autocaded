@@ -45,4 +45,13 @@ theorem records_erased_empty (e : Entity) : records [.erased e] = [] := by rfl
 
 theorem records_entity_singleton (e : Entity) : records [.entity e] = [e] := by rfl
 
+theorem records_append (xs ys : List Item) : records (xs ++ ys) = records xs ++ records ys := by
+  simp [records, List.flatMap_append]
+
+/-- Theorem: Group marker layer (E2) does not affect entity extraction. -/
+theorem records_repeat_layer_independent (l1 l2 : Nat) (m : List GroupMember) :
+    records [.repeat l1 m] = records [.repeat l2 m] := by
+  rfl
+
 end AutoCAD.Dblist
+

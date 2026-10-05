@@ -257,4 +257,24 @@ example : advance sample (.selection 1 pBase) (.entities [2]) =
 example : advance sample (.selection 1 pBase) (.entities [1]) =
     .save 1 ⟨pBase, [.entity e1, .block bA, .block bB]⟩ := by decide
 
+/-- Theorem: Whole drawing export preserves the drawing base point. -/
+theorem exportWhole_base_eq (d : Drawing) : (exportWhole d).base = d.base := by
+  rfl
+
+/-- Theorem: Filter predicate keepWholeItem unconditionally rejects erased records. -/
+theorem keepWholeItem_erased (r : List Nat) (e : Entity) :
+    keepWholeItem r (.erased e) = false := by
+  rfl
+
+/-- Theorem: Filter predicate keepWholeItem unconditionally preserves live entities. -/
+theorem keepWholeItem_entity (r : List Nat) (e : Entity) :
+    keepWholeItem r (.entity e) = true := by
+  rfl
+
+/-- Theorem: Filter predicate keepWholeItem unconditionally preserves repeat groups. -/
+theorem keepWholeItem_repeat (r : List Nat) (layer : Nat) (m : List GroupMember) :
+    keepWholeItem r (.repeat layer m) = true := by
+  rfl
+
 end AutoCAD.Wblock
+
