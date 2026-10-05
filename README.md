@@ -50,7 +50,9 @@ commands are classified as hardware commands.
   all recognized, and the hardware commands `TABLET`, `PLOT` and `QPLOT`. Each
   command's prompts, effects and file behavior are verified against retained
   evidence, recorded per command in the
-  [command audit](docs/native-command-matrix.md).
+  [command audit](docs/native-command-matrix.md): 40 of the 54 have
+  differential tests against the original `ACAD.EXE` (in-tree 8086 runner or
+  QEMU; 23 oracle test files, 185 tests).
 - **Codecs.** `SUBDIV.DXF` round-trips byte-identically. All 16 `AC1.2` and the
   four `AC1.40` drawings (plus their backups) parse and render. AC1.40 output
   matches original QEMU-generated LINE, CIRCLE and POINT record bytes; AC1.2
