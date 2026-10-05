@@ -479,22 +479,19 @@ incomplete frame visibly instead of hanging.
 - Release wasm is about 1.7 MB uncompressed, 0.6 MB gzip (see
   [Measured](#measured)).
 
-**Colour palette.** Only colours 1–7 have 1983 evidence (the retained COLOR
-help page establishes 1–7); what 8 and above looked like depended on the
-display driver. `acad_model::Palette` (`crates/acad-model/src/color.rs`) makes
-the choice explicit and travels with `acad_render::Libraries`:
+**Colour palette.** Only colours 1–7 have documented 1983 meaning; the rest
+was up to the display driver. `acad_model::Palette` makes the choice explicit
+and travels with `acad_render::Libraries`:
 
-| Palette | 1–7 | 8–15 | 16+ |
-|---|---|---|---|
-| `pc16` (default) | primaries, white | 16-colour PC: dark grey, bright 1–6, bright white | modern ACI |
-| `aci256` | primaries, white | modern ACI (15 = RGB 127,63,63, dull brown) | modern ACI |
+| Palette | Mapping |
+|---|---|
+| `pc16` (default) | AutoCAD 1.4's Tecmar driver (`DSTECSS.DRV`): 1–7 through its table into IBM RGBI (red `AA0000`, yellow `FFFF55`, …, white), everything else `n & 15` into RGBI, black results drawn white. |
+| `aci256` | The later 256-colour ACI table; colour 15 is a dull brown (127,63,63). |
 
-`pc16` is the default because colour 15 is AutoCAD 1.4's default layer colour
-(`Editor::default` in `crates/acad-cmd/src/lib.rs` defines `{0: 0, 1: 15}`, and
-nearly every corpus drawing uses it), and the corpus agrees: in `COLORS.DWG`
-the `UNIT` swatch block sits on colour 15, and only when 15 is white do the
-swatches take their insert layer's colour and read as a colour chart. Select it
-with `acad --palette pc16|aci256` or the browser's palette list.
+The default layer colour is 15 (`Editor::default` defines `{0: 0, 1: 15}`), so
+under `pc16` default geometry is white. The disassembly, tables and known
+differences are in [`docs/display-colours.md`](docs/display-colours.md).
+Select with `acad --palette pc16|aci256` or the browser's palette list.
 
 ## The corpus
 

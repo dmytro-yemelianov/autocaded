@@ -17,32 +17,64 @@ pub const COLOR_MAGENTA: u8 = 6;
 pub const COLOR_WHITE: u8 = 7;
 
 /// How colour numbers become RGB. Only 1..=7 are documented for 1983; what
-/// 8 and above looked like depended on the display driver.
+/// the rest looked like was up to the display driver
+/// (docs/display-colours.md).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Palette {
-    /// 16-colour PC display: 1..=7 as documented, 8 dark grey, 9..=14 the
-    /// bright variants of 1..=6, 15 bright white (AutoCAD 1.4's default layer
-    /// colour). 16 and above fall back to [`aci_rgb`].
+    /// The 16-colour PC display as AutoCAD 1.4's Tecmar driver
+    /// (`DSTECSS.DRV`) drives it: 1..=7 through the driver's table into IBM
+    /// RGBI, every other number `n & 15` straight into RGBI, and a result
+    /// equal to the black background drawn white instead. Colour 0 stays
+    /// white here (the driver draws it in the background colour).
     #[default]
     Pc16,
     /// The modern 256-colour ACI table ([`aci_rgb`]) for every index.
     Aci256,
 }
 
+/// IBM RGBI, as on the 5153 monitor (index 6 is brown).
+const RGBI: [[u8; 3]; 16] = [
+    [0x00, 0x00, 0x00],
+    [0x00, 0x00, 0xAA],
+    [0x00, 0xAA, 0x00],
+    [0x00, 0xAA, 0xAA],
+    [0xAA, 0x00, 0x00],
+    [0xAA, 0x00, 0xAA],
+    [0xAA, 0x55, 0x00],
+    [0xAA, 0xAA, 0xAA],
+    [0x55, 0x55, 0x55],
+    [0x55, 0x55, 0xFF],
+    [0x55, 0xFF, 0x55],
+    [0x55, 0xFF, 0xFF],
+    [0xFF, 0x55, 0x55],
+    [0xFF, 0x55, 0xFF],
+    [0xFF, 0xFF, 0x55],
+    [0xFF, 0xFF, 0xFF],
+];
+
+/// `DSTECSS.DRV` word table at DS:07A2 (file 0x0D96): colours 1..=7 (red,
+/// yellow, green, cyan, blue, magenta, white) as RGBI indices.
+const TECMAR_PRIMARIES: [u8; 7] = [4, 14, 2, 3, 1, 5, 15];
+
+/// The background `DSTECSS.DRV` compares against; our canvas is black.
+const BACKGROUND: u8 = 0;
+
 impl Palette {
     pub const ALL: [Palette; 2] = [Palette::Pc16, Palette::Aci256];
 
     pub fn rgb(self, index: u8) -> [u8; 3] {
-        match (self, index) {
-            (Palette::Pc16, 8) => [85, 85, 85],
-            (Palette::Pc16, 9) => [255, 85, 85],
-            (Palette::Pc16, 10) => [255, 255, 85],
-            (Palette::Pc16, 11) => [85, 255, 85],
-            (Palette::Pc16, 12) => [85, 255, 255],
-            (Palette::Pc16, 13) => [85, 85, 255],
-            (Palette::Pc16, 14) => [255, 85, 255],
-            (Palette::Pc16, 15) => [255, 255, 255],
-            _ => aci_rgb(index),
+        match self {
+            Palette::Aci256 => aci_rgb(index),
+            Palette::Pc16 if index == 0 => aci_rgb(0),
+            Palette::Pc16 => {
+                // DSTECSS.DRV 0ADD..0B07.
+                let hardware = match index {
+                    1..=7 => TECMAR_PRIMARIES[usize::from(index - 1)],
+                    _ => index & 0x0F,
+                };
+                let hardware = if hardware == BACKGROUND { 15 } else { hardware };
+                RGBI[usize::from(hardware)]
+            }
         }
     }
 
@@ -121,11 +153,23 @@ mod tests {
     }
 
     #[test]
-    fn pc16_differs_from_aci_only_on_8_to_15() {
-        for index in 0..=255u8 {
-            let same = Palette::Pc16.rgb(index) == aci_rgb(index);
-            assert_eq!(same, !(8..=15).contains(&index), "index {index}");
+    fn pc16_follows_the_tecmar_driver() {
+        // 1..=7 through the driver's table: red, yellow, green, cyan, blue,
+        // magenta, white as RGBI 4, 14, 2, 3, 1, 5, 15.
+        let primaries: Vec<_> = (1..=7).map(|i| Palette::Pc16.rgb(i)).collect();
+        assert_eq!(primaries, [4, 14, 2, 3, 1, 5, 15].map(|i| RGBI[i]).to_vec());
+        // Everything else is RGBI[n & 15]; 9 is light blue, not light red.
+        assert_eq!(Palette::Pc16.rgb(8), [0x55, 0x55, 0x55]);
+        assert_eq!(Palette::Pc16.rgb(9), [0x55, 0x55, 0xFF]);
+        assert_eq!(Palette::Pc16.rgb(12), [0xFF, 0x55, 0x55]);
+        assert_eq!(Palette::Pc16.rgb(17), RGBI[1]);
+        assert_eq!(Palette::Pc16.rgb(255), RGBI[15]);
+        // A result on the black background is drawn white.
+        for index in [16, 32, 128, 240] {
+            assert_eq!(Palette::Pc16.rgb(index), [255, 255, 255], "index {index}");
         }
+        // Colour 0 keeps the white BYBLOCK stand-in.
+        assert_eq!(Palette::Pc16.rgb(0), aci_rgb(0));
     }
 
     #[test]

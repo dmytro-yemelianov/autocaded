@@ -759,7 +759,7 @@ mod tests {
     fn entity_layer_resolves_through_header_color_table() {
         let mut header = test_header();
         header.layers.insert(12, 5);
-        header.layers.insert(64, 64);
+        header.layers.insert(64, 12);
         let drawing = Drawing {
             header,
             items: vec![
@@ -779,11 +779,12 @@ mod tests {
                 }),
             ],
         };
+        // Default `pc16` palette: blue is RGBI 1, colour 12 is RGBI 12.
         let prims = flatten(&drawing, &vp());
         assert!(matches!(prims.as_slice(),
             [
-                Prim::ColoredPolyline { rgb: [0, 0, 255], points: a },
-                Prim::ColoredPolyline { rgb: [95, 127, 0], points: b },
+                Prim::ColoredPolyline { rgb: [0x00, 0x00, 0xAA], points: a },
+                Prim::ColoredPolyline { rgb: [0xFF, 0x55, 0x55], points: b },
             ] if a.len() == 2 && b.len() == 2
         ));
     }
