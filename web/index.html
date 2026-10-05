@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Cpath d='M2 14L8 2l6 12M5 9h6' stroke='%2300ff66' stroke-width='1.5' fill='none'/%3E%3C/svg%3E">
-  <title>AutoRust — AutoCAD-86 1.40 (1983) in WebAssembly</title>
+  <title>AutoCADED — AutoCAD-86 1.40 (1983) in WebAssembly</title>
   <style>
     :root {
       --bg-dark: #121214;
@@ -136,7 +136,7 @@
 </head>
 <body>
   <header>
-    <h1>Auto<span>Rust</span></h1>
+    <h1>AutoCAD<span>ED</span></h1>
 
     <select id="open-select" title="Open a DWG/DXF drawing (or drop one on the page)">
       <option value="">Open…</option>
@@ -172,7 +172,7 @@
     <canvas id="cad-canvas"></canvas>
     <div id="loading-overlay">
       <div class="spinner"></div>
-      <div>Loading AutoRust WebAssembly...</div>
+      <div>Loading AutoCADED WebAssembly...</div>
     </div>
   </main>
 
@@ -459,13 +459,13 @@
     paletteSelect.addEventListener('change', () => {
       if (!cad) return;
       applyPalette(paletteSelect.value);
-      try { localStorage.setItem('autorust.palette', paletteSelect.value); } catch (err) { /* private mode */ }
+      try { localStorage.setItem('autocaded.palette', paletteSelect.value); } catch (err) { /* private mode */ }
       paletteSelect.blur();
     });
 
     start().then(() => {
       let saved = null;
-      try { saved = localStorage.getItem('autorust.palette'); } catch (err) { /* private mode */ }
+      try { saved = localStorage.getItem('autocaded.palette'); } catch (err) { /* private mode */ }
       if (cad && saved && saved !== paletteSelect.value) applyPalette(saved);
     });
   </script>

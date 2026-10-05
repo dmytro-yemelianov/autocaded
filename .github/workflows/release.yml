@@ -58,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
-          stage="autorust-${tag}-${{ matrix.target }}"
+          stage="autocaded-${tag}-${{ matrix.target }}"
           mkdir -p "dist/${stage}"
           cp "target/${{ matrix.target }}/release/acad" "dist/${stage}/"
           cp "target/${{ matrix.target }}/release/acad-mcp" "dist/${stage}/"
@@ -71,7 +71,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
-          stage="autorust-${tag}-${{ matrix.target }}"
+          stage="autocaded-${tag}-${{ matrix.target }}"
           mkdir -p "dist/${stage}"
           cp "target/${{ matrix.target }}/release/acad.exe" "dist/${stage}/"
           cp "target/${{ matrix.target }}/release/acad-mcp.exe" "dist/${stage}/"
@@ -82,7 +82,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: autorust-${{ matrix.target }}
+          name: autocaded-${{ matrix.target }}
           path: dist/*.${{ matrix.archive_ext }}
 
   wasm:
@@ -105,7 +105,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
-          stage="autorust-${tag}-wasm"
+          stage="autocaded-${tag}-wasm"
           mkdir -p "dist/${stage}/pkg" "dist/${stage}/assets"
           cp web/index.html "dist/${stage}/"
           cp web/pkg/acad_wasm.js web/pkg/acad_wasm_bg.wasm "dist/${stage}/pkg/"
@@ -115,7 +115,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: autorust-wasm
+          name: autocaded-wasm
           path: dist/*.tar.gz
 
   release:

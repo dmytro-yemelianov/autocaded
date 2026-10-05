@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Provision autorust CI capacity on the shared Hetzner box (raps-ci).
+# Provision AutoCADED CI capacity on the shared Hetzner box (raps-ci).
 #
 # Usage:
 #   ./provision-hetzner-runner.sh runner <index> <registration-token>

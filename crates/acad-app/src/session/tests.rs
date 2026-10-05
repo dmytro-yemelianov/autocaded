@@ -9,7 +9,7 @@ impl WorkflowDirectory {
         static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let id = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let path =
-            std::env::temp_dir().join(format!("autorust workflow {} {id}", std::process::id()));
+            std::env::temp_dir().join(format!("autocaded workflow {} {id}", std::process::id()));
         std::fs::create_dir(&path).unwrap();
         Self(path)
     }

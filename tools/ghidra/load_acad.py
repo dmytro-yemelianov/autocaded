@@ -224,7 +224,7 @@ def project_location(project_dir, fresh=False):
         return path
 
     key = hashlib.sha1(path.encode()).hexdigest()[:12]
-    fallback = os.path.join(tempfile.gettempdir(), "autorust-ghidra", key)
+    fallback = os.path.join(tempfile.gettempdir(), "autocaded-ghidra", key)
     if fresh:
         shutil.rmtree(fallback, ignore_errors=True)
     os.makedirs(fallback, exist_ok=True)

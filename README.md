@@ -1,4 +1,7 @@
-# autorust
+# AutoCADED
+
+AutoCAD + **ED**, for Dmytro Yemelianov (Emelyanov). An independent project,
+not affiliated with or endorsed by Autodesk; AutoCAD is Autodesk's trademark.
 
 Rebuilding **AutoCAD 1.4** (1983, MS-DOS) as a native Rust application for the
 original 2D drafting workflow: commands, drawing semantics, and files in a modern
@@ -125,7 +128,7 @@ from `corpus/`. Both `web/pkg/` and `web/assets/` are ignored by git.
 drawing and names the missing files, so text, the screen menu and the sample
 list come back once they are copied into `assets/`.
 
-Each release attaches `autorust-<tag>-wasm.tar.gz`, built that way: the page
+Each release attaches `autocaded-<tag>-wasm.tar.gz`, built that way: the page
 and `pkg/`, with an empty `assets/` for your own copies of those files.
 Browser limits are listed under [Design considerations](#webassembly-limits).
 
@@ -168,7 +171,7 @@ over stdio. Example client configuration for an attached window:
 {
   "mcpServers": {
     "acad": {
-      "command": "/absolute/path/to/autorust/target/debug/acad-mcp",
+      "command": "/absolute/path/to/autocaded/target/debug/acad-mcp",
       "args": ["--socket", "/tmp/acad-rust.sock"]
     }
   }
