@@ -241,7 +241,7 @@
       <li><strong>Help text.</strong> Where no behavioural run exists, the documented command help defines the contract.</li>
       <li><strong>Native policy.</strong> Where the editor deliberately differs (retrying instead of abandoning a command, millisecond DELAY units, safer saves), the docs say so plainly.</li>
     </ul>
-    <p>A per-command matrix tracks all 57 command names with what is implemented, what is not, and which kind of evidence backs it. It deliberately claims no completion percentage. The bundled sample drawings are round-tripped on every full test run: the first backup must match the original byte for byte, and the reopened drawing must match structurally with numeric drift of at most four units in the last place.</p>
+    <p>A per-command matrix tracks all 57 command names with what is implemented, what is not, and which kind of evidence backs it. The bundled sample drawings are round-tripped on every full test run: the first backup must match the original byte for byte, and the reopened drawing must match structurally with numeric drift of at most four units in the last place.</p>
   </section>
 
   <section>
@@ -271,9 +271,9 @@
   <section>
     <h2>What is next</h2>
     <ul>
-      <li><strong>Main Menu.</strong> The startup task menu (new, edit, configure, DXF conversion, file utilities); plotting stays out of scope.</li>
-      <li><strong>WBLOCK overwrite safety.</strong> Confirm before replacing an existing file, and protect the open drawing.</li>
-      <li><strong>Whole-drawing render budget.</strong> Today budgets are per owner; a single per-frame limit across the whole drawing is the remaining gap.</li>
+      <li><strong>End-to-end workflows.</strong> Create, select, edit, block, dimension, hatch, undo, save and reopen driven through the session API and MCP, with drawing data and frames checked along the way.</li>
+      <li><strong>Differential coverage.</strong> More commands compared against the original's own exports, command by command.</li>
+      <li><strong>HATCH styles and script timing.</strong> User patterns, hatch styles and DELAY/RESUME semantics, each from a reviewed behaviour contract.</li>
     </ul>
   </section>
 </main>

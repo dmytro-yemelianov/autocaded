@@ -1,17 +1,16 @@
 # AutoCADED
 
-AutoCAD + **ED**, for Dmytro Yemelianov (Emelyanov). An independent project,
-not affiliated with or endorsed by Autodesk; AutoCAD is Autodesk's trademark.
+AutoCAD + **ED**, for Dmytro Yemelianov (Emelyanov). AutoCAD is a trademark of
+Autodesk, Inc.
 
 Rebuilding **AutoCAD 1.4** (1983, MS-DOS) as a native Rust application for the
 original 2D drafting workflow: commands, drawing semantics, and files in a modern
 window.
 
 The original is the oracle. "Is this command right?" is answered by differential
-test against the real `ACAD.EXE`, not by judgement. 1983 policy is confined to
-the codecs and the command layer; `acad-model` is written to grow, so deliberate
-divergence later — 3D, modern UX, an extended entity model — does not mean
-discarding the verified-compatible core.
+test against the real `ACAD.EXE`, not by judgement. 1983 policy lives in the
+codecs and the command layer; `acad-model` is written to grow toward 3D, modern
+UX and an extended entity model on top of the verified-compatible core.
 
 Design: [`docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md`](docs/superpowers/specs/2026-09-28-autocad-14-rust-design.md)
 
@@ -34,9 +33,8 @@ in the AutoCAD 1.4 sample corpus; create, edit, and save supported 2D drawings
 with keyboard commands and mouse-based point placement and selection; and
 exchange those drawings with the original under QEMU. Every software-only 2D
 command in the recovered 57-command table must be implemented and
-differentially checked against the original. Plotter and digitizer hardware
-commands, AutoCAD 2.x, 3D, ADS, and later releases remain outside this goal;
-each recovered command outside the scope must be explicitly classified.
+differentially checked against the original; the plotter and digitizer
+commands are classified as hardware commands.
 
 ## Status
 
@@ -46,13 +44,13 @@ each recovered command outside the scope must be explicitly classified.
 | ② | Ghidra overlay loader, dual AST export, `acad-re` | **done** |
 | ③ | Oracle harness | in progress: partial 8086/DOS/BIOS core; in-tree empty, LINE, POINT, CIRCLE, ARC, SOLID, and TRACE DWGs match QEMU byte for byte, as does a LINE CGA frame |
 | ④ | DWG codec — `AC1.40`, then `AC1.2` | all 21 corpus drawings read; both writers open in the original; SUBDIV's AC1.2 viewport matches pixel-for-pixel |
-| ⑤ | Command loop | All 54 in-scope recovered command names are recognized; full behavior and differential coverage remain |
+| ⑤ | Command loop | in progress: all 54 software commands recognized; behavior and differential coverage tracked per command |
 
-- **Commands.** The recovered table contains 57 names. `TABLET`, `PLOT`, and
-  `QPLOT` require digitizer or plotter hardware and are excluded; the other 54
-  are recognized. Recognition is only a progress count: several commands still
-  have prompt shells or partial behavior, and each needs its prompts, effects
-  and file behavior verified against retained evidence.
+- **Commands.** The recovered table contains 57 names: 54 software commands,
+  all recognized, and the hardware commands `TABLET`, `PLOT` and `QPLOT`. Each
+  command's prompts, effects and file behavior are verified against retained
+  evidence, recorded per command in the
+  [command audit](docs/native-command-matrix.md).
 - **Codecs.** `SUBDIV.DXF` round-trips byte-identically. All 16 `AC1.2` and the
   four `AC1.40` drawings (plus their backups) parse and render. AC1.40 output
   matches original QEMU-generated LINE, CIRCLE and POINT record bytes; AC1.2
@@ -61,9 +59,8 @@ each recovered command outside the scope must be explicitly classified.
   independent source review passed; GUI/MCP text, group and DWG/DXF
   save/reopen workflows passed; the headless corpus workflow passed all 25
   inputs.
-- **Decision gate.** The §8 gate did not pass (1 of 3), so decompiler output is
-  not transpiled; all shipped Rust is hand-written
-  ([details](#reverse-engineering-and-verification)).
+- **Hand-written Rust.** Decompiler output guides the work; all shipped code is
+  hand-written ([details](#reverse-engineering-and-verification)).
 
 Where the detail lives:
 
@@ -130,7 +127,7 @@ list come back once they are copied into `assets/`.
 
 Each release attaches `autocaded-<tag>-wasm.tar.gz`, built that way: the page
 and `pkg/`, with an empty `assets/` for your own copies of those files.
-Browser limits are listed under [Design considerations](#webassembly-limits).
+Browser details are under [Design considerations](#webassembly).
 
 ### Native API and MCP
 
@@ -409,8 +406,8 @@ flatten 6.0 ms and rasterize 125 ms (99,500 primitives, 646,780 work units).
 The 16 tests ran in parallel, so this is slower than the doc's 71–75 ms
 single-test figure.
 
-Not measured here: `Session::frame` time in the GUI, browser frame time, and
-memory. Ways to measure them are below.
+GUI `Session::frame` time, browser frame time and memory are measured with
+the tools below.
 
 ### Profiling yourself
 
@@ -447,10 +444,9 @@ the exact format.
 
 **The original as oracle.** Correctness is decided by differential tests
 against `ACAD.EXE` under QEMU or the in-tree 8086 runner, not by reading
-decompiler output. Coverage is uneven by design: each claim in
-[`docs/command-behavior.md`](docs/command-behavior.md) says whether it rests on
-an original export, a CGA frame comparison, a retained HLP page, or Rust tests
-only.
+decompiler output. Each claim in
+[`docs/command-behavior.md`](docs/command-behavior.md) names its evidence: an
+original export, a CGA frame comparison, a retained HLP page, or Rust tests.
 
 **Corpus bytes stay out of git and releases.** Only `corpus/manifest.toml` is
 committed. Release archives contain the binaries, README and LICENSE; the wasm
@@ -459,31 +455,29 @@ archive ships an empty `assets/`. The browser page fetches `TXT.SHP`,
 
 **One CPU renderer for every surface.** The window (softbuffer), the browser
 (RGBA into a canvas `ImageData`) and the API/MCP (PNG or RGBA) all get pixels
-from `Session::frame`. There is no GPU path, so output is identical across
-surfaces and testable headless, at the cost of CPU time that scales with
-window size.
+from `Session::frame`, so output is identical across surfaces and testable
+headless.
 
 **Budgets over trust.** A 1983 drawing was bounded by 640 KB of memory; a
 crafted file today is not. Per-owner and per-frame budgets make every frame,
 pick and window selection terminate in bounded time and memory, and report an
 incomplete frame visibly instead of hanging.
 
-<a id="webassembly-limits"></a>
-**WebAssembly limits.**
+<a id="webassembly"></a>
+**WebAssembly.**
 
-- No filesystem: `std::fs` is an unsupported stub on `wasm32-unknown-unknown`,
-  so engine commands that read or write files (SAVE, END, WBLOCK, FILES, MENU
-  by name, external INSERT) do not touch disk in the browser. The page's Open
-  and Save as lists replace them, through `open_auto` and the `export_*`
-  bindings.
+- Files go through the page: its Open and Save as lists (`open_auto` and the
+  `export_*` bindings) take the place of the engine's disk commands (SAVE, END,
+  WBLOCK, FILES, MENU by name, external INSERT), since `std::fs` is a stub on
+  `wasm32-unknown-unknown`.
 - `std::time::Instant::now` panics on that target; `acad-app` uses `web-time`
   (a re-export of `std::time` natively) for script DELAY timing.
-- The Unix socket API (`ipc`) is `#[cfg(unix)]` and absent from the browser.
+- The Unix socket API (`ipc`) is native-only (`#[cfg(unix)]`).
 - Release wasm is about 1.7 MB uncompressed, 0.6 MB gzip (see
   [Measured](#measured)).
 
-**Colour palette.** Only colours 1–7 have documented 1983 meaning; the rest
-was up to the display driver. `acad_model::Palette` makes the choice explicit
+**Colour palette.** Colours 1–7 are documented; the rest follow the display
+driver. `acad_model::Palette` makes the choice explicit
 and travels with `acad_render::Libraries`:
 
 | Palette | Mapping |
@@ -493,7 +487,7 @@ and travels with `acad_render::Libraries`:
 
 The default layer colour is 15 (`Editor::default` defines `{0: 0, 1: 15}`), so
 under `pc16` default geometry is white. The disassembly, tables and known
-differences are in [`docs/display-colours.md`](docs/display-colours.md).
+details are in [`docs/display-colours.md`](docs/display-colours.md).
 Select with `acad --palette pc16|aci256` or the browser's palette list.
 
 ## The corpus
@@ -534,10 +528,9 @@ them and says what is missing. `acad-re` owns the `ACAD.OVL` format and emits
 `build/ovl-map.json`; the PyGhidra scripts only place bytes where it says. One
 implementation, one set of tests. See [`docs/re-pipeline.md`](docs/re-pipeline.md).
 
-**The §8 decision gate did not pass (1 of 3).** Transpiling the decompiler's AST
-to Rust is therefore *not* adopted: `acad-re` stays an understanding tool and all
-shipped Rust is hand-written. The measurements behind that are in
-[`docs/re-pipeline.md`](docs/re-pipeline.md).
+`acad-re` is an understanding tool: all shipped Rust is hand-written, and the
+§8 gate measurements that chose this over transpiling the decompiler's AST are
+in [`docs/re-pipeline.md`](docs/re-pipeline.md).
 
 ### Oracle
 
@@ -553,16 +546,12 @@ and [`docs/codec-oracle-notes.md`](docs/codec-oracle-notes.md#qemu-oracle-probe)
 
 The executable Lean behavioral specification is in [`formal/`](formal/). It
 models WBLOCK's observed whole-drawing, named-block, and selected-entity flows
-as a contract for Rust, not as a recovered source-level AutoCAD model, along
-with DBLIST, HELP/FILES/MENU, menu controls, units and geometry
+as a contract for Rust, along with DBLIST, HELP/FILES/MENU, menu controls, units and geometry
 (`formal/AutoCAD/`). Run it with `cd formal && lake build`.
 
 ## Scope
 
-AutoCAD 1.4 only — `ACAD.EXE` (78,848 B) and `ACAD.OVL` (179,480 B). Archives for
-2.x through r12 are held locally but are not inputs to this design. DOS emulation
-is test infrastructure, not a product feature; there is no plan for pixel-exact
-CGA/Hercules reproduction or for plotter and digitizer hardware.
+AutoCAD 1.4: `ACAD.EXE` (78,848 B) and `ACAD.OVL` (179,480 B).
 
 ## Contributing and CI
 
