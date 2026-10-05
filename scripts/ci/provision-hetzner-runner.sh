@@ -7,13 +7,13 @@
 #
 # Registration tokens expire in ~1 hour, so fetch one immediately before use:
 #   GH_TOKEN=$(gh auth token --user dmytro-yemelianov) \
-#     gh api -X POST repos/dmytro-yemelianov/autorust/actions/runners/registration-token --jq .token
+#     gh api -X POST repos/dmytro-yemelianov/autocaded/actions/runners/registration-token --jq .token
 #
 
 set -euo pipefail
 
 RUNNER_VERSION="2.337.0"
-REPO_URL="https://github.com/dmytro-yemelianov/autorust"
+REPO_URL="https://github.com/dmytro-yemelianov/autocaded"
 RUNNER_LABELS="raps-ci,autorust"
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -57,7 +57,7 @@ install_runner() {
   nohup /bin/bash "${dir}/run.sh" > "${dir}/runner.log" 2>&1 &
 
   log "Runner active. Check status with:"
-  echo "  gh api repos/dmytro-yemelianov/autorust/actions/runners --jq '.runners[] | .name + \" \" + .status'"
+  echo "  gh api repos/dmytro-yemelianov/autocaded/actions/runners --jq '.runners[] | .name + \" \" + .status'"
 }
 
 main() {
