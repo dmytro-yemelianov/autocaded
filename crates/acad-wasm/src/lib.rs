@@ -441,6 +441,37 @@ mod tests {
         }
     }
 
+    /// demo/ is the public site's asset set (demo/README.md): the font, menu
+    /// and every drawing must load the way the page loads them.
+    #[test]
+    fn demo_assets_load_render_and_round_trip() {
+        let demo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../demo");
+        let read = |name: &str| std::fs::read(demo.join(name)).unwrap();
+        let mut cad = session();
+        cad.load_font("TXT", &read("AUTOCADED.SHP")).unwrap();
+        cad.load_menu(&read("AUTOCADED.MNU")).unwrap();
+        for name in ["WELCOME.DWG", "BRACKET.DWG", "FLOORPLAN.DWG", "PALETTE.DWG"] {
+            cad.open_auto(&read(name)).unwrap();
+            let entities = state(&cad)["entities"].as_u64().unwrap();
+            assert!(entities > 10, "{name}: {entities} entities");
+            // Text draws with the demo font: the frame has lit pixels and no
+            // missing-font diagnostics stop it.
+            let frame = cad.render_rgba(800, 600).unwrap();
+            assert!(
+                frame.chunks(4).any(|p| p[..3] != [0, 0, 0]),
+                "{name} renders"
+            );
+            let svg = cad.export_svg(800, 600).unwrap();
+            assert!(
+                svg.matches("<polyline").count() > entities as usize,
+                "{name} SVG"
+            );
+            let mut reopened = session();
+            reopened.open_auto(&cad.export_dwg("1.4").unwrap()).unwrap();
+            assert_eq!(state(&reopened)["entities"], entities, "{name} round trip");
+        }
+    }
+
     #[test]
     fn palette_names_select_the_session_palette() {
         let mut cad = session();

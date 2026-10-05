@@ -22,3 +22,6 @@ __pycache__/
 # WebAssembly build output and staged corpus assets (scripts/build-wasm.sh)
 /web/pkg/
 /web/assets/
+
+# wrangler local state (scripts/deploy-web.sh)
+.wrangler

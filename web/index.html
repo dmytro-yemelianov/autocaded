@@ -141,12 +141,7 @@
     <select id="open-select" title="Open a DWG/DXF drawing (or drop one on the page)">
       <option value="">Open…</option>
       <option value="file">From computer…</option>
-      <optgroup label="1983 samples">
-        <option value="SUBDIV">SUBDIV</option>
-        <option value="HOUSE">HOUSE</option>
-        <option value="OFFICE">OFFICE</option>
-        <option value="COLORS">COLORS</option>
-      </optgroup>
+      <optgroup id="sample-group" label="Samples" hidden></optgroup>
     </select>
     <input type="file" id="file-input" accept=".dwg,.dxf,.bak">
 
@@ -187,12 +182,10 @@
     // Base name for downloads: the opened drawing's, without extension.
     let drawingName = 'drawing';
 
-    const SAMPLES = {
-      SUBDIV: 'SUBDIV.DXF',
-      HOUSE: 'HOUSE.DWG',
-      OFFICE: 'OFFICE.DWG',
-      COLORS: 'COLORS.DWG',
-    };
+    // assets/manifest.json (written by scripts/build-wasm.sh) names the font,
+    // screen menu and sample drawings: AutoCADED's own demo set, or a local
+    // AutoCAD 1.4 corpus.
+    let assets = { font: null, menu: null, samples: [], start: null };
 
     function message(text, isError = false) {
       messageEl.textContent = text;
@@ -246,26 +239,33 @@
         await init();
         cad = new AutoCadSession(window.innerWidth || 800, window.innerHeight || 600);
         resizeCanvas();
-        // The 1983 corpus is not in git or release archives: scripts/build-wasm.sh
-        // stages it in assets/. Without it the engine still runs, minus text,
-        // screen menu and samples.
+        try {
+          assets = { ...assets, ...JSON.parse(new TextDecoder().decode(await fetchAsset('manifest.json'))) };
+        } catch (err) {
+          // No staged assets: the engine still runs with an empty drawing.
+        }
+        const group = document.getElementById('sample-group');
+        for (const sample of assets.samples) {
+          group.append(new Option(sample.label || sample.file, sample.file));
+        }
+        group.hidden = assets.samples.length === 0;
         const missing = [];
         const tryLoad = async (name, use) => {
+          if (!name) return;
           let bytes;
           try { bytes = await fetchAsset(name); } catch (err) { missing.push(name); return; }
           try { use(bytes); } catch (err) { message(`Failed to load assets/${name}: ${err}`, true); }
         };
-        await tryLoad('TXT.SHP', (bytes) => cad.load_font('TXT', bytes));
-        await tryLoad('ACAD.MNU', (bytes) => cad.load_menu(bytes));
-        await tryLoad(SAMPLES.SUBDIV, (bytes) => {
+        await tryLoad(assets.font, (bytes) => cad.load_font('TXT', bytes));
+        await tryLoad(assets.menu, (bytes) => cad.load_menu(bytes));
+        await tryLoad(assets.start, (bytes) => {
           cad.open_auto(bytes);
-          drawingName = 'SUBDIV';
+          drawingName = assets.start.replace(/\.[^.]*$/, '');
         });
         redraw();
         overlay.style.display = 'none';
         if (missing.length) {
-          message(`Missing assets/${missing.join(', assets/')}: copy them from the AutoCAD 1.4 disks ` +
-            '(System/, Samples/) for text, the screen menu and samples.', true);
+          message(`Missing assets/${missing.join(', assets/')}`, true);
         }
       } catch (err) {
         overlay.innerHTML = `<div style="color:var(--accent-red)">Initialization error: ${err}</div>`;
@@ -364,7 +364,7 @@
         return;
       }
       try {
-        openBytes(await fetchAsset(SAMPLES[val]), SAMPLES[val]);
+        openBytes(await fetchAsset(val), val);
       } catch (err) {
         message(String(err), true);
       }

@@ -95,10 +95,9 @@ jobs:
         run: |
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-      # No corpus on the runner, and its bytes must not ship: users copy
-      # TXT.SHP, ACAD.MNU and samples into assets/ themselves.
+      # AutoCADED's own font, menu and drawings (demo/); no Autodesk files.
       - name: Build web bundle
-        run: ./scripts/build-wasm.sh --no-assets
+        run: ./scripts/build-wasm.sh --assets demo
 
       - name: Package artifact
         shell: bash
@@ -106,9 +105,10 @@ jobs:
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
           stage="autocaded-${tag}-wasm"
-          mkdir -p "dist/${stage}/pkg" "dist/${stage}/assets"
+          mkdir -p "dist/${stage}/pkg"
           cp web/index.html "dist/${stage}/"
           cp web/pkg/acad_wasm.js web/pkg/acad_wasm_bg.wasm "dist/${stage}/pkg/"
+          cp -R web/assets "dist/${stage}/assets"
           cp README.md LICENSE "dist/${stage}/"
           tar -C dist -czf "dist/${stage}.tar.gz" "${stage}"
 

@@ -1,0 +1,12 @@
+// autocaded.yemelianov.dev: the browser build (web/) served as static assets
+// by a Worker. Deploy with scripts/deploy-web.sh.
+{
+  "name": "autocaded",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "web"
+  },
+  "routes": [
+    { "pattern": "autocaded.yemelianov.dev", "custom_domain": true }
+  ]
+}
