@@ -618,6 +618,25 @@ mod tests {
     }
 
     #[test]
+    fn cyrillic_text_parses_and_roundtrips() {
+        let text =
+            "TEXT,1\r\n0.000000,0.000000,2.500000,0.000000\r\nПривіт, Світ! Ґанок, їжак, єнот.\r\n";
+        let d = parse(&with_header(text)).unwrap();
+        let es: Vec<&Entity> = d.entities().collect();
+        assert_eq!(es.len(), 1);
+        let Entity::OnLayer { entity, .. } = es[0] else {
+            panic!("expected on layer");
+        };
+        let Entity::Text { value, .. } = entity.as_ref() else {
+            panic!("expected text");
+        };
+        assert_eq!(value, "Привіт, Світ! Ґанок, їжак, єнот.");
+        let written = crate::write(&d);
+        let d2 = parse(&written).unwrap();
+        assert_eq!(d, d2);
+    }
+
+    #[test]
     fn document_order_is_preserved_across_blocks_and_entities() {
         // SUBDIV.DXF interleaves them; a writer that buckets by kind cannot round-trip.
         let d = parse(&with_header(

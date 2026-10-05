@@ -73,9 +73,13 @@ pub fn lex(bytes: &[u8]) -> Result<Vec<Record>, DxfError> {
         .iter()
         .position(|&b| b == DOS_EOF)
         .unwrap_or(bytes.len());
-    // Latin-1: `u8 as char` maps 0x00..=0xFF onto U+0000..=U+00FF, which is
-    // exactly Latin-1, so this is a faithful decode rather than an ASCII one.
-    let text: String = bytes[..end].iter().map(|&b| b as char).collect();
+    // Decode as UTF-8 if valid, preserving Unicode characters (e.g. Cyrillic)
+    // written by modern tools. Otherwise fall back to Latin-1 (`u8 as char`),
+    // which maps 0x00..=0xFF onto U+0000..=U+00FF faithfully for legacy 1983 files.
+    let text: String = match std::str::from_utf8(&bytes[..end]) {
+        Ok(s) => s.to_string(),
+        Err(_) => bytes[..end].iter().map(|&b| b as char).collect(),
+    };
     // Drop only the empty element after the file's final CRLF. Filtering every
     // empty line would swallow a legitimately empty TEXT value and would shift
     // every reported line number away from the real one.

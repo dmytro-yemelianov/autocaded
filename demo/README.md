@@ -6,7 +6,7 @@ disks.
 
 | File | What | Source |
 |---|---|---|
-| `AUTOCADED.SHP` | Monospaced stroke font, printable ASCII, SHP source format | `tools/demo/gen_font.py` |
+| `AUTOCADED.SHP` | Monospaced stroke font, printable ASCII and Cyrillic, SHP source format | `tools/demo/gen_font.py` |
 | `AUTOCADED.MNU` | Three-page screen menu: draw, edit, view and settings | written by hand |
 | `WELCOME.DWG`, `BRACKET.DWG`, `FLOORPLAN.DWG`, `PALETTE.DWG` | AC1.40 demo drawings | `cargo run -p acad-app --example demo_drawings` |
 

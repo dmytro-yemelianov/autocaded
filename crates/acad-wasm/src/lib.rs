@@ -480,4 +480,32 @@ mod tests {
         assert_eq!(cad.session.palette(), acad_model::Palette::Aci256);
         assert_eq!(cad.fonts.palette(), acad_model::Palette::Aci256);
     }
+
+    #[test]
+    fn autocaded_font_renders_cyrillic_text() {
+        let demo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../demo");
+        let font_bytes = std::fs::read(demo.join("AUTOCADED.SHP")).unwrap();
+        let mut cad = session();
+        cad.load_font("TXT", &font_bytes).unwrap();
+        cad.command("TEXT").unwrap();
+        cad.command("0,0").unwrap();
+        cad.command("2.5").unwrap();
+        cad.command("0").unwrap();
+        cad.command("Привіт, Світ! Ґанок, їжак, єнот №42 «Деталь».")
+            .unwrap();
+        let frame = cad.render_rgba(800, 600).unwrap();
+        assert!(
+            frame.chunks(4).any(|p| p[..3] != [0, 0, 0]),
+            "Cyrillic text renders lit pixels"
+        );
+        let svg = cad.export_svg(800, 600).unwrap();
+        assert!(
+            svg.contains("<polyline"),
+            "Cyrillic text exports polylines in SVG"
+        );
+        let dxf = cad.export_dxf().unwrap();
+        let mut reopened = session();
+        reopened.open_auto(dxf.as_bytes()).unwrap();
+        assert_eq!(state(&reopened)["entities"], 1);
+    }
 }
