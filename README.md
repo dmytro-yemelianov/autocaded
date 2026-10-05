@@ -262,10 +262,9 @@ flowchart LR
 
 Notes on the diagram, all from the code:
 
-- The native document loader (`crates/acad-app/src/document.rs`) picks the codec
-  from the file's magic bytes, so `.BAK` files open as the DWG they are. The
-  wasm `open_auto` binding instead tries `acad_dwg::parse`, then
-  `acad_dxf::parse`.
+- `acad_app::decode_drawing` (`crates/acad-app/src/document.rs`) picks the
+  codec from the file's magic bytes, so `.BAK` files open as the DWG they are;
+  the native loader and the wasm `open_auto` binding both use it.
 - `Session::command` routes one Return-terminated line through
   `submit_return_input` to `Editor::submit_return`, which returns an
   `acad_cmd::Effect` (`Continue`, `Save`, `End`, `SaveDrawing`, `LoadMenu`,

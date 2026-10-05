@@ -8,6 +8,7 @@ mod presentation;
 mod report_view;
 mod session;
 mod text_metrics;
+pub use document::decode_drawing;
 pub use presentation::Frame;
 pub use report_view::ReportAction;
 pub use session::{

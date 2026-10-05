@@ -188,19 +188,12 @@ impl AutoCadSession {
         frame.png().map_err(|e| JsValue::from_str(&e))
     }
 
-    /// Open a drawing from binary DWG or ASCII DXF bytes automatically.
+    /// Open DWG or DXF bytes, chosen by the DWG magic as in the native app
+    /// (so a `.BAK` opens as the DWG it is).
     pub fn open_auto(&mut self, bytes: &[u8]) -> Result<(), JsValue> {
-        if let Ok(drawing) = acad_dwg::parse(bytes) {
-            self.session.open_drawing(drawing);
-            return Ok(());
-        }
-        if let Ok(drawing) = acad_dxf::parse(bytes) {
-            self.session.open_drawing(drawing);
-            return Ok(());
-        }
-        Err(JsValue::from_str(
-            "unrecognized drawing format: neither valid 1983 DWG nor DXF",
-        ))
+        let drawing = acad_app::decode_drawing(bytes).map_err(|e| JsValue::from_str(&e))?;
+        self.session.open_drawing(drawing);
+        Ok(())
     }
 
     /// Open DWG bytes directly.
@@ -363,4 +356,70 @@ fn drawing_to_svg(
 
     svg.push_str("</svg>\n");
     svg
+}
+
+// Native tests cover the paths that never build a `JsValue` (which panics
+// off wasm32): successful typing, opening, exporting and palette choice.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn session() -> AutoCadSession {
+        AutoCadSession::new(800, 600).expect("session")
+    }
+
+    fn state(cad: &AutoCadSession) -> serde_json::Value {
+        serde_json::from_str(&cad.get_state_json()).unwrap()
+    }
+
+    fn type_line(cad: &mut AutoCadSession, line: &str) {
+        for key in line.chars() {
+            assert!(cad.key_down(&key.to_string(), false, false, false).unwrap());
+        }
+        assert!(cad.key_down("Enter", false, false, false).unwrap());
+    }
+
+    #[test]
+    fn typed_keys_reach_the_command_area_and_draw() {
+        let mut cad = session();
+        assert!(cad.key_down("L", false, false, false).unwrap());
+        assert!(cad.key_down("X", false, false, false).unwrap());
+        assert!(cad.key_down("Backspace", false, false, false).unwrap());
+        assert_eq!(state(&cad)["input"], "L");
+        assert!(cad.key_down("Escape", false, false, false).unwrap());
+        assert!(!cad.key_down("Shift", false, false, false).unwrap());
+
+        type_line(&mut cad, "LINE");
+        type_line(&mut cad, "1,1");
+        type_line(&mut cad, "4,3");
+        type_line(&mut cad, "");
+        assert_eq!(state(&cad)["entities"], 1);
+        assert_eq!(state(&cad)["dirty"], true);
+    }
+
+    #[test]
+    fn open_auto_reads_its_own_dwg_and_dxf_exports() {
+        let mut cad = session();
+        type_line(&mut cad, "CIRCLE");
+        type_line(&mut cad, "5,5");
+        type_line(&mut cad, "2");
+        let dwg = cad.export_dwg("1.4").unwrap();
+        let dxf = cad.export_dxf().unwrap();
+
+        for bytes in [dwg, dxf.into_bytes()] {
+            let mut reopened = session();
+            reopened.open_auto(&bytes).unwrap();
+            assert_eq!(state(&reopened)["entities"], 1);
+            assert_eq!(state(&reopened)["dirty"], false);
+        }
+    }
+
+    #[test]
+    fn palette_names_select_the_session_palette() {
+        let mut cad = session();
+        assert_eq!(cad.session.palette(), acad_model::Palette::Pc16);
+        cad.set_palette("aci256").unwrap();
+        assert_eq!(cad.session.palette(), acad_model::Palette::Aci256);
+        assert_eq!(cad.fonts.palette(), acad_model::Palette::Aci256);
+    }
 }

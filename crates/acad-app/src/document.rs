@@ -146,7 +146,7 @@ pub(crate) fn write_without_backup(
 /// `Version::detect`). Only when neither magic matches — i.e. this is not a
 /// DWG at all — does the file get handed to the DXF parser, which reports
 /// its own error if it isn't a DXF either.
-pub(crate) fn decode_drawing(bytes: &[u8]) -> Result<acad_model::Drawing, String> {
+pub fn decode_drawing(bytes: &[u8]) -> Result<acad_model::Drawing, String> {
     match acad_dwg::header::Version::detect(bytes) {
         Ok(_) => acad_dwg::parse(bytes).map_err(|e| e.to_string()),
         Err(_) => acad_dxf::parse(bytes).map_err(|e| e.to_string()),
