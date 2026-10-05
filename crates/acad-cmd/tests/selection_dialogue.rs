@@ -120,11 +120,22 @@ fn selected_list_window_keeps_visible_group_insert_owners_and_global_ids() {
     let Effect::Report(report) = editor.submit("").unwrap() else {
         panic!("selected LIST");
     };
-    assert!(report.starts_with("1 LINE, 2 CIRCLE, 4 REPEAT, 5 INSERT\n"));
-    assert!(report.contains("\n4: members=2 columns=2 rows=1"));
-    assert!(report
-        .contains("\n5: layer=1 origin=(4.0000,0.0000) X scale=2 Y scale=-1 angle=90 block=\"B\""));
-    assert!(!report.contains("\n3:") && !report.contains("\n6:"));
+    // Object IDs go to the status line; the report is AutoCAD 1.4's layout.
+    assert_eq!(editor.status(), "1 LINE, 2 CIRCLE, 4 REPEAT, 5 INSERT");
+    assert!(report.contains("         # columns   2\n            # rows   1"));
+    assert!(
+        report.contains(concat!(
+            "                  BLOCK REFERENCE  LAYER: 1\n",
+            "             block B\n",
+            "                at point, X=   4.0000  Y=   0.0000\n",
+            "                 X scale factor  2.00\n",
+            "                 Y scale factor -1.00\n",
+            "    rotation angle   90"
+        )),
+        "{report}"
+    );
+    // Object 3 (the layer-2 POINT) was not selected.
+    assert!(!report.contains("X=  -3.0000  Y=  -1.0000"), "{report}");
     assert_eq!(editor.prompt(), "Command");
     submit(&mut editor, &["UNDO"]);
     assert_eq!(
@@ -153,18 +164,30 @@ fn typed_selection_inspects_hidden_objects_and_replaces_collected_set() {
     let Effect::Report(report) = editor.submit("3,3").unwrap() else {
         panic!("LIST");
     };
-    assert!(report.starts_with("3 POINT\n3: layer=2"));
-    assert!(!report.contains("1 LINE"));
+    assert_eq!(editor.status(), "3 POINT");
+    assert!(report.starts_with("                  POINT     LAYER: 2\n"));
+    assert!(!report.contains("LINE"));
     submit(&mut editor, &["LIST"]);
     let Effect::Report(report) = editor.submit("LAST").unwrap() else {
         panic!("LIST");
     };
-    assert!(report.starts_with("6 POINT\n"));
+    assert_eq!(editor.status(), "6 POINT");
+    assert!(report.starts_with("                  POINT     LAYER:"));
     submit(&mut editor, &["LIST"]);
     let Effect::Report(report) = editor.submit("ALL").unwrap() else {
         panic!("LIST");
     };
-    assert!(report.starts_with("1 LINE, 2 CIRCLE, 3 POINT, 4 REPEAT, 5 INSERT, 6 POINT\n"));
+    assert_eq!(
+        editor.status(),
+        "1 LINE, 2 CIRCLE, 3 POINT, 4 REPEAT, 5 INSERT, 6 POINT"
+    );
+    assert!(
+        report.contains(concat!(
+            "                  POINT     LAYER: 2\n",
+            "                at point, X=  -3.0000  Y=  -1.0000"
+        )),
+        "{report}"
+    );
 }
 
 #[test]

@@ -94,8 +94,13 @@ fn picks_windows_anchors_and_reports_use_live_members_while_ids_remain_owner_bas
     let Effect::Report(report) = editor.submit("ALL").unwrap() else {
         panic!("report")
     };
-    assert!(report.starts_with("1 REPEAT, 2 INSERT"));
-    assert!(report.contains("erased members=2"));
+    // Object IDs go to the status line; the report is AutoCAD 1.4's layout.
+    assert!(
+        editor.status().starts_with("1 REPEAT, 2 INSERT"),
+        "{}",
+        editor.status()
+    );
+    assert!(report.contains("    erased members   2"), "{report}");
     assert!(!report.contains("100,200"));
     assert_eq!(editor.drawing(), &before);
 }
@@ -205,8 +210,8 @@ fn list_counts_erased_members_in_nested_groups() {
     let Effect::Report(report) = editor.submit("ALL").unwrap() else {
         panic!("report")
     };
-    assert!(report.contains("members=3 "), "{report}");
-    assert!(report.contains("erased members=3"), "{report}");
+    assert!(report.contains("REPEAT start"), "{report}");
+    assert!(report.contains("    erased members   3"), "{report}");
     assert!(
         !report.contains("2,2") && !report.contains("1,1 "),
         "{report}"

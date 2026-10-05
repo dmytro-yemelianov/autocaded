@@ -544,11 +544,13 @@ fn dblist_reports_live_top_level_block_and_repeat_entities_without_editing() {
         panic!("DBLIST should return a read-only report");
     };
 
-    assert!(report.contains("Entity 1: Line"));
-    assert!(report.contains("Entity 2: Circle"));
-    assert!(report.contains("Entity 3: Point"));
-    assert!(report.contains("Block B1"));
-    assert!(report.contains("Repeat 2 columns × 1 rows"));
+    // AutoCAD 1.4's DBLIST layout (acad-oracle tests/reports.rs).
+    assert!(report.contains("LINE      LAYER: "), "{report}");
+    assert!(report.contains("CIRCLE    LAYER: "), "{report}");
+    assert!(report.contains("POINT     LAYER: "), "{report}");
+    assert!(report.contains("BLOCK DEFINITION  LAYER: 1\n             block B1"));
+    assert!(report.contains("REPEAT start"), "{report}");
+    assert!(report.contains("         # columns   2\n            # rows   1"));
     assert!(!report.contains("9.0"), "erased record leaked into DBLIST");
     assert_eq!(editor.drawing(), &source, "DBLIST must be read-only");
     assert_eq!(editor.prompt(), "Command");

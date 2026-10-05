@@ -200,7 +200,7 @@ fn real_stdio_binary_keeps_reports_off_stdout_and_recovers_after_bad_input() {
     assert!(state["result"]["structuredContent"]["report"]
         .as_str()
         .unwrap()
-        .contains("Entity 1: Line"));
+        .contains("LINE      LAYER: 1"));
     assert_eq!(
         responses.iter().find(|v| v["id"] == 8).unwrap()["result"]["isError"],
         true
@@ -322,10 +322,15 @@ fn selected_list_mcp_collects_deduplicated_points_and_reports_without_mutation()
     let response = call("acad_command", json!({"input":""}));
     let state = &response["result"]["structuredContent"]["state"];
     assert_eq!(state["prompt"], "Command");
-    assert!(state["report"]
-        .as_str()
-        .unwrap()
-        .starts_with("1 POINT, 2 POINT\n"));
+    assert_eq!(state["status"], "1 POINT, 2 POINT");
+    assert_eq!(
+        state["report"]
+            .as_str()
+            .unwrap()
+            .matches("POINT     LAYER:")
+            .count(),
+        2
+    );
     assert!(!state["report"].as_str().unwrap().contains("3: layer="));
     for action in ["end", "home", "close", "open"] {
         let response = call("acad_report", json!({"action":action}));

@@ -4,6 +4,7 @@ use crate::entity_ops::bare;
 use crate::HATCH_PATTERNS;
 use acad_model::{Drawing, Entity, Item};
 
+mod entity_format;
 mod help;
 mod list;
 mod status;
@@ -112,42 +113,24 @@ pub(crate) fn list_entities(drawing: &Drawing, ids: &[usize]) -> String {
     }
 }
 
+/// DBLIST: every live record in drawing order, in AutoCAD 1.4's layout
+/// (`entity_format`), blocks between their definition records.
 pub(crate) fn database_listing(drawing: &Drawing) -> String {
-    fn append_entity(lines: &mut Vec<String>, count: &mut usize, entity: &Entity) {
-        if entity.is_erased() {
-            return;
-        }
-        *count += 1;
-        lines.push(format!("Entity {}: {:#?}", count, bare(entity)));
-    }
-
-    let mut lines = vec!["Drawing database".to_owned()];
-    let mut count = 0;
+    let format = entity_format::EntityFormat::new(drawing.header.units);
+    let mut lines = Vec::new();
     for item in &drawing.items {
         match item {
-            Item::Entity(entity) => append_entity(&mut lines, &mut count, entity),
+            Item::Entity(entity) => format.entity(entity, &mut lines),
             Item::Erased(_) => {}
-            Item::Block(block) => {
-                lines.push(format!("Block {} base {:?}", block.name, block.base));
-                for entity in &block.entities {
-                    append_entity(&mut lines, &mut count, entity);
-                }
-            }
-            Item::Repeat(repeat) => {
-                lines.push(format!(
-                    "Repeat {} columns × {} rows",
-                    repeat.columns, repeat.rows
-                ));
-                for entity in &repeat.entities {
-                    append_entity(&mut lines, &mut count, entity);
-                }
-            }
+            Item::Block(block) => format.block(block, &mut lines),
+            Item::Repeat(repeat) => format.repeat(repeat, &mut lines),
         }
     }
-    if count == 0 {
-        lines.push("No entities".into());
+    if lines.is_empty() {
+        "No entities".into()
+    } else {
+        lines.join("\n")
     }
-    lines.join("\n")
 }
 
 #[cfg(test)]

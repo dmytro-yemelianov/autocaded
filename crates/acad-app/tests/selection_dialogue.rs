@@ -106,16 +106,21 @@ fn pixel_picks_world_points_and_windows_share_dedup_readonly_selected_list() {
     assert_eq!(s.input(), "2,3,4");
     assert_eq!(s.drawing(), &before);
     commands(&mut s, &[""]);
+    assert_eq!(s.status(), "2 LINE, 3 REPEAT, 4 INSERT");
     assert!(s
         .report_text()
         .unwrap()
-        .starts_with("2 LINE, 3 REPEAT, 4 INSERT\n"));
+        .starts_with("                  LINE      LAYER:"));
     assert_eq!(s.prompt(), "Command");
     assert_eq!(s.drawing(), &before);
     assert_eq!(s.is_dirty(), dirty);
     call(&mut s, "report", json!({"action":"close"})).unwrap();
     commands(&mut s, &["LIST", "1"]);
-    assert!(s.report_text().unwrap().starts_with("1 POINT\n1: layer=2"));
+    assert_eq!(s.status(), "1 POINT");
+    assert!(s
+        .report_text()
+        .unwrap()
+        .starts_with("                  POINT     LAYER: 2\n"));
     assert_eq!(s.drawing(), &before);
     assert_eq!(s.is_dirty(), dirty);
 }
@@ -159,7 +164,7 @@ fn selected_list_paging_preserves_clean_document_and_geometry_undo_history() {
     let before = s.drawing().clone();
     commands(&mut s, &["LIST", "ALL"]);
     let text = s.report_text().unwrap().to_owned();
-    assert!(text.contains("140: layer=1 origin=(139.0000,1.0000)"));
+    assert!(text.contains("                at point, X= 139.0000  Y=   1.0000"));
     let first = s.frame(320, 140).unwrap().pixels;
     for action in ["end", "home", "page_down", "close", "open"] {
         call(

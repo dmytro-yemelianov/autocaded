@@ -78,9 +78,25 @@ fn traversal_list_and_picks_share_repeat_group_numbers() {
     };
     assert_eq!(editor.prompt(), "Command");
     assert_eq!(editor.status(), "1 POINT, 2 REPEAT, 3 REPEAT, 4 CIRCLE");
-    assert!(report.contains("2: members=1 columns=3 rows=2 column spacing=-10.0000"));
-    assert!(report.contains("3: layer=3 members=1 columns=3"));
-    assert!(report.contains("4: layer=1 center=(50.0000,50.0000) radius=2.0000"));
+    assert!(
+        report.contains(concat!(
+            "         # columns   3\n",
+            "            # rows   2\n",
+            "    column spacing  -10.0000"
+        )),
+        "{report}"
+    );
+    // Both groups list their markers and members; AutoCAD 1.4 has no
+    // owner layer, so group 3's native owner layer 3 is not printed.
+    assert_eq!(report.matches("REPEAT start").count(), 2, "{report}");
+    assert!(
+        report.contains(concat!(
+            "                  CIRCLE    LAYER: 1\n",
+            "            center point, X=  50.0000  Y=  50.0000\n",
+            "            radius    2.0000"
+        )),
+        "{report}"
+    );
     assert_eq!(editor.drawing(), &before);
     submit(&mut editor, &["ERASE", "LAST"]);
     assert_eq!(selectable_items(editor.drawing()).count(), 3);
@@ -213,8 +229,9 @@ fn detailed_list_bounds_large_groups_text_and_number_of_objects() {
     let Effect::Report(report) = editor.submit("ALL").unwrap() else {
         panic!("LIST");
     };
-    assert!(report.contains("columns=65535 rows=65535"));
-    assert!(report.contains("abc\\n\\\""));
+    assert!(report.contains("         # columns65535\n            # rows65535"));
+    // Control characters are escaped; other text prints as stored.
+    assert!(report.contains("abc\\n\"abc"));
     assert!(report.contains("LIST limit: 1000 of 1003 objects detailed; 3 omitted"));
     assert!(report.len() < 256_100);
     assert_eq!(

@@ -1386,10 +1386,11 @@ fn selection_repeat_highlight_and_api_count_share_whole_group_ids() {
     assert_eq!(crate::api::state(&session)["selectable_objects"], 2);
     session.command("LIST").unwrap();
     session.command("ALL").unwrap();
+    assert_eq!(session.status(), "1 REPEAT, 2 LINE");
     assert!(session
         .report_text()
         .unwrap()
-        .starts_with("1 REPEAT, 2 LINE\n"));
+        .starts_with("                  REPEAT start"));
 }
 
 #[test]

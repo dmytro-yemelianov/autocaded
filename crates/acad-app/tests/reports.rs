@@ -63,9 +63,12 @@ fn complete_reports_wrap_scroll_reopen_and_leave_drawing_and_undo_intact() {
 #[test]
 fn report_pixels_are_shared_by_png_rgba_and_canvas_clicks_only_navigate() {
     let mut s = Session::default();
-    for input in ["POINT", "1,1", "POINT", "2,2", "DBLIST"] {
-        command(&mut s, input);
+    // Enough records for a second report page.
+    for n in 1..=20 {
+        command(&mut s, "POINT");
+        command(&mut s, &format!("{n},{n}"));
     }
+    command(&mut s, "DBLIST");
     let before = s.drawing().clone();
     let state = api::state(&s);
     call(
@@ -149,7 +152,17 @@ fn list_is_a_complete_visible_report_and_retains_its_status_contract() {
     for input in ["POINT", "1,1", "LINE", "2,2", "3,3", "", "LIST", "ALL"] {
         command(&mut s, input);
     }
-    assert_eq!(s.report_text(), Some("1 POINT, 2 LINE\n1: layer=1 origin=(1.0000,1.0000)\n2: layer=1 start=(2.0000,2.0000) end=(3.0000,3.0000)"));
+    // AutoCAD 1.4's LIST layout (acad-oracle tests/reports.rs).
+    assert_eq!(
+        s.report_text(),
+        Some(concat!(
+            "                  POINT     LAYER: 1\n",
+            "                at point, X=   1.0000  Y=   1.0000\n",
+            "                  LINE      LAYER: 1\n",
+            "              from point, X=   2.0000  Y=   2.0000\n",
+            "                to point, X=   3.0000  Y=   3.0000"
+        ))
+    );
     assert_eq!(s.status(), "1 POINT, 2 LINE");
     assert!(s.report_visible());
     s.report_action(ReportAction::Close, 640, 480).unwrap();
