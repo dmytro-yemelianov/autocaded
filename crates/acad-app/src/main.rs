@@ -211,6 +211,10 @@ impl ApplicationHandler<ApiEvent> for WindowApp {
                     self.finish(el, result);
                 }
             }
+            WindowEvent::DroppedFile(path) => {
+                let result = self.session.open_dropped(&path);
+                self.finish(el, result);
+            }
             WindowEvent::CursorLeft { .. } => {
                 self.session.cursor(None);
                 window.request_redraw();

@@ -17,6 +17,33 @@ impl Session {
         self.document.dirty(self.drawing())
     }
 
+    /// A drawing dropped on the window (native policy): opens it like API
+    /// `open`, keeping the script clock, Main Menu policy, palette and font
+    /// directories, unless the current drawing has unsaved changes, which a
+    /// stray drop must not discard. Refusals and decode errors go to the
+    /// status line; the current session is unchanged.
+    pub fn open_dropped(&mut self, path: &Path) -> Result<bool, String> {
+        let name = path.file_name().map_or_else(
+            || path.display().to_string(),
+            |n| n.to_string_lossy().into_owned(),
+        );
+        if self.main_menu.is_none() && self.is_dirty() {
+            self.status = format!("Unsaved changes: SAVE or END before opening {name}");
+            return Ok(false);
+        }
+        match Session::open(path, &self.directories) {
+            Ok(mut opened) => {
+                opened.inherit_main_menu_home(self);
+                opened.set_script_clock(self.script_clock());
+                opened.set_viewport_size(self.viewport_size.0, self.viewport_size.1)?;
+                opened.status = format!("Opened {name}");
+                *self = opened;
+            }
+            Err(error) => self.status = format!("Cannot open {name}: {error}"),
+        }
+        Ok(false)
+    }
+
     /// Explicit Save As: choose codec by suffix, and attach only after success.
     /// Replacing an existing file keeps its previous bytes as `.BAK`
     /// (docs/native-files-menu.md); failures leave file and document as-is.

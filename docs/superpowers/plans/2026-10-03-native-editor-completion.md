@@ -65,9 +65,10 @@ visually inspected. No oracle or translated boot process was run.
   First: document path/dirty state and END save versus QUIT discard; GUI report
   display; GRID painting; CIRCLE options/triangular SOLID/continuation. Then
   selection/LIST/layer visibility, TEXT/CHANGE, FILLET and view forms.
-- [ ] Complete HATCH styles/user patterns and DELAY/RESUME script semantics;
-  tablet/plotter drivers stay excluded. Each item needs a bounded behavior
-  contract before implementation.
+- [x] Complete HATCH styles/user patterns and DELAY/RESUME script semantics
+  ([HATCH user patterns](../../native-hatch-user.md), compared with the
+  in-tree original; [HATCH styles](../../native-hatch-styles.md);
+  [scripts](../../native-scripts.md)).
 - [x] SKETCH mouse input policy (decided 2026-10-05): the GUI mouse draws
   press-and-hold; P and API clicks keep the original toggle
   ([SKETCH](../../native-sketch.md)).
@@ -240,8 +241,11 @@ TEXT/CHANGE, FILLET and missing view inputs. Keep native parity separate from Ru
 - [x] Existing codec/raster tests open/render all 21 valid corpus drawings plus
   backups when corpus is present. Shared Session/MCP corpus workflows remain
   part of the next item; a corpus-free passing suite is not corpus evidence.
-- [ ] Automate create/select/edit/block/dimension/hatch/undo/save/reopen through
-  Session/API/MCP, checking complete drawing data and frames at useful points.
+- [x] Automate create/select/edit/block/dimension/hatch/undo/save/reopen through
+  Session/API/MCP, checking complete drawing data and frames at useful points
+  (`crates/acad-app/tests/combined_workflow.rs`: one drawing over the MCP route
+  through every workflow, saved as AC1.40, AC1.2 and DXF with backups and
+  reopened).
 - [x] Retain `tools/check_acad_gui_api.py` for attached-GUI/socket/MCP smoke,
   including scratch copies, cleanup, multiple dimensions and END/QUIT lifecycle.
 

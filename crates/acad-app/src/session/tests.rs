@@ -1916,3 +1916,50 @@ fn the_member_erasure_question_fits_an_800_pixel_command_line_and_explains_on_st
     }
     assert!(!std::path::Path::new("never-written.dwg").exists());
 }
+
+#[test]
+fn dropped_drawing_opens_unless_unsaved_work_would_be_lost() {
+    let dir = std::env::temp_dir().join(format!("autocaded-drop-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut source = Session::default();
+    source.command("LINE").unwrap();
+    source.command("0,0").unwrap();
+    source.command("3,4").unwrap();
+    source.command("").unwrap();
+    let dropped = dir.join("DROPPED.DXF");
+    std::fs::write(&dropped, acad_dxf::try_write(source.drawing()).unwrap()).unwrap();
+    let junk = dir.join("JUNK.DWG");
+    std::fs::write(&junk, b"not a drawing").unwrap();
+
+    // Unsaved changes: refused, drawing kept.
+    let mut app = Session::default();
+    app.command("CIRCLE").unwrap();
+    app.command("1,1").unwrap();
+    app.command("1").unwrap();
+    assert!(app.is_dirty());
+    assert_eq!(app.open_dropped(&dropped), Ok(false));
+    assert!(
+        app.status().starts_with("Unsaved changes"),
+        "{}",
+        app.status()
+    );
+    assert_eq!(app.drawing().entities().count(), 1);
+
+    // A clean session opens it, attached to the file.
+    let mut app = Session::default();
+    assert_eq!(app.open_dropped(&dropped), Ok(false));
+    assert_eq!(app.status(), "Opened DROPPED.DXF");
+    assert_eq!(app.drawing().entities().count(), 1);
+    assert_eq!(app.document_format(), Some("dxf"));
+    assert!(!app.is_dirty());
+
+    // A file that is not a drawing leaves the session as it was.
+    assert_eq!(app.open_dropped(&junk), Ok(false));
+    assert!(
+        app.status().starts_with("Cannot open JUNK.DWG"),
+        "{}",
+        app.status()
+    );
+    assert_eq!(app.document_format(), Some("dxf"));
+    let _ = std::fs::remove_dir_all(&dir);
+}

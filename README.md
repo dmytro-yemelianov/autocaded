@@ -99,7 +99,9 @@ The app and PNG renderer accept additional font directories after the drawing
 extracted corpus uses `System/TXT.SHP` as AutoCAD 1.4's startup font and finds
 other libraries beside the drawing. Missing libraries/glyphs are reported.
 
-Startup loads the shipped `ACAD.MNU` screen menu. Type a command or response in
+Dropping a DWG or DXF file on the window opens it (refused, with a status
+message, while the current drawing has unsaved changes). Startup loads the
+shipped `ACAD.MNU` screen menu. Type a command or response in
 the bottom command area and press Return; Escape cancels. Clicks place points
 or select entities while a prompt asks for them. Window, report viewer and
 MENU behavior is described in
