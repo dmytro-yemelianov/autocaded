@@ -297,8 +297,8 @@ impl Session {
         self.type_characters(text)
     }
 
-    /// Physical character input. Idle Space repeats like Return, while spaces
-    /// in TEXT payloads and other editable input remain significant characters.
+    /// Physical character input. Space submits like Return (idle Space
+    /// repeats the last command); TEXT and CHANGE text and file paths keep it.
     pub fn type_characters(&mut self, text: &str) -> Result<bool, String> {
         if !text.is_empty() {
             self.interrupt_script(ScriptInterrupt::Input);
@@ -315,8 +315,16 @@ impl Session {
             }
             return Ok(false);
         }
-        if text == " " && self.input.is_empty() && self.prompt() == "Command" {
-            return self.command("");
+        // Space is Return, as in a command script, except where the answer is
+        // literal text (TEXT, CHANGE text) or a path (native policy), and at
+        // the Main Menu, whose drawing names can be paths.
+        if text == " "
+            && self.main_menu.is_none()
+            && !self.editor.accepts_literal_text()
+            && !self.editor.accepts_path()
+        {
+            let input = std::mem::take(&mut self.input);
+            return self.command(&input);
         }
         self.input.push_str(text);
         Ok(false)

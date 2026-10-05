@@ -1964,3 +1964,39 @@ fn dropped_drawing_opens_unless_unsaved_work_would_be_lost() {
     assert_eq!(app.document_format(), Some("dxf"));
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn typed_space_submits_except_in_text_and_paths() {
+    let mut s = Session::default();
+    // Space ends a command name and a selection option like Return.
+    s.type_characters("E").unwrap();
+    s.type_characters("R").unwrap();
+    s.type_characters("A").unwrap();
+    s.type_characters("S").unwrap();
+    s.type_characters("E").unwrap();
+    s.type_characters(" ").unwrap();
+    assert!(s.prompt().starts_with("ERASE"), "{}", s.prompt());
+    s.type_characters("W").unwrap();
+    s.type_characters(" ").unwrap();
+    assert_eq!(s.prompt(), "Selection window: first corner x,y");
+    assert!(s.input().is_empty());
+    s.cancel().unwrap();
+    // TEXT keeps spaces in its value.
+    for line in ["TEXT", "1,1", "0.5", "0"] {
+        s.command(line).unwrap();
+    }
+    s.type_characters("A").unwrap();
+    s.type_characters(" ").unwrap();
+    s.type_characters("B").unwrap();
+    assert_eq!(s.input(), "A B");
+    s.command("A B").unwrap();
+    // A path keeps its spaces (native policy).
+    s.command("SCRIPT").unwrap();
+    s.type_characters("My").unwrap();
+    s.type_characters(" ").unwrap();
+    assert_eq!(s.input(), "My ");
+    s.cancel().unwrap();
+    // Idle Space still repeats the last command.
+    s.type_characters(" ").unwrap();
+    assert!(s.prompt().starts_with("SCRIPT"), "{}", s.prompt());
+}

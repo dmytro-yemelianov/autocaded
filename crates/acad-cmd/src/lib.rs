@@ -356,6 +356,27 @@ impl Editor {
         }
     }
 
+    /// Whether the current prompt takes a file name or path. Native policy:
+    /// a typed Space stays in the answer here, since modern paths can hold
+    /// spaces (1983 DOS names could not).
+    pub fn accepts_path(&self) -> bool {
+        matches!(
+            self.state,
+            InputState::LoadLibrary
+                | InputState::InsertName
+                | InputState::WblockPath
+                | InputState::MenuFile
+                | InputState::ScriptFile
+                | InputState::FilesDrive(_)
+                | InputState::FilesListSpecification
+                | InputState::FilesDeleteSpecification
+                | InputState::FilesRenameSource
+                | InputState::FilesRenameDestination(_)
+                | InputState::SavePath
+                | InputState::EndSavePath
+        )
+    }
+
     pub fn awaiting_document_input(&self) -> bool {
         matches!(
             self.state,
