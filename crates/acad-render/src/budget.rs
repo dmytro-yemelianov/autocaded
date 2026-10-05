@@ -3,8 +3,8 @@
 //! Per-owner preflight (`selection_policy`) bounds a single owner; this budget
 //! bounds the sum over every owner drawn in one frame, including the
 //! selection-highlight pass when a caller shares one budget between passes.
-use acad_model::EngineLimits;
 use crate::flatten::Prim;
+use acad_model::EngineLimits;
 
 /// Work units one frame may spend before rendering stops at an owner boundary.
 ///

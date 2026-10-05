@@ -189,7 +189,6 @@ fn encode_entity(
     Ok(())
 }
 
-
 fn encode_block(
     out: &mut Vec<u8>,
     name: &str,

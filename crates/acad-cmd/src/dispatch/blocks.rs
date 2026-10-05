@@ -208,7 +208,10 @@ impl Editor {
                 };
                 let start = self.repeat_start.ok_or("ENDREP without REPEAT")?;
                 let slice = &self.drawing.items[start..];
-                if slice.iter().any(|i| !matches!(i, Item::Entity(_) | Item::Erased(_))) {
+                if slice
+                    .iter()
+                    .any(|i| !matches!(i, Item::Entity(_) | Item::Erased(_)))
+                {
                     return Err("REPEAT can only contain ordinary entities".into());
                 }
                 self.save_undo();

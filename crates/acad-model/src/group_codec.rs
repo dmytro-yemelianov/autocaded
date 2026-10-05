@@ -86,7 +86,6 @@ pub fn entity_fields_are_finite(entity: &Entity) -> bool {
     }
 }
 
-
 /// A group without members is valid: AutoCAD 1.4 writes, keeps and exports
 /// an empty REPEAT/ENDREP pair (docs/native-group-persistence.md, "R6 empty
 /// REPEAT groups"). Only its dimensions and spacings are checked.

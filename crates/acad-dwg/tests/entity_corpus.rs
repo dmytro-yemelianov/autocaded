@@ -138,7 +138,6 @@ fn kind_and_fields(e: &Entity) -> (&'static str, Vec<f64>, Option<&str>) {
     }
 }
 
-
 fn assert_entities_match(a: &Entity, b: &Entity, ctx: &str) {
     let (ka, fa, sa) = kind_and_fields(a);
     let (kb, fb, sb) = kind_and_fields(b);

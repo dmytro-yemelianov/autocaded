@@ -100,9 +100,10 @@ pub struct GenericEntity {
 
 /// Trait for extensible third-party or newer AutoCAD entity types.
 /// Allows adding new entity definitions without modifying the core engine enums.
-pub trait CustomEntity: std::fmt::Debug + Send + Sync + std::panic::RefUnwindSafe + std::panic::UnwindSafe {
+pub trait CustomEntity:
+    std::fmt::Debug + Send + Sync + std::panic::RefUnwindSafe + std::panic::UnwindSafe
+{
     /// The CAD entity type name (e.g., "LWPOLYLINE", "3DFACE", "ELLIPSE").
-
     fn type_name(&self) -> &str;
 
     /// Layer index (0..=255) for this entity.
@@ -362,4 +363,3 @@ mod tests {
         assert_eq!(ext_c.ymax, 15.0);
     }
 }
-

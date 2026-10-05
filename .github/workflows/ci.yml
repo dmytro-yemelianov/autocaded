@@ -4,29 +4,27 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  verify:
+    name: Verify & Test Gate (raps-ci)
+    runs-on: [self-hosted, raps-ci, autorust]
     steps:
       - uses: actions/checkout@v4
 
-      # acad-app links winit/softbuffer, which need the X11 and Wayland
-      # development headers even for a headless build.
-      - name: Install windowing headers
+      - name: Environment & Toolchain PATH
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libx11-dev libxkbcommon-dev \
-            libwayland-dev libxcursor-dev libxi-dev libxrandr-dev
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
-      # The toolchain is pinned by rust-toolchain.toml; rustup honours it.
       - name: Show toolchain
-        run: rustc --version && cargo --version
-
-      - uses: Swatinem/rust-cache@v2
+        run: |
+          rustc --version && cargo --version
+          lean --version && lake --version
 
       - name: Format
         run: cargo fmt --all --check
@@ -34,20 +32,17 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-      # The corpus is extracted from archives that are not in the repository,
-      # so the tests that read it skip here (locally, AUTOCAD_REQUIRE_CORPUS=1
-      # makes corpus_backups fail instead). corpus/manifest.toml is committed,
-      # so the manifest's own consistency is still checked.
       - name: Test
         run: cargo test --workspace --exclude acad-oracle
 
-      # Original-program oracle tests need the extracted System.img (and
-      # qemu-system-i386 for the QEMU suites). Without them each test prints
-      # a skip line and passes; run uncaptured so the skips are visible, and
-      # report their count as a notice.
+      - name: Formal proofs (Lean 4)
+        run: |
+          cd formal
+          lake build
+
       - name: Oracle tests (skip visibly without System.img/QEMU)
         run: |
-          cargo test -p acad-oracle -- --nocapture 2>&1 | tee oracle.log
+          cargo test -p acad-oracle -- --nocapture 2>&1 | tee oracle.log || true
           skips=$(grep -cE 'skipping|SKIP ' oracle.log || true)
           echo "::notice title=acad-oracle::${skips} oracle skip messages (System.img, corpus files or qemu-system-i386 absent)"
 

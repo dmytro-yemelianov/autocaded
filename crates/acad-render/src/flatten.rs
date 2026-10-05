@@ -164,8 +164,6 @@ fn flatten_entity_bounded(e: &Entity, vp: &Viewport) -> Vec<Prim> {
     }
 }
 
-
-
 /// A block may insert another block; `SELEXOL` nests two deep (`PACKTWR`
 /// inserts `HEAD`, `COOLER` inserts `ARROW`). The insert graph comes from the
 /// file, not from anything this program controls, so a cycle is possible — a

@@ -147,7 +147,6 @@ fn entity(out: &mut String, e: &Entity) {
     }
 }
 
-
 /// Legacy convenience writer. Panics when drawing data cannot be encoded.
 /// Production save/export callers should use `try_write` for an explicit error.
 /// Like `try_write`, this omits erased owners/members; live groups keep their markers.

@@ -107,7 +107,6 @@ fn coords(e: &Entity) -> Vec<(&'static str, f64)> {
     }
 }
 
-
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     let (Some(dwg_path), Some(dxf_path)) = (args.next(), args.next()) else {
@@ -166,4 +165,3 @@ fn entity_name(e: &Entity) -> &'static str {
         Entity::Extension(_) => "EXTENSION",
     }
 }
-

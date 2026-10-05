@@ -154,7 +154,6 @@ pub(crate) fn transform_entity(entity: &mut Entity, transform: Transform) {
     }
 }
 
-
 pub(crate) fn transform_item(item: &mut Item, transform: Transform) {
     match item {
         Item::Entity(entity) => transform_entity(entity, transform),
@@ -253,10 +252,12 @@ pub(crate) fn entity_anchor(entity: &Entity) -> Option<Point> {
         Entity::Load { .. } | Entity::OnLayer { .. } | Entity::Erased(_) | Entity::Generic(_) => {
             None
         }
-        Entity::Extension(ext) => ext.bounding_extents().map(|e| Point { x: e.xmin, y: e.ymin }),
+        Entity::Extension(ext) => ext.bounding_extents().map(|e| Point {
+            x: e.xmin,
+            y: e.ymin,
+        }),
     }
 }
-
 
 pub(crate) fn item_anchor(item: &Item) -> Option<Point> {
     match item {
@@ -303,7 +304,6 @@ pub(crate) fn apply_change_point(entity: &mut Entity, point: Point) {
         | Entity::Extension(_) => unreachable!("unsupported CHANGE point entity was validated"),
     }
 }
-
 
 pub(crate) fn set_insert_angle(entity: &mut Entity, angle: f64) {
     match entity {

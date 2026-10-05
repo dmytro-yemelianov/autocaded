@@ -412,10 +412,14 @@ impl Editor {
                 return Err("PLOT: plotter device not configured in this environment".into())
             }
             "QPLOT" => {
-                return Err("QPLOT: printer plotter device not configured in this environment".into())
+                return Err(
+                    "QPLOT: printer plotter device not configured in this environment".into(),
+                )
             }
             "TABLET" => {
-                return Err("TABLET: digitizer tablet device not configured in this environment".into())
+                return Err(
+                    "TABLET: digitizer tablet device not configured in this environment".into(),
+                )
             }
             // REDRAW and REGEN do not edit the drawing model. The
             // native window already redraws and regenerates each requested

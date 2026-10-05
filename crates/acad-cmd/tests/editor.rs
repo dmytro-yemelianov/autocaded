@@ -1244,10 +1244,7 @@ fn area_command_with_e_option_selects_entity() {
     for input in ["CIRCLE", "1,2", "3", "AREA", "E", "1"] {
         editor.submit(input).unwrap();
     }
-    assert_eq!(
-        editor.status(),
-        "Area=28.274334, Perimeter=18.849556"
-    );
+    assert_eq!(editor.status(), "Area=28.274334, Perimeter=18.849556");
 }
 
 #[test]
@@ -1842,4 +1839,3 @@ fn undo_history_is_bounded_by_max_undo_depth() {
     }
     assert_eq!(undos, limit);
 }
-

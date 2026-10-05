@@ -144,7 +144,6 @@ pub(crate) fn selection_extents_points(entity: &Entity) -> Option<Vec<Point>> {
     })
 }
 
-
 fn repeat_extents_points(repeat: &acad_model::Repeat) -> Option<Vec<Point>> {
     crate::geometry::repeat_bounds_points(repeat, true).map(Vec::from)
 }
@@ -350,7 +349,6 @@ pub(crate) fn entity_pick_distance(point: Point, entity: &Entity) -> Option<f64>
         | Entity::Extension(_) => None,
     }
 }
-
 
 #[cfg(test)]
 mod tests {

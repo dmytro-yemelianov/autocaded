@@ -138,7 +138,6 @@ pub(crate) fn entity_points(entity: &Entity, out: &mut Vec<Point>) {
     }
 }
 
-
 pub(crate) fn rotate_point(point: Point, base: Point, degrees: f64) -> Point {
     let angle = degrees.to_radians();
     let (sin, cos) = angle.sin_cos();
