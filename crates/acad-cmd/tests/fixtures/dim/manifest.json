@@ -254,5 +254,13 @@
       "dwg": "67adfda3abae5274dbbe794e0d093c1088b077f8a043c3e5242b312003edf03d",
       "inputs.json": "70b5508a73893dd42212eea3e01c6e86410e8eed56518d36c11c2c19ecfc2dcb"
     }
+  },
+  {
+    "case": "PBCB",
+    "source_bundle": "dim-supplement",
+    "sha256": {
+      "dwg": "fe90b53d0aa7fa5cfcddf6253cbc642a33a63441bc52352bed0c474616328583",
+      "inputs.json": "1abe39b441a4750f59b01b6bcf6e49fb4fa9e9b2e0b1d46e89078a534537dcac"
+    }
   }
 ]

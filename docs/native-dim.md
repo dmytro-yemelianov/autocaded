@@ -77,28 +77,42 @@ on both editors and full record parity at 1e-10.
 LINE/SOLID/TEXT records (kinds, layers, points, TEXT origin, height,
 rotation, value) for 54 scripts against the native editor at absolute 1e-10.
 
-## Evidence: unresolved arrow-fit comparator
+## Arrow fit
 
 For X extensions with horizontal inside text the original keeps arrows
-inside where the native comparator `length ≥ W + 6A` does not: span 6.5 at
-A = .5 (`6.5000`, and round 2's span 6 `6.0000`) is internal with text
-x 3.5, and retained `PBCB`'s final
-B (span 4, A = .5) is internal while its span-3 B is external
-(`divergence_original_fits_inside_where_native_width_rule_does_not`). So
-W + 6A is falsified for this orientation; the bracket (3, 4] at A = .5 fits
-the D1 projected-extent candidate h + 6A = 3.75 but does not determine the
-comparator or its equality case, and no inside/outside T-setting variants
-inside the bracket were measured. The native comparator is unchanged and
-these spans remain native divergences; full `PBCB`/`PBCC` are not in the
-passing replay set.
+inside where the former native comparator `length ≥ W + 6A` did not: span
+6.5 at A = .5 (`6.5000`, and round 2's span 6 `6.0000`) is internal with
+text x 3.5, and retained `PBCB`'s final B (span 4, A = .5) is internal while
+its span-3 B is external. So W + 6A is falsified for this orientation.
+
+Native policy (owner decision 2026-10-05, from the D1 projected-extent
+candidate and its contract review): fit compares the span with the
+**prospective inside layout's** text extent along the dimension line, plus 6A:
+
+    internal = length ≥ E + 6A
+    E = h  for X extensions (vertical line) with inside horizontal text
+    E = W  otherwise (Y extensions, or rotated inside text)
+
+The inside/outside text orientation is chosen after the fit, so the outside
+T setting never selects the comparator. This keeps the exact PFTLOW/AT/HI
+W + 6A boundary for Y extensions, puts the bracket (3, 4] at A = .5 on the
+right side (h + 6A = 3.75), and agrees with the original on spans 6 and 6.5
+(`crates/acad-oracle/tests/dim_arrows.rs`,
+`original_and_native_fit_inside_by_projected_text_height`). It is not a
+recovered comparator: the equality case for X extensions, a continuous
+vertical threshold and inside/outside T variants inside the bracket were not
+measured. Rust policy tests cover both axes, both signs, all four T
+combinations below, at and above the thresholds, varying labels and
+non-finite sizes (`dimension.rs`, `fit_policy_tests`). Full `PBCB` now
+replays in the passing set; `PBCC` keeps a separate two-record
+extension-line gap ([fixtures](../crates/acad-cmd/tests/fixtures/dim/README.md)).
 
 ## Native policy
 
 - The derived rule is implemented in `crates/acad-cmd/src/dimension.rs`
   (`crossing_text_x`). Y extensions and rotated text keep the existing
   centred placement; that matches every measured case.
-- Fit stays `length ≥ W + 6A` on both axes (Y-extension boundary exact from
-  PFTLOW/AT/HI); see the unresolved comparator above.
+- Fit uses the prospective inside text extent plus 6A ([Arrow fit](#arrow-fit)).
 - Fonts: the [command matrix](native-command-matrix.md) lists no STYLE
   command among the recovered dispatcher names, and the in-tree runner
   mounts only the System disk's `TXT.SHP`. Other `.SHP` files on the Samples disk

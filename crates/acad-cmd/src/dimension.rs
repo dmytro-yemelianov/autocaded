@@ -211,9 +211,18 @@ pub(crate) fn dimension_geometry(
         .map(str::to_owned)
         .unwrap_or_else(|| format_measurement(length, units));
     let width = text_width(&value, height);
-    // PFTLOW/AT/HI distinguish < from <= at the exact width+6A boundary.
-    // Applying this comparator beyond the finite measured cases is local policy.
-    let internal = length >= width + 6.0 * arrow;
+    // Fit compares the span with the prospective inside layout's text extent
+    // along the dimension line, plus 6A (docs/native-dim.md, "Arrow fit"):
+    // h for horizontal inside text across a vertical line, W otherwise. The
+    // PFTLOW/AT/HI horizontal cases distinguish < from <= at W+6A; PBCB's
+    // final vertical B (span 4, internal) supports h. Native policy beyond
+    // those finite cases.
+    let inside_extent = if matches!(input.axis, ExtensionAxis::X) && style.inside_horizontal_text {
+        height
+    } else {
+        width
+    };
+    let internal = length >= inside_extent + 6.0 * arrow;
     let horizontal = if internal {
         style.inside_horizontal_text
     } else {
@@ -398,5 +407,111 @@ mod text_metrics_tests {
         assert_eq!(crate::txt_metrics::TXT_METRICS.iter().flatten().count(), 94);
         assert_eq!(text_width("`", 21.0), 14.0);
         assert_eq!(text_width("Я", 21.0), 14.0);
+    }
+}
+
+/// Arrow-fit policy (docs/native-dim.md, "Arrow fit"): Rust policy checks of
+/// the prospective-inside comparator, not recovered original behaviour.
+#[cfg(test)]
+mod fit_policy_tests {
+    use super::*;
+
+    const A: f64 = 0.5;
+    const H: f64 = 1.5 * A;
+
+    fn style(inside_horizontal_text: bool, outside_horizontal_text: bool) -> DimStyle {
+        DimStyle {
+            arrow_size: A,
+            inside_horizontal_text,
+            outside_horizontal_text,
+        }
+    }
+
+    /// Internal arrows for a span on a vertical (X extensions) or horizontal
+    /// (Y extensions) dimension line; a negative span measures the other way.
+    fn internal(vertical_line: bool, span: f64, label: &str, style: DimStyle) -> bool {
+        let origin = Point { x: 0.0, y: 0.0 };
+        let (intersection, second) = if vertical_line {
+            (Point { x: 8.0, y: 0.0 }, Point { x: 0.0, y: span })
+        } else {
+            (Point { x: 0.0, y: 8.0 }, Point { x: span, y: 0.0 })
+        };
+        let input = DimInput::new(origin, intersection).unwrap();
+        let units = crate::Editor::default().drawing().header.units;
+        let dimension = dimension_geometry(input, second, Some(label), style, units).unwrap();
+        dimension.history.internal_arrows
+    }
+
+    fn width(label: &str) -> f64 {
+        text_width(label, H)
+    }
+
+    #[test]
+    fn horizontal_inside_text_on_a_vertical_line_fits_by_text_height() {
+        let threshold = H + 6.0 * A;
+        for sign in [1.0, -1.0] {
+            for outside in [true, false] {
+                let fit = |span: f64| internal(true, sign * span, "4.0000", style(true, outside));
+                assert!(
+                    fit(threshold),
+                    "equal fits (sign {sign}, outside {outside})"
+                );
+                assert!(!fit(threshold - 1e-9), "below is external");
+                assert!(fit(threshold + 1e-9), "above fits");
+                // Inside the band the old W+6A rule rejected: PBCB's span 4.
+                assert!(fit(4.0));
+            }
+        }
+        // PBCB's held external span 3 stays external.
+        assert!(!internal(true, 3.0, "3.0000", style(true, true)));
+    }
+
+    #[test]
+    fn rotated_inside_text_or_a_horizontal_line_fits_by_text_width() {
+        let threshold = width("4.0000") + 6.0 * A;
+        assert_eq!(threshold, 47.0 / 7.0);
+        for sign in [1.0, -1.0] {
+            for outside in [true, false] {
+                // Vertical line with rotated (aligned) inside text: the outside
+                // orientation never selects the height comparator.
+                let vertical =
+                    |span: f64| internal(true, sign * span, "4.0000", style(false, outside));
+                // Horizontal line: text runs along it either way.
+                for inside in [true, false] {
+                    let horizontal =
+                        |span: f64| internal(false, sign * span, "4.0000", style(inside, outside));
+                    assert!(horizontal(threshold) && !horizontal(threshold - 1e-9));
+                    assert!(!horizontal(5.0), "band between h+6A and W+6A");
+                }
+                assert!(vertical(threshold) && !vertical(threshold - 1e-9));
+                assert!(!vertical(5.0), "band between h+6A and W+6A");
+            }
+        }
+    }
+
+    #[test]
+    fn label_length_moves_only_the_width_comparator() {
+        let span = H + 6.0 * A;
+        for label in ["1", "4.0000", "MMMMMMMMMMMM"] {
+            assert!(internal(true, span, label, style(true, true)), "{label}");
+        }
+        let long = width("MMMMMMMMMMMM") + 6.0 * A;
+        assert!(!internal(
+            false,
+            long - 1e-9,
+            "MMMMMMMMMMMM",
+            style(true, true)
+        ));
+        assert!(internal(false, long, "MMMMMMMMMMMM", style(true, true)));
+        assert!(internal(false, long - 1e-9, "1", style(true, true)));
+    }
+
+    #[test]
+    fn non_finite_sizes_are_still_rejected() {
+        let input = DimInput::new(Point { x: 0.0, y: 0.0 }, Point { x: 8.0, y: 0.0 }).unwrap();
+        let units = crate::Editor::default().drawing().header.units;
+        let mut huge = style(true, true);
+        huge.arrow_size = f64::MAX;
+        assert!(dimension_geometry(input, Point { x: 0.0, y: 4.0 }, None, huge, units).is_err());
     }
 }

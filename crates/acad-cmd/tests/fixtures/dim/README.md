@@ -6,8 +6,8 @@ The original bundles remain in that worktree under
 `crates/acad-oracle/tests/fixtures/{dim,dim-supplement,dim-text-origin}`. `manifest.json`
 records each source bundle and SHA-256. No guest or new collector was run.
 
-`dimension_native.rs` replays the 32 scripts through the native Rust Editor,
-then reads the original DWGs with `acad-dwg`. It compares all 344 ordered
+`dimension_native.rs` replays the 33 scripts through the native Rust Editor,
+then reads the original DWGs with `acad-dwg`. It compares all 372 ordered
 entities: kinds, layers, every LINE endpoint and SOLID corner, and TEXT
 origin, height, rotation and value. Coordinates use the fixed absolute
 1e-10 geometry tolerance, independently of six-decimal DXF serialization.
@@ -42,9 +42,19 @@ Horizontal text across a vertical dimension line follows the measured
 crossing-text rule x = L + σ·max(0, W/2 − R) − W/2 with reach
 R = min(|F − L|, |S − L|) − A (see [native DIM](../../../../../docs/native-dim.md)).
 It explains DAR050/DAR200/PTEXT50 and the B chains' internal 3A offset
-(R = 3A there). The original arrow-fit comparator for vertical dimension
-lines with horizontal text is not W+6A and remains undetermined, so the
-retained PBCB/PBCC histories are not in this replay set.
+(R = 3A there).
+
+Arrow fit compares the span with the prospective inside text's extent along
+the dimension line plus 6A: the text height for horizontal inside text across
+a vertical line, the ink width otherwise (native policy adopted 2026-10-05;
+[native DIM](../../../../../docs/native-dim.md#arrow-fit)). With it the
+retained `PBCB` history (`dim-supplement`, SHA-256 `fe90b53d…`) replays to all
+28 records and joined the manifest; under the former W+6A rule its final B
+(span 4, internal in the original) failed records 23–27. This is one bracketed
+vertical case (span 3 external, span 4 internal), not a measured continuous
+threshold. `PBCC` is kept beside it as a diagnostic: only its final C's two
+extension LINEs differ (records 21–22), under either fit rule, so it stays
+out of the manifest.
 
 Retained native text observations cover numeric/punctuation glyphs, E, W and i.
 DIM now has derived horizontal metrics for all 94 printable characters defined

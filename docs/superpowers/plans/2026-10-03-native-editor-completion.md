@@ -72,6 +72,11 @@ visually inspected. No oracle or translated boot process was run.
   press-and-hold; P and API clicks keep the original toggle
   ([SKETCH](../../native-sketch.md)).
 
+DIM arrow fit (decided 2026-10-05): the D1 projected-extent candidate is adopted
+as native policy; full PBCB now passes and the in-tree original agrees on the
+round 2/3 spans ([arrow fit](../../native-dim.md#arrow-fit)). The paragraph
+below is the D1 record as written.
+
 DIM audit D1 (2026-10-04) is accepted as an evidence deliverable only; it is not
 DIM completion. [Audit](../reviews/2026-10-04-dim-evidence.md) and
 [independent contract review](../reviews/2026-10-04-dim-contract-review.md)
@@ -245,8 +250,12 @@ TEXT/CHANGE, FILLET and missing view inputs. Keep native parity separate from Ru
 - [ ] Finish file/new/open/save UX, preserving supported drawing data and clear
   errors for unsupported behavior. Complete command report viewing is delivered
   above; original file/dialogue and backup semantics remain separate work.
-- [ ] Check responsiveness on corpus drawings and bounded dense hatches.
-- [ ] Add native regression checks and packaging/launch documentation to CI.
+- [x] Check responsiveness on corpus drawings and bounded dense hatches
+  (README "Performance and profiling": 3.8–8.4 ms per corpus render, frame
+  budget stress test; [render budget](../../native-render-budget.md)).
+- [x] Add native regression checks and packaging/launch documentation to CI
+  (`ci.yml` fmt/clippy native+wasm/tests/Lean/oracle; `release.yml` native and
+  wasm archives; README quick start).
 - [ ] Release against the spec's 2D criteria with a stated compatibility matrix.
   Later formats, 3D and extended CAD features require separate scope.
 

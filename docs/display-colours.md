@@ -72,8 +72,9 @@ RGBI 9–14 (9 is light *blue*), not bright variants of 1–6.
 ## Known differences
 
 - **Colour 0.** The driver draws it in the background colour (an erase). The
-  renderer keeps colour 0 as white, its stand-in for BYBLOCK until block colour
-  inheritance is modelled.
+  renderer draws it white, as a stand-in for BYBLOCK until block colour
+  inheritance is modelled (owner decision 2026-10-05: keep white in both
+  palettes).
 - **White passes through.** `acad_render::flatten::style` treats white
   primitives as uncoloured, so white block contents take the insert layer's
   colour. With `pc16` that applies to colours 7, 15 and every multiple of 16;

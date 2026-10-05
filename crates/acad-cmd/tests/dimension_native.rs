@@ -62,7 +62,7 @@ fn retained_native_dimensions_match_complete_ordered_primitives() {
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join("manifest.json")).unwrap()).unwrap();
     let rows = manifest.as_array().unwrap();
-    assert_eq!(rows.len(), 32, "the native comparison set must not shrink");
+    assert_eq!(rows.len(), 33, "the native comparison set must not shrink");
     let mut seen = std::collections::BTreeSet::new();
     let mut failures = Vec::new();
     for row in rows {
@@ -111,8 +111,11 @@ fn retained_native_dimensions_match_complete_ordered_primitives() {
 }
 
 #[test]
-fn alphabetic_dimension_labels_use_font_width_for_arrow_fit_and_text_origin() {
+fn alphabetic_dimension_labels_use_font_width_for_text_origin() {
     // Rust font/layout contract, not an additional original DIM observation.
+    // Arrow fit on this vertical line uses the inside text height (span 1.65
+    // >= h + 6A = 135/128), so the arrows are internal (docs/native-dim.md,
+    // "Arrow fit"); the font width still centres the text.
     let mut editor = Editor::default();
     for input in ["DIM", "0,0", "4,0", "0,1.65", "MMMM"] {
         editor.submit(input).unwrap();
@@ -125,8 +128,8 @@ fn alphabetic_dimension_labels_use_font_width_for_arrow_fit_and_text_origin() {
         panic!("arrow")
     };
     assert!(
-        point(*p3, Point { x: 4.0, y: 1.65 }),
-        "first external arrow is at the second origin"
+        point(*p3, Point { x: 4.0, y: 0.0 }),
+        "first internal arrow is at the first dimension-line end"
     );
     let Entity::OnLayer { entity, .. } = entities[6] else {
         panic!("layered text")
@@ -144,7 +147,7 @@ fn alphabetic_dimension_labels_use_font_width_for_arrow_fit_and_text_origin() {
         *origin,
         Point {
             x: 4.0 - 88.0 * (27.0 / 128.0) / 21.0 / 2.0,
-            y: 1.65 + 27.0 / 64.0
+            y: 1.65 / 2.0 - 27.0 / 256.0
         }
     ));
     assert_eq!(*height, 27.0 / 128.0);
@@ -250,4 +253,32 @@ fn crossing_text_push_reverses_with_the_extension_direction() {
         };
         assert!(near(origin.x, x), "{inputs:?}: {origin:?}");
     }
+}
+
+#[test]
+fn pbcc_mixed_history_keeps_its_two_known_extension_line_gaps() {
+    // Diagnostic, not a passing parity case: PBCC (retained dim-supplement,
+    // SHA-256 c31b3e92…) replays to 28 records of which only the two
+    // extension LINEs of its final C differ (native ends at y 3.5, Rust at
+    // 4.5). Unrelated to arrow fit (the same pair differs under the old
+    // W+6A rule). If a future change closes or widens the gap, move PBCC into
+    // the manifest or explain the new records here.
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/dim");
+    let native = acad_dwg::parse(&std::fs::read(root.join("PBCC.dwg")).unwrap()).unwrap();
+    let inputs: Vec<String> =
+        serde_json::from_slice(&std::fs::read(root.join("PBCC.inputs.json")).unwrap()).unwrap();
+    let mut editor = Editor::default();
+    for input in inputs {
+        editor.submit(&input).unwrap();
+    }
+    let actual = &editor.drawing().items;
+    assert_eq!(actual.len(), native.items.len());
+    let differing: Vec<usize> = actual
+        .iter()
+        .zip(&native.items)
+        .enumerate()
+        .filter(|(_, pair)| !matches!(pair, (Item::Entity(a), Item::Entity(b)) if entity_eq(a, b)))
+        .map(|(i, _)| i)
+        .collect();
+    assert_eq!(differing, [21, 22]);
 }

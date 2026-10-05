@@ -424,11 +424,13 @@ fn internal_arrows(items: &[Item]) -> bool {
 }
 
 #[test]
-fn divergence_original_fits_inside_where_native_width_rule_does_not() {
-    // X extensions, default inside/outside horizontal text, A=.5. The native
-    // comparator length >= W + 6A puts spans 6 and 6.5 outside; the original keeps
-    // the arrows inside and applies the crossing-text x (3.5 = 5 - (2 - A)).
-    // The comparator itself is not determined (docs/native-dim.md).
+fn original_and_native_fit_inside_by_projected_text_height() {
+    // X extensions, default inside/outside horizontal text, A=.5. The former
+    // native comparator length >= W + 6A put spans 6 and 6.5 outside; the
+    // original keeps the arrows inside and applies the crossing-text x
+    // (3.5 = 5 - (2 - A)). The native fit now compares with the prospective
+    // inside text height, h + 6A = 3.75 (docs/native-dim.md, "Arrow fit"),
+    // and agrees. The original comparator itself is still not determined.
     let Some(disk) = disk() else { return };
     // Round 2 P14 (span 6) and round 3 P10 (span 6.5).
     for (index, (spec, x, y)) in [
@@ -441,20 +443,20 @@ fn divergence_original_fits_inside_where_native_width_rule_does_not() {
         let inputs = script(spec);
         let original = original(&disk, &format!("DV{index:02}"), &inputs);
         assert!(internal_arrows(&original), "{spec}: original internal");
-        let [(origin, rotation, _)] = &texts(&original)[..] else {
-            panic!("{spec}")
-        };
-        assert!(
-            same_point(*origin, Point { x, y }) && *rotation == 0.0,
-            "{spec} {origin:?}"
-        );
-        assert!(
-            !internal_arrows(&native("native", &inputs)),
-            "{spec}: native"
-        );
+        let native = native("native", &inputs);
+        assert!(internal_arrows(&native), "{spec}: native internal");
+        for (side, items) in [("original", &original), ("native", &native)] {
+            let [(origin, rotation, _)] = &texts(items)[..] else {
+                panic!("{spec} {side}")
+            };
+            assert!(
+                same_point(*origin, Point { x, y }) && *rotation == 0.0,
+                "{spec} {side} {origin:?}"
+            );
+        }
     }
     // Retained PBCB: span 3 external, span 4 internal on the same vertical
-    // line history at A=.5 (both under h + 6A = 3.75 vs W + 6A > 6.7).
+    // line history at A=.5 (h + 6A = 3.75 brackets them; W + 6A > 6.7 did not).
     let pbcb = "DIM|A|0.25|DIM|1,1|5,1|3,2||DIM|A|0.5|DIM|B|2,4||DIM|C|4,6||DIM|B|6,8|";
     let items = original(&disk, "DVPBCB", &script(pbcb));
     let all = entities(&items);
@@ -464,7 +466,9 @@ fn divergence_original_fits_inside_where_native_width_rule_does_not() {
         internal_arrows(&items[21..28]),
         "PBCB final B span 4 internal"
     );
-    assert!(!internal_arrows(&native("native", &script(pbcb))[21..28]));
+    let native_pbcb = native("native", &script(pbcb));
+    assert!(!internal_arrows(&native_pbcb[7..14]));
+    assert!(internal_arrows(&native_pbcb[21..28]));
     let (origin, _, value) = &texts(&items)[3];
     assert_eq!(value, "4.0000");
     assert!(
