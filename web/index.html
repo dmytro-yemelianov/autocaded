@@ -370,12 +370,37 @@
       openFile(e.dataTransfer.files && e.dataTransfer.files[0]);
     });
 
-    // Save: download in the chosen format.
-    // The anchor must be in the document and the blob URL must outlive the
-    // click; Chrome otherwise saves the file under the blob's UUID with no
-    // extension.
-    function download(data, type, filename) {
-      const url = URL.createObjectURL(new Blob([data], { type }));
+    // Save: write the chosen format under the open drawing's name.
+    const EXPORTS = {
+      dwg: { type: 'application/octet-stream', label: 'AutoCAD 1.4 drawing', data: () => cad.export_dwg('1.4') },
+      dxf: { type: 'application/dxf', label: 'AutoCAD 1.4 DXF', data: () => cad.export_dxf() },
+      svg: { type: 'image/svg+xml', label: 'SVG image', data: () => cad.export_svg(1024, 768) },
+      png: { type: 'image/png', label: 'PNG image', data: () => cad.render_png(canvas.width, canvas.height) },
+    };
+
+    // The save dialog names the file explicitly. An <a download> link is the
+    // fallback: some browsers and embedded views ignore its name and save the
+    // blob under its UUID with no extension.
+    async function save(blob, filename, ext, label) {
+      if (window.showSaveFilePicker) {
+        let handle;
+        try {
+          handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: label, accept: { [blob.type]: [`.${ext}`] } }],
+          });
+        } catch (err) {
+          if (err.name === 'AbortError') return false;
+          handle = null; // Picker unavailable here (e.g. an iframe): fall back.
+        }
+        if (handle) {
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          return true;
+        }
+      }
+      const url = URL.createObjectURL(new File([blob], filename, { type: blob.type }));
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -384,25 +409,24 @@
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return true;
     }
 
-    const EXPORTS = {
-      dwg: (name) => download(cad.export_dwg('1.4'), 'application/octet-stream', `${name}.dwg`),
-      dxf: (name) => download(cad.export_dxf(), 'application/dxf', `${name}.dxf`),
-      svg: (name) => download(cad.export_svg(1024, 768), 'image/svg+xml', `${name}.svg`),
-      png: (name) => download(cad.render_png(canvas.width, canvas.height), 'image/png', `${name}.png`),
-    };
-
-    document.getElementById('save-select').addEventListener('change', (e) => {
-      const val = e.target.value;
+    document.getElementById('save-select').addEventListener('change', async (e) => {
+      const ext = e.target.value;
       e.target.value = '';
       e.target.blur();
-      if (!val || !cad) return;
+      if (!ext || !cad) return;
+      const filename = `${drawingName}.${ext}`;
       try {
-        EXPORTS[val](drawingName);
-        message(`Saved ${drawingName}.${val}`);
+        const { type, label, data } = EXPORTS[ext];
+        // Build the bytes first: the picker must open while the change event
+        // still counts as user activation.
+        if (await save(new Blob([data()], { type }), filename, ext, label)) {
+          message(`Saved ${filename}`);
+        }
       } catch (err) {
-        message(`${val.toUpperCase()} export failed: ${err}`, true);
+        message(`${ext.toUpperCase()} export failed: ${err}`, true);
       }
     });
 
