@@ -592,12 +592,14 @@ impl Session {
         next.main_menu_home = self.main_menu_home;
         next.main_menu_drawing = self.main_menu_drawing.take();
         next.default_name_prompt = std::mem::take(&mut self.default_name_prompt);
+        next.set_palette(self.palette());
         *self = next;
     }
 
-    /// API `open` replaces the session but keeps the Main Menu policy.
+    /// API `open` replaces the session but keeps the Main Menu policy and palette.
     pub fn inherit_main_menu_home(&mut self, previous: &Session) {
         self.main_menu_home = previous.main_menu_home;
+        self.set_palette(previous.palette());
         self.main_menu_drawing = previous.main_menu_drawing.clone();
         self.refresh_default_name_prompt();
     }

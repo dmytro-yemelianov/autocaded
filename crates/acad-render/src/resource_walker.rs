@@ -1,6 +1,6 @@
 //! Ordered library state, visibility and resource-aware entity expansion.
 use crate::budget::{name_units, prim_units, FrameBudget};
-use crate::flatten::{aci_rgb, flatten_entity, shift_prim, style, Prim};
+use crate::flatten::{flatten_entity, shift_prim, style, Prim};
 use crate::Viewport;
 use acad_model::{BlockIndex, Drawing, EngineLimits, Entity, Point, Repeat};
 
@@ -288,7 +288,7 @@ impl Walker<'_> {
                 let color_index = self.drawing.header.layers.get(layer).copied().unwrap_or(7);
                 style(
                     self.visible_entity(entity, state, depth),
-                    aci_rgb(color_index),
+                    self.libraries.palette().rgb(color_index),
                 )
             }
             Entity::Load { name } => {

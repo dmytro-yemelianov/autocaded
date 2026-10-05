@@ -170,6 +170,55 @@ impl Session {
         self.cursor = None;
     }
 
+    /// Open an in-memory drawing directly, resetting document state.
+    pub fn open_drawing(&mut self, drawing: acad_model::Drawing) {
+        self.editor = acad_cmd::Editor::new(drawing);
+        self.set_viewport_size(self.viewport_size.0, self.viewport_size.1)
+            .expect("retained viewport is positive");
+        self.document = Document::unnamed(self.editor.drawing());
+        self.pending_insert_source = None;
+        self.script = None;
+        self.abandon_macro();
+        self.main_menu = None;
+        self.register_libraries();
+        self.input.clear();
+        self.status.clear();
+        self.report = None;
+        self.cursor = None;
+    }
+
+    /// Load menu definitions from in-memory bytes (e.g. embedded or uploaded MNU file).
+    pub fn load_menu_bytes(&mut self, bytes: &[u8]) -> Result<(), String> {
+        let menu = acad_cmd::menu::parse_menu(bytes)?;
+        let items = menu
+            .entries
+            .iter()
+            .filter(|entry| entry.kind == acad_cmd::menu::MenuEntryKind::Item)
+            .count();
+        self.status = format!("Loaded {items} menu entries");
+        self.menu = Some(menu);
+        self.menu_page = 0;
+        Ok(())
+    }
+
+    /// Add or update a shape/font library from in-memory SHP bytes.
+    pub fn add_shape_library(&mut self, name: &str, bytes: &[u8]) -> Result<(), String> {
+        self.libraries
+            .insert(name, bytes)
+            .map_err(|e| e.to_string())?;
+        self.register_libraries();
+        Ok(())
+    }
+
+    /// How colour numbers are drawn; see [`acad_model::Palette`].
+    pub fn palette(&self) -> acad_model::Palette {
+        self.libraries.palette()
+    }
+
+    pub fn set_palette(&mut self, palette: acad_model::Palette) {
+        self.libraries.set_palette(palette);
+    }
+
     pub fn open(
         path: &std::path::Path,
         directories: &[std::path::PathBuf],

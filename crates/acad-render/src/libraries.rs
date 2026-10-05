@@ -3,9 +3,11 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 /// Libraries are supplied by the caller, not opened from names in a drawing.
 /// Explicit aliases take precedence; other DOS paths are relocated by basename.
+/// The colour palette travels with them as the other caller-chosen resource.
 #[derive(Debug, Default, Clone)]
 pub struct Libraries {
     entries: BTreeMap<String, Library>,
+    palette: acad_model::Palette,
 }
 
 fn key(name: &str) -> String {
@@ -49,6 +51,14 @@ impl Libraries {
         }
         added
     }
+    pub fn palette(&self) -> acad_model::Palette {
+        self.palette
+    }
+
+    pub fn set_palette(&mut self, palette: acad_model::Palette) {
+        self.palette = palette;
+    }
+
     pub fn get(&self, name: &str) -> Option<&Library> {
         self.entries.get(&key(name)).or_else(|| {
             self.entries

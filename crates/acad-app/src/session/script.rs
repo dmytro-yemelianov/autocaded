@@ -10,7 +10,10 @@ use super::external_insert::{read_bounded_kind, resolve_file, FileKind};
 use super::*;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+// `std::time::Instant::now` panics on wasm32-unknown-unknown; on native
+// targets `web_time` re-exports `std::time`.
+use web_time::Instant;
 
 /// Largest script file read. Larger files are refused before any item runs.
 pub const MAX_SCRIPT_BYTES: u64 = 256 * 1024;

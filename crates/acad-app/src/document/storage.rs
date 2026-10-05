@@ -1,5 +1,8 @@
 //! Stage complete output next to the destination, then replace it by rename.
 //! Drawing saves keep the replaced bytes as a `.BAK` (docs/native-files-menu.md).
+// wasm32's `fs::File` is an unsupported stub without `Drop`; the explicit
+// drops that close the file before rename are still right on real targets.
+#![cfg_attr(target_arch = "wasm32", allow(clippy::drop_non_drop))]
 use std::{
     ffi::OsStr,
     fs,

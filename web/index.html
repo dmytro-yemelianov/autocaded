@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Cpath d='M2 14L8 2l6 12M5 9h6' stroke='%2300ff66' stroke-width='1.5' fill='none'/%3E%3C/svg%3E">
+  <title>AutoRust — AutoCAD-86 1.40 (1983) in WebAssembly</title>
+  <style>
+    :root {
+      --bg-dark: #121214;
+      --bg-panel: #1a1a1e;
+      --bg-bar: #222228;
+      --border-color: #33333d;
+      --text-main: #e0e0e0;
+      --text-dim: #888899;
+      --accent-green: #00ff66;
+      --accent-red: #ff5555;
+      --font-mono: "Courier New", Courier, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    header {
+      background: var(--bg-bar);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      padding: 6px 14px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #ffffff;
+    }
+
+    h1 span {
+      color: var(--accent-green);
+    }
+
+    select {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    select:hover {
+      background: #2a2a34;
+      border-color: #555566;
+    }
+
+    #message {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #message.error {
+      color: var(--accent-red);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #000000;
+    }
+
+    #cad-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+      image-rendering: pixelated;
+    }
+
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 18, 20, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(0, 255, 102, 0.2);
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Auto<span>Rust</span></h1>
+
+    <select id="open-select" title="Open a DWG/DXF drawing (or drop one on the page)">
+      <option value="">Open…</option>
+      <option value="file">From computer…</option>
+      <optgroup label="1983 samples">
+        <option value="SUBDIV">SUBDIV</option>
+        <option value="HOUSE">HOUSE</option>
+        <option value="OFFICE">OFFICE</option>
+        <option value="COLORS">COLORS</option>
+      </optgroup>
+    </select>
+    <input type="file" id="file-input" accept=".dwg,.dxf,.bak">
+
+    <select id="save-select" title="Download the current drawing">
+      <option value="">Save as…</option>
+      <option value="dwg">DWG (AC1.40)</option>
+      <option value="dxf">DXF</option>
+      <option value="svg">SVG</option>
+      <option value="png">PNG</option>
+    </select>
+
+    <select id="palette-select" title="How colour numbers are drawn">
+      <option value="pc16">PC 16-colour</option>
+      <option value="aci256">ACI 256 (modern)</option>
+    </select>
+
+    <span id="message"></span>
+  </header>
+
+  <!-- The engine draws its own command area and screen menu on the canvas;
+       keyboard input goes straight to it. -->
+  <main>
+    <canvas id="cad-canvas"></canvas>
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <div>Loading AutoRust WebAssembly...</div>
+    </div>
+  </main>
+
+  <script type="module">
+    import init, { AutoCadSession } from './pkg/acad_wasm.js';
+
+    const canvas = document.getElementById('cad-canvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const overlay = document.getElementById('loading-overlay');
+    const messageEl = document.getElementById('message');
+    let cad = null;
+    // Base name for downloads: the opened drawing's, without extension.
+    let drawingName = 'drawing';
+
+    const SAMPLES = {
+      SUBDIV: 'SUBDIV.DXF',
+      HOUSE: 'HOUSE.DWG',
+      OFFICE: 'OFFICE.DWG',
+      COLORS: 'COLORS.DWG',
+    };
+
+    function message(text, isError = false) {
+      messageEl.textContent = text;
+      messageEl.title = text;
+      messageEl.classList.toggle('error', isError);
+    }
+
+    function redraw() {
+      if (!cad || canvas.width === 0 || canvas.height === 0) return;
+      try {
+        const rgba = cad.render_rgba(canvas.width, canvas.height);
+        const pixels = new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, rgba.byteLength);
+        ctx.putImageData(new ImageData(pixels, canvas.width, canvas.height), 0, 0);
+      } catch (err) {
+        console.error('render error:', err);
+      }
+    }
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const w = Math.max(container.clientWidth, 320);
+      const h = Math.max(container.clientHeight, 240);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        redraw();
+      }
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    async function fetchAsset(name) {
+      const res = await fetch(`./assets/${name}`);
+      if (!res.ok) throw new Error(`assets/${name}: HTTP ${res.status} (run scripts/build-wasm.sh)`);
+      return new Uint8Array(await res.arrayBuffer());
+    }
+
+    function openBytes(bytes, name) {
+      try {
+        cad.open_auto(bytes);
+        drawingName = name.replace(/\.[^.]*$/, '') || 'drawing';
+        message(`Opened ${name}`);
+      } catch (err) {
+        message(`Cannot open ${name}: ${err}`, true);
+      }
+      redraw();
+    }
+
+    async function start() {
+      try {
+        await init();
+        cad = new AutoCadSession(window.innerWidth || 800, window.innerHeight || 600);
+        resizeCanvas();
+        // The 1983 corpus is not in git or release archives: scripts/build-wasm.sh
+        // stages it in assets/. Without it the engine still runs, minus text,
+        // screen menu and samples.
+        const missing = [];
+        const tryLoad = async (name, use) => {
+          let bytes;
+          try { bytes = await fetchAsset(name); } catch (err) { missing.push(name); return; }
+          try { use(bytes); } catch (err) { message(`Failed to load assets/${name}: ${err}`, true); }
+        };
+        await tryLoad('TXT.SHP', (bytes) => cad.load_font('TXT', bytes));
+        await tryLoad('ACAD.MNU', (bytes) => cad.load_menu(bytes));
+        await tryLoad(SAMPLES.SUBDIV, (bytes) => {
+          cad.open_auto(bytes);
+          drawingName = 'SUBDIV';
+        });
+        redraw();
+        overlay.style.display = 'none';
+        if (missing.length) {
+          message(`Missing assets/${missing.join(', assets/')}: copy them from the AutoCAD 1.4 disks ` +
+            '(System/, Samples/) for text, the screen menu and samples.', true);
+        }
+      } catch (err) {
+        overlay.innerHTML = `<div style="color:var(--accent-red)">Initialization error: ${err}</div>`;
+      }
+    }
+
+    // Keyboard goes to the engine's command area, as in the native window.
+    window.addEventListener('keydown', (e) => {
+      if (!cad || e.isComposing) return;
+      // A focused, closed Open/Save list would treat typing as type-ahead
+      // ("S" picks SVG and downloads it); the keys belong to the command area.
+      if (e.target instanceof HTMLSelectElement) e.target.blur();
+      // Leave browser shortcuts alone; Ctrl+C is AutoCAD's cancel.
+      if (e.ctrlKey || e.metaKey) {
+        if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+          cad.key_down(e.key, true, e.altKey, e.metaKey);
+          redraw();
+          e.preventDefault();
+        }
+        return;
+      }
+      try {
+        if (cad.key_down(e.key, false, e.altKey, false)) e.preventDefault();
+      } catch (err) {
+        // A rejected command is already reported in the command area.
+      }
+      redraw();
+    });
+
+    function canvasPoint(e) {
+      const rect = canvas.getBoundingClientRect();
+      return [e.clientX - rect.left, e.clientY - rect.top];
+    }
+
+    canvas.addEventListener('click', (e) => {
+      if (!cad) return;
+      const [x, y] = canvasPoint(e);
+      try {
+        cad.click(x, y, canvas.width, canvas.height);
+      } catch (err) {
+        // Reported in the command area.
+      }
+      redraw();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!cad) return;
+      const [x, y] = canvasPoint(e);
+      try {
+        cad.motion(x, y, canvas.width, canvas.height);
+        cad.cursor(x, y);
+      } catch (err) {
+        // Reported in the command area.
+      }
+      redraw();
+    });
+
+    // Wheel zoom, only when it cannot interleave with a command in progress.
+    canvas.addEventListener('wheel', (e) => {
+      if (!cad) return;
+      e.preventDefault();
+      const state = JSON.parse(cad.get_state_json());
+      if (state.prompt !== 'Command' || state.input || state.report_visible) return;
+      try {
+        cad.command('ZOOM');
+        cad.command(e.deltaY < 0 ? '1.2' : '0.8');
+      } catch (err) {
+        // Reported in the command area.
+      }
+      redraw();
+    }, { passive: false });
+
+    // Open: local file or a staged sample.
+    const fileInput = document.getElementById('file-input');
+    document.getElementById('open-select').addEventListener('change', async (e) => {
+      const val = e.target.value;
+      e.target.value = '';
+      e.target.blur();
+      if (!val || !cad) return;
+      if (val === 'file') {
+        fileInput.click();
+        return;
+      }
+      try {
+        openBytes(await fetchAsset(SAMPLES[val]), SAMPLES[val]);
+      } catch (err) {
+        message(String(err), true);
+      }
+    });
+
+    async function openFile(file) {
+      if (file && cad) openBytes(new Uint8Array(await file.arrayBuffer()), file.name);
+    }
+
+    fileInput.addEventListener('change', () => {
+      openFile(fileInput.files && fileInput.files[0]);
+      fileInput.value = '';
+    });
+
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      openFile(e.dataTransfer.files && e.dataTransfer.files[0]);
+    });
+
+    // Save: download in the chosen format.
+    // The anchor must be in the document and the blob URL must outlive the
+    // click; Chrome otherwise saves the file under the blob's UUID with no
+    // extension.
+    function download(data, type, filename) {
+      const url = URL.createObjectURL(new Blob([data], { type }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    }
+
+    const EXPORTS = {
+      dwg: (name) => download(cad.export_dwg('1.4'), 'application/octet-stream', `${name}.dwg`),
+      dxf: (name) => download(cad.export_dxf(), 'application/dxf', `${name}.dxf`),
+      svg: (name) => download(cad.export_svg(1024, 768), 'image/svg+xml', `${name}.svg`),
+      png: (name) => download(cad.render_png(canvas.width, canvas.height), 'image/png', `${name}.png`),
+    };
+
+    document.getElementById('save-select').addEventListener('change', (e) => {
+      const val = e.target.value;
+      e.target.value = '';
+      e.target.blur();
+      if (!val || !cad) return;
+      try {
+        EXPORTS[val](drawingName);
+        message(`Saved ${drawingName}.${val}`);
+      } catch (err) {
+        message(`${val.toUpperCase()} export failed: ${err}`, true);
+      }
+    });
+
+    // Palette: a per-viewer preference, remembered when storage allows.
+    const paletteSelect = document.getElementById('palette-select');
+    function applyPalette(name) {
+      try {
+        cad.set_palette(name);
+        paletteSelect.value = name;
+      } catch (err) {
+        message(String(err), true);
+      }
+      redraw();
+    }
+    paletteSelect.addEventListener('change', () => {
+      if (!cad) return;
+      applyPalette(paletteSelect.value);
+      try { localStorage.setItem('autorust.palette', paletteSelect.value); } catch (err) { /* private mode */ }
+      paletteSelect.blur();
+    });
+
+    start().then(() => {
+      let saved = null;
+      try { saved = localStorage.getItem('autorust.palette'); } catch (err) { /* private mode */ }
+      if (cad && saved && saved !== paletteSelect.value) applyPalette(saved);
+    });
+  </script>
+</body>
+</html>

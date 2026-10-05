@@ -16,6 +16,50 @@ pub const COLOR_BLUE: u8 = 5;
 pub const COLOR_MAGENTA: u8 = 6;
 pub const COLOR_WHITE: u8 = 7;
 
+/// How colour numbers become RGB. Only 1..=7 are documented for 1983; what
+/// 8 and above looked like depended on the display driver.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Palette {
+    /// 16-colour PC display: 1..=7 as documented, 8 dark grey, 9..=14 the
+    /// bright variants of 1..=6, 15 bright white (AutoCAD 1.4's default layer
+    /// colour). 16 and above fall back to [`aci_rgb`].
+    #[default]
+    Pc16,
+    /// The modern 256-colour ACI table ([`aci_rgb`]) for every index.
+    Aci256,
+}
+
+impl Palette {
+    pub const ALL: [Palette; 2] = [Palette::Pc16, Palette::Aci256];
+
+    pub fn rgb(self, index: u8) -> [u8; 3] {
+        match (self, index) {
+            (Palette::Pc16, 8) => [85, 85, 85],
+            (Palette::Pc16, 9) => [255, 85, 85],
+            (Palette::Pc16, 10) => [255, 255, 85],
+            (Palette::Pc16, 11) => [85, 255, 85],
+            (Palette::Pc16, 12) => [85, 255, 255],
+            (Palette::Pc16, 13) => [85, 85, 255],
+            (Palette::Pc16, 14) => [255, 85, 255],
+            (Palette::Pc16, 15) => [255, 255, 255],
+            _ => aci_rgb(index),
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Palette::Pc16 => "pc16",
+            Palette::Aci256 => "aci256",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|palette| palette.name().eq_ignore_ascii_case(name))
+    }
+}
+
 /// Convert an AutoCAD Color Index (ACI, 0..=255) into standard [r, g, b] bytes.
 pub fn aci_rgb(index: u8) -> [u8; 3] {
     match index {
@@ -68,6 +112,30 @@ pub fn aci_rgb(index: u8) -> [u8; 3] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pc16_default_layer_color_is_white() {
+        assert_eq!(Palette::default(), Palette::Pc16);
+        assert_eq!(Palette::Pc16.rgb(15), [255, 255, 255]);
+        assert_eq!(Palette::Aci256.rgb(15), aci_rgb(15));
+    }
+
+    #[test]
+    fn pc16_differs_from_aci_only_on_8_to_15() {
+        for index in 0..=255u8 {
+            let same = Palette::Pc16.rgb(index) == aci_rgb(index);
+            assert_eq!(same, !(8..=15).contains(&index), "index {index}");
+        }
+    }
+
+    #[test]
+    fn palette_names_round_trip() {
+        for palette in Palette::ALL {
+            assert_eq!(Palette::from_name(palette.name()), Some(palette));
+        }
+        assert_eq!(Palette::from_name("PC16"), Some(Palette::Pc16));
+        assert_eq!(Palette::from_name("cga"), None);
+    }
 
     #[test]
     fn standard_primary_colors_match_autocad_definitions() {

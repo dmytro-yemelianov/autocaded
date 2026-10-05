@@ -18,3 +18,7 @@ corpus/*
 
 # Python bytecode from the PyGhidra scripts
 __pycache__/
+
+# WebAssembly build output and staged corpus assets (scripts/build-wasm.sh)
+/web/pkg/
+/web/assets/

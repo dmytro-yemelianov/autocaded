@@ -32,6 +32,11 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
+      - name: Clippy (wasm32, acad-wasm)
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo clippy -p acad-wasm --target wasm32-unknown-unknown -- -D warnings
+
       - name: Test
         run: cargo test --workspace --exclude acad-oracle
 

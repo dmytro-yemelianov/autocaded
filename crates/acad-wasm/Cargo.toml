@@ -1,24 +1,21 @@
 [package]
-name = "acad-app"
-default-run = "acad"
+name = "acad-wasm"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 
-[[bin]]
-name = "acad"
-path = "src/main.rs"
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+acad-model.workspace = true
 acad-dwg.workspace = true
 acad-dxf.workspace = true
 acad-cmd = { path = "../acad-cmd" }
-acad-model.workspace = true
 acad-render.workspace = true
-winit = "0.30"
-softbuffer = "0.4"
+acad-app = { path = "../acad-app" }
+wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-base64 = "0.22"
-png = "0.17"
-web-time = "1"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["ImageData"] }

@@ -60,7 +60,17 @@ impl ApplicationHandler<ApiEvent> for WindowApp {
         }
         el.set_control_flow(match self.session.script_wake_in() {
             Some(wait) if wait.is_zero() => ControlFlow::Poll,
-            Some(wait) => ControlFlow::WaitUntil(std::time::Instant::now() + wait),
+            Some(wait) => {
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    ControlFlow::WaitUntil(std::time::Instant::now() + wait)
+                }
+                #[cfg(target_arch = "wasm32")]
+                {
+                    let _ = wait;
+                    ControlFlow::Poll
+                }
+            }
             None => ControlFlow::Wait,
         });
     }
@@ -255,8 +265,14 @@ fn run() -> Result<(), String> {
     let mut directories = Vec::new();
     let mut socket = None;
     let mut script = None;
+    let mut palette = acad_model::Palette::default();
     while let Some(arg) = args.next() {
         match arg.as_str() {
+            "--palette" => {
+                let name = args.next().ok_or("--palette requires pc16 or aci256")?;
+                palette = acad_model::Palette::from_name(&name)
+                    .ok_or_else(|| format!("unknown palette: {name} (pc16 or aci256)"))?;
+            }
             "--script" => script = Some(args.next().ok_or("--script requires a file name")?),
             "--api-socket" => {
                 socket = Some(std::path::PathBuf::from(
@@ -266,6 +282,7 @@ fn run() -> Result<(), String> {
             "--help" => {
                 println!(
                     "acad [drawing [font-directories ...]] [--api-socket PATH] [--script FILE]\n\
+                     \x20    [--palette pc16|aci256]\n\
                      Without a drawing or script, starts at the Main Menu."
                 );
                 return Ok(());
@@ -294,6 +311,7 @@ fn run() -> Result<(), String> {
             session
         }
     };
+    session.set_palette(palette);
     if let Some(script) = script {
         // Like the original's "Can't open script file", a bad startup script
         // stops the program; it then runs from the event loop.

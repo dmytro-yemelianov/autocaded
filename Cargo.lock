@@ -32,6 +32,7 @@ dependencies = [
  "serde",
  "serde_json",
  "softbuffer",
+ "web-time",
  "winit",
 ]
 
@@ -103,6 +104,23 @@ dependencies = [
  "acad-dxf",
  "acad-model",
  "tiny-skia",
+]
+
+[[package]]
+name = "acad-wasm"
+version = "0.1.0"
+dependencies = [
+ "acad-app",
+ "acad-cmd",
+ "acad-dwg",
+ "acad-dxf",
+ "acad-model",
+ "acad-render",
+ "js-sys",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
