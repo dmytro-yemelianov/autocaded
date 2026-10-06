@@ -2,7 +2,7 @@
 // is picked up on the next load, and the last copy that loaded keeps working
 // offline. Install precaches the app shell and every asset assets/manifest.json
 // names (font, screen menu, sample drawings).
-const CACHE = 'autocaded-v2';
+const CACHE = 'autocaded-v3-project-links';
 const SHELL = [
   './',
   './index.html',
