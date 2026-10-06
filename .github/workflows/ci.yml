@@ -29,6 +29,13 @@ jobs:
       - name: Format
         run: cargo fmt --all --check
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Browser regressions
+        run: node --test tools/tests/web_*.test.mjs
+
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 

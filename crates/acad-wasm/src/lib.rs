@@ -191,6 +191,13 @@ impl AutoCadSession {
         self.session.cursor(Some((x, y)));
     }
 
+    /// Drag the drawing by a physical pixel displacement while idle.
+    pub fn pan(&mut self, dx: f64, dy: f64, width: u32, height: u32) -> Result<bool, JsValue> {
+        self.session
+            .pan_pixels(dx, dy, width, height)
+            .map_err(|e| JsValue::from_str(&e))
+    }
+
     /// Render current frame to an RGBA8 pixel buffer (width * height * 4 bytes).
     pub fn render_rgba(&mut self, width: u32, height: u32) -> Result<Vec<u8>, JsValue> {
         self.viewport_width = width;
@@ -257,12 +264,8 @@ impl AutoCadSession {
 
     /// Export drawing to modern vector SVG.
     pub fn export_svg(&self, width: u32, height: u32) -> Result<String, JsValue> {
-        Ok(drawing_to_svg(
-            self.session.drawing(),
-            &self.fonts,
-            width,
-            height,
-        ))
+        drawing_to_svg(self.session.drawing(), &self.fonts, width, height)
+            .map_err(|e| JsValue::from_str(&e))
     }
 
     /// Get detailed session state as JSON string.
@@ -275,6 +278,8 @@ impl AutoCadSession {
             "input": self.session.input(),
             "dirty": self.session.is_dirty(),
             "report_visible": self.session.report_visible(),
+            "sketch_active": self.session.sketch_active(),
+            "view": { "center": { "x": h.view.center.x, "y": h.view.center.y }, "height": h.view.height },
             "report_text": self.session.report_text(),
             "entities": d.entities().count(),
             "current_layer": h.current_layer,
@@ -316,7 +321,7 @@ fn drawing_to_svg(
     libraries: &acad_render::Libraries,
     width: u32,
     height: u32,
-) -> String {
+) -> Result<String, String> {
     let bounds = if (drawing.header.extents.xmax - drawing.header.extents.xmin).abs() > 1e-4 {
         &drawing.header.extents
     } else {
@@ -324,6 +329,12 @@ fn drawing_to_svg(
     };
     let vp = acad_render::Viewport::fit(bounds, width.max(100), height.max(100));
     let output = acad_render::flatten_with_libraries(drawing, &vp, libraries);
+    if output.incomplete {
+        return Err(format!(
+            "SVG export incomplete: {}",
+            output.diagnostics.join("; ")
+        ));
+    }
 
     let mut svg = String::with_capacity(output.primitives.len() * 128 + 256);
     svg.push_str(&format!(
@@ -382,7 +393,7 @@ fn drawing_to_svg(
     }
 
     svg.push_str("</svg>\n");
-    svg
+    Ok(svg)
 }
 
 // Native tests cover the paths that never build a `JsValue` (which panics
@@ -479,6 +490,35 @@ mod tests {
         cad.set_palette("aci256").unwrap();
         assert_eq!(cad.session.palette(), acad_model::Palette::Aci256);
         assert_eq!(cad.fonts.palette(), acad_model::Palette::Aci256);
+    }
+
+    #[test]
+    fn svg_export_refuses_partial_geometry() {
+        let mut drawing = acad_dxf::parse(b"POINT,1\r\n1,1\r\n").unwrap();
+        drawing.items = vec![
+            acad_model::Item::Repeat(acad_model::Repeat {
+                start_layer: 1,
+                end_layer: 1,
+                entities: vec![acad_model::Entity::Point {
+                    origin: acad_model::Point { x: 1.0, y: 1.0 },
+                }],
+                columns: 250,
+                rows: 199,
+                column_spacing: 0.04,
+                row_spacing: 0.04,
+            });
+            2
+        ];
+        let libraries = acad_render::Libraries::default();
+        let error = drawing_to_svg(&drawing, &libraries, 800, 600).unwrap_err();
+        assert!(error.starts_with("SVG export incomplete:"));
+        assert!(error.contains("budget"), "{error}");
+        // Per-owner rejection must also fail, even without a whole-frame stop.
+        if let acad_model::Item::Repeat(repeat) = &mut drawing.items[0] {
+            repeat.columns = u16::MAX;
+            repeat.rows = u16::MAX;
+        }
+        assert!(drawing_to_svg(&drawing, &libraries, 800, 600).is_err());
     }
 
     #[test]

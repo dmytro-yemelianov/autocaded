@@ -109,6 +109,18 @@ or select entities while a prompt asks for them. Window, report viewer and
 MENU behavior is described in
 [`docs/command-behavior.md`](docs/command-behavior.md#native-window-command-area-report-viewer-menu).
 
+On macOS, build a Finder app for Apple Silicon and Intel:
+
+    scripts/build-macos-app.sh
+    open target/macos/AutoCADED.app
+
+The app includes the original AutoCADED demo font, menu and drawings. It opens
+WELCOME and keeps writable demo copies in
+`~/Library/Application Support/AutoCADED/Drawings`; subsequent launches preserve
+your edits. The ZIP is `target/macos/AutoCADED-macOS.zip`. Builds require Xcode
+Command Line Tools and use an ad-hoc signature for local use; public distribution
+requires Developer ID signing and notarization.
+
 ### Browser (WebAssembly)
 
 `acad-wasm` compiles the same `Session` — commands, screen menu, frame
@@ -117,6 +129,11 @@ canvas plus three lists: Open (a local file, also by drag-and-drop, or a
 sample), Save as (DWG, DXF, SVG, PNG; named after the open drawing) and the
 [colour palette](#design-considerations). Everything else is the engine's own: keys go
 to its command area, as in the native window, and the screen menu takes clicks.
+
+Touch taps place points; idle drags pan, and two fingers pan/zoom without
+placing points. SKETCH drags draw. DXF export rejects control characters in
+text/names; SVG export refuses incomplete geometry when rendering reaches a
+budget limit.
 
 Live at **[autocaded.yemelianov.dev](https://autocaded.yemelianov.dev)**.
 
@@ -287,7 +304,8 @@ Notes on the diagram, all from the code:
   axis ticks, crosshair, menu panel and command line into the same buffer.
   Report and Main Menu screens skip the drawing pass.
 - SVG export in the browser (`drawing_to_svg` in `acad-wasm`) uses
-  `flatten_with_libraries` directly, without the frame composer.
+  `flatten_with_libraries` directly, without the frame composer, and refuses
+  export if the render budget leaves geometry incomplete.
 
 ### One command round trip
 
@@ -572,6 +590,7 @@ CI (`.github/workflows/ci.yml`) runs on a self-hosted `raps-ci` runner for
 pushes and pull requests to `main`:
 
     cargo fmt --all --check
+    node --test tools/tests/web_*.test.mjs  # Node 22+, browser input and caching
     cargo clippy --workspace --all-targets -- -D warnings
     cargo clippy -p acad-wasm --target wasm32-unknown-unknown -- -D warnings
     cargo test --workspace --exclude acad-oracle

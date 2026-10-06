@@ -102,6 +102,10 @@ pub(crate) fn load_menu_file(
         candidates.push(requested.with_extension("MNU"));
     }
     if let Some(name) = candidates.last().cloned() {
+        #[cfg(target_os = "macos")]
+        if let Some(resources) = crate::macos_bundle::resources() {
+            candidates.push(resources.join("System").join(&name));
+        }
         let corpus = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus");
         candidates.push(corpus.join("System").join(&name));
         candidates.push(corpus.join("Samples").join(name));

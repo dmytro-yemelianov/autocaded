@@ -493,6 +493,7 @@
 
   <script type="module">
     import init, { AutoCadSession } from './pkg/acad_wasm.js';
+    import { installCanvasInput, installModalKeyboard } from './input.mjs';
 
     const canvas = document.getElementById('cad-canvas');
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -628,7 +629,7 @@
     // Keyboard goes to the engine's command area, as in the native window.
     const softKeys = document.getElementById('soft-keys');
     window.addEventListener('keydown', (e) => {
-      if (!cad || e.isComposing || e.target === softKeys) return;
+      if (!cad || e.defaultPrevented || !aboutModal.hidden || e.isComposing || e.target === softKeys) return;
       // A focused, closed Open/Save list would treat typing as type-ahead
       // ("S" picks SVG and downloads it); the keys belong to the command area.
       if (e.target instanceof HTMLSelectElement) e.target.blur();
@@ -649,14 +650,6 @@
       redraw();
     });
 
-    function canvasPoint(e) {
-      const rect = canvas.getBoundingClientRect();
-      return [
-        (e.clientX - rect.left) * (canvas.width / rect.width),
-        (e.clientY - rect.top) * (canvas.height / rect.height),
-      ];
-    }
-
     // A saved view is a centre and a height; on a screen narrower than the
     // drawing's, show the whole drawing instead of a cropped middle.
     function fitToScreen() {
@@ -670,41 +663,11 @@
       }
     }
 
-    // Press and release, not click: SKETCH draws while the button is held.
-    // Capture keeps the release (and motion) coming if the drag leaves the canvas.
-    canvas.addEventListener('pointerdown', (e) => {
-      if (!cad || e.button !== 0) return;
-      canvas.setPointerCapture(e.pointerId);
-      const [x, y] = canvasPoint(e);
-      try {
-        cad.press(x, y, canvas.width, canvas.height);
-      } catch (err) {
-        // Reported in the command area.
-      }
-      redraw();
-    });
-
-    canvas.addEventListener('pointerup', (e) => {
-      if (!cad || e.button !== 0) return;
-      const [x, y] = canvasPoint(e);
-      try {
-        cad.release(x, y, canvas.width, canvas.height);
-      } catch (err) {
-        // Reported in the command area.
-      }
-      redraw();
-    });
-
-    canvas.addEventListener('pointermove', (e) => {
-      if (!cad) return;
-      const [x, y] = canvasPoint(e);
-      try {
-        cad.motion(x, y, canvas.width, canvas.height);
-        cad.cursor(x, y);
-      } catch (err) {
-        // Reported in the command area.
-      }
-      redraw();
+    installCanvasInput(canvas, {
+      session: () => cad,
+      redraw,
+      zoom,
+      onError: (error) => message(String(error), true),
     });
 
     // Wheel and zoom buttons zoom relative to the current view (`nX`; a bare
@@ -942,85 +905,6 @@
       coordReadout.style.display = 'block';
     }
 
-    // Touch pinch/pan support
-    let touchState = { pins: new Map(), lastDist: 0, lastCenter: null, isPanning: false };
-    canvas.addEventListener('touchstart', (e) => {
-      if (!cad) return;
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        const t1 = e.touches[0], t2 = e.touches[1];
-        const rect = canvas.getBoundingClientRect();
-        const p1 = [(t1.clientX - rect.left) * (canvas.width / rect.width), (t1.clientY - rect.top) * (canvas.height / rect.height)];
-        const p2 = [(t2.clientX - rect.left) * (canvas.width / rect.width), (t2.clientY - rect.top) * (canvas.height / rect.height)];
-        const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
-        touchState.lastDist = Math.hypot(dx, dy);
-        touchState.lastCenter = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
-        touchState.isPanning = false;
-      } else if (e.touches.length === 1 && !touchState.lastDist) {
-        // Single finger - could be pan if not in sketch mode
-        const state = JSON.parse(cad.get_state_json());
-        if (state.prompt === 'Command' && !state.report_visible) {
-          touchState.isPanning = true;
-        }
-      }
-    }, { passive: false });
-
-    canvas.addEventListener('touchmove', (e) => {
-      if (!cad) return;
-      if (e.touches.length === 2 && touchState.lastDist) {
-        e.preventDefault();
-        const t1 = e.touches[0], t2 = e.touches[1];
-        const rect = canvas.getBoundingClientRect();
-        const p1 = [(t1.clientX - rect.left) * (canvas.width / rect.width), (t1.clientY - rect.top) * (canvas.height / rect.height)];
-        const p2 = [(t2.clientX - rect.left) * (canvas.width / rect.width), (t2.clientY - rect.top) * (canvas.height / rect.height)];
-        const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
-        const dist = Math.hypot(dx, dy);
-        const center = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
-        
-        // Pinch zoom
-        if (touchState.lastDist > 0) {
-          const factor = dist / touchState.lastDist;
-          if (Math.abs(factor - 1) > 0.02) {
-            const state = JSON.parse(cad.get_state_json());
-            if (state.prompt === 'Command' && !state.input && !state.report_visible) {
-              cad.command('ZOOM');
-              cad.command(`${factor > 1 ? 1.2 : 0.8}X`);
-              redraw();
-            }
-          }
-        }
-        
-        // Pan during pinch
-        if (touchState.lastCenter) {
-          const panX = center[0] - touchState.lastCenter[0];
-          const panY = center[1] - touchState.lastCenter[1];
-          if (Math.abs(panX) > 5 || Math.abs(panY) > 5) {
-            cad.cursor(center[0], center[1]);
-            // Simulate PAN via cursor motion + click drag
-          }
-        }
-        touchState.lastDist = dist;
-        touchState.lastCenter = center;
-      } else if (e.touches.length === 1 && touchState.isPanning) {
-        e.preventDefault();
-        const t = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        const x = (t.clientX - rect.left) * (canvas.width / rect.width);
-        const y = (t.clientY - rect.top) * (canvas.height / rect.height);
-        cad.motion(x, y, canvas.width, canvas.height);
-        cad.cursor(x, y);
-        redraw();
-      }
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) {
-        touchState.lastDist = 0;
-        touchState.lastCenter = null;
-        touchState.isPanning = false;
-      }
-    });
-
     // About modal
     const aboutModal = document.getElementById('about-modal');
     const modalClose = document.getElementById('modal-close');
@@ -1036,9 +920,7 @@
     document.getElementById('btn-about').addEventListener('click', openAbout);
     modalClose.addEventListener('click', closeAbout);
     aboutModal.querySelector('.modal-backdrop').addEventListener('click', closeAbout);
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !aboutModal.hidden) closeAbout();
-    });
+    installModalKeyboard(document, aboutModal, closeAbout);
 
     if ('serviceWorker' in navigator && window.isSecureContext) {
       navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('offline cache:', err));

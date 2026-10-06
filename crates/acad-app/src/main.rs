@@ -10,6 +10,9 @@ use winit::{
     keyboard::{Key, ModifiersState, NamedKey},
     window::{Window, WindowId},
 };
+
+#[cfg(target_os = "macos")]
+use acad_app::macos_bundle;
 #[cfg(unix)]
 type ApiEvent = acad_app::ipc::Event;
 #[cfg(not(unix))]
@@ -298,6 +301,21 @@ fn run() -> Result<(), String> {
             _ if arg.starts_with("--") => return Err(format!("unknown option: {arg}")),
             _ if path.is_none() => path = Some(arg),
             _ => directories.push(std::path::PathBuf::from(arg)),
+        }
+    }
+    #[cfg(target_os = "macos")]
+    let bundle = macos_bundle::resources();
+    #[cfg(target_os = "macos")]
+    if let Some(resources) = &bundle {
+        // Explicit font directories retain precedence over the bundled font.
+        directories.push(resources.join("System"));
+        if path.is_none() && script.is_none() {
+            let home = std::env::var_os("HOME").ok_or("HOME is unavailable")?;
+            let drawings = std::path::PathBuf::from(home)
+                .join("Library/Application Support/AutoCADED/Drawings");
+            macos_bundle::prepare_drawings(resources, &drawings)?;
+            std::env::set_current_dir(&drawings).map_err(|e| e.to_string())?;
+            path = Some("WELCOME.DWG".into());
         }
     }
     // Native policy (docs/native-main-menu.md): without a drawing or a

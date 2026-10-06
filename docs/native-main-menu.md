@@ -77,6 +77,10 @@ policy. Plotting is out of scope by user decision.
 - `acad` launched with neither a drawing path nor `--script` starts at the
   Main Menu (with or without `--api-socket`). Font directories are
   positional after a drawing, so they imply a drawing.
+- The macOS `.app` bundle starts with a writable copy of `WELCOME.DWG` when
+  launched without a drawing or script. Demo copies live in
+  `~/Library/Application Support/AutoCADED/Drawings` and existing files are
+  preserved. Bundled font and menu resources do not require the extracted corpus.
 - `acad DRAWING [fonts...]`, `acad-mcp --drawing PATH` and headless
   `acad-mcp` (empty unnamed drawing) start in the drawing editor exactly as
   before; their END and QUIT exit the process. `acad --script FILE` without a

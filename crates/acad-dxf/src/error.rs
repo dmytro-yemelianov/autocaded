@@ -2,6 +2,9 @@ use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DxfError {
+    InvalidString {
+        field: &'static str,
+    },
     UnsupportedFilletRadius,
     UnsupportedGroup {
         reason: &'static str,
@@ -55,6 +58,7 @@ pub enum DxfError {
 impl fmt::Display for DxfError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidString { field } => write!(f, "{field} cannot contain control characters in historical DXF"),
             Self::UnsupportedFilletRadius => f.write_str("historical DXF has no supported nonzero FILLET radius mapping"),
             Self::UnsupportedGroup { reason } => f.write_str(reason),
             Self::UnsupportedNestedRepeat => {

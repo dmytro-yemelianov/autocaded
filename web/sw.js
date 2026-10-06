@@ -2,10 +2,11 @@
 // is picked up on the next load, and the last copy that loaded keeps working
 // offline. Install precaches the app shell and every asset assets/manifest.json
 // names (font, screen menu, sample drawings).
-const CACHE = 'autocaded-v1';
+const CACHE = 'autocaded-v2';
 const SHELL = [
   './',
   './index.html',
+  './input.mjs',
   './manifest.webmanifest',
   './icon.svg',
   './icon-192.png',
@@ -20,10 +21,10 @@ const SHELL = [
 async function precache() {
   const cache = await caches.open(CACHE);
   // One by one: a missing optional file must not abort the install.
-  const add = (url) => cache.add(url).catch(() => {});
+  const add = (url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => {});
   await Promise.all(SHELL.map(add));
   try {
-    const manifest = await (await fetch('./assets/manifest.json')).json();
+    const manifest = await (await fetch('./assets/manifest.json', { cache: 'no-cache' })).json();
     const files = [manifest.font, manifest.menu, ...(manifest.samples || []).map((s) => s.file)];
     await Promise.all(files.filter(Boolean).map((file) => add(`./assets/${file}`)));
   } catch (err) {
@@ -50,7 +51,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     try {
-      const response = await fetch(request);
+      // HTTP's own fresh cache can otherwise serve an older JS/wasm pair
+      // even though this service worker promises network-first updates.
+      const response = await fetch(request, { cache: 'no-cache' });
       if (response.ok) cache.put(request, response.clone());
       return response;
     } catch (err) {

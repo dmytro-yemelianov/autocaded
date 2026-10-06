@@ -3,6 +3,8 @@ mod command_line;
 mod document;
 mod files;
 mod grid;
+#[cfg(target_os = "macos")]
+pub mod macos_bundle;
 mod menu_panel;
 mod presentation;
 mod report_view;

@@ -8,11 +8,20 @@ fn pt(p: &Point) -> String {
     format!("{},{}", f(p.x), f(p.y))
 }
 
+fn single_line(value: &str, field: &'static str) -> Result<(), crate::DxfError> {
+    // CR/LF delimit records and DOS EOF truncates the file. Other C0 bytes
+    // are rejected by the reader; high bytes remain valid Unicode/Latin-1.
+    if value.bytes().any(|byte| byte < 0x20) {
+        return Err(crate::DxfError::InvalidString { field });
+    }
+    Ok(())
+}
+
 // Preflight bounds recursion to 64 groups/two record wrappers. Erased members
 // are skipped, but a live group keeps its REPEAT/ENDREP records even with no
 // live member left, as AutoCAD 1.4's task 5 does; its task 6 and the native
 // reader read that empty pair back (docs/native-group-persistence.md, R6).
-fn entity(out: &mut String, e: &Entity) {
+fn entity(out: &mut String, e: &Entity) -> Result<(), crate::DxfError> {
     let (layer, e) = match e {
         Entity::OnLayer { layer, entity } => (*layer, entity.as_ref()),
         _ => (1, e),
@@ -22,7 +31,7 @@ fn entity(out: &mut String, e: &Entity) {
         Entity::Repeat(repeat) => {
             let _ = write!(out, "REPEAT,{}\r\n", repeat.start_layer);
             for inner in &repeat.entities {
-                entity(out, inner);
+                entity(out, inner)?;
             }
             let _ = write!(
                 out,
@@ -36,6 +45,7 @@ fn entity(out: &mut String, e: &Entity) {
         }
         Entity::OnLayer { .. } => unreachable!("unwrapped above"),
         Entity::Load { name } => {
+            single_line(name, "LOAD name")?;
             let _ = write!(out, "LOAD,{layer}\r\n{name}\r\n");
         }
         Entity::Shape {
@@ -80,6 +90,7 @@ fn entity(out: &mut String, e: &Entity) {
             rotation_deg,
             value,
         } => {
+            single_line(value, "TEXT value")?;
             let _ = write!(
                 out,
                 "TEXT,{layer}\r\n{},{},{}\r\n{}\r\n",
@@ -96,6 +107,7 @@ fn entity(out: &mut String, e: &Entity) {
             rotation_deg,
             name,
         } => {
+            single_line(name, "INSERT name")?;
             let _ = write!(
                 out,
                 "INSERT,{layer}\r\n{},{},{},{}\r\n{}\r\n",
@@ -133,18 +145,23 @@ fn entity(out: &mut String, e: &Entity) {
             );
         }
         Entity::Generic(g) => {
+            single_line(&g.type_name, "record name")?;
             let _ = write!(out, "{},{}\r\n", g.type_name, g.layer);
             for row in &g.rows {
+                single_line(row, "record row")?;
                 let _ = write!(out, "{row}\r\n");
             }
         }
         Entity::Extension(ext) => {
+            single_line(ext.type_name(), "record name")?;
             let _ = write!(out, "{},{}\r\n", ext.type_name(), ext.layer());
             for row in ext.dxf_rows() {
+                single_line(&row, "record row")?;
                 let _ = write!(out, "{row}\r\n");
             }
         }
     }
+    Ok(())
 }
 
 /// Legacy convenience writer. Panics when drawing data cannot be encoded.
@@ -247,18 +264,19 @@ pub fn try_write(d: &Drawing) -> Result<Vec<u8>, crate::DxfError> {
     for item in &d.items {
         match item {
             Item::Block(b) => {
+                single_line(&b.name, "BLOCK name")?;
                 let _ = write!(s, "BLOCK,1\r\n{}\r\n{}\r\n", pt(&b.base), b.name);
                 for e in &b.entities {
-                    entity(&mut s, e);
+                    entity(&mut s, e)?;
                 }
                 s.push_str("ENDBLK,1\r\n");
             }
-            Item::Entity(e) => entity(&mut s, e),
+            Item::Entity(e) => entity(&mut s, e)?,
             Item::Erased(_) => {}
             Item::Repeat(r) => {
                 let _ = write!(s, "REPEAT,{}\r\n", r.start_layer);
                 for e in &r.entities {
-                    entity(&mut s, e);
+                    entity(&mut s, e)?;
                 }
                 let _ = write!(
                     s,

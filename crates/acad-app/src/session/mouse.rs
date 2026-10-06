@@ -1,6 +1,51 @@
 use super::*;
 
 impl Session {
+    /// Native navigation gesture: move ink with the pointer, using the
+    /// rendered canvas scale and the ordinary PAN/Previous command contract.
+    /// Pending command input, reports and the Main Menu are left untouched.
+    pub fn pan_pixels(
+        &mut self,
+        dx: f64,
+        dy: f64,
+        width: u32,
+        height: u32,
+    ) -> Result<bool, String> {
+        if !dx.is_finite() || !dy.is_finite() {
+            return Err("pan displacement must be finite".into());
+        }
+        if self.prompt() != "Command" || !self.input.is_empty() || self.report_visible() {
+            return Ok(false);
+        }
+        self.set_viewport_size(width, height)?;
+        if dx == 0.0 && dy == 0.0 {
+            return Ok(false);
+        }
+        let view = self.drawing().header.view;
+        let canvas_height = command_line::drawing_height(height).max(1);
+        let aspect = f64::from(width) / f64::from(canvas_height);
+        view.validate_canvas(aspect, canvas_height)
+            .map_err(str::to_owned)?;
+        let units_per_pixel = view.height / f64::from(canvas_height);
+        let delta = acad_model::Point {
+            x: -dx * units_per_pixel,
+            y: dy * units_per_pixel,
+        };
+        let candidate = acad_model::DwgView {
+            center: acad_model::Point {
+                x: view.center.x + delta.x,
+                y: view.center.y + delta.y,
+            },
+            height: view.height,
+        };
+        candidate
+            .validate_canvas(aspect, canvas_height)
+            .map_err(str::to_owned)?;
+        self.command("PAN")?;
+        self.command(&format!("@{},{}", delta.x, delta.y))?;
+        self.command("")
+    }
+
     /// Dispatches a left-click against the rendered screen-menu panel, if
     /// one is loaded and the click lands inside it. Returns `true` when the
     /// click was handled (including an unsupported
