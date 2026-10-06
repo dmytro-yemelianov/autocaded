@@ -35,7 +35,7 @@ test('picker labels use Rust resolved keys as text and refresh on redraw', () =>
       render_rgba: () => new Uint8Array(4) },
     document: { getElementById: () => ({}), querySelector: (selector) => options[selector] },
     canvas: { width: 1, height: 1 }, ctx: { putImageData() {} }, console,
-    ImageData: class { constructor() {} }, Uint8ClampedArray, refreshModeUi() {},
+    ImageData: class { constructor() {} }, Uint8ClampedArray, refreshModeUi() {}, refreshSampleLabels() {},
   });
   vm.runInContext(functionSource('redraw'), context);
   vm.runInContext('redraw()', context);
@@ -164,4 +164,18 @@ test('project link keyboard activation stays outside CAD after integration', () 
     handler({ key, target: { closest: (selector) => selector === '.project-links' ? {} : null },
       preventDefault() { assert.fail('link activation was prevented'); } });
   }
+});
+
+test('artwork sample titles refresh from shared locale keys with literal fallback', () => {
+  const option = { dataset: { labelKey: 'art.courtyard_house.title', fallbackLabel: 'Courtyard house' } };
+  const context = vm.createContext({ document: { querySelectorAll: () => [option] }, labels: {} });
+  vm.runInContext(functionSource('refreshSampleLabels'), context);
+  vm.runInContext('refreshSampleLabels(labels)', context);
+  assert.equal(option.textContent, 'Courtyard house');
+  context.labels = { 'art.courtyard_house.title': 'Будинок із подвір’ям' };
+  vm.runInContext('refreshSampleLabels(labels)', context);
+  assert.equal(option.textContent, 'Будинок із подвір’ям');
+  context.labels = { 'art.courtyard_house.title': '<literal title>' };
+  vm.runInContext('refreshSampleLabels(labels)', context);
+  assert.equal(option.textContent, '<literal title>');
 });

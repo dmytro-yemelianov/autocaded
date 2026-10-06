@@ -25,6 +25,8 @@ cargo run -p acad-app --example art_drawings -- demo/art/catalog.json --check
 plus a manifest with provenance, hashes and measured drawing/render counts.
 The check command regenerates in memory and compares the committed files.
 
+Demo browser builds include **Courtyard house** and **Intervals** in the Open menu;
+the entries are staged from the catalog, with shared English/Ukrainian titles.
 Open a DWG or DXF in either app. Use Modernized / ACI 256 to see the intended
 colours; Faithful / PC 16 deliberately maps the same indices to its historical
 palette. Locale changes affect gallery metadata, not the drawing geometry.

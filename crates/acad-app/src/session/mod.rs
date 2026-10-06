@@ -512,12 +512,14 @@ impl Session {
             None
         };
     }
-    /// Resolved fixed file-picker keys; no browser catalog or formatter.
+    /// Resolved file-picker and artwork titles; no browser translation catalog.
     pub fn ui_labels(&self) -> serde_json::Value {
         use acad_cmd::messages::{text, MessageId};
         serde_json::json!({"schema_version":1,"labels":{
             "ui.file.open_picker":text(MessageId::UiFileOpenPicker, self.locale).expect("static label"),
-            "ui.file.save_picker":text(MessageId::UiFileSavePicker, self.locale).expect("static label")
+            "ui.file.save_picker":text(MessageId::UiFileSavePicker, self.locale).expect("static label"),
+            "art.courtyard_house.title":text(MessageId::ArtCourtyardHouseTitle, self.locale).expect("art title"),
+            "art.colour_study.title":text(MessageId::ArtColourStudyTitle, self.locale).expect("art title")
         }})
     }
     pub fn input(&self) -> &str {

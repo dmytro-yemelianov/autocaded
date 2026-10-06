@@ -15,6 +15,10 @@ text. `scripts/build-wasm.sh --assets demo` stages these files and writes the
 `assets/manifest.json` the page reads; `--assets corpus` uses a local 1.4
 corpus instead.
 
+Demo builds also stage the [editable artwork pilots](art/README.md) into the Open
+menu. Their drawing paths and title keys come from `art/catalog.json`; staging
+checks the generated drawing hashes before copying them.
+
 Regenerate after changing a generator:
 
     python3 tools/demo/gen_font.py

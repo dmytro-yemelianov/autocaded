@@ -82,6 +82,8 @@ case "${ASSETS}" in
   ]
 }
 JSON
+    python3 "${REPO_ROOT}/tools/demo/stage_art.py" \
+      "${REPO_ROOT}/web/assets/manifest.json" "${REPO_ROOT}/web/assets"
     ;;
   corpus)
     # The 1983 corpus stays out of git; the page fetches these at runtime.

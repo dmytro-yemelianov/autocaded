@@ -540,6 +540,12 @@
 
     document.getElementById('locale-select').addEventListener('change', changeLocale);
 
+    function refreshSampleLabels(labels) {
+      for (const option of document.querySelectorAll('#sample-group option[data-label-key]')) {
+        option.textContent = labels[option.dataset.labelKey] || option.dataset.fallbackLabel;
+      }
+    }
+
     function redraw() {
       if (!cad) return;
       document.getElementById('locale-select').value = cad.locale();
@@ -549,6 +555,7 @@
         const labels = JSON.parse(cad.ui_labels()).labels;
         document.querySelector('#open-select option[value=""]').textContent = labels['ui.file.open_picker'];
         document.querySelector('#save-select option[value=""]').textContent = labels['ui.file.save_picker'];
+        refreshSampleLabels(labels);
         const rgba = cad.render_rgba(canvas.width, canvas.height);
         const pixels = new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, rgba.byteLength);
         ctx.putImageData(new ImageData(pixels, canvas.width, canvas.height), 0, 0);
@@ -621,7 +628,12 @@
         }
         const group = document.getElementById('sample-group');
         for (const sample of assets.samples) {
-          group.append(new Option(sample.label || sample.file, sample.file));
+          const option = new Option(sample.label || sample.file, sample.file);
+          if (sample.label_key) {
+            option.dataset.labelKey = sample.label_key;
+            option.dataset.fallbackLabel = sample.label || sample.file;
+          }
+          group.append(option);
         }
         group.hidden = assets.samples.length === 0;
         const missing = [];
