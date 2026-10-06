@@ -1,7 +1,10 @@
 # Data-driven evolution: bounded agent loops
 
 Date: 2026-10-06. Status: complete; all D0–D10 gates verified on 2026-10-07.
-Publication is outside this completed local execution; v0.4.3 remains published.
+Publication followed on explicit user instruction:
+[v0.5.0](https://github.com/dmytro-yemelianov/autocaded/releases/tag/v0.5.0)
+was released and deployed on 2026-10-07. See the
+[publication evidence](../../data-driven-validation.md#publication-follow-up-v050).
 Scope: [data-driven evolution](../../data-driven-evolution.md).
 Queue: [progress ledger](2026-10-06-data-driven-progress.json).
 

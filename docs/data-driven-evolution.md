@@ -73,6 +73,12 @@ of declarative rules.
 
 ## Next migrations
 
+The separate [modern artwork drawing plan](superpowers/plans/2026-10-07-modern-artwork-drawings.md)
+uses this foundation for a data-driven gallery of editable buildings, paintings,
+memes, portraits and selected film stills. It preserves the shared engine and
+compact command-driven presentation; its content work does not require a new
+workspace design.
+
 1. **Messages and localization.** Expand the reviewed slice by command family,
    then cover remaining labels, errors, and reports with stable typed identities
    and named arguments. Validate placeholders, glyphs, and declared coverage.

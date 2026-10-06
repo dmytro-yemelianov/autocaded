@@ -71,9 +71,9 @@ label/summary keys exist as metadata, but their translated UI/messages are futur
 work. These profiles change presentation presets, not geometry policies. Unit
 metadata, bindings and wider declarative rules remain future migrations.
 
-This is a local reviewable candidate: no new tag, GitHub release, deployment,
-Windows package or universal macOS bundle was published in this run. v0.4.3 remains
-the published baseline. The native and browser release binaries were rebuilt.
+The original D10 run produced a local reviewable candidate and rebuilt native and
+browser release binaries. Publication followed separately on the user's explicit
+instruction, as recorded below.
 
 Full logs, smoke scripts, screenshots and check summaries are retained under the
 D10 artifact path recorded in the ledger. Runtime per-agent token usage is not
@@ -81,3 +81,24 @@ exposed; routing, attempts and review misses are recorded without estimated cost
 or savings claims. Independent final Sol high review passed exact snapshot
 `c7c79d30ae3234d1d3cca2a4a22d8d78d608587e`; no actionable findings remained.
 All D0–D10 gates are verified. Only completion metadata changed after review.
+
+## Publication follow-up: v0.5.0
+
+Published on 2026-10-07 from `86d1b1d60912be9fcd21bfdd209280d92bd0e35c`,
+after integrating the upstream project-link and offline-precache fixes. A fresh
+integration review passed; all 23 Node checks passed, including keyboard isolation
+for the project links and presentation selectors.
+
+The [full CI run](https://github.com/dmytro-yemelianov/autocaded/actions/runs/37536009715)
+and [release workflow](https://github.com/dmytro-yemelianov/autocaded/actions/runs/37536617796)
+passed. [v0.5.0](https://github.com/dmytro-yemelianov/autocaded/releases/tag/v0.5.0)
+contains Windows, Linux, both macOS architectures, a universal macOS app, the wasm
+bundle and SHA256SUMS. All six downloaded bundles matched their published checksums;
+Windows executables had MZ headers and the universal binary contained both
+`x86_64` and `arm64` slices.
+
+The [public web app](https://autocaded.yemelianov.dev/) runs Worker version
+`5d112900-fb06-45a3-8eef-ee1f306fa607` at 100% traffic. Its browser smoke passed
+Ukrainian/Modernized selection, palette preservation, drawing, undo, save/reopen,
+selector keyboard isolation and geometry-only PNG export. The exported drawing's
+hash matched the local smoke result.
