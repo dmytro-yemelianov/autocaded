@@ -359,7 +359,7 @@ impl Session {
                 height,
                 self.prompt(),
                 &self.input,
-                &self.status,
+                self.display_status(),
             );
             return Ok(Frame {
                 width,
@@ -381,7 +381,7 @@ impl Session {
                 height,
                 self.prompt(),
                 &self.input,
-                &self.status,
+                self.display_status(),
             );
             return Ok(Frame {
                 width,
@@ -445,9 +445,9 @@ impl Session {
             draw_budget_border(&mut pixels, width, canvas_height);
         }
         let status = match &budget_status {
-            Some(budget) if self.status.is_empty() => budget.clone(),
-            Some(budget) => format!("{budget}; {}", self.status),
-            None => self.status.clone(),
+            Some(budget) if self.display_status().is_empty() => budget.clone(),
+            Some(budget) => format!("{budget}; {}", self.display_status()),
+            None => self.display_status().to_owned(),
         };
         command_line::draw(
             &mut pixels,
@@ -470,7 +470,7 @@ impl Session {
 /// The Main Menu's text screen above the command area; lines that do not
 /// fit the canvas are clipped, never wrapped into the command area.
 pub(crate) fn draw_text_screen(buffer: &mut [u32], width: u32, height: u32, text: &str) {
-    use crate::bitmap::{draw_rect, draw_text, GLYPH_HEIGHT, GLYPH_WIDTH};
+    use crate::bitmap::{draw_rect, draw_text, ui_char, GLYPH_HEIGHT, GLYPH_WIDTH};
     const PAD: usize = 8;
     let row = GLYPH_HEIGHT * 2;
     let canvas = command_line::drawing_height(height) as usize;
@@ -484,17 +484,7 @@ pub(crate) fn draw_text_screen(buffer: &mut [u32], width: u32, height: u32, text
         if top + row > canvas {
             break;
         }
-        let line: String = line
-            .chars()
-            .map(|c| {
-                if c.is_ascii() && !c.is_control() {
-                    c
-                } else {
-                    '?'
-                }
-            })
-            .take(columns)
-            .collect();
+        let line: String = line.chars().map(ui_char).take(columns).collect();
         draw_text(buffer, width, PAD, top, &line, 0x00dd_eeee);
     }
 }
@@ -515,3 +505,71 @@ pub(crate) fn validate_frame_size(width: u32, height: u32) -> Result<(), String>
 #[cfg(test)]
 #[path = "presentation/visibility_tests.rs"]
 mod visibility_tests;
+
+#[cfg(test)]
+mod ui_glyph_tests {
+    use super::*;
+    use crate::bitmap::draw_text;
+
+    #[test]
+    fn text_screen_preserves_ukrainian_and_clips_by_characters_above_command_area() {
+        let (width, height) = (64usize, 100usize); // three cells per text row
+        let sentinel = 0x0012_3456;
+        let mut actual = vec![sentinel; width * height];
+        draw_text_screen(
+            &mut actual,
+            width as u32,
+            height as u32,
+            "Ґї’А\nЄ☃\tБ\nНЕ ВМІЩУЄТЬСЯ\nTAIL",
+        );
+        let canvas = command_line::drawing_height(height as u32) as usize;
+        let mut expected = vec![0; width * canvas];
+        draw_text(&mut expected, width, 8, 8, "Ґї’", 0x00dd_eeee);
+        draw_text(&mut expected, width, 8, 24, "Є??", 0x00dd_eeee);
+        // Third row exactly fits; a fourth row must not reach the command area.
+        draw_text(&mut expected, width, 8, 40, "НЕ ", 0x00dd_eeee);
+        assert_eq!(&actual[..width * canvas], expected);
+        assert!(actual[width * canvas..].iter().all(|p| *p == sentinel));
+    }
+
+    #[test]
+    fn command_area_clips_translated_prompt_input_and_status_by_cells() {
+        let (width, height) = (88usize, command_line::HEIGHT as usize); // five cells
+        let mut actual = vec![0; width * height];
+        command_line::draw(
+            &mut actual,
+            width as u32,
+            height as u32,
+            "Команда",
+            "ҐїЄА",
+            "Помилка☃",
+        );
+        let mut expected = vec![0; width * height];
+        draw_text(&mut expected, width, 4, 4, "ҐїЄА_", 0x00ff_ffff);
+        draw_text(&mut expected, width, 4, 24, "Помил", 0x00ff_c080);
+        for y in 0..16 {
+            for x in 0..5 * 16 {
+                assert_eq!(
+                    actual[(24 + y) * width + 4 + x],
+                    if expected[(24 + y) * width + 4 + x] == 0 {
+                        0x0018_1820
+                    } else {
+                        0x00ff_c080
+                    }
+                );
+                if y < 14 {
+                    // final two rows contain the separately drawn caret
+                    assert_eq!(
+                        actual[(4 + y) * width + 4 + x],
+                        if expected[(4 + y) * width + 4 + x] == 0 {
+                            0x0018_1820
+                        } else {
+                            0x00ff_ffff
+                        }
+                    );
+                }
+            }
+        }
+        assert_eq!(actual[18 * width + 4 + 4 * 16], 0x00ff_ffff);
+    }
+}

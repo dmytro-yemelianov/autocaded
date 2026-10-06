@@ -108,15 +108,25 @@ pub(crate) fn fit_box_to_device(bounds: Extents) -> acad_model::DwgView {
 }
 
 impl Editor {
+    fn set_unknown_diagnostic(&mut self, message: crate::messages::Message) {
+        self.status = message.render(crate::messages::Locale::En);
+        self.diagnostic = Some(crate::CommandDiagnostic {
+            kind: crate::CmdErrorKind::UnknownCommand,
+            message,
+        });
+    }
+
     /// Submit physical Return or screen-menu GO. Raw script/macro submissions
     /// retain their separate empty-input policy and do not update this history.
     pub fn submit_return(&mut self, input: &str) -> Result<Effect, String> {
-        const UNKNOWN: &str = "Unknown command. Type ? for list of commands.";
+        self.diagnostic = None;
         let line = input.trim();
         if matches!(self.state, InputState::Command) {
             let command = if line.is_empty() {
                 let Some(previous) = self.last_return_command.clone() else {
-                    self.status = UNKNOWN.into();
+                    self.set_unknown_diagnostic(
+                        crate::messages::Message::ErrorCommandUnknownReturn,
+                    );
                     return Err(self.status.clone());
                 };
                 previous
@@ -131,8 +141,15 @@ impl Editor {
                 self.last_return_command = Some(command);
             }
             return match result {
-                Err(error) if error.starts_with("unknown command: ") => {
-                    self.status = UNKNOWN.into();
+                Err(_)
+                    if self
+                        .diagnostic
+                        .as_ref()
+                        .is_some_and(|d| d.kind == crate::CmdErrorKind::UnknownCommand) =>
+                {
+                    self.set_unknown_diagnostic(
+                        crate::messages::Message::ErrorCommandUnknownReturn,
+                    );
                     Err(self.status.clone())
                 }
                 result => result,
@@ -177,13 +194,18 @@ impl Editor {
 
     /// Execute one complete line of keyboard input, returning a structured `CmdError`.
     pub fn execute(&mut self, input: &str) -> Result<Effect, crate::CmdError> {
-        self.submit(input).map_err(crate::CmdError::from)
+        let result = self.submit(input);
+        result.map_err(|error| match &self.diagnostic {
+            Some(diagnostic) => crate::CmdError::new(diagnostic.kind, error),
+            None => crate::CmdError::from(error),
+        })
     }
 
     /// Submit one complete line of keyboard input. Coordinates use AutoCAD's
     /// `x,y`, `@dx,dy`, or `@distance<angle` notation where a prior point exists.
     /// A `LINE` remains active until an empty line is entered.
     pub fn submit(&mut self, input: &str) -> Result<Effect, String> {
+        self.diagnostic = None;
         self.status.clear();
         let line = input.trim();
         if let Some(result) = self.route_selection_input(line) {
@@ -337,86 +359,98 @@ impl Editor {
     }
 
     fn command(&mut self, command: &str) -> Result<Effect, String> {
+        use crate::catalog::CommandId;
         if let Some((name, arguments)) = command.split_once(char::is_whitespace) {
-            if name.eq_ignore_ascii_case("LAYER") {
+            if crate::catalog::resolve_command(name)
+                .is_some_and(|definition| definition.id == CommandId::Layer)
+            {
                 self.state = InputState::Layer;
                 return self.submit_layer(arguments.trim());
             }
         }
-        match command.to_ascii_uppercase().as_str() {
-            "LINE" | "L" => self.state = InputState::LineStart,
-            "CIRCLE" | "C" => self.state = InputState::CircleCenter,
-            "POINT" | "PO" => self.state = InputState::Point,
-            "ARC" | "A" => self.state = InputState::ArcStart,
-            "LOAD" => self.state = InputState::LoadLibrary,
-            "SHAPE" => self.state = InputState::ShapeName,
-            "TEXT" | "T" => self.state = InputState::Text(crate::text::TextInput::Start),
-            "INSERT" | "I" => self.state = InputState::InsertName,
-            "BLOCK" => self.state = InputState::BlockName,
-            "WBLOCK" => self.state = InputState::WblockPath,
-            "REPEAT" => {
+        if command.is_empty() {
+            return Ok(Effect::Continue);
+        }
+        let Some(definition) = crate::catalog::resolve_command(command) else {
+            self.set_unknown_diagnostic(crate::messages::Message::ErrorCommandUnknown {
+                command: command.to_owned(),
+            });
+            return Err(self.status.clone());
+        };
+        match definition.id {
+            CommandId::Line => self.state = InputState::LineStart,
+            CommandId::Circle => self.state = InputState::CircleCenter,
+            CommandId::Point => self.state = InputState::Point,
+            CommandId::Arc => self.state = InputState::ArcStart,
+            CommandId::Load => self.state = InputState::LoadLibrary,
+            CommandId::Shape => self.state = InputState::ShapeName,
+            CommandId::Text => self.state = InputState::Text(crate::text::TextInput::Start),
+            CommandId::Insert => self.state = InputState::InsertName,
+            CommandId::Block => self.state = InputState::BlockName,
+            CommandId::Wblock => self.state = InputState::WblockPath,
+            CommandId::Repeat => {
                 if self.repeat_start.is_some() {
                     return Err("REPEAT is already open".into());
                 }
                 self.repeat_start = Some(self.drawing.items.len());
                 self.repeat_start_layer = self.drawing.header.current_layer;
             }
-            "ENDREP" => {
+            CommandId::Endrep => {
                 if self.repeat_start.is_none() {
                     return Err("ENDREP without REPEAT".into());
                 }
                 self.state = InputState::RepeatColumns;
             }
-            "BASE" => self.state = InputState::Base,
-            "AXIS" => self.state = InputState::Axis,
-            "SNAP" | "RES" | "RESOLUTION" => self.state = InputState::Snap,
-            "DIM" | "DIMENSION" => self.state = InputState::DimFirstExtension,
-            "HATCH" => self.state = InputState::HatchPattern,
-            "SKETCH" => self.state = InputState::SketchIncrement,
-            "DELAY" => self.state = InputState::Delay,
+            CommandId::Base => self.state = InputState::Base,
+            CommandId::Axis => self.state = InputState::Axis,
+            CommandId::Snap => self.state = InputState::Snap,
+            CommandId::Dim => self.state = InputState::DimFirstExtension,
+            CommandId::Hatch => self.state = InputState::HatchPattern,
+            CommandId::Sketch => self.state = InputState::SketchIncrement,
+            CommandId::Delay => self.state = InputState::Delay,
             // The application owns the command-script executor; RESUME only
             // asks it to continue an interrupted script (docs/native-scripts.md).
-            "RESUME" => return Ok(Effect::Resume),
+            CommandId::Resume => return Ok(Effect::Resume),
             // Native extension: AutoCAD 1.4 starts scripts only from the DOS
             // command line. The application resolves and runs the file.
-            "SCRIPT" => self.state = InputState::ScriptFile,
-            "UNITS" => self.state = InputState::UnitsFormat,
-            "GRID" => self.state = InputState::Grid,
-            "ORTHO" => self.state = InputState::Ortho,
-            "FILL" => self.state = InputState::Fill,
-            "LIMITS" => self.state = InputState::LimitsMin,
-            "LAYER" => self.state = InputState::Layer,
-            "COLOR" | "COLORS" => self.state = InputState::ColorValue,
-            "ZOOM" | "Z" => self.state = InputState::View(crate::view::ViewInput::Zoom),
-            "PAN" | "P" => self.state = InputState::View(crate::view::ViewInput::PanFirst),
-            "LIST" => self.state = InputState::ListSelection,
-            "DBLIST" => {
+            CommandId::Script => self.state = InputState::ScriptFile,
+            CommandId::Units => self.state = InputState::UnitsFormat,
+            CommandId::Grid => self.state = InputState::Grid,
+            CommandId::Ortho => self.state = InputState::Ortho,
+            CommandId::Fill => self.state = InputState::Fill,
+            CommandId::Limits => self.state = InputState::LimitsMin,
+            CommandId::Layer => self.state = InputState::Layer,
+            CommandId::Color => self.state = InputState::ColorValue,
+            CommandId::Zoom => self.state = InputState::View(crate::view::ViewInput::Zoom),
+            CommandId::Pan => self.state = InputState::View(crate::view::ViewInput::PanFirst),
+            CommandId::List => self.state = InputState::ListSelection,
+            CommandId::Dblist => {
                 let report = database_listing(&self.drawing);
                 self.status = "DBLIST report".into();
                 return Ok(Effect::Report(report));
             }
-            "?" | "HELP" => self.state = InputState::HelpCommand,
-            "MENU" => self.state = InputState::MenuFile,
-            "FILES" => {
+            CommandId::Help => self.state = InputState::HelpCommand,
+            CommandId::Menu => self.state = InputState::MenuFile,
+            CommandId::Files => {
                 self.status = "File Utility Menu".into();
                 self.state = InputState::FilesMenu;
                 return Ok(Effect::Report(FILE_UTILITY_MENU.into()));
             }
-            "STATUS" => {
+            CommandId::Status => {
                 self.status = "Drawing status".into();
                 return Ok(Effect::Report(status_report(&self.drawing)));
             }
             // Hardware device commands recognized by AutoCAD 1.4 dispatcher
             // but requiring external peripherals.
-            "PLOT" | "PRPLOT" => {
+            CommandId::Plot => {
                 return Err("PLOT: plotter device not configured in this environment".into())
             }
-            "QPLOT" => {
+            CommandId::Qplot => {
                 return Err(
                     "QPLOT: printer plotter device not configured in this environment".into(),
                 )
             }
-            "TABLET" => {
+            CommandId::Tablet => {
                 return Err(
                     "TABLET: digitizer tablet device not configured in this environment".into(),
                 )
@@ -424,23 +458,23 @@ impl Editor {
             // REDRAW and REGEN do not edit the drawing model. The
             // native window already redraws and regenerates each requested
             // frame, so no separate model operation is needed here.
-            "REDRAW" | "REGEN" => {}
-            "ERASE" | "E" => self.state = InputState::EditSelection(EditCommand::Erase),
-            "MOVE" | "M" => self.state = InputState::Displacement(EditCommand::Move),
-            "COPY" | "CO" => self.state = InputState::Displacement(EditCommand::Copy),
-            "ROTATE" | "RO" => self.state = InputState::EditSelection(EditCommand::Rotate),
-            "SCALE" | "SC" => self.state = InputState::EditSelection(EditCommand::Scale),
-            "ARRAY" | "AR" => self.state = InputState::ArraySelection,
-            "CHANGE" | "CH" => self.state = InputState::ChangeSelection,
-            "FILLET" | "F" => self.state = InputState::FilletSelection,
-            "BREAK" | "BR" => self.state = InputState::BreakSelection,
-            "DIST" | "DI" => self.state = InputState::DistanceFirstPoint,
-            "ID" => self.state = InputState::IdPoint,
-            "SOLID" | "SO" => self.state = InputState::SolidFirstPoint,
-            "TRACE" | "TR" => self.state = InputState::TraceWidth,
-            "AREA" | "AA" => self.state = InputState::AreaFirstPoint,
-            "ENTITYAREA" => self.state = InputState::AreaSelection,
-            "UNDO" | "U" => {
+            CommandId::Redraw | CommandId::Regen => {}
+            CommandId::Erase => self.state = InputState::EditSelection(EditCommand::Erase),
+            CommandId::Move => self.state = InputState::Displacement(EditCommand::Move),
+            CommandId::Copy => self.state = InputState::Displacement(EditCommand::Copy),
+            CommandId::Rotate => self.state = InputState::EditSelection(EditCommand::Rotate),
+            CommandId::Scale => self.state = InputState::EditSelection(EditCommand::Scale),
+            CommandId::Array => self.state = InputState::ArraySelection,
+            CommandId::Change => self.state = InputState::ChangeSelection,
+            CommandId::Fillet => self.state = InputState::FilletSelection,
+            CommandId::Break => self.state = InputState::BreakSelection,
+            CommandId::Dist => self.state = InputState::DistanceFirstPoint,
+            CommandId::Id => self.state = InputState::IdPoint,
+            CommandId::Solid => self.state = InputState::SolidFirstPoint,
+            CommandId::Trace => self.state = InputState::TraceWidth,
+            CommandId::Area => self.state = InputState::AreaFirstPoint,
+            CommandId::Entityarea => self.state = InputState::AreaSelection,
+            CommandId::Undo => {
                 if let Some(previous) = self.undo.pop() {
                     self.drawing = previous.drawing;
                     self.last_dimension = previous.last_dimension;
@@ -450,12 +484,10 @@ impl Editor {
                     self.last_text = previous.last_text;
                 }
             }
-            "OOPS" => self.oops(),
-            "SAVE" => self.state = InputState::SavePath,
-            "END" => return Ok(Effect::End),
-            "QUIT" | "EXIT" => return self.request_quit(),
-            "" => {}
-            _ => return Err(format!("unknown command: {command}")),
+            CommandId::Oops => self.oops(),
+            CommandId::Save => self.state = InputState::SavePath,
+            CommandId::End => return Ok(Effect::End),
+            CommandId::Quit => return self.request_quit(),
         }
         Ok(Effect::Continue)
     }

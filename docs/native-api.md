@@ -13,6 +13,15 @@ existing path, and is removed on normal shutdown. Submit one prompt answer per
 call and inspect `state`; request errors retain the drawing. A timed-out mutation
 must not be automatically retried because it may already have run.
 
+Presentation requests use `set_locale {"tag":"uk"}` and
+`set_mode {"id":"modern"}`. The socket API exposes these setters; the MCP
+adapter currently exposes state reads but does not advertise setter tools.
+State includes `locale`, profile `mode`, current `palette`, and semantic
+`command_idle`. Use `command_idle` rather than comparing translated prompt text.
+Raw status/error strings remain canonical English; composed frames localize the
+migrated prompts and typed diagnostics. See [partial Ukrainian coverage](ukrainian-ui-slice.md)
+and [profile/override semantics](presentation-profiles.md).
+
 ## MCP transport
 
 These commands are server entry points for an MCP client, not interactive terminal

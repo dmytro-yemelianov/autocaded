@@ -208,21 +208,42 @@ pub(crate) enum ArraySpacingInput {
 }
 
 impl InputState {
-    pub(crate) fn prompt(&self) -> &'static str {
+    pub(crate) fn prompt_message(&self) -> Option<crate::messages::MessageId> {
+        use crate::messages::MessageId;
         match self {
-            Self::Command => "Command",
+            Self::Command => Some(MessageId::PromptCommand),
+            Self::LineStart => Some(MessageId::PromptLineStart),
+            Self::LineNext { .. } => Some(MessageId::PromptLineNext),
+            Self::CircleCenter => Some(MessageId::PromptCircleCenter),
+            Self::CircleRadius(_) => Some(MessageId::PromptCircleRadius),
+            Self::CircleDiameter(_) => Some(MessageId::PromptCircleDiameter),
+            Self::CircleTwoPointFirst => Some(MessageId::PromptCircleTwoPointFirst),
+            Self::CircleTwoPointSecond(_) => Some(MessageId::PromptCircleTwoPointSecond),
+            Self::CircleThreePointFirst => Some(MessageId::PromptCircleThreePointFirst),
+            Self::CircleThreePointSecond(_) => Some(MessageId::PromptCircleThreePointSecond),
+            Self::CircleThreePointThird(_, _) => Some(MessageId::PromptCircleThreePointThird),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn prompt(&self) -> &'static str {
+        if let Some(id) = self.prompt_message() {
+            return crate::messages::text(id, crate::messages::Locale::En).expect("static prompt");
+        }
+        match self {
+            Self::Command
+            | Self::LineStart
+            | Self::LineNext { .. }
+            | Self::CircleCenter
+            | Self::CircleRadius(_)
+            | Self::CircleDiameter(_)
+            | Self::CircleTwoPointFirst
+            | Self::CircleTwoPointSecond(_)
+            | Self::CircleThreePointFirst
+            | Self::CircleThreePointSecond(_)
+            | Self::CircleThreePointThird(_, _) => unreachable!("catalog prompt"),
             Self::ListSelection => "LIST: objects, ALL, LAST or W (Return ends picks)",
             Self::Selection(dialogue) => dialogue.prompt(),
-            Self::LineStart => "LINE: first point",
-            Self::LineNext { .. } => "LINE: next point (Enter to finish)",
-            Self::CircleCenter => "CIRCLE: center point (or 2P/3P)",
-            Self::CircleRadius(_) => "CIRCLE: radius or point (D for diameter)",
-            Self::CircleDiameter(_) => "CIRCLE: diameter",
-            Self::CircleTwoPointFirst => "CIRCLE 2P: first diameter endpoint",
-            Self::CircleTwoPointSecond(_) => "CIRCLE 2P: second diameter endpoint",
-            Self::CircleThreePointFirst => "CIRCLE 3P: first point",
-            Self::CircleThreePointSecond(_) => "CIRCLE 3P: second point",
-            Self::CircleThreePointThird(_, _) => "CIRCLE 3P: third point",
             Self::Point => "POINT: point",
             Self::ArcStart => "ARC: start point (C for center, Enter to continue)",
             Self::ArcMiddle(_) => "ARC: second point (C for center, E for end)",

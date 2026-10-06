@@ -2,6 +2,13 @@
 
 use std::fmt;
 
+/// Semantic presentation attached to one command submission; transport stays English.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommandDiagnostic {
+    pub kind: CmdErrorKind,
+    pub message: crate::messages::Message,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CmdErrorKind {
     Syntax,

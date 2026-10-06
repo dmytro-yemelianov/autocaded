@@ -14,6 +14,12 @@ use std::path::PathBuf;
 )]
 pub enum Request {
     New {},
+    SetMode {
+        id: String,
+    },
+    SetLocale {
+        tag: String,
+    },
     Open {
         path: PathBuf,
         #[serde(default)]
@@ -89,7 +95,7 @@ pub fn state(session: &Session) -> Value {
             "mode":match s.mode { acad_cmd::SketchMode::Draw=>"draw", acad_cmd::SketchMode::Connect=>"connect", acad_cmd::SketchMode::Erase=>"erase" },
             "erase_from":s.erase_from})
     });
-    json!({"sketch":sketch,"prompt":session.prompt(),"status":session.status(),"input":session.input(),
+    json!({"mode":session.profile().definition().stable_id,"palette":session.palette().name(),"locale":match session.locale() { acad_cmd::messages::Locale::En => "en", acad_cmd::messages::Locale::Uk => "uk" }, "sketch":sketch,"command_idle":session.command_idle(),"prompt":session.prompt(),"status":session.status(),"input":session.input(),
         "report":session.report_text(),"report_view":{"visible":session.report_visible(),"anchor":session.report.as_ref().map(|r|r.anchor())},
         "entities":d.entities().count(),"selectable_objects":acad_cmd::selectable_items(d).count(),"blocks":d.blocks().count(),
         "path":session.document_path().map(|p|p.to_string_lossy()),"format":session.document_format(),"dirty":session.is_dirty(),
@@ -108,11 +114,11 @@ pub fn dispatch(
     request: Request,
     size: (u32, u32),
 ) -> Result<Value, String> {
-    let result = perform(session, request, size);
-    if let Err(error) = &result {
-        session.status = error.clone();
+    // Profile validation is atomic, including presentation status.
+    if let Request::SetMode { id } = &request {
+        acad_cmd::profiles::ProfileId::parse(id)?;
     }
-    result
+    session.with_error_status(|session| perform(session, request, size))
 }
 fn perform(session: &mut Session, request: Request, size: (u32, u32)) -> Result<Value, String> {
     // Only editor-input requests and an explicit tick advance a command
@@ -127,6 +133,14 @@ fn perform(session: &mut Session, request: Request, size: (u32, u32)) -> Result<
             | Request::ScriptTick {}
     );
     let quit = match request {
+        Request::SetMode { id } => {
+            session.set_mode(&id)?;
+            false
+        }
+        Request::SetLocale { tag } => {
+            session.set_locale_tag(&tag).map_err(|e| e.to_string())?;
+            false
+        }
         Request::ScriptStatus {} => return Ok(session.script_status()),
         Request::Script { path } => {
             session.interrupt_script(crate::ScriptInterrupt::Input);

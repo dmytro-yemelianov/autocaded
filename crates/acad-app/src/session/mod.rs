@@ -14,6 +14,7 @@ mod lifecycle;
 mod main_menu;
 mod menu_macro;
 mod mouse;
+mod profiles;
 mod resources;
 mod script;
 pub use main_menu::MAIN_MENU_TASKS;
@@ -39,6 +40,12 @@ pub struct Session {
     pub(crate) menu_page: usize,
     pub(crate) input: String,
     pub(crate) status: String,
+    locale: acad_cmd::messages::Locale,
+    profile: acad_cmd::profiles::ProfileId,
+    status_diagnostic: Option<acad_cmd::CommandDiagnostic>,
+    rendered_status: String,
+    submission_diagnostic: Option<acad_cmd::CommandDiagnostic>,
+    status_revision: u64,
     pub(crate) report: Option<crate::report_view::Report>,
     pub(crate) cursor: Option<(f64, f64)>,
     pub(crate) document: Document,
@@ -71,6 +78,10 @@ pub struct Session {
 }
 
 #[cfg(test)]
+mod message_tests;
+#[cfg(test)]
+mod profile_tests;
+#[cfg(test)]
 mod render_budget_tests;
 #[cfg(test)]
 mod script_tests;
@@ -96,7 +107,7 @@ impl Session {
         let mut session = Self::with_editor(acad_cmd::Editor::default(), libraries);
         session.directories = directories.to_vec();
         if !diagnostics.is_empty() {
-            session.status = diagnostics.join("; ");
+            session.set_status(diagnostics.join("; "));
         }
         session
     }
@@ -109,6 +120,12 @@ impl Session {
             menu_page: 0,
             input: String::new(),
             status: String::new(),
+            locale: acad_cmd::messages::Locale::En,
+            profile: acad_cmd::profiles::ProfileId::Frozen,
+            status_diagnostic: None,
+            rendered_status: String::new(),
+            submission_diagnostic: None,
+            status_revision: 0,
             report: None,
             cursor: None,
             document,
@@ -168,7 +185,7 @@ impl Session {
         self.main_menu = None;
         self.register_libraries();
         self.input.clear();
-        self.status.clear();
+        self.clear_status();
         self.report = None;
         self.cursor = None;
     }
@@ -185,20 +202,21 @@ impl Session {
         self.main_menu = None;
         self.register_libraries();
         self.input.clear();
-        self.status.clear();
+        self.clear_status();
         self.report = None;
         self.cursor = None;
     }
 
     /// Load menu definitions from in-memory bytes (e.g. embedded or uploaded MNU file).
     pub fn load_menu_bytes(&mut self, bytes: &[u8]) -> Result<(), String> {
+        self.invalidate_status_diagnostic();
         let menu = acad_cmd::menu::parse_menu(bytes)?;
         let items = menu
             .entries
             .iter()
             .filter(|entry| entry.kind == acad_cmd::menu::MenuEntryKind::Item)
             .count();
-        self.status = format!("Loaded {items} menu entries");
+        self.set_status(format!("Loaded {items} menu entries"));
         self.menu = Some(menu);
         self.menu_page = 0;
         Ok(())
@@ -206,6 +224,7 @@ impl Session {
 
     /// Add or update a shape/font library from in-memory SHP bytes.
     pub fn add_shape_library(&mut self, name: &str, bytes: &[u8]) -> Result<(), String> {
+        self.invalidate_status_diagnostic();
         self.libraries
             .insert(name, bytes)
             .map_err(|e| e.to_string())?;
@@ -235,7 +254,7 @@ impl Session {
         session.directories = directories.to_vec();
         session.document = Document::saved(path, format, session.drawing());
         if !diagnostics.is_empty() {
-            session.status = diagnostics.join("; ");
+            session.set_status(diagnostics.join("; "));
         }
         Ok(session)
     }
@@ -342,10 +361,10 @@ impl Session {
                 .map(usize::to_string)
                 .collect::<Vec<_>>()
                 .join(",");
-            self.status = picked.map_or_else(
+            self.set_status(picked.map_or_else(
                 || "No entity at pick point".into(),
                 |id| format!("Selected entity {id}"),
-            );
+            ));
             return Ok(false);
         }
         let result = self.editor.submit_mouse_point(point);
@@ -418,10 +437,88 @@ impl Session {
     }
     pub fn prompt(&self) -> &str {
         self.main_menu_prompt()
-            .unwrap_or_else(|| self.editor.prompt())
+            .unwrap_or_else(|| self.editor.prompt_for_locale(self.locale))
     }
     pub fn status(&self) -> &str {
         &self.status
+    }
+    /// Presentation status; canonical status/error transports remain English.
+    pub fn display_status(&self) -> &str {
+        if self.status_diagnostic.is_some() {
+            &self.rendered_status
+        } else {
+            &self.status
+        }
+    }
+    pub fn locale(&self) -> acad_cmd::messages::Locale {
+        self.locale
+    }
+    pub fn set_locale(&mut self, locale: acad_cmd::messages::Locale) {
+        self.locale = locale;
+        if let Some(diagnostic) = &self.status_diagnostic {
+            self.rendered_status = diagnostic.message.render(locale);
+        }
+    }
+    pub fn set_locale_tag(&mut self, tag: &str) -> Result<(), acad_cmd::messages::LocaleError> {
+        let locale = acad_cmd::messages::Locale::parse(tag)?;
+        self.set_locale(locale);
+        Ok(())
+    }
+    pub fn command_idle(&self) -> bool {
+        self.main_menu.is_none() && self.editor.command_idle()
+    }
+    pub fn inherit_presentation(&mut self, previous: &Session) {
+        self.profile = previous.profile();
+        self.set_locale(previous.locale());
+        self.set_palette(previous.palette());
+    }
+    /// Adapter boundary: record failures unless the shared operation already
+    /// replaced status (including its immediately captured typed diagnostic).
+    pub fn with_error_status<T>(
+        &mut self,
+        operation: impl FnOnce(&mut Self) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let revision = self.status_revision;
+        let result = operation(self);
+        if let Err(error) = &result {
+            if self.status_revision == revision {
+                self.set_status(error.clone());
+            }
+        }
+        result
+    }
+    /// Record a canonical transport failure from an external adapter.
+    pub fn record_error(&mut self, error: String) {
+        self.set_status(error);
+    }
+    fn invalidate_status_diagnostic(&mut self) {
+        self.status_diagnostic = None;
+        self.rendered_status.clear();
+        self.submission_diagnostic = None;
+    }
+    pub(crate) fn set_status(&mut self, status: String) {
+        self.status = status;
+        self.invalidate_status_diagnostic();
+        self.status_revision = self.status_revision.wrapping_add(1);
+    }
+    fn clear_status(&mut self) {
+        self.set_status(String::new());
+    }
+    /// Capture at dispatch, before callbacks, scripts or another macro piece run.
+    fn capture_command_diagnostic(&mut self, result: &Result<acad_cmd::Effect, String>) {
+        self.submission_diagnostic = if result.is_err() {
+            self.editor.command_diagnostic().cloned()
+        } else {
+            None
+        };
+    }
+    /// Resolved fixed file-picker keys; no browser catalog or formatter.
+    pub fn ui_labels(&self) -> serde_json::Value {
+        use acad_cmd::messages::{text, MessageId};
+        serde_json::json!({"schema_version":1,"labels":{
+            "ui.file.open_picker":text(MessageId::UiFileOpenPicker, self.locale).expect("static label"),
+            "ui.file.save_picker":text(MessageId::UiFileSavePicker, self.locale).expect("static label")
+        }})
     }
     pub fn input(&self) -> &str {
         &self.input
@@ -470,7 +567,7 @@ impl Session {
                 "AutoCAD 1.4 — Main Menu | {} {} {}",
                 self.prompt(),
                 self.input,
-                self.status
+                self.display_status()
             );
         }
         format!(
@@ -484,7 +581,7 @@ impl Session {
             if self.is_dirty() { " *" } else { "" },
             self.prompt(),
             self.input,
-            self.status,
+            self.display_status(),
             menu
         )
     }

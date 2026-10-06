@@ -1,0 +1,1344 @@
+{
+  "schema_version": 1,
+  "goal": "One shared engine with validated facts, messages, discovery and profiles",
+  "status": "complete",
+  "created_at": "2026-10-06T20:22:14.260099+00:00",
+  "updated_at": "2026-10-06T21:33:05.317101+00:00",
+  "backend": "built-in collaboration; no agents launched",
+  "worker_limit": 2,
+  "max_fix_attempts": 2,
+  "coordinator": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "note": "Proposed model for a future execution session; current coordinator unchanged"
+  },
+  "run": {
+    "base_commit": "56791fef67f063b2ad3ca8af811e4d54482d788a",
+    "plan": "docs/superpowers/plans/2026-10-06-data-driven-agent-loops.md",
+    "snapshot_status": "created",
+    "candidate_code_sha256": {
+      "Cargo.lock": "523d2f45439b763323681f2dd09738c986da23c3ebb8dd062bdd7b4a8bd1b528",
+      "crates/acad-cmd/Cargo.toml": "5bfcf0d30b9f8099521bffbdc80860ee072b47670da2af1127e7552f5781e590",
+      "crates/acad-cmd/build.rs": "0d9c671de85b9ea3955aee95125d7afdaa857bd575648c71db051619e2bb0bdd",
+      "crates/acad-cmd/resources/commands.json": "85f1f02fa162006b2c286c67fb9fce36353eb1495bfc7d716dbe6dcc2a603744",
+      "crates/acad-cmd/src/catalog.rs": "60b05b4f1f857bd8925dbded231a92713f4ea8b5fee55d226d1f296f5695ed55",
+      "crates/acad-cmd/src/dispatch.rs": "da7432fd4a78ef800bedcab11d7def446c8e295366d71bafea16491605b11d2d",
+      "crates/acad-cmd/src/lib.rs": "cd243561e86142c494ece22adda58a3d0e9ab8c44f0300e6285dee6327e8aafb",
+      "crates/acad-cmd/tests/catalog.rs": "2ea29e9ac5665a4138702c9842d11fa4e6aba127d3577a37a376239c9c45af7d",
+      "crates/acad-wasm/src/lib.rs": "ceafd9761c66ea58f531c3e8a30ebd4168a0b27c3d3d22d1329f9e31794222e4"
+    },
+    "excluded": [
+      "memory/",
+      "generated builds",
+      "credentials"
+    ],
+    "artifact_root": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4",
+    "foundation_snapshot": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d0-review",
+    "foundation_commit": "e6c4eb3fe16d99524fceefcf2c60a1cb68b9d4f9"
+  },
+  "baseline_validation": {
+    "status": "prior local validation, not independent approval",
+    "passed_tests": 667,
+    "test_log": "/tmp/autorust-data-catalog-tests.log",
+    "clippy_logs": [
+      "/tmp/autorust-data-catalog-clippy.log",
+      "/tmp/autorust-data-catalog-wasm-clippy.log"
+    ],
+    "scope": "acad-cmd, acad-app, acad-wasm; native and wasm Clippy; formatting and diff checks"
+  },
+  "tasks": [
+    {
+      "id": "D0",
+      "objective": "Review and integrate the local command catalog foundation",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [],
+      "acceptance": [
+        "All previous command spellings and behavior retained",
+        "Malformed catalogs rejected and dispatch exhaustive",
+        "Shared native/wasm command inventory"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "medium",
+      "agent": "/root/d0_review",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d0-review",
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T20:32:35.684543+00:00",
+          "note": "Independent review e6c4eb3 passed: 90 spellings/61 identities retained, 3 focused tests, 13 negative schema probes. Root hashes match reviewed candidate; prior 667 tests plus native/wasm Clippy remain valid for unchanged source."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T20:32:35.684543+00:00",
+          "note": "Independent review e6c4eb3 passed: 90 spellings/61 identities retained, 3 focused tests, 13 negative schema probes. Root hashes match reviewed candidate; prior 667 tests plus native/wasm Clippy remain valid for unchanged source."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T20:32:35.684543+00:00",
+          "note": "Independent review e6c4eb3 passed: 90 spellings/61 identities retained, 3 focused tests, 13 negative schema probes. Root hashes match reviewed candidate; prior 667 tests plus native/wasm Clippy remain valid for unchanged source."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T20:32:35.684543+00:00",
+          "note": "Independent review e6c4eb3 passed: 90 spellings/61 identities retained, 3 focused tests, 13 negative schema probes. Root hashes match reviewed candidate; prior 667 tests plus native/wasm Clippy remain valid for unchanged source."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d0.diff",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d0-review.md"
+      ],
+      "latest_note": "Catalog foundation independently reviewed and verified in root working tree.",
+      "updated_at": "2026-10-06T20:32:35.716654+00:00",
+      "usage": {
+        "availability": "Per-agent token counts are not exposed by this runtime; not estimated.",
+        "input_tokens": null,
+        "output_tokens": null,
+        "reasoning_tokens": null,
+        "cached_tokens": null
+      }
+    },
+    {
+      "id": "D1",
+      "objective": "Define message contracts and bounded extraction inventory",
+      "kind": "contract",
+      "status": "verified",
+      "depends_on": [
+        "D0"
+      ],
+      "acceptance": [
+        "Stable keys and typed named parameters",
+        "Faithful English and locale-independent tokens specified",
+        "Exact ownership and native/browser locale propagation"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "review_model": "gpt-6-astra",
+      "review_effort": "high",
+      "agent": "/root/d1_contract",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d1-contract",
+      "fix_attempts": 0,
+      "required_checks": [
+        "contract_acceptance",
+        "independent_review"
+      ],
+      "checks": {
+        "contract_acceptance": {
+          "result": "passed",
+          "at": "2026-10-06T20:39:18.802691+00:00",
+          "note": "Astra high independent contract review257aab73 passed with no required revisions; exact reviewed docs integrated. No runtime changes or tests required for contract."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T20:39:18.802691+00:00",
+          "note": "Astra high independent contract review257aab73 passed with no required revisions; exact reviewed docs integrated. No runtime changes or tests required for contract."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d1.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d1-review.md"
+      ],
+      "latest_note": "Message contract reviewed, accepted and integrated.",
+      "updated_at": "2026-10-06T20:39:18.832856+00:00",
+      "usage": {
+        "availability": "Per-agent token counts are not exposed by this runtime; not estimated.",
+        "input_tokens": null,
+        "output_tokens": null,
+        "reasoning_tokens": null,
+        "cached_tokens": null
+      }
+    },
+    {
+      "id": "D2",
+      "objective": "Implement shared message catalog and validated formatter",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D1"
+      ],
+      "acceptance": [
+        "Invalid schemas/parameters rejected",
+        "Deterministic fallback",
+        "One canonical source consumed by Rust"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "medium",
+      "agent": "/root/d2_messages",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d2-messages",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T20:47:46.574483+00:00",
+          "note": "Repair1 candidate03293f45 uses hygienic positionalgeneratedbindings;7schema/formattertests+Clippy pass, independent re-review launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T20:47:46.574483+00:00",
+          "note": "Repair1 candidate03293f45 uses hygienic positionalgeneratedbindings;7schema/formattertests+Clippy pass, independent re-review launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T20:48:43.087195+00:00",
+          "note": "Sol re-review03293f45 passed actual generated hygiene probes and formatting fixture. Reviewed patch integrated; scoped root catalog checks next."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T20:49:46.206630+00:00",
+          "note": "Root integrated7catalog/schema/formattertests passed against reviewed generator."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d2.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d2-review.md"
+      ],
+      "latest_note": "Shared generatedmessagecatalog independently reviewed and integrated; consumer/localization slices follow.",
+      "updated_at": "2026-10-06T20:49:46.239171+00:00",
+      "usage": {
+        "availability": "Per-agent token counts are not exposed by this runtime; not estimated.",
+        "input_tokens": null,
+        "output_tokens": null,
+        "reasoning_tokens": null,
+        "cached_tokens": null
+      }
+    },
+    {
+      "id": "D3",
+      "objective": "Extend shared command discovery metadata",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D0"
+      ],
+      "acceptance": [
+        "Categories/help keys/availability evidenced",
+        "No browser catalog duplication",
+        "Peripheral and extension limitations explicit"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "medium",
+      "agent": "/root/d3_discovery",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d3-discovery",
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T20:49:25.772936+00:00",
+          "note": "Commandmetadata candidate12cad764 ready; catalog/help7,menu5tests,Clippy,9negative metadata probes pass; independent Sol review launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T20:49:25.772936+00:00",
+          "note": "Commandmetadata candidate12cad764 ready; catalog/help7,menu5tests,Clippy,9negative metadata probes pass; independent Sol review launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T20:50:25.360497+00:00",
+          "note": "Sol review12cad764 passed. Productionpatch applied unchanged alongside D2generator; README additive overlap reconciled as union. Root combinedcatalogchecks next."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T20:50:55.314813+00:00",
+          "note": "Combined root catalog/help/message tests passed; command and message generators coexist correctly."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d3.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d3-review.md"
+      ],
+      "latest_note": "Shared command discovery metadata reviewed and integrated, with explicit key-only translation boundary.",
+      "updated_at": "2026-10-06T20:50:55.350611+00:00",
+      "usage": {
+        "availability": "Per-agent token counts are not exposed by this runtime; not estimated.",
+        "input_tokens": null,
+        "output_tokens": null,
+        "reasoning_tokens": null,
+        "cached_tokens": null
+      }
+    },
+    {
+      "id": "D4",
+      "objective": "Migrate the first English prompt and UI-label vertical slice",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D2",
+        "D3"
+      ],
+      "acceptance": [
+        "LINE/CIRCLE and unknown-command output preserved",
+        "Cancel/retry/scripts unchanged",
+        "Superseded literals removed from real consumers"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "high",
+      "agent": "/root/d4_consumers",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d4-consumers",
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T21:03:16.762819+00:00",
+          "note": "Consumer candidate completed; independent Sol high review started."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T21:03:16.762819+00:00",
+          "note": "Consumer candidate completed; independent Sol high review started."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T21:03:50.969772+00:00",
+          "note": "Reviewed patch integrated cleanly; focused locale tests passed."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T21:03:50.969772+00:00",
+          "note": "Reviewed patch integrated cleanly; focused locale tests passed."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d4.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d4-review.md"
+      ],
+      "latest_note": "Reviewed patch integrated cleanly; focused locale tests passed.",
+      "updated_at": "2026-10-06T21:03:50.969772+00:00",
+      "routing_reason": "44 Session status writes across8modules require careful typed-diagnostic cache invalidation; use Solhigh for this consumer slice.",
+      "usage": {
+        "availability": "Per-agent token counts are not exposed by this runtime; not estimated.",
+        "input_tokens": null,
+        "output_tokens": null,
+        "reasoning_tokens": null,
+        "cached_tokens": null
+      }
+    },
+    {
+      "id": "D5",
+      "objective": "Verify and implement localized UI glyph support",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D1"
+      ],
+      "acceptance": [
+        "Ukrainian glyphs visibly render in native and browser",
+        "Font provenance and measurement verified",
+        "Drawing TEXT and retained fonts unaffected"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "high",
+      "agent": "/root/d5_glyphs",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d5-glyphs",
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T20:43:15.434794+00:00",
+          "note": "Glyph candidate9ffa7021 ready: ASCIIpixels,66Ukrainianglyphs, clipping, reportUTF8anchors tests pass; Sol high independent review launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T20:43:15.434794+00:00",
+          "note": "Glyph candidate9ffa7021 ready: ASCIIpixels,66Ukrainianglyphs, clipping, reportUTF8anchors tests pass; Sol high independent review launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T20:45:40.015299+00:00",
+          "note": "Sol high review9ffa7021 passed Unicode/ASCII layout fuzz and glyph preservation. Coordinator inspected alphabet/commandarea PNG; reviewed patch integrated. Native/browser finalvisualgate remains D10."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T20:46:43.698278+00:00",
+          "note": "Integrated root report tests passed; coordinator visually inspected existing glyphpreview. Actual native/browser locale visualgate deferred explicitly toD10."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d5.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d5-review.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d5-ui-glyphs.png"
+      ],
+      "latest_note": "Shared glyphcoverage/reportUnicode fix reviewed and verified; no new fonts or drawingTEXT changes.",
+      "updated_at": "2026-10-06T20:46:43.735649+00:00",
+      "usage": {
+        "availability": "Per-agent token counts are not exposed by this runtime; not estimated.",
+        "input_tokens": null,
+        "output_tokens": null,
+        "reasoning_tokens": null,
+        "cached_tokens": null
+      }
+    },
+    {
+      "id": "D6",
+      "objective": "Deliver the Ukrainian vertical slice",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D4",
+        "D5"
+      ],
+      "acceptance": [
+        "Declared slice has complete translations and parameter checks",
+        "Visible native/browser locale switch",
+        "Scripts and file bytes locale-independent"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "medium",
+      "agent": "/root/d6_uk",
+      "workspace": null,
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T21:09:49.760578+00:00",
+          "note": "Repair1 keyboard isolation and actual-handler regression passed; Rust unchanged, retained scoped Clippy valid."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T21:09:49.760578+00:00",
+          "note": "Repair1 keyboard isolation and actual-handler regression passed; Rust unchanged, retained scoped Clippy valid."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T21:10:33.668918+00:00",
+          "note": "Exact repair reviewed and integrated; Session and actual browser-handler tests pass. Live native/browser proof reserved for D10 gate."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T21:10:33.668918+00:00",
+          "note": "Exact repair reviewed and integrated; Session and actual browser-handler tests pass. Live native/browser proof reserved for D10 gate."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d6-uk",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d6.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d6-review.md"
+      ],
+      "latest_note": "Exact repair reviewed and integrated; Session and actual browser-handler tests pass. Live native/browser proof reserved for D10 gate.",
+      "updated_at": "2026-10-06T21:10:33.668918+00:00"
+    },
+    {
+      "id": "D7",
+      "objective": "Extract hatch descriptions as the first static-fact slice",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D0"
+      ],
+      "acceptance": [
+        "Exact inventory and provenance",
+        "Old table replaced in consumers",
+        "Existing behavior preserved"
+      ],
+      "model": "gpt-6-luna",
+      "effort": "low",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "medium",
+      "agent": "/root/d7_hatch",
+      "workspace": "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d7-hatch",
+      "fix_attempts": 1,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T20:39:18.863432+00:00",
+          "note": "Repair1 c2afd959 corrects tag provenance and blank source validation; focused tests/Clippy pass; Sol re-review launched."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T20:39:18.863432+00:00",
+          "note": "Repair1 c2afd959 corrects tag provenance and blank source validation; focused tests/Clippy pass; Sol re-review launched."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T20:40:08.141291+00:00",
+          "note": "Sol repair reviewc2afd959 passed, exact23 tag sources and blank-source probe. Reviewed patch integrated serially; root consumer checks pending."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T20:40:42.856519+00:00",
+          "note": "Root integrated focused hatch tests passed; independent review and scoped Clippy passed."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d7.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d7-review.md"
+      ],
+      "latest_note": "Hatch descriptions have one canonical data source, exact tag provenance, and reviewed integrated checks.",
+      "updated_at": "2026-10-06T20:40:42.896185+00:00",
+      "usage": {
+        "availability": "Per-agent token counts are not exposed by this runtime; not estimated.",
+        "input_tokens": null,
+        "output_tokens": null,
+        "reasoning_tokens": null,
+        "cached_tokens": null
+      }
+    },
+    {
+      "id": "D8",
+      "objective": "Implement validated Faithful and Modernized profiles",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D1",
+        "D3"
+      ],
+      "acceptance": [
+        "Exposed fields drive behavior",
+        "Mode switch preserves document/view/undo/pending command",
+        "Faithful defaults preserved without new file semantics"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "high",
+      "agent": "/root/d8_profiles",
+      "workspace": null,
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T21:18:59.099933+00:00",
+          "note": "Candidate033e0d0 passed702Rust20Node and Clippy; independent Sol high review started."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T21:18:59.099933+00:00",
+          "note": "Candidate033e0d0 passed702Rust20Node and Clippy; independent Sol high review started."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T21:20:46.814313+00:00",
+          "note": "Exact reviewed patch integrated;4Session3browser profile focused tests pass."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T21:20:46.814313+00:00",
+          "note": "Exact reviewed patch integrated;4Session3browser profile focused tests pass."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d8-profiles",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d8.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d8-review.md"
+      ],
+      "latest_note": "Exact reviewed patch integrated;4Session3browser profile focused tests pass.",
+      "updated_at": "2026-10-06T21:20:46.814313+00:00"
+    },
+    {
+      "id": "D9",
+      "objective": "Pilot one typed declarative prompt/choice workflow",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D4",
+        "D8"
+      ],
+      "acceptance": [
+        "One bounded family only",
+        "Retry/cancel and Faithful parity demonstrated",
+        "Reduced duplication demonstrated, or pilot rejected with evidence of added complexity"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "high",
+      "agent": "/root/d9_choices",
+      "workspace": null,
+      "fix_attempts": 0,
+      "required_checks": [
+        "focused_tests",
+        "scoped_clippy",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "focused_tests": {
+          "result": "passed",
+          "at": "2026-10-06T21:25:39.731062+00:00",
+          "note": "Functional pilot rejected with106line cost for1repeat removal; restored production13parity tests pass. Independent evidence review started."
+        },
+        "scoped_clippy": {
+          "result": "passed",
+          "at": "2026-10-06T21:25:39.731062+00:00",
+          "note": "Functional pilot rejected with106line cost for1repeat removal; restored production13parity tests pass. Independent evidence review started."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T21:26:47.624788+00:00",
+          "note": "Evidence decision independently passed; production unchanged;13 integrated ARC parity tests pass. Bounded extraction rejected."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T21:26:47.624788+00:00",
+          "note": "Evidence decision independently passed; production unchanged;13 integrated ARC parity tests pass. Bounded extraction rejected."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d9-choices",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d9.patch",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d9-review.md"
+      ],
+      "latest_note": "Evidence decision independently passed; production unchanged;13 integrated ARC parity tests pass. Bounded extraction rejected.",
+      "updated_at": "2026-10-06T21:26:47.624788+00:00",
+      "review_escalation": {
+        "model": "gpt-6-astra",
+        "effort": "high",
+        "trigger": "Unresolved contract or semantic ambiguity"
+      }
+    },
+    {
+      "id": "D10",
+      "objective": "Validate integrated source and prepare reviewable release scope",
+      "kind": "implementation",
+      "status": "verified",
+      "depends_on": [
+        "D0",
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7",
+        "D8",
+        "D9"
+      ],
+      "acceptance": [
+        "CI-equivalent gate passes",
+        "Native/browser smoke flows and localized glyphs verified",
+        "Deferred work and unavailable oracle checks explicitly reported"
+      ],
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "review_model": "gpt-6.1-sol",
+      "review_effort": "high",
+      "agent": "/root",
+      "workspace": null,
+      "fix_attempts": 0,
+      "required_checks": [
+        "ci_equivalent_gate",
+        "native_browser_smoke",
+        "coverage_report",
+        "independent_review",
+        "integrated_checks"
+      ],
+      "checks": {
+        "ci_equivalent_gate": {
+          "result": "passed",
+          "at": "2026-10-06T21:30:33.471226+00:00",
+          "note": "1052workspace+20Node+2realoracle tests;1explicit existing ignored test. Native/browser live workflows and glyph/narrow inspection passed; fresh final review next."
+        },
+        "native_browser_smoke": {
+          "result": "passed",
+          "at": "2026-10-06T21:30:33.471226+00:00",
+          "note": "1052workspace+20Node+2realoracle tests;1explicit existing ignored test. Native/browser live workflows and glyph/narrow inspection passed; fresh final review next."
+        },
+        "coverage_report": {
+          "result": "passed",
+          "at": "2026-10-06T21:30:33.471226+00:00",
+          "note": "1052workspace+20Node+2realoracle tests;1explicit existing ignored test. Native/browser live workflows and glyph/narrow inspection passed; fresh final review next."
+        },
+        "independent_review": {
+          "result": "passed",
+          "at": "2026-10-06T21:33:05.317101+00:00",
+          "note": "Final independent Sol high PASS exactc7c79d3; root content matched4863snapshot files. All gates and local release scope complete; no publication."
+        },
+        "integrated_checks": {
+          "result": "passed",
+          "at": "2026-10-06T21:33:05.317101+00:00",
+          "note": "Final independent Sol high PASS exactc7c79d3; root content matched4863snapshot files. All gates and local release scope complete; no publication."
+        }
+      },
+      "review": "pass",
+      "integrated": true,
+      "artifacts": [
+        "docs/data-driven-validation.md",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d10-evidence",
+        "/var/folders/d1/r2bpvclx19q4vd4c_8g42ddh0000gn/T/autorust-data-loops-yek95zp4/d10-review.md"
+      ],
+      "latest_note": "Final independent Sol high PASS exactc7c79d3; root content matched4863snapshot files. All gates and local release scope complete; no publication.",
+      "updated_at": "2026-10-06T21:33:05.317101+00:00"
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-10-06T20:31:34.051383+00:00",
+      "task": "D0",
+      "from": "review",
+      "to": "review",
+      "note": "Independent Sol medium review launched against isolated foundation snapshot e6c4eb3fe16d99524fceefcf2c60a1cb68b9d4f9; original working tree preserved.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:32:35.684543+00:00",
+      "task": "D0",
+      "from": "review",
+      "to": "review",
+      "note": "Independent review e6c4eb3 passed: 90 spellings/61 identities retained, 3 focused tests, 13 negative schema probes. Root hashes match reviewed candidate; prior 667 tests plus native/wasm Clippy remain valid for unchanged source.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed",
+        "independent_review=passed",
+        "integrated_checks=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T20:32:35.716654+00:00",
+      "task": "D0",
+      "from": "review",
+      "to": "verified",
+      "note": "Catalog foundation independently reviewed and verified in root working tree.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:32:35.747787+00:00",
+      "task": "D1",
+      "from": "pending",
+      "to": "ready",
+      "note": "D0 verified; message contract is ready.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:32:35.779662+00:00",
+      "task": "D7",
+      "from": "pending",
+      "to": "ready",
+      "note": "D0 verified; hatch facts are an independent extraction.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:33:08.708738+00:00",
+      "task": "D1",
+      "from": "ready",
+      "to": "running",
+      "note": "Sol high drafting bounded message contract in isolated d1-contract snapshot.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:33:08.744244+00:00",
+      "task": "D7",
+      "from": "ready",
+      "to": "running",
+      "note": "Luna low mechanically extracting hatch descriptions in isolated d7-hatch snapshot.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:36:08.650366+00:00",
+      "task": "D7",
+      "from": "running",
+      "to": "review",
+      "note": "Luna candidate 2a466bfa ready; 23 exact baseline entries, focused hatch tests and Clippy pass. Independent Sol review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:37:19.714014+00:00",
+      "task": "D7",
+      "from": "review",
+      "to": "fixing",
+      "note": "Independent review: all 23 source lines are +1 against v0.4.3; values/order match, 12 negative schema probes rejected. Repair provenance from the actual tag; approvals/checks invalidated.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-06T20:37:44.366450+00:00",
+      "task": "D1",
+      "from": "running",
+      "to": "review",
+      "note": "Message contract candidate257aab73 ready; docs diff check passes. Independent Astra high architecture review launched.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:39:18.802691+00:00",
+      "task": "D1",
+      "from": "review",
+      "to": "review",
+      "note": "Astra high independent contract review257aab73 passed with no required revisions; exact reviewed docs integrated. No runtime changes or tests required for contract.",
+      "checks": [
+        "contract_acceptance=passed",
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T20:39:18.832856+00:00",
+      "task": "D1",
+      "from": "review",
+      "to": "verified",
+      "note": "Message contract reviewed, accepted and integrated.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:39:18.863432+00:00",
+      "task": "D7",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 c2afd959 corrects tag provenance and blank source validation; focused tests/Clippy pass; Sol re-review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:39:18.894121+00:00",
+      "task": "D5",
+      "from": "pending",
+      "to": "ready",
+      "note": "Message contract verified; shared glyph verification/fix ready.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:39:34.664316+00:00",
+      "task": "D5",
+      "from": "ready",
+      "to": "running",
+      "note": "Sol high verifying existing Ukrainian bitmap coverage and fixing report Unicode sanitization in isolated d5-glyphs snapshot.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:40:08.141291+00:00",
+      "task": "D7",
+      "from": "review",
+      "to": "review",
+      "note": "Sol repair reviewc2afd959 passed, exact23 tag sources and blank-source probe. Reviewed patch integrated serially; root consumer checks pending.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T20:40:23.137623+00:00",
+      "task": "D2",
+      "from": "pending",
+      "to": "ready",
+      "note": "D1 verified; implement shared message catalog against integrated hatch build pipeline.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:40:42.856519+00:00",
+      "task": "D7",
+      "from": "review",
+      "to": "review",
+      "note": "Root integrated focused hatch tests passed; independent review and scoped Clippy passed.",
+      "checks": [
+        "integrated_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:40:42.896185+00:00",
+      "task": "D7",
+      "from": "review",
+      "to": "verified",
+      "note": "Hatch descriptions have one canonical data source, exact tag provenance, and reviewed integrated checks.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:40:42.932670+00:00",
+      "task": "D2",
+      "from": "ready",
+      "to": "running",
+      "note": "Sol medium implementing bounded generated message catalog in isolated d2-messages snapshot.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:43:15.434794+00:00",
+      "task": "D5",
+      "from": "running",
+      "to": "review",
+      "note": "Glyph candidate9ffa7021 ready: ASCIIpixels,66Ukrainianglyphs, clipping, reportUTF8anchors tests pass; Sol high independent review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:44:34.718890+00:00",
+      "task": "D2",
+      "from": "running",
+      "to": "review",
+      "note": "Generatedmessage candidate0bf0b486 ready: all acad-cmd tests,6strictcatalog tests,Clippy passed. Independent Sol medium review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:45:40.015299+00:00",
+      "task": "D5",
+      "from": "review",
+      "to": "review",
+      "note": "Sol high review9ffa7021 passed Unicode/ASCII layout fuzz and glyph preservation. Coordinator inspected alphabet/commandarea PNG; reviewed patch integrated. Native/browser finalvisualgate remains D10.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T20:46:18.526456+00:00",
+      "task": "D2",
+      "from": "review",
+      "to": "fixing",
+      "note": "Independent review found generator hygiene issue: schema-valid args locale/output shadow internal variables and fail rustc. Fix private positional bindings and add compile fixtures; other contract checks pass.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-06T20:46:18.558082+00:00",
+      "task": "D3",
+      "from": "pending",
+      "to": "ready",
+      "note": "D0 verified; command metadata extraction ready, separate from message formatter internals.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:46:43.698278+00:00",
+      "task": "D5",
+      "from": "review",
+      "to": "review",
+      "note": "Integrated root report tests passed; coordinator visually inspected existing glyphpreview. Actual native/browser locale visualgate deferred explicitly toD10.",
+      "checks": [
+        "integrated_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:46:43.735649+00:00",
+      "task": "D5",
+      "from": "review",
+      "to": "verified",
+      "note": "Shared glyphcoverage/reportUnicode fix reviewed and verified; no new fonts or drawingTEXT changes.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:46:43.770036+00:00",
+      "task": "D3",
+      "from": "ready",
+      "to": "running",
+      "note": "Sol medium implementing command metadata in isolated snapshot; touches commandgeneration only, disjoint from D2formatter repair.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:47:46.574483+00:00",
+      "task": "D2",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 candidate03293f45 uses hygienic positionalgeneratedbindings;7schema/formattertests+Clippy pass, independent re-review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:48:43.087195+00:00",
+      "task": "D2",
+      "from": "review",
+      "to": "review",
+      "note": "Sol re-review03293f45 passed actual generated hygiene probes and formatting fixture. Reviewed patch integrated; scoped root catalog checks next.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T20:49:25.772936+00:00",
+      "task": "D3",
+      "from": "running",
+      "to": "review",
+      "note": "Commandmetadata candidate12cad764 ready; catalog/help7,menu5tests,Clippy,9negative metadata probes pass; independent Sol review launched.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:49:46.206630+00:00",
+      "task": "D2",
+      "from": "review",
+      "to": "review",
+      "note": "Root integrated7catalog/schema/formattertests passed against reviewed generator.",
+      "checks": [
+        "integrated_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:49:46.239171+00:00",
+      "task": "D2",
+      "from": "review",
+      "to": "verified",
+      "note": "Shared generatedmessagecatalog independently reviewed and integrated; consumer/localization slices follow.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:50:25.360497+00:00",
+      "task": "D3",
+      "from": "review",
+      "to": "review",
+      "note": "Sol review12cad764 passed. Productionpatch applied unchanged alongside D2generator; README additive overlap reconciled as union. Root combinedcatalogchecks next.",
+      "checks": [
+        "independent_review=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T20:50:55.314813+00:00",
+      "task": "D3",
+      "from": "review",
+      "to": "review",
+      "note": "Combined root catalog/help/message tests passed; command and message generators coexist correctly.",
+      "checks": [
+        "integrated_checks=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:50:55.350611+00:00",
+      "task": "D3",
+      "from": "review",
+      "to": "verified",
+      "note": "Shared command discovery metadata reviewed and integrated, with explicit key-only translation boundary.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:50:55.388518+00:00",
+      "task": "D4",
+      "from": "pending",
+      "to": "ready",
+      "note": "D2 and D3 verified; first English consumer migration ready.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T20:51:18.504456+00:00",
+      "task": "D4",
+      "from": "ready",
+      "to": "running",
+      "note": "Sol high migrating English consumers and typedstatus lifecycle; effort promoted due44statuswrites/8seams. Isolated d4-consumers snapshot.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:03:16.762819+00:00",
+      "task": "D4",
+      "from": "running",
+      "to": "review",
+      "note": "Consumer candidate completed; independent Sol high review started.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:03:50.969772+00:00",
+      "task": "D4",
+      "from": "review",
+      "to": "verified",
+      "note": "Reviewed patch integrated cleanly; focused locale tests passed.",
+      "checks": [
+        "independent_review=passed",
+        "integrated_checks=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T21:04:09.901622+00:00",
+      "task": "D6",
+      "from": "pending",
+      "to": "ready",
+      "note": "D4 and D5 verified; Ukrainian slice unblocked.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:04:10.033270+00:00",
+      "task": "D6",
+      "from": "ready",
+      "to": "running",
+      "note": "Sol medium implementation in isolated snapshot 891643aa7a29d5eccf6a57ca524525111dfaadad.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:08:12.286294+00:00",
+      "task": "D6",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate e6c6930 complete; independent Sol medium review started. Visual proof remains D10.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:08:51.173865+00:00",
+      "task": "D6",
+      "from": "review",
+      "to": "fixing",
+      "note": "Independent review found locale selector keyboard events were forwarded into CAD input. Repair required.",
+      "checks": [],
+      "review": "changes_requested"
+    },
+    {
+      "at": "2026-10-06T21:09:49.760578+00:00",
+      "task": "D6",
+      "from": "fixing",
+      "to": "review",
+      "note": "Repair1 keyboard isolation and actual-handler regression passed; Rust unchanged, retained scoped Clippy valid.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:10:09.316865+00:00",
+      "task": "D8",
+      "from": "pending",
+      "to": "ready",
+      "note": "Profile dependencies verified; D6 integrated to avoid shared consumer overlap.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:10:29.297635+00:00",
+      "task": "D8",
+      "from": "ready",
+      "to": "running",
+      "note": "Sol high shared profile/state-preservation candidate db6480f snapshot.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:10:33.668918+00:00",
+      "task": "D6",
+      "from": "review",
+      "to": "verified",
+      "note": "Exact repair reviewed and integrated; Session and actual browser-handler tests pass. Live native/browser proof reserved for D10 gate.",
+      "checks": [
+        "independent_review=passed",
+        "integrated_checks=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T21:18:59.099933+00:00",
+      "task": "D8",
+      "from": "running",
+      "to": "review",
+      "note": "Candidate033e0d0 passed702Rust20Node and Clippy; independent Sol high review started.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:20:46.814313+00:00",
+      "task": "D8",
+      "from": "review",
+      "to": "verified",
+      "note": "Exact reviewed patch integrated;4Session3browser profile focused tests pass.",
+      "checks": [
+        "independent_review=passed",
+        "integrated_checks=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T21:20:46.952376+00:00",
+      "task": "D9",
+      "from": "pending",
+      "to": "ready",
+      "note": "D4/D8 verified; bounded repetitive-choice pilot unblocked.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:21:05.485145+00:00",
+      "task": "D9",
+      "from": "ready",
+      "to": "running",
+      "note": "Sol high bounded ARC/CIRCLE choice assessment; reject complexity if no useful source removal.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:25:39.731062+00:00",
+      "task": "D9",
+      "from": "running",
+      "to": "review",
+      "note": "Functional pilot rejected with106line cost for1repeat removal; restored production13parity tests pass. Independent evidence review started.",
+      "checks": [
+        "focused_tests=passed",
+        "scoped_clippy=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:26:47.624788+00:00",
+      "task": "D9",
+      "from": "review",
+      "to": "verified",
+      "note": "Evidence decision independently passed; production unchanged;13 integrated ARC parity tests pass. Bounded extraction rejected.",
+      "checks": [
+        "independent_review=passed",
+        "integrated_checks=passed"
+      ],
+      "review": "pass"
+    },
+    {
+      "at": "2026-10-06T21:26:47.770054+00:00",
+      "task": "D10",
+      "from": "pending",
+      "to": "ready",
+      "note": "All D0-D9 verified; final integrated validation unblocked.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:26:47.906127+00:00",
+      "task": "D10",
+      "from": "ready",
+      "to": "running",
+      "note": "Native/browser smoke passed; finishing complete CI gates, coverage report, independent final review.",
+      "checks": [],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:30:33.471226+00:00",
+      "task": "D10",
+      "from": "running",
+      "to": "review",
+      "note": "1052workspace+20Node+2realoracle tests;1explicit existing ignored test. Native/browser live workflows and glyph/narrow inspection passed; fresh final review next.",
+      "checks": [
+        "ci_equivalent_gate=passed",
+        "native_browser_smoke=passed",
+        "coverage_report=passed"
+      ],
+      "review": null
+    },
+    {
+      "at": "2026-10-06T21:33:05.317101+00:00",
+      "task": "D10",
+      "from": "review",
+      "to": "verified",
+      "note": "Final independent Sol high PASS exactc7c79d3; root content matched4863snapshot files. All gates and local release scope complete; no publication.",
+      "checks": [
+        "independent_review=passed",
+        "integrated_checks=passed"
+      ],
+      "review": "pass"
+    }
+  ],
+  "completed_at": "2026-10-06T21:33:27.534534+00:00"
+}

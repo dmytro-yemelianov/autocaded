@@ -19,6 +19,44 @@ pub struct AutoCadSession {
 
 #[wasm_bindgen]
 impl AutoCadSession {
+    /// Shared command identities, aliases and localization keys as versioned JSON.
+    pub fn command_catalog(&self) -> String {
+        acad_cmd::catalog::CATALOG_JSON.to_owned()
+    }
+
+    /// Shared presentation profile IDs and resolved labels/presets.
+    pub fn presentation_profiles(&self) -> String {
+        self.session.presentation_profiles().to_string()
+    }
+    pub fn mode(&self) -> String {
+        self.session.profile().definition().stable_id.to_owned()
+    }
+    pub fn set_mode(&mut self, id: &str) -> Result<(), JsValue> {
+        self.session
+            .set_mode(id)
+            .map_err(|e| JsValue::from_str(&e))?;
+        self.fonts.set_palette(self.session.palette());
+        Ok(())
+    }
+
+    /// Presentation locale, owned by the shared Session.
+    pub fn locale(&self) -> String {
+        match self.session.locale() {
+            acad_cmd::messages::Locale::En => "en",
+            acad_cmd::messages::Locale::Uk => "uk",
+        }
+        .to_owned()
+    }
+    pub fn set_locale(&mut self, tag: &str) -> Result<(), JsValue> {
+        self.session
+            .set_locale_tag(tag)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+    /// Versioned resolved UI labels from Rust, refreshed by the page on redraw.
+    pub fn ui_labels(&self) -> String {
+        self.session.ui_labels().to_string()
+    }
+
     #[wasm_bindgen(constructor)]
     pub fn new(width: u32, height: u32) -> Result<AutoCadSession, JsValue> {
         let mut session = Session::default();
@@ -38,18 +76,22 @@ impl AutoCadSession {
 
     /// Register a shape/font library (e.g. "TXT" from TXT.SHP bytes).
     pub fn load_font(&mut self, name: &str, bytes: &[u8]) -> Result<(), JsValue> {
-        self.fonts
-            .insert(name, bytes)
-            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        self.fonts.insert(name, bytes).map_err(|e| {
+            self.session.record_error(e.to_string());
+            JsValue::from_str(&e.to_string())
+        })?;
         self.session
-            .add_shape_library(name, bytes)
+            .with_error_status(|session| session.add_shape_library(name, bytes))
             .map_err(|e| JsValue::from_str(&e))
     }
 
     /// Select how colour numbers are drawn: "pc16" (default) or "aci256".
     pub fn set_palette(&mut self, name: &str) -> Result<(), JsValue> {
-        let palette = acad_model::Palette::from_name(name)
-            .ok_or_else(|| JsValue::from_str(&format!("unknown palette '{name}'")))?;
+        let palette = acad_model::Palette::from_name(name).ok_or_else(|| {
+            let error = format!("unknown palette '{name}'");
+            self.session.record_error(error.clone());
+            JsValue::from_str(&error)
+        })?;
         self.session.set_palette(palette);
         self.fonts.set_palette(palette);
         Ok(())
@@ -58,14 +100,14 @@ impl AutoCadSession {
     /// Load a screen menu from MNU bytes (e.g. ACAD.MNU).
     pub fn load_menu(&mut self, bytes: &[u8]) -> Result<(), JsValue> {
         self.session
-            .load_menu_bytes(bytes)
+            .with_error_status(|session| session.load_menu_bytes(bytes))
             .map_err(|e| JsValue::from_str(&e))
     }
 
     /// Submit a command or response line (like pressing Return in AutoCAD).
     pub fn command(&mut self, input: &str) -> Result<String, JsValue> {
         self.session
-            .command(input)
+            .with_error_status(|session| session.command(input))
             .map_err(|e| JsValue::from_str(&e))?;
         Ok(self.session.prompt().to_owned())
     }
@@ -81,55 +123,57 @@ impl AutoCadSession {
         logo: bool,
     ) -> Result<bool, JsValue> {
         let (width, height) = (self.viewport_width, self.viewport_height);
-        let result = match key {
-            "Enter" if self.session.report_visible() && self.session.input().is_empty() => self
-                .session
-                .report_action(ReportAction::Close, width, height)
-                .map(|_| false),
-            "Enter" => {
-                let input = self.session.input().to_owned();
-                self.session.command(&input)
-            }
-            _ if self.session.report_visible() && key.chars().count() > 1 => {
-                let action = match key {
-                    "Escape" => ReportAction::Close,
-                    "ArrowUp" => ReportAction::Up,
-                    "ArrowDown" => ReportAction::Down,
-                    "PageUp" => ReportAction::PageUp,
-                    "PageDown" => ReportAction::PageDown,
-                    "Home" => ReportAction::Home,
-                    "End" => ReportAction::End,
-                    _ => return Ok(false),
-                };
-                self.session
-                    .report_action(action, width, height)
-                    .map(|_| false)
-            }
-            "Escape" => self.session.cancel(),
-            "Backspace" => {
-                let mut input = self.session.input().to_owned();
-                input.pop();
-                self.session.set_input(input);
-                Ok(false)
-            }
-            // DOM names special keys with words ("Shift", "F1"); text is one char.
-            _ if key.chars().count() == 1 => self
-                .session
-                .key_character(key, KeyModifiers { control, alt, logo }),
-            _ => return Ok(false),
-        };
-        result.map(|_| true).map_err(|e| JsValue::from_str(&e))
+        let result = self.session.with_error_status(|session| {
+            let result = match key {
+                "Enter" if session.report_visible() && session.input().is_empty() => session
+                    .report_action(ReportAction::Close, width, height)
+                    .map(|_| false),
+                "Enter" => {
+                    let input = session.input().to_owned();
+                    session.command(&input)
+                }
+                _ if session.report_visible() && key.chars().count() > 1 => {
+                    let action = match key {
+                        "Escape" => ReportAction::Close,
+                        "ArrowUp" => ReportAction::Up,
+                        "ArrowDown" => ReportAction::Down,
+                        "PageUp" => ReportAction::PageUp,
+                        "PageDown" => ReportAction::PageDown,
+                        "Home" => ReportAction::Home,
+                        "End" => ReportAction::End,
+                        _ => return Ok(false),
+                    };
+                    session.report_action(action, width, height).map(|_| false)
+                }
+                "Escape" => session.cancel(),
+                "Backspace" => {
+                    let mut input = session.input().to_owned();
+                    input.pop();
+                    session.set_input(input);
+                    Ok(false)
+                }
+                // DOM names special keys with words ("Shift", "F1"); text is one char.
+                _ if key.chars().count() == 1 => {
+                    session.key_character(key, KeyModifiers { control, alt, logo })
+                }
+                _ => return Ok(false),
+            };
+            result.map(|_| true)
+        });
+        result.map_err(|e| JsValue::from_str(&e))
     }
 
     /// Cancel the active command (like pressing Escape).
     pub fn cancel(&mut self) -> Result<bool, JsValue> {
-        self.session.cancel().map_err(|e| JsValue::from_str(&e))
+        self.session
+            .with_error_status(|session| session.cancel())
+            .map_err(|e| JsValue::from_str(&e))
     }
 
     /// Place a coordinate point.
     pub fn point(&mut self, x: f64, y: f64) -> Result<bool, JsValue> {
         self.session
-            .point(acad_model::Point { x, y })
+            .with_error_status(|session| session.point(acad_model::Point { x, y }))
             .map_err(|e| JsValue::from_str(&e))
     }
 
@@ -142,7 +186,7 @@ impl AutoCadSession {
         height: u32,
     ) -> Result<bool, JsValue> {
         self.session
-            .click(client_x, client_y, width, height)
+            .with_error_status(|session| session.click(client_x, client_y, width, height))
             .map_err(|e| JsValue::from_str(&e))
     }
 
@@ -156,7 +200,7 @@ impl AutoCadSession {
         height: u32,
     ) -> Result<bool, JsValue> {
         self.session
-            .press(client_x, client_y, width, height)
+            .with_error_status(|session| session.press(client_x, client_y, width, height))
             .map_err(|e| JsValue::from_str(&e))
     }
 
@@ -169,7 +213,7 @@ impl AutoCadSession {
         height: u32,
     ) -> Result<bool, JsValue> {
         self.session
-            .release(client_x, client_y, width, height)
+            .with_error_status(|session| session.release(client_x, client_y, width, height))
             .map_err(|e| JsValue::from_str(&e))
     }
 
@@ -182,7 +226,7 @@ impl AutoCadSession {
         height: u32,
     ) -> Result<bool, JsValue> {
         self.session
-            .motion(client_x, client_y, width, height)
+            .with_error_status(|session| session.motion(client_x, client_y, width, height))
             .map_err(|e| JsValue::from_str(&e))
     }
 
@@ -194,7 +238,7 @@ impl AutoCadSession {
     /// Drag the drawing by a physical pixel displacement while idle.
     pub fn pan(&mut self, dx: f64, dy: f64, width: u32, height: u32) -> Result<bool, JsValue> {
         self.session
-            .pan_pixels(dx, dy, width, height)
+            .with_error_status(|session| session.pan_pixels(dx, dy, width, height))
             .map_err(|e| JsValue::from_str(&e))
     }
 
@@ -205,7 +249,7 @@ impl AutoCadSession {
         let _ = self.session.set_viewport_size(width, height);
         let frame: Frame = self
             .session
-            .frame(width, height)
+            .with_error_status(|session| session.frame(width, height))
             .map_err(|e| JsValue::from_str(&e))?;
         Ok(frame.rgba())
     }
@@ -217,7 +261,7 @@ impl AutoCadSession {
         let _ = self.session.set_viewport_size(width, height);
         let frame: Frame = self
             .session
-            .frame(width, height)
+            .with_error_status(|session| session.frame(width, height))
             .map_err(|e| JsValue::from_str(&e))?;
         frame.png().map_err(|e| JsValue::from_str(&e))
     }
@@ -231,22 +275,30 @@ impl AutoCadSession {
     /// Open DWG or DXF bytes, chosen by the DWG magic as in the native app
     /// (so a `.BAK` opens as the DWG it is).
     pub fn open_auto(&mut self, bytes: &[u8]) -> Result<(), JsValue> {
-        let drawing = acad_app::decode_drawing(bytes).map_err(|e| JsValue::from_str(&e))?;
+        let drawing = acad_app::decode_drawing(bytes).map_err(|e| {
+            self.session.record_error(e.clone());
+            JsValue::from_str(&e)
+        })?;
         self.session.open_drawing(drawing);
         Ok(())
     }
 
     /// Open DWG bytes directly.
     pub fn open_dwg(&mut self, bytes: &[u8]) -> Result<(), JsValue> {
-        let drawing = acad_dwg::parse(bytes).map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let drawing = acad_dwg::parse(bytes).map_err(|e| {
+            self.session.record_error(e.to_string());
+            JsValue::from_str(&e.to_string())
+        })?;
         self.session.open_drawing(drawing);
         Ok(())
     }
 
     /// Open DXF text string directly.
     pub fn open_dxf(&mut self, text: &str) -> Result<(), JsValue> {
-        let drawing =
-            acad_dxf::parse(text.as_bytes()).map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let drawing = acad_dxf::parse(text.as_bytes()).map_err(|e| {
+            self.session.record_error(e.to_string());
+            JsValue::from_str(&e.to_string())
+        })?;
         self.session.open_drawing(drawing);
         Ok(())
     }
@@ -279,6 +331,10 @@ impl AutoCadSession {
         let d = self.session.drawing();
         let h = &d.header;
         let obj = serde_json::json!({
+            "command_idle": self.session.command_idle(),
+            "locale": self.locale(),
+            "mode": self.mode(),
+            "palette": self.session.palette().name(),
             "prompt": self.session.prompt(),
             "status": self.session.status(),
             "input": self.session.input(),
@@ -455,6 +511,73 @@ mod tests {
 
     fn state(cad: &AutoCadSession) -> serde_json::Value {
         serde_json::from_str(&cad.get_state_json()).unwrap()
+    }
+
+    #[test]
+    fn profiles_delegate_and_export_palette_stays_in_sync_across_open_and_reset() {
+        let mut cad = session();
+        assert_eq!(cad.mode(), "frozen");
+        let mut drawing = acad_dxf::parse(b"LINE,1\r\n0,0,10,10\r\n").unwrap();
+        drawing.header.layers.insert(1, 10);
+        cad.session.open_drawing(drawing);
+        let frozen_svg = cad.export_svg(800, 600).unwrap();
+        cad.set_mode("modern").unwrap();
+        let modern_svg = cad.export_svg(800, 600).unwrap();
+        assert_ne!(
+            frozen_svg, modern_svg,
+            "SVG uses the applied rendering palette"
+        );
+        assert_eq!(cad.session.palette(), acad_model::Palette::Aci256);
+        assert_eq!(cad.fonts.palette(), cad.session.palette());
+        let resolved: serde_json::Value =
+            serde_json::from_str(&cad.presentation_profiles()).unwrap();
+        assert_eq!(resolved, cad.session.presentation_profiles());
+        cad.set_palette("pc16").unwrap();
+        let bytes = cad.export_dwg("1.4").unwrap();
+        cad.open_auto(&bytes).unwrap();
+        cad.reset();
+        assert_eq!(cad.mode(), "modern");
+        assert_eq!(cad.session.palette(), acad_model::Palette::Pc16);
+        assert_eq!(cad.fonts.palette(), cad.session.palette());
+        cad.set_mode("modern").unwrap();
+        assert_eq!(cad.fonts.palette(), acad_model::Palette::Aci256);
+        cad.set_locale("uk").unwrap();
+        assert_eq!(cad.mode(), "modern");
+        cad.set_mode("frozen").unwrap();
+        assert_eq!(cad.locale(), "uk");
+        assert_eq!(cad.fonts.palette(), acad_model::Palette::Pc16);
+    }
+
+    #[test]
+    fn locale_and_ui_labels_delegate_to_shared_session_across_open_and_reset() {
+        let mut cad = session();
+        assert_eq!(cad.locale(), "en");
+        assert_eq!(state(&cad)["command_idle"], true);
+        cad.set_locale("UK-ua").unwrap();
+        cad.command("LINE").unwrap();
+        cad.session.set_input("1,2".into());
+        let before = cad.session.drawing().clone();
+        cad.set_locale("en-US").unwrap();
+        assert_eq!(cad.session.input(), "1,2");
+        assert_eq!(cad.session.drawing(), &before);
+        assert_eq!(state(&cad)["command_idle"], false);
+        cad.set_locale("uk").unwrap();
+        let labels: serde_json::Value = serde_json::from_str(&cad.ui_labels()).unwrap();
+        assert_eq!(labels, cad.session.ui_labels());
+        assert_eq!(labels["labels"]["ui.file.open_picker"], "Відкрити…");
+        assert_eq!(labels["labels"]["ui.file.save_picker"], "Зберегти як…");
+        cad.cancel().unwrap();
+        let bytes = cad.export_dwg("1.4").unwrap();
+        cad.open_auto(&bytes).unwrap();
+        assert_eq!(cad.locale(), "uk");
+        cad.open_dwg(&bytes).unwrap();
+        assert_eq!(cad.locale(), "uk");
+        let dxf = cad.export_dxf().unwrap();
+        cad.open_dxf(&dxf).unwrap();
+        assert_eq!(cad.locale(), "uk");
+        cad.reset();
+        assert_eq!(cad.locale(), "uk");
+        assert_eq!(state(&cad)["command_idle"], true);
     }
 
     fn type_line(cad: &mut AutoCadSession, line: &str) {

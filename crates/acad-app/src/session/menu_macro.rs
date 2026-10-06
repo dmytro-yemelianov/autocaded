@@ -41,6 +41,7 @@ impl Session {
                     } else {
                         self.editor.submit(&piece)
                     };
+                    self.capture_command_diagnostic(&result);
                     let result = self.automated_erasure_answer(asked, result);
                     let declined = asked && result.is_err();
                     handle_result(self, result);

@@ -152,6 +152,7 @@ impl Session {
     /// Resolve and read a script, then make it the only script, due now.
     /// Failures leave any existing (interrupted) script untouched.
     pub fn start_script(&mut self, spec: &str) -> Result<(), String> {
+        self.invalidate_status_diagnostic();
         self.refuse_at_main_menu()?;
         if self.script_stepping {
             return Err("SCRIPT: a running command script cannot start another".into());
@@ -172,7 +173,7 @@ impl Session {
         let bytes = read_bounded_kind(&path, MAX_SCRIPT_BYTES, SCRIPT_FILE)?;
         let text = String::from_utf8(bytes)
             .map_err(|_| format!("SCRIPT: {} is not UTF-8 text", path.display()))?;
-        self.status = format!("Running script {}", path.display());
+        self.set_status(format!("Running script {}", path.display()));
         self.script = Some(ScriptRun::new(path, text));
         Ok(())
     }
@@ -204,7 +205,7 @@ impl Session {
             line: run.line,
             message: message.clone(),
         };
-        self.status = message;
+        self.set_status(message);
     }
 
     /// Execute due script items: at most [`SCRIPT_ITEMS_PER_PUMP`], stopping
@@ -226,7 +227,7 @@ impl Session {
             let run = self.script.as_mut().expect("running script");
             let Some(next) = run.next_item(literal) else {
                 let run = self.script.take().expect("running script");
-                self.status = format!("Script {} complete", run.path.display());
+                self.set_status(format!("Script {} complete", run.path.display()));
                 return pump;
             };
             pump.progressed = true;
@@ -236,7 +237,7 @@ impl Session {
                     // The original leaves unterminated keys as typed input.
                     let run = self.script.take().expect("running script");
                     self.input = tail;
-                    self.status = format!("Script {} complete", run.path.display());
+                    self.set_status(format!("Script {} complete", run.path.display()));
                     return pump;
                 }
             };
@@ -265,7 +266,7 @@ impl Session {
                         line,
                         message: message.clone(),
                     };
-                    self.status = message;
+                    self.set_status(message);
                     return pump;
                 }
             }
@@ -327,7 +328,7 @@ impl Session {
         match effect {
             acad_cmd::Effect::Delay(ms) => {
                 if !self.script_stepping {
-                    self.status = "DELAY: no command script is running".into();
+                    self.set_status("DELAY: no command script is running".into());
                 } else if ms > 0 {
                     let until = self.script_clock.now() + Duration::from_millis(u64::from(ms));
                     if let Some(run) = &mut self.script {
@@ -344,9 +345,10 @@ impl Session {
                 match &mut self.script {
                     Some(run) if matches!(run.phase, ScriptPhase::Interrupted { .. }) => {
                         run.phase = ScriptPhase::Running;
-                        self.status = format!("Resuming script at line {}", run.line);
+                        let line = run.line;
+                        self.set_status(format!("Resuming script at line {line}"));
                     }
-                    _ => self.status = "RESUME: no interrupted command script".into(),
+                    _ => self.set_status("RESUME: no interrupted command script".into()),
                 }
                 Ok(())
             }

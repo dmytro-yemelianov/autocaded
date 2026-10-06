@@ -28,7 +28,9 @@ impl Session {
             |n| n.to_string_lossy().into_owned(),
         );
         if self.main_menu.is_none() && self.is_dirty() {
-            self.status = format!("Unsaved changes: SAVE or END before opening {name}");
+            self.set_status(format!(
+                "Unsaved changes: SAVE or END before opening {name}"
+            ));
             return Ok(false);
         }
         match Session::open(path, &self.directories) {
@@ -36,10 +38,10 @@ impl Session {
                 opened.inherit_main_menu_home(self);
                 opened.set_script_clock(self.script_clock());
                 opened.set_viewport_size(self.viewport_size.0, self.viewport_size.1)?;
-                opened.status = format!("Opened {name}");
+                opened.set_status(format!("Opened {name}"));
                 *self = opened;
             }
-            Err(error) => self.status = format!("Cannot open {name}: {error}"),
+            Err(error) => self.set_status(format!("Cannot open {name}: {error}")),
         }
         Ok(false)
     }
@@ -48,6 +50,7 @@ impl Session {
     /// Replacing an existing file keeps its previous bytes as `.BAK`
     /// (docs/native-files-menu.md); failures leave file and document as-is.
     pub fn save(&mut self, path: &Path) -> Result<(), String> {
+        self.invalidate_status_diagnostic();
         self.refuse_at_main_menu()?;
         let path = std::path::absolute(path).map_err(|e| format!("Save failed: {e}"))?;
         let format = Format::for_path(&path);
@@ -58,10 +61,10 @@ impl Session {
             .save(path, self.drawing())
             .map_err(|e| format!("Save failed: {e}"))?;
         self.document = Document::saved(path.to_path_buf(), format, self.drawing());
-        self.status = match warning {
+        self.set_status(match warning {
             Some(warning) => format!("Saved {}; {warning}", path.display()),
             None => format!("Saved {}", path.display()),
-        };
+        });
         Ok(())
     }
     /// SAVE/END to DWG with an ambiguous erased REPEAT owner asks the
@@ -83,7 +86,7 @@ impl Session {
             return false;
         }
         self.editor.ask_original_erasure_save(path, quit);
-        self.status = ORIGINAL_ERASURE_EXPLANATION.into();
+        self.set_status(ORIGINAL_ERASURE_EXPLANATION.into());
         true
     }
     /// A command script item or menu-macro piece that answers the question
@@ -132,13 +135,13 @@ impl Session {
         if let Some(warning) = warning {
             status = format!("{status}; {warning}");
         }
-        self.status = status;
+        self.set_status(status);
         Ok(())
     }
     pub(crate) fn end(&mut self) -> Result<bool, String> {
         let Some(path) = self.document.path.clone() else {
             self.editor.request_end_path();
-            self.status.clear();
+            self.clear_status();
             return Ok(false);
         };
         let format = self.document.format.expect("attached document has a codec");

@@ -17,7 +17,7 @@ export function installCanvasInput(canvas, { session, redraw, zoom, onError }) {
   };
   const idle = (cad) => {
     const state = JSON.parse(cad.get_state_json());
-    return state.prompt === 'Command' && !state.input && !state.report_visible;
+    return state.command_idle && !state.input && !state.report_visible;
   };
   const pair = () => {
     if (touches.size < 2) return null;

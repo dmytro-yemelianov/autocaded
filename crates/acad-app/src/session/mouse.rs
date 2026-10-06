@@ -14,7 +14,7 @@ impl Session {
         if !dx.is_finite() || !dy.is_finite() {
             return Err("pan displacement must be finite".into());
         }
-        if self.prompt() != "Command" || !self.input.is_empty() || self.report_visible() {
+        if !self.command_idle() || !self.input.is_empty() || self.report_visible() {
             return Ok(false);
         }
         self.set_viewport_size(width, height)?;
@@ -105,14 +105,14 @@ impl Session {
                     return true;
                 }
                 if entry.action.len() == 1 && entry.action[0] < 0x20 {
-                    self.status = format!(
+                    self.set_status(format!(
                         "{} is not yet implemented (control byte 0x{:02x})",
                         entry.label, entry.action[0]
-                    );
+                    ));
                     return true;
                 }
                 let Ok(text) = std::str::from_utf8(&entry.action) else {
-                    self.status = format!("{}: macro is not valid UTF-8", entry.label);
+                    self.set_status(format!("{}: macro is not valid UTF-8", entry.label));
                     return true;
                 };
                 let text = text.to_owned();
@@ -178,7 +178,7 @@ impl Session {
         };
         let vp = viewport_for(self.editor.drawing(), width, height);
         let world = vp.to_world(acad_model::Point { x, y });
-        self.status.clear();
+        self.clear_status();
         let result = self.editor.submit_mouse_point(world);
         handle_result(self, result);
         self.resume_macro(handle_result);
@@ -204,10 +204,10 @@ impl Session {
                     .map(usize::to_string)
                     .collect::<Vec<_>>()
                     .join(",");
-                self.status = format!("Selected entity {id}");
+                self.set_status(format!("Selected entity {id}"));
             }
-            Ok(None) => self.status = "No entity at pick point".into(),
-            Err(error) => self.status = error,
+            Ok(None) => self.set_status("No entity at pick point".into()),
+            Err(error) => self.set_status(error),
         }
     }
 

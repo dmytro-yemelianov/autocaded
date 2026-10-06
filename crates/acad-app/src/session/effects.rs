@@ -11,10 +11,16 @@ impl Session {
         &mut self,
         result: Result<acad_cmd::Effect, String>,
     ) -> Result<bool, String> {
+        let diagnostic = self.submission_diagnostic.take();
+        self.clear_status();
         self.merge_committed_insert_libraries();
         let outcome = self.perform_effect(result);
         if let Err(error) = &outcome {
-            self.status = error.clone();
+            self.set_status(error.clone());
+            if let Some(diagnostic) = diagnostic {
+                self.rendered_status = diagnostic.message.render(self.locale);
+                self.status_diagnostic = Some(diagnostic);
+            }
             self.sync_collected_selection();
         }
         outcome
@@ -38,7 +44,7 @@ impl Session {
         self.report = None;
         match result? {
             acad_cmd::Effect::Continue => {
-                self.status = self.editor.status().to_owned();
+                self.set_status(self.editor.status().to_owned());
                 self.sync_collected_selection();
             }
             acad_cmd::Effect::Quit => return Ok(self.leave_editor()),
@@ -72,7 +78,7 @@ impl Session {
                         return Err(format!("WBLOCK failed: {e}"));
                     }
                 }
-                self.status = self.editor.status().to_owned();
+                self.set_status(self.editor.status().to_owned());
             }
             acad_cmd::Effect::SaveDrawing(path, drawing) => {
                 self.write_wblock(&path, &drawing, false)?
@@ -86,7 +92,7 @@ impl Session {
             acad_cmd::Effect::Files(request) => {
                 let report = files::execute(request)?;
                 eprintln!("{report}");
-                self.status = report.lines().next().unwrap_or("FILES complete").to_owned();
+                self.set_status(report.lines().next().unwrap_or("FILES complete").to_owned());
                 self.report = Some(crate::report_view::Report::new(report));
             }
             effect @ (acad_cmd::Effect::Delay(_)
@@ -94,11 +100,11 @@ impl Session {
             | acad_cmd::Effect::Resume) => self.perform_script_effect(effect)?,
             acad_cmd::Effect::Report(report) => {
                 eprintln!("{report}");
-                self.status = if self.editor.status().is_empty() {
+                self.set_status(if self.editor.status().is_empty() {
                     "Report: PgUp/PgDn, wheel; Esc closes".into()
                 } else {
                     self.editor.status().to_owned()
-                };
+                });
                 self.report = Some(crate::report_view::Report::new(report));
             }
         }
@@ -134,7 +140,7 @@ impl Session {
         if let Some(warning) = warning {
             status = format!("{status}; {warning}");
         }
-        self.status = status;
+        self.set_status(status);
         Ok(())
     }
 }

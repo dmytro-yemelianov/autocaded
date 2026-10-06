@@ -113,7 +113,11 @@ def exercise(root, binaries, scratch, log):
         assert api(sock, 'state')['input'] == '1,2'
         assert api(sock, 'drawing') == selection_geometry
         mcp.tool('command', input='3')
-        assert api(sock, 'state')['report'].startswith('3 POINT\n')
+        listed = api(sock, 'state')
+        assert listed['status'] == '3 POINT'
+        assert listed['report'] == (
+            '                  POINT     LAYER: 1\n'
+            '                at point, X=   5.0000  Y=   5.0000')
         mcp.tool('report', action='close')
         for value in ['LIST', 'W']:
             mcp.tool('command', input=value)
@@ -121,7 +125,13 @@ def exercise(root, binaries, scratch, log):
         mcp.tool('point', x=4, y=4)
         assert api(sock, 'state')['input'] == '1,2'
         mcp.tool('command', input='')
-        assert api(sock, 'state')['report'].startswith('1 POINT, 2 POINT\n')
+        listed = api(sock, 'state')
+        assert listed['status'] == '1 POINT, 2 POINT'
+        assert listed['report'] == (
+            '                  POINT     LAYER: 1\n'
+            '                at point, X=   1.0000  Y=   1.0000\n'
+            '                  POINT     LAYER: 1\n'
+            '                at point, X=   3.0000  Y=   3.0000')
         mcp.tool('report', action='close')
         mcp.tool('command', input='ERASE')
         mcp.tool('point', x=1, y=1)
@@ -234,10 +244,11 @@ def exercise(root, binaries, scratch, log):
         assert relative_view['height'] == window_view['height'] / 2
         for value in ['ZOOM', 'P', 'PAN', '@2,3', '']:
             mcp.tool('command', input=value)
-        assert api(sock, 'state')['view']['center'] == dict(x=8, y=-2)
+        # Retained PAN adds the displacement to the view centre.
+        assert api(sock, 'state')['view']['center'] == dict(x=12, y=4)
         for value in ['ZOOM', 'P', 'PAN', '1,1', '@2,3']:
             mcp.tool('command', input=value)
-        assert api(sock, 'state')['view']['center'] == dict(x=8, y=-2)
+        assert api(sock, 'state')['view']['center'] == dict(x=12, y=4)
         for value in ['ZOOM', '1']:
             mcp.tool('command', input=value)
         absolute_view = api(sock, 'state')['view']

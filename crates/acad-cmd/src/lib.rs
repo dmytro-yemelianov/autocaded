@@ -1,7 +1,11 @@
 //! Interactive command state machine for the 1983 editor.
+pub mod catalog;
+pub(crate) use catalog::HATCH_PATTERNS;
 pub mod error;
 pub mod menu;
-pub use error::{CmdError, CmdErrorKind};
+pub mod messages;
+pub mod profiles;
+pub use error::{CmdError, CmdErrorKind, CommandDiagnostic};
 
 mod change;
 mod curve_history;
@@ -36,32 +40,6 @@ pub use selection::{selectable_items, SelectableItem};
 use std::collections::BTreeMap;
 
 pub(crate) const MAX_ARRAY_ENTITIES: usize = EngineLimits::DEFAULT_1983.max_array_entities;
-
-pub(crate) const HATCH_PATTERNS: &[(&str, &str)] = &[
-    ("EARTH", "Earth or ground (subterranean)"),
-    ("ESCHER", "Escher pattern"),
-    ("FLEX", "Flexible material"),
-    ("GRASS", "Grass area"),
-    ("GRATE", "Grated area"),
-    ("HEX", "Hexagons"),
-    ("HONEY", "Honeycomb pattern"),
-    ("HOUND", "Houndstooth check"),
-    ("INSUL", "Insulation material"),
-    ("LINE", "Parallel horizontal lines"),
-    ("MUDST", "Mud and sand"),
-    ("NET", "Horizontal / vertical grid"),
-    ("NET3", "Network pattern 0-60-120"),
-    ("PLAST", "Plastic material"),
-    ("PLASTI", "Plastic material"),
-    ("SACNCR", "Concrete"),
-    ("SQUARE", "Small aligned squares"),
-    ("STARS", "Star of David"),
-    ("STEEL", "Steel material"),
-    ("SWAMP", "Swampy area"),
-    ("TRANS", "Heat transfer material"),
-    ("TRIANG", "Equilateral triangles"),
-    ("ZIGZAG", "Staircase effect"),
-];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuControl {
@@ -135,6 +113,7 @@ pub struct Editor {
     dim_style: DimStyle,
     last_dimension: Option<dimension::DimHistory>,
     status: String,
+    diagnostic: Option<CommandDiagnostic>,
     previous_view: Option<acad_model::DwgView>,
     view_aspect: f64,
     view_pixel_height: u32,
@@ -249,6 +228,7 @@ impl Editor {
             },
             last_dimension: None,
             status: String::new(),
+            diagnostic: None,
             previous_view: None,
             view_aspect: dispatch::ZOOM_ALL_DEVICE_ASPECT,
             view_pixel_height: 1,
@@ -294,7 +274,19 @@ impl Editor {
         &mut self.drawing
     }
     pub fn prompt(&self) -> &str {
-        self.state.prompt()
+        self.prompt_for_locale(messages::Locale::En)
+    }
+    pub fn prompt_for_locale(&self, locale: messages::Locale) -> &str {
+        self.state.prompt_message().map_or_else(
+            || self.state.prompt(),
+            |id| messages::text(id, locale).expect("static prompt"),
+        )
+    }
+    pub fn command_idle(&self) -> bool {
+        matches!(self.state, InputState::Command)
+    }
+    pub fn command_diagnostic(&self) -> Option<&CommandDiagnostic> {
+        self.diagnostic.as_ref()
     }
     pub fn status(&self) -> &str {
         &self.status
@@ -402,6 +394,7 @@ impl Editor {
     /// Apply the recovered immediate screen-menu controls without submitting text.
     /// Menu Cancel retains the repeat marker and completed drawing mutations.
     pub fn apply_menu_control(&mut self, control: MenuControl) -> Result<Effect, String> {
+        self.diagnostic = None;
         self.status = match control {
             MenuControl::Snap => {
                 self.drawing.header.snap.on = !self.drawing.header.snap.on;
@@ -431,6 +424,7 @@ impl Editor {
 
     /// Cancel the active command and any unfinished REPEAT grouping.
     pub fn cancel_command(&mut self) -> Result<Effect, String> {
+        self.diagnostic = None;
         self.state = InputState::Command;
         self.suspended_sketch = None;
         self.repeat_start = None;
@@ -516,6 +510,7 @@ impl Editor {
     /// Apply mouse SNAP/ORTHO and submit through the ordinary command state machine.
     /// In SKETCH a point is a pen toggle at that pointer position.
     pub fn submit_mouse_point(&mut self, point: Point) -> Result<Effect, String> {
+        self.diagnostic = None;
         if self.sketch_active() {
             return self.sketch_click(point);
         }

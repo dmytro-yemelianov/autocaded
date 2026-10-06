@@ -20,7 +20,12 @@ impl Layout {
                 self.lines.push(start..end);
             }
             while start < end {
-                let mut next = start.saturating_add(columns).min(end);
+                // Ranges and navigation anchors are UTF-8 byte offsets, while
+                // each rendered Unicode scalar takes exactly one bitmap cell.
+                let mut next = text[start..end]
+                    .char_indices()
+                    .nth(columns.max(1))
+                    .map_or(end, |(offset, _)| start + offset);
                 if next < end {
                     if let Some(space) = text[start..next].rfind(' ') {
                         if space > 0 && !text[start..start + space].trim().is_empty() {
@@ -74,5 +79,30 @@ mod tests {
         assert_eq!(layout.top(usize::MAX, 3), 1);
         layout.update("", 1);
         assert_eq!(layout.top(usize::MAX, 100), 0);
+    }
+    #[test]
+    fn ukrainian_wraps_in_scalar_cells_and_retains_byte_boundary_anchors() {
+        let text = "ҐїЄабвгде жзи\n\n0123і45678\n    яюь";
+        let mut layout = Layout::default();
+        for columns in [0, 1, 3, 5, 7, 9] {
+            layout.update(text, columns);
+            assert!(layout.lines.iter().all(|line| {
+                text.is_char_boundary(line.start)
+                    && text.is_char_boundary(line.end)
+                    && text[line.clone()].chars().count() <= columns.max(1)
+            }));
+            let actual: String = layout
+                .lines
+                .iter()
+                .map(|line| &text[line.clone()])
+                .collect();
+            assert_eq!(actual, text.replace('\n', ""));
+            assert!(layout.lines.iter().any(Range::is_empty));
+        }
+        layout.update(text, 5);
+        let anchor = layout.lines[2].start;
+        layout.update(text, 3);
+        let top = layout.top(anchor, 1);
+        assert!(layout.lines[top].start <= anchor && anchor < layout.lines[top].end);
     }
 }

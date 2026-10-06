@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "messages": [
+    {
+      "key": "prompt.command",
+      "args": [],
+      "text": {
+        "en": "Command",
+        "uk": "Команда"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:Command"
+    },
+    {
+      "key": "prompt.line.start",
+      "args": [],
+      "text": {
+        "en": "LINE: first point",
+        "uk": "LINE: перша точка"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:LineStart"
+    },
+    {
+      "key": "prompt.line.next",
+      "args": [],
+      "text": {
+        "en": "LINE: next point (Enter to finish)",
+        "uk": "LINE: наступна точка (Enter для завершення)"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:LineNext"
+    },
+    {
+      "key": "prompt.circle.center",
+      "args": [],
+      "text": {
+        "en": "CIRCLE: center point (or 2P/3P)",
+        "uk": "CIRCLE: центр (або 2P/3P)"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:CircleCenter"
+    },
+    {
+      "key": "prompt.circle.radius",
+      "args": [],
+      "text": {
+        "en": "CIRCLE: radius or point (D for diameter)",
+        "uk": "CIRCLE: радіус або точка (D для діаметра)"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:CircleRadius"
+    },
+    {
+      "key": "prompt.circle.diameter",
+      "args": [],
+      "text": {
+        "en": "CIRCLE: diameter",
+        "uk": "CIRCLE: діаметр"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:CircleDiameter"
+    },
+    {
+      "key": "prompt.circle.two_point.first",
+      "args": [],
+      "text": {
+        "en": "CIRCLE 2P: first diameter endpoint",
+        "uk": "CIRCLE 2P: перший кінець діаметра"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:CircleTwoPointFirst"
+    },
+    {
+      "key": "prompt.circle.two_point.second",
+      "args": [],
+      "text": {
+        "en": "CIRCLE 2P: second diameter endpoint",
+        "uk": "CIRCLE 2P: другий кінець діаметра"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:CircleTwoPointSecond"
+    },
+    {
+      "key": "prompt.circle.three_point.first",
+      "args": [],
+      "text": {
+        "en": "CIRCLE 3P: first point",
+        "uk": "CIRCLE 3P: перша точка"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:CircleThreePointFirst"
+    },
+    {
+      "key": "prompt.circle.three_point.second",
+      "args": [],
+      "text": {
+        "en": "CIRCLE 3P: second point",
+        "uk": "CIRCLE 3P: друга точка"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:CircleThreePointSecond"
+    },
+    {
+      "key": "prompt.circle.three_point.third",
+      "args": [],
+      "text": {
+        "en": "CIRCLE 3P: third point",
+        "uk": "CIRCLE 3P: третя точка"
+      },
+      "source": "473c902:crates/acad-cmd/src/input_state.rs:CircleThreePointThird"
+    },
+    {
+      "key": "error.command.unknown",
+      "args": [
+        {
+          "name": "command",
+          "type": "text"
+        }
+      ],
+      "text": {
+        "en": "unknown command: {command}",
+        "uk": "невідома команда: {command}"
+      },
+      "source": "473c902:crates/acad-cmd/src/dispatch.rs:command"
+    },
+    {
+      "key": "error.command.unknown_return",
+      "args": [],
+      "text": {
+        "en": "Unknown command. Type ? for list of commands.",
+        "uk": "Невідома команда. Введіть ? для списку команд."
+      },
+      "source": "473c902:crates/acad-cmd/src/dispatch.rs:submit_return"
+    },
+    {
+      "key": "ui.action.new",
+      "args": [],
+      "text": {
+        "en": "New",
+        "uk": "Новий"
+      },
+      "source": "docs/message-catalog-contract.md:Inventory and exact English (new bare action identity)"
+    },
+    {
+      "key": "ui.action.open",
+      "args": [],
+      "text": {
+        "en": "Open",
+        "uk": "Відкрити"
+      },
+      "source": "docs/message-catalog-contract.md:Inventory and exact English (new bare action identity)"
+    },
+    {
+      "key": "ui.action.save",
+      "args": [],
+      "text": {
+        "en": "Save",
+        "uk": "Зберегти"
+      },
+      "source": "docs/message-catalog-contract.md:Inventory and exact English (new bare action identity)"
+    },
+    {
+      "key": "ui.action.export",
+      "args": [],
+      "text": {
+        "en": "Export",
+        "uk": "Експорт"
+      },
+      "source": "docs/message-catalog-contract.md:Inventory and exact English (new bare action identity)"
+    },
+    {
+      "key": "ui.file.open_picker",
+      "args": [],
+      "text": {
+        "en": "Open…",
+        "uk": "Відкрити…"
+      },
+      "source": "473c902:web/index.html:open-select empty option"
+    },
+    {
+      "key": "ui.file.save_picker",
+      "args": [],
+      "text": {
+        "en": "Save as…",
+        "uk": "Зберегти як…"
+      },
+      "source": "473c902:web/index.html:save-select empty option"
+    },
+    {
+      "key": "ui.main_menu.new",
+      "args": [],
+      "text": {
+        "en": "Begin a NEW drawing",
+        "uk": "Почати НОВЕ креслення"
+      },
+      "source": "473c902:crates/acad-app/src/session/main_menu.rs:MAIN_MENU_TASKS[1]"
+    },
+    {
+      "key": "ui.main_menu.open",
+      "args": [],
+      "text": {
+        "en": "Edit an EXISTING drawing",
+        "uk": "Редагувати НАЯВНЕ креслення"
+      },
+      "source": "473c902:crates/acad-app/src/session/main_menu.rs:MAIN_MENU_TASKS[2]"
+    },
+    {
+      "key": "ui.main_menu.export_dxf",
+      "args": [],
+      "text": {
+        "en": "Make drawing interchange file",
+        "uk": "Створити файл обміну кресленнями"
+      },
+      "source": "473c902:crates/acad-app/src/session/main_menu.rs:MAIN_MENU_TASKS[5]"
+    },
+    {
+      "key": "profile.frozen.title",
+      "args": [],
+      "text": {
+        "en": "1983 Faithful (frozen)",
+        "uk": "1983 Автентичний (незмінний)"
+      },
+      "source": "db6480f:web/index.html:mode-select"
+    },
+    {
+      "key": "profile.frozen.badge",
+      "args": [],
+      "text": {
+        "en": "1983 Faithful",
+        "uk": "1983 Автентичний"
+      },
+      "source": "db6480f:web/index.html:updateModeBadge"
+    },
+    {
+      "key": "profile.frozen.status",
+      "args": [],
+      "text": {
+        "en": "Mode: 1983 Faithful (frozen)",
+        "uk": "Режим: 1983 Автентичний (незмінний)"
+      },
+      "source": "db6480f:web/index.html:applyMode"
+    },
+    {
+      "key": "profile.modern.title",
+      "args": [],
+      "text": {
+        "en": "Modernized (concept)",
+        "uk": "Осучаснений (концепція)"
+      },
+      "source": "db6480f:web/index.html:mode-select"
+    },
+    {
+      "key": "profile.modern.badge",
+      "args": [],
+      "text": {
+        "en": "Modernized",
+        "uk": "Осучаснений"
+      },
+      "source": "db6480f:web/index.html:updateModeBadge"
+    },
+    {
+      "key": "profile.modern.status",
+      "args": [],
+      "text": {
+        "en": "Mode: Modernized (concept)",
+        "uk": "Режим: Осучаснений (концепція)"
+      },
+      "source": "db6480f:web/index.html:applyMode"
+    }
+  ]
+}

@@ -3,7 +3,7 @@ use super::*;
 impl Session {
     pub(crate) fn load_menu(&mut self, requested: &str) {
         if let Err(error) = self.try_load_menu(requested) {
-            self.status = error;
+            self.set_status(error);
         }
     }
     pub(crate) fn try_load_menu(&mut self, requested: &str) -> Result<(), String> {
@@ -13,7 +13,11 @@ impl Session {
             .iter()
             .filter(|entry| entry.kind == acad_cmd::menu::MenuEntryKind::Item)
             .count();
-        self.status = format!("Loaded {} menu entries from {}", items, path.display());
+        self.set_status(format!(
+            "Loaded {} menu entries from {}",
+            items,
+            path.display()
+        ));
         self.menu = Some(menu);
         self.menu_page = 0;
         Ok(())
@@ -22,7 +26,7 @@ impl Session {
     pub(crate) fn unload_menu(&mut self) {
         self.menu = None;
         self.menu_page = 0;
-        self.status.clear();
+        self.clear_status();
     }
 
     pub(crate) fn resolve_shape_library(&mut self, requested: &str) -> Result<String, String> {

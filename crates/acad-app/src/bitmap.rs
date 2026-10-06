@@ -332,10 +332,21 @@ pub(crate) fn get_glyph(ch: char) -> Option<&'static [u8; 8]> {
     }
 }
 
+/// Preserve supported UI glyphs; show unsupported scalars and controls as `?`.
+/// Line breaks and tab expansion belong to each text area's layout policy.
+pub(crate) fn ui_char(ch: char) -> char {
+    if !ch.is_control() && get_glyph(ch).is_some() {
+        ch
+    } else {
+        '?'
+    }
+}
+
 /// Blits text starting at pixel (x, y), scaling glyphs 2x for legibility.
 /// Each character cell is GLYPH_WIDTH x GLYPH_HEIGHT in the font table,
 /// but is drawn 2x larger (2*GLYPH_WIDTH x 2*GLYPH_HEIGHT on screen).
-/// Clips silently at buffer_width and buffer length.
+/// Clips silently at buffer_width and buffer length. Unsupported characters and
+/// controls occupy one cell containing `?`; this renderer does not shape text.
 #[allow(dead_code)]
 pub(crate) fn draw_text(
     buffer: &mut [u32],
@@ -356,10 +367,8 @@ pub(crate) fn draw_text(
             break;
         }
 
-        // Get the glyph bitmap
-        let Some(glyph) = get_glyph(ch) else {
-            continue;
-        };
+        // Every scalar occupies one cell, including visible fallback characters.
+        let glyph = get_glyph(ui_char(ch)).expect("UI fallback glyph is present");
 
         // Draw each row of the glyph, scaled 2x
         for (glyph_row, &glyph_byte) in glyph.iter().enumerate() {
@@ -420,5 +429,96 @@ mod tests {
                 "glyph for {ch} must not be blank"
             );
         }
+    }
+
+    const UK_UPPER: &str = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ";
+    const UK_LOWER: &str = "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя";
+
+    #[test]
+    fn ukrainian_alphabet_and_supported_punctuation_render_in_scalar_cells() {
+        assert_eq!(UK_UPPER.chars().count(), 33);
+        assert_eq!(UK_LOWER.chars().count(), 33);
+        let text = format!("{UK_UPPER}{UK_LOWER} '’.,:;!?()-/«»№");
+        let width = text.chars().count() * GLYPH_WIDTH * 2;
+        let mut pixels = vec![0; width * GLYPH_HEIGHT * 2];
+        draw_text(&mut pixels, width, 0, 0, &text, 7);
+        for (cell, ch) in text.chars().enumerate() {
+            assert_eq!(ui_char(ch), ch, "unsupported {ch:?}");
+            let glyph = get_glyph(ch).unwrap();
+            if ch != ' ' {
+                assert!(glyph.iter().any(|row| *row != 0), "blank {ch}");
+            }
+            for y in 0..16 {
+                for x in 0..16 {
+                    let expected = if glyph[y / 2] & (0x80 >> (x / 2)) != 0 {
+                        7
+                    } else {
+                        0
+                    };
+                    assert_eq!(
+                        pixels[y * width + cell * 16 + x],
+                        expected,
+                        "{ch} at {x},{y}"
+                    );
+                }
+            }
+        }
+        for (a, b) in [
+            ('Ґ', 'Г'),
+            ('ґ', 'г'),
+            ('Є', 'Е'),
+            ('є', 'е'),
+            ('Ї', 'І'),
+            ('ї', 'і'),
+        ] {
+            assert_ne!(
+                get_glyph(a),
+                get_glyph(b),
+                "distinct Ukrainian forms {a}/{b}"
+            );
+        }
+        assert_eq!(get_glyph('’'), get_glyph('\''));
+    }
+
+    #[test]
+    fn unsupported_scalars_and_controls_use_visible_single_cell_fallback() {
+        let mut actual = vec![0; 8 * 16 * 16];
+        let mut expected = actual.clone();
+        draw_text(&mut actual, 8 * 16, 0, 0, "А☃\t\u{7f}\u{301}😀\nБ", 7);
+        draw_text(&mut expected, 8 * 16, 0, 0, "А??????Б", 7);
+        assert_eq!(actual, expected);
+        assert!(actual.contains(&7));
+    }
+
+    #[test]
+    fn printable_ascii_pixels_match_the_pre_localization_baseline() {
+        let text: String = (' '..='~').collect();
+        let width = text.chars().count() * 16;
+        let mut pixels = vec![0; width * 16];
+        draw_text(&mut pixels, width, 0, 0, &text, 0x00dd_eeee);
+        // FNV-1a of little-endian pixel words captured before the D5 change.
+        let hash = pixels.iter().fold(0xcbf29ce484222325u64, |hash, pixel| {
+            pixel.to_le_bytes().iter().fold(hash, |hash, byte| {
+                (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+            })
+        });
+        assert_eq!(hash, 0x26690eb12901e93d);
+    }
+
+    #[test]
+    fn unicode_text_clips_at_right_and_bottom_edges_without_crossing_rows() {
+        let mut full = vec![0; 64 * 32];
+        draw_text(&mut full, 64, 3, 5, "Ґї☃А", 7);
+        for (width, height) in [(1, 1), (17, 9), (31, 19), (50, 32)] {
+            let mut clipped = vec![0; width * height];
+            draw_text(&mut clipped, width, 3, 5, "Ґї☃А", 7);
+            for y in 0..height {
+                assert_eq!(
+                    &clipped[y * width..(y + 1) * width],
+                    &full[y * 64..y * 64 + width]
+                );
+            }
+        }
+        draw_text(&mut [], 0, 0, 0, "Ґ", 7);
     }
 }

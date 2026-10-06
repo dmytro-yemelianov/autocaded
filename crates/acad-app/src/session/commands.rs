@@ -6,12 +6,12 @@ impl Session {
         handle_result: &mut impl FnMut(&mut Self, Result<acad_cmd::Effect, String>),
     ) {
         let input = std::mem::take(&mut self.input);
-        self.status.clear();
+        self.clear_status();
         let command_input = if self.editor.awaiting_shape_library_name() {
             match self.resolve_shape_library(&input) {
                 Ok(name) => name,
                 Err(error) => {
-                    self.status = error;
+                    self.set_status(error);
                     return;
                 }
             }
@@ -30,6 +30,7 @@ impl Session {
         };
         let asked = self.script_stepping && self.editor.asking_original_erasure();
         let result = self.editor.submit_return(&command_input);
+        self.capture_command_diagnostic(&result);
         let result = self.automated_erasure_answer(asked, result);
         handle_result(self, result);
         self.resume_macro(handle_result);

@@ -146,7 +146,7 @@
     @media (max-width: 640px) {
       header { padding-left: 8px; padding-right: 8px; }
       h1 { font-size: 14px; }
-      select { flex: 1 1 0; min-width: 0; padding: 5px 6px; }
+      select { flex: 1 1 160px; min-width: 130px; padding: 5px 6px; }
       #message { flex-basis: 100%; order: 10; margin-left: 0; }
       #message:empty { display: none; }
     }
@@ -385,33 +385,35 @@
       <h1>AutoCAD<span>ED</span></h1>
 
       <select id="open-select" title="Open a DWG/DXF drawing (or drop one on the page)">
-        <option value="">Open…</option>
+        <option value=""></option>
         <option value="file">From computer…</option>
         <optgroup id="sample-group" label="Samples" hidden></optgroup>
       </select>
       <input type="file" id="file-input" accept=".dwg,.dxf,.bak">
 
       <select id="save-select" title="Download the current drawing">
-        <option value="">Save as…</option>
+        <option value=""></option>
         <option value="dwg">DWG (AC1.40)</option>
         <option value="dxf">DXF</option>
         <option value="svg">SVG</option>
         <option value="png">PNG</option>
       </select>
 
-      <select id="palette-select" title="How colour numbers are drawn">
+      <select id="locale-select" aria-label="UI language" title="Partial Ukrainian: LINE/CIRCLE prompts, unknown commands, file actions and three Main Menu tasks. Other text remains English.">
+        <option value="en">English</option>
+        <option value="uk">Українська (частково)</option>
+      </select>
+
+      <select id="palette-select" title="Current palette (may override the profile preset)">
         <option value="pc16">PC 16-colour (1983)</option>
         <option value="aci256">ACI 256 (modern)</option>
       </select>
 
-      <select id="mode-select" title="Engine mode: 1983-faithful (frozen) vs modernized (conceptual)">
-        <option value="frozen">1983 Faithful (frozen)</option>
-        <option value="modern">Modernized (concept)</option>
-      </select>
+      <select id="mode-select" aria-label="Presentation profile" title="Presentation preset; geometry and file formats stay the same"></select>
 
-      <div id="mode-badge" class="mode-badge" data-mode="frozen" title="Current engine mode" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; font-size: 11px; font-family: var(--font-mono); min-width: 140px;">
+      <div id="mode-badge" class="mode-badge" data-mode="frozen" title="Current presentation profile" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; font-size: 11px; font-family: var(--font-mono); min-width: 140px;">
         <span class="mode-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green);"></span>
-        <span class="mode-text">1983 Faithful</span>
+        <span class="mode-text"></span>
       </div>
     </div>
 
@@ -508,15 +510,40 @@
     // AutoCAD 1.4 corpus.
     let assets = { font: null, menu: null, samples: [], start: null };
 
+    let profileMessage = false;
     function message(text, isError = false) {
+      profileMessage = false;
       messageEl.textContent = text;
       messageEl.title = text;
       messageEl.classList.toggle('error', isError);
     }
 
-    function redraw() {
-      if (!cad || canvas.width === 0 || canvas.height === 0) return;
+    function changeLocale(event) {
+      if (!cad) {
+        event.target.value = "en";
+        return;
+      }
       try {
+        cad.set_locale(event.target.value);
+      } catch (err) {
+        message(String(err), true);
+      } finally {
+        event.target.value = cad.locale();
+        redraw();
+      }
+    }
+
+    document.getElementById('locale-select').addEventListener('change', changeLocale);
+
+    function redraw() {
+      if (!cad) return;
+      document.getElementById('locale-select').value = cad.locale();
+      if (canvas.width === 0 || canvas.height === 0) return;
+      try {
+        refreshModeUi();
+        const labels = JSON.parse(cad.ui_labels()).labels;
+        document.querySelector('#open-select option[value=""]').textContent = labels['ui.file.open_picker'];
+        document.querySelector('#save-select option[value=""]').textContent = labels['ui.file.save_picker'];
         const rgba = cad.render_rgba(canvas.width, canvas.height);
         const pixels = new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, rgba.byteLength);
         ctx.putImageData(new ImageData(pixels, canvas.width, canvas.height), 0, 0);
@@ -630,6 +657,8 @@
     const softKeys = document.getElementById('soft-keys');
     window.addEventListener('keydown', (e) => {
       if (!cad || e.defaultPrevented || !aboutModal.hidden || e.isComposing || e.target === softKeys) return;
+      // Presentation choosers own keyboard navigation, including option targets.
+      if (['locale-select', 'mode-select', 'palette-select'].some(id => document.getElementById(id).contains(e.target))) return;
       // A focused, closed Open/Save list would treat typing as type-ahead
       // ("S" picks SVG and downloads it); the keys belong to the command area.
       if (e.target instanceof HTMLSelectElement) e.target.blur();
@@ -676,7 +705,7 @@
     function zoom(factor) {
       if (!cad) return;
       const state = JSON.parse(cad.get_state_json());
-      if (state.prompt !== 'Command' || state.input || state.report_visible) return;
+      if (!state.command_idle || state.input || state.report_visible) return;
       try {
         cad.command('ZOOM');
         cad.command(`${factor}X`);
@@ -848,44 +877,71 @@
       paletteSelect.blur();
     });
 
-    // Mode selector: 1983 Faithful (frozen) vs Modernized (concept)
+    // Shared presentation presets; current palette can be overridden independently.
     const modeSelect = document.getElementById('mode-select');
     const modeBadge = document.getElementById('mode-badge');
-    const modeDot = modeBadge.querySelector('.mode-dot');
     const modeText = modeBadge.querySelector('.mode-text');
-    function updateModeBadge(name) {
-      if (name === 'frozen') {
-        modeBadge.dataset.mode = 'frozen';
-        modeDot.style.background = 'var(--accent-green)';
-        modeText.textContent = '1983 Faithful';
-      } else {
-        modeBadge.dataset.mode = 'modern';
-        modeDot.style.background = 'var(--accent-red)';
-        modeText.textContent = 'Modernized';
+    const modeDot = modeBadge.querySelector('.mode-dot');
+    function refreshModeUi() {
+      const catalog = JSON.parse(cad.presentation_profiles());
+      for (const profile of catalog.profiles) {
+        let option = modeSelect.querySelector(`option[value="${profile.id}"]`);
+        if (!option) {
+          option = document.createElement('option');
+          option.value = profile.id;
+          modeSelect.appendChild(option);
+        }
+        option.textContent = profile.title;
       }
+      const active = catalog.profiles.find(profile => profile.id === catalog.mode);
+      modeSelect.value = catalog.mode;
+      modeBadge.dataset.mode = catalog.mode;
+      modeText.textContent = active.badge;
+      modeDot.style.background = `var(--accent-${active.tone})`;
+      if (profileMessage) {
+        messageEl.textContent = active.status;
+        messageEl.title = active.status;
+      }
+      paletteSelect.value = catalog.palette;
+      return active;
     }
     function applyMode(name) {
       if (!cad) return;
-      // In frozen mode: use pc16 palette, original defaults, strict 1983 behavior
-      // In modern mode: aci256 palette, relaxed constraints, future-facing defaults
-      if (name === 'frozen') {
-        applyPalette('pc16');
-        cad.set_palette && cad.set_palette('pc16');
-        message('Mode: 1983 Faithful (frozen)');
-      } else {
-        applyPalette('aci256');
-        cad.set_palette && cad.set_palette('aci256');
-        message('Mode: Modernized (concept)');
+      try {
+        cad.set_mode(name);
+        const active = refreshModeUi();
+        message(active.status);
+        profileMessage = true;
+        try {
+          localStorage.setItem('autocaded.mode', cad.mode());
+          // An explicit preset selection replaces the previous manual override.
+          localStorage.removeItem('autocaded.palette');
+        } catch (err) { /* private mode */ }
+      } catch (err) {
+        message(String(err), true);
       }
-      updateModeBadge(name);
-      try { localStorage.setItem('autocaded.mode', name); } catch (err) { /* private mode */ }
       redraw();
     }
-    modeSelect.addEventListener('change', () => {
+    function changeMode(event) {
+      applyMode(event.target.value);
+      event.target.blur();
+    }
+    modeSelect.addEventListener('change', changeMode);
+
+    function restorePresentationPreferences() {
       if (!cad) return;
-      applyMode(modeSelect.value);
-      modeSelect.blur();
-    });
+      let mode = null;
+      let palette = null;
+      try {
+        mode = localStorage.getItem('autocaded.mode');
+        palette = localStorage.getItem('autocaded.palette');
+      } catch (err) { /* private mode */ }
+      if (mode) {
+        try { cad.set_mode(mode); } catch (err) { message(String(err), true); }
+      }
+      if (palette) applyPalette(palette);
+      redraw();
+    }
 
     // Header collapsible toggle
     const headerToggle = document.getElementById('header-toggle');
@@ -926,14 +982,7 @@
       navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('offline cache:', err));
     }
 
-    start().then(() => {
-      let saved = null;
-      try { saved = localStorage.getItem('autocaded.palette'); } catch (err) { /* private mode */ }
-      if (cad && saved && saved !== paletteSelect.value) applyPalette(saved);
-      let savedMode = null;
-      try { savedMode = localStorage.getItem('autocaded.mode'); } catch (err) { /* private mode */ }
-      if (cad && savedMode && savedMode !== modeSelect.value) applyMode(savedMode);
-    });
+    start().then(restorePresentationPreferences);
   </script>
 </body>
 </html>

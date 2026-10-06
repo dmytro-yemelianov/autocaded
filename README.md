@@ -209,12 +209,14 @@ over stdio. Example client configuration for an attached window:
 | MCP tool / API method | Arguments and behavior |
 |---|---|
 | `acad_new` / `new` | Empty drawing, retaining loaded fonts/libraries and menu |
+| — / `set_locale` | `tag`: presentation language (`en` or `uk`, partial Ukrainian coverage); drawing state is retained |
+| — / `set_mode` | `id`: `frozen` or `modern`; apply a shared palette/presentation preset without resetting the drawing |
 | `acad_open` / `open` | `path`, optional `directories` for SHP fonts/libraries |
 | `acad_command` / `command` | `input`: command or one prompt answer; blank string means Return |
 | `acad_point` / `point` | World `x`, `y`, using SNAP/ORTHO; exact typed points use `command` |
 | `acad_click` / `click` | Physical client `x`, `y`, optional `width`, `height`; menu/selection routes |
 | `acad_motion` / `motion` | Physical client `x`, `y`, optional `width`, `height`; pointer motion without a click (SKETCH sampling, see `docs/native-sketch.md`) |
-| `acad_state` / `state` | Prompt, input, status/full report, `sketch` (pen, mode, temporary line count, or null), `script` status, `report_view` visibility/text anchor, counts, view, limits, layers/OFF layers, FILLET radius, SNAP/GRID/ORTHO and document `path`, `format`, `dirty` |
+| `acad_state` / `state` | Prompt, input, canonical status/full report, `locale`, `mode`, current `palette`, semantic `command_idle`, `sketch` (pen, mode, temporary line count, or null), `script` status, `report_view` visibility/text anchor, counts, view, limits, layers/OFF layers, FILLET radius, SNAP/GRID/ORTHO and document `path`, `format`, `dirty` |
 | `acad_drawing` / `drawing` | Current geometry as historical DXF text, without writing a file |
 | `acad_save` / `save` | `path`; `.dxf` is case-insensitive, other extensions write DWG |
 | `acad_cancel` / `cancel` | Cancel the current prompt |
@@ -231,6 +233,15 @@ limits, the public Rust API and the two regression scripts are in
 [`docs/native-api.md`](docs/native-api.md).
 
 ## Architecture
+
+Native and browser presentations share one Rust engine. Command identities and
+aliases now come from a validated [structured catalog](crates/acad-cmd/resources/commands.json),
+which generates typed dispatch identities and discovery metadata. Shared validated
+catalogs also provide messages, presentation profiles, and hatch descriptions.
+Native `--locale en|uk` and `--mode frozen|modern` select presentation state;
+Ukrainian UI coverage is partial.
+See [data-driven evolution](docs/data-driven-evolution.md) for the implemented
+scope, evidence, and remaining migrations.
 
 ### Crate dependencies
 

@@ -9,14 +9,21 @@ use std::path::{Path, PathBuf};
 /// The original's eight tasks, in order (`crates/acad-oracle/tests/main_menu.rs`).
 pub const MAIN_MENU_TASKS: [&str; 8] = [
     "Exit AutoCAD",
-    "Begin a NEW drawing",
-    "Edit an EXISTING drawing",
+    static_label(acad_cmd::messages::MessageId::UiMainMenuNew),
+    static_label(acad_cmd::messages::MessageId::UiMainMenuOpen),
     "Plot a drawing",
     "Configure AutoCAD",
-    "Make drawing interchange file",
+    static_label(acad_cmd::messages::MessageId::UiMainMenuExportDxf),
     "Load drawing interchange file",
     "File Utilities",
 ];
+
+const fn static_label(id: acad_cmd::messages::MessageId) -> &'static str {
+    match acad_cmd::messages::text(id, acad_cmd::messages::Locale::En) {
+        Ok(label) => label,
+        Err(_) => panic!("static main menu label"),
+    }
+}
 
 const CONFIGURATION_MENU: [&str; 8] = [
     "Exit to Main Menu",
@@ -100,6 +107,18 @@ fn selection_number(line: &str) -> Option<u64> {
 }
 
 impl Session {
+    pub fn main_menu_tasks(&self) -> [&'static str; 8] {
+        use acad_cmd::messages::{text, MessageId};
+        let mut tasks = MAIN_MENU_TASKS;
+        for (index, id) in [
+            (1, MessageId::UiMainMenuNew),
+            (2, MessageId::UiMainMenuOpen),
+            (5, MessageId::UiMainMenuExportDxf),
+        ] {
+            tasks[index] = text(id, self.locale).expect("static main menu label");
+        }
+        tasks
+    }
     /// Start at the Main Menu: `acad` launched without a drawing.
     pub fn main_menu(directories: &[PathBuf]) -> Self {
         let mut session = Self::new(directories);
@@ -187,7 +206,7 @@ impl Session {
                 "File Utilities\n\nThe File Utility Menu is the FILES report; \
                  selection 0 returns to the Main Menu.\n",
             ),
-            _ => text.push_str(&menu_lines("Main Menu", &MAIN_MENU_TASKS)),
+            _ => text.push_str(&menu_lines("Main Menu", &self.main_menu_tasks())),
         }
         if !menu.messages.is_empty() {
             text.push('\n');
@@ -225,7 +244,7 @@ impl Session {
         json!({
             "screen": screen,
             "task": task,
-            "tasks": MAIN_MENU_TASKS.iter().enumerate()
+            "tasks": self.main_menu_tasks().iter().enumerate()
                 .map(|(number, label)| json!({"number": number, "label": label}))
                 .collect::<Vec<_>>(),
             "current_drawing": self.main_menu_drawing,
@@ -236,7 +255,7 @@ impl Session {
 
     fn show(&mut self, screen: Screen, messages: Vec<String>) {
         if let Some(last) = messages.last() {
-            self.status = last.clone();
+            self.set_status(last.clone());
         }
         self.main_menu = Some(MainMenu { screen, messages });
     }
@@ -259,7 +278,7 @@ impl Session {
 
     /// One Return-terminated Main Menu answer (window, API and MCP alike).
     pub(crate) fn main_menu_submit(&mut self, line: &str) -> Result<bool, String> {
-        self.status.clear();
+        self.clear_status();
         let screen = self
             .main_menu
             .as_ref()
@@ -340,7 +359,7 @@ impl Session {
         match selection_number(line) {
             None => self.acknowledge(vec![INVALID.into()], true),
             Some(0) => {
-                self.status = "End AutoCAD.".into();
+                self.set_status("End AutoCAD.".into());
                 Ok(true)
             }
             Some(1) => self.ask_name(Task::New),
@@ -411,11 +430,11 @@ impl Session {
         let (libraries, diagnostics) = Libraries::for_drawing(path, &self.directories);
         let mut next = Self::with_editor(acad_cmd::Editor::default(), libraries);
         next.document = Document::saved(path.to_path_buf(), Format::for_path(path), next.drawing());
-        next.status = if diagnostics.is_empty() {
+        next.set_status(if diagnostics.is_empty() {
             format!("New drawing {}", path.display())
         } else {
             diagnostics.join("; ")
-        };
+        });
         self.adopt(next);
         Ok(false)
     }
@@ -555,7 +574,7 @@ impl Session {
 
     /// After a FILES submission: selection 0 (or cancel) left the dialogue.
     pub(crate) fn leave_finished_file_utilities(&mut self) {
-        if self.in_file_utilities() && self.editor.prompt() == "Command" {
+        if self.in_file_utilities() && self.editor.command_idle() {
             self.show_selection();
         }
     }
@@ -579,7 +598,7 @@ impl Session {
         let next = Self::new(&self.directories);
         self.adopt(next);
         self.main_menu = Some(MainMenu::at(Screen::Selection));
-        self.status = status;
+        self.set_status(status);
     }
 
     /// Replace the drawing session, keeping what belongs to the process.
@@ -592,14 +611,14 @@ impl Session {
         next.main_menu_home = self.main_menu_home;
         next.main_menu_drawing = self.main_menu_drawing.take();
         next.default_name_prompt = std::mem::take(&mut self.default_name_prompt);
-        next.set_palette(self.palette());
+        next.inherit_presentation(self);
         *self = next;
     }
 
     /// API `open` replaces the session but keeps the Main Menu policy and palette.
     pub fn inherit_main_menu_home(&mut self, previous: &Session) {
         self.main_menu_home = previous.main_menu_home;
-        self.set_palette(previous.palette());
+        self.inherit_presentation(previous);
         self.main_menu_drawing = previous.main_menu_drawing.clone();
         self.refresh_default_name_prompt();
     }

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "id": "frozen",
+      "palette": "pc16",
+      "title_key": "profile.frozen.title",
+      "badge_key": "profile.frozen.badge",
+      "status_key": "profile.frozen.status",
+      "source": "db6480f:web/index.html:mode-select/applyMode; presentation palette preset only",
+      "tone": "green"
+    },
+    {
+      "id": "modern",
+      "palette": "aci256",
+      "title_key": "profile.modern.title",
+      "badge_key": "profile.modern.badge",
+      "status_key": "profile.modern.status",
+      "source": "db6480f:web/index.html:mode-select/applyMode; presentation palette preset only",
+      "tone": "red"
+    }
+  ]
+}

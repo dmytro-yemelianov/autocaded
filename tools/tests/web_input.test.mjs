@@ -26,7 +26,7 @@ class Surface {
 function setup(state = {}) {
   const canvas = new Surface();
   const calls = [];
-  const cadState = { prompt: 'Command', input: '', report_visible: false, sketch_active: false, ...state };
+  const cadState = { command_idle: true, prompt: 'Command', input: '', report_visible: false, sketch_active: false, ...state };
   const cad = { get_state_json: () => JSON.stringify(cadState) };
   for (const method of ['press', 'release', 'motion', 'cursor', 'pan']) {
     cad[method] = (...args) => calls.push([method, ...args]);
@@ -46,7 +46,7 @@ test('mouse presses and sketch releases retain the native route', () => {
 });
 
 test('a touch tap commits one point only after release', () => {
-  const { canvas, calls } = setup({ prompt: 'LINE: start point' });
+  const { canvas, calls } = setup({ command_idle: false, prompt: 'LINE: start point' });
   canvas.emit('pointerdown');
   canvas.emit('pointermove', { clientX: 102 });
   assert.deepEqual(calls, []);
@@ -55,7 +55,7 @@ test('a touch tap commits one point only after release', () => {
 });
 
 test('two fingers during LINE never place points, including the remaining finger', () => {
-  const { canvas, calls } = setup({ prompt: 'LINE: start point' });
+  const { canvas, calls } = setup({ command_idle: false, prompt: 'LINE: start point' });
   canvas.emit('pointerdown');
   canvas.emit('pointerdown', { pointerId: 2, clientX: 200 });
   canvas.emit('pointermove', { pointerId: 2, clientX: 220 });
@@ -97,7 +97,7 @@ test('navigation does not consume typed input or an open report', () => {
 });
 
 test('sketch drags start at the initial contact and lift on cancellation', () => {
-  const { canvas, calls } = setup({ prompt: 'SKETCH', sketch_active: true });
+  const { canvas, calls } = setup({ command_idle: false, prompt: 'SKETCH', sketch_active: true });
   canvas.emit('pointerdown');
   assert.deepEqual(calls, []);
   canvas.emit('pointermove', { clientX: 110 });
@@ -107,7 +107,7 @@ test('sketch drags start at the initial contact and lift on cancellation', () =>
 });
 
 test('a second finger lifts an existing sketch drag and suppresses subsequent points', () => {
-  const { canvas, calls } = setup({ prompt: 'SKETCH', sketch_active: true });
+  const { canvas, calls } = setup({ command_idle: false, prompt: 'SKETCH', sketch_active: true });
   canvas.emit('pointerdown');
   canvas.emit('pointermove', { clientX: 110 });
   canvas.emit('pointerdown', { pointerId: 2, clientX: 200 });
@@ -117,7 +117,7 @@ test('a second finger lifts an existing sketch drag and suppresses subsequent po
 });
 
 test('cancelled taps place no point and the next tap works', () => {
-  const { canvas, calls } = setup({ prompt: 'LINE: start point' });
+  const { canvas, calls } = setup({ command_idle: false, prompt: 'LINE: start point' });
   canvas.emit('pointerdown');
   canvas.emit('pointercancel');
   assert.deepEqual(calls, []);
@@ -138,4 +138,21 @@ test('modal keys stop before CAD handlers, and Escape closes without cancelling 
   }
   assert.equal(modal.hidden, true);
   assert.equal(document.emit('keydown', { key: 'x' }).stopped, false);
+});
+
+
+test('touch navigation follows semantic idle state with any displayed prompt', () => {
+  for (const state of [
+    { prompt: 'Команда', command_idle: true, navigates: true },
+    { prompt: 'Command', command_idle: false, navigates: false },
+  ]) {
+    const { canvas, calls } = setup(state);
+    canvas.emit('pointerdown');
+    canvas.emit('pointerdown', { pointerId: 2, clientX: 200 });
+    canvas.emit('pointermove', { pointerId: 2, clientX: 220 });
+    canvas.emit('pointerup', { pointerId: 2 });
+    canvas.emit('pointerup');
+    assert.equal(calls.some(([method]) => method === 'pan'), state.navigates);
+    assert.equal(calls.some(([method]) => method === 'zoom'), state.navigates);
+  }
 });

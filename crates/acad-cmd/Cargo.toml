@@ -8,5 +8,10 @@ rust-version.workspace = true
 acad-model.workspace = true
 
 [dev-dependencies]
+serde = { version = "1", features = ["derive"] }
 acad-dwg.workspace = true
+serde_json = "1"
+
+[build-dependencies]
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"

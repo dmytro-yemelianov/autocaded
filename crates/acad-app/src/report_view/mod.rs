@@ -43,11 +43,7 @@ impl Report {
                     column += spaces;
                 }
                 ch => {
-                    display.push(if ch.is_ascii() && !ch.is_control() {
-                        ch
-                    } else {
-                        '?'
-                    });
+                    display.push(crate::bitmap::ui_char(ch));
                     column += 1;
                 }
             }
@@ -148,5 +144,38 @@ mod tests {
         report.navigate(ReportAction::Close, 640, 240);
         report.navigate(ReportAction::Open, 640, 240);
         assert_eq!(report.anchor(), anchor);
+    }
+    #[test]
+    fn ukrainian_report_normalizes_controls_wraps_pages_and_preserves_source() {
+        let original = "Ґї\tЄ☃\u{7f}\r\nАБВГҐДЕЄЖЗИІЇ\nКІНЕЦЬ";
+        let mut report = Report::new(original.into());
+        assert_eq!(report.text(), original);
+        assert_eq!(report.display, "Ґї  Є??\nАБВГҐДЕЄЖЗИІЇ\nКІНЕЦЬ");
+        let (width, height) = (56u32, 100u32); // three columns and one report body row
+        report.navigate(ReportAction::Down, width, height);
+        assert_eq!(report.anchor(), "Ґї ".len());
+        let anchor = report.anchor();
+        for resized in [24, 56, 88, 120, 320] {
+            let mut pixels = vec![0x0012_3456; (resized * height) as usize];
+            report.draw(&mut pixels, resized, height);
+            assert_eq!(report.anchor(), anchor);
+            assert!(report.display.is_char_boundary(report.anchor()));
+            let canvas = crate::command_line::drawing_height(height) as usize;
+            assert!(pixels[canvas * resized as usize..]
+                .iter()
+                .all(|p| *p == 0x0012_3456));
+        }
+        report.navigate(ReportAction::End, width, height);
+        let mut actual = vec![0; (width * height) as usize];
+        report.draw(&mut actual, width, height);
+        let mut expected = vec![0x0010_1820; (width * height) as usize];
+        crate::bitmap::draw_text(&mut expected, width as usize, 4, 20, "ЕЦЬ", 0x00dd_eeee);
+        assert_eq!(
+            &actual[20 * width as usize..36 * width as usize],
+            &expected[20 * width as usize..36 * width as usize]
+        );
+        assert_eq!(report.text(), original);
+        report.navigate(ReportAction::Home, width, height);
+        assert_eq!(report.anchor(), 0);
     }
 }

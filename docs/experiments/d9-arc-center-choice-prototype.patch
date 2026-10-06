@@ -1,0 +1,224 @@
+diff --git a/crates/acad-cmd/build.rs b/crates/acad-cmd/build.rs
+index d652215..238e64f 100644
+--- a/crates/acad-cmd/build.rs
++++ b/crates/acad-cmd/build.rs
+@@ -1,3 +1,5 @@
++#[path = "build_support/arc_choices.rs"]
++mod arc_choices;
+ #[path = "build_support/messages.rs"]
+ mod messages;
+ #[path = "build_support/profiles.rs"]
+@@ -79,6 +81,7 @@ struct HatchPattern {
+ }
+
+ fn main() {
++    arc_choices::build();
+     messages::build();
+     profiles::build();
+     const PATH: &str = "resources/commands.json";
+diff --git a/crates/acad-cmd/build_support/arc_choices.rs b/crates/acad-cmd/build_support/arc_choices.rs
+new file mode 100644
+index 0000000..6455b71
+--- /dev/null
++++ b/crates/acad-cmd/build_support/arc_choices.rs
+@@ -0,0 +1,72 @@
++//! Bounded build-time experiment: two ARC center choices, no runtime interpreter.
++use serde::Deserialize;
++use std::{collections::BTreeSet, env, fs, path::PathBuf};
++
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Catalog {
++    schema_version: u32,
++    choices: Vec<Choice>,
++}
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Choice {
++    context: Context,
++    token: String,
++    action: Action,
++    source: String,
++}
++#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
++#[serde(rename_all = "snake_case")]
++enum Context {
++    ArcCenterChoice,
++}
++#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
++#[serde(rename_all = "snake_case")]
++enum Action {
++    Angle,
++    Chord,
++}
++
++pub fn generate(input: &str) -> Result<String, String> {
++    if input.len() > 4096 {
++        return Err("choice resource exceeds 4096 bytes".into());
++    }
++    let catalog: Catalog = serde_json::from_str(input).map_err(|e| e.to_string())?;
++    if catalog.schema_version != 1 || catalog.choices.len() != 2 {
++        return Err("expected v1 two-choice ARC center catalog".into());
++    }
++    let mut tokens = BTreeSet::new();
++    let mut actions = BTreeSet::new();
++    let mut rows = String::new();
++    for choice in catalog.choices {
++        if choice.token.len() != 1 || !choice.token.bytes().all(|b| b.is_ascii_uppercase()) {
++            return Err("choice token must be one uppercase ASCII letter".into());
++        }
++        if !tokens.insert((choice.context, choice.token.clone())) {
++            return Err("duplicate context/token".into());
++        }
++        if !actions.insert(choice.action) {
++            return Err("duplicate action".into());
++        }
++        if choice.source.trim().is_empty() || choice.source.chars().any(char::is_control) {
++            return Err("missing or invalid provenance".into());
++        }
++        rows.push_str(&format!(
++            "({:?}, CenterChoice::{:?}),\n",
++            choice.token, choice.action
++        ));
++    }
++    // Exactly two unique members of this closed action enum guarantees coverage.
++    Ok(format!(
++        "const CENTER_CHOICES: &[(&str, CenterChoice)] = &[{rows}];\n"
++    ))
++}
++pub fn build() {
++    const PATH: &str = "resources/arc-center-choices.json";
++    println!("cargo:rerun-if-changed={PATH}");
++    println!("cargo:rerun-if-changed=build_support/arc_choices.rs");
++    let generated = generate(&fs::read_to_string(PATH).expect(PATH)).expect("invalid ARC choices");
++    let output = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR"));
++    fs::write(output.join("arc_choices.rs"), generated).expect("write ARC choices");
++}
+diff --git a/crates/acad-cmd/resources/arc-center-choices.json b/crates/acad-cmd/resources/arc-center-choices.json
+new file mode 100644
+index 0000000..dab2aee
+--- /dev/null
++++ b/crates/acad-cmd/resources/arc-center-choices.json
+@@ -0,0 +1,17 @@
++{
++  "schema_version": 1,
++  "choices": [
++    {
++      "context": "arc_center_choice",
++      "token": "A",
++      "action": "angle",
++      "source": "34fe7fe213165d2108a4f9b57aed3321fca426c9 crates/acad-cmd/src/dispatch/creation/arc.rs InputState::ArcCenterChoice"
++    },
++    {
++      "context": "arc_center_choice",
++      "token": "L",
++      "action": "chord",
++      "source": "34fe7fe213165d2108a4f9b57aed3321fca426c9 crates/acad-cmd/src/dispatch/creation/arc.rs InputState::ArcCenterChoice"
++    }
++  ]
++}
+diff --git a/crates/acad-cmd/src/arc_choices.rs b/crates/acad-cmd/src/arc_choices.rs
+new file mode 100644
+index 0000000..f34a13a
+--- /dev/null
++++ b/crates/acad-cmd/src/arc_choices.rs
+@@ -0,0 +1,13 @@
++//! Typed actions for the bounded ARC center-choice experiment.
++#[derive(Clone, Copy, Debug)]
++pub(crate) enum CenterChoice {
++    Angle,
++    Chord,
++}
++include!(concat!(env!("OUT_DIR"), "/arc_choices.rs"));
++pub(crate) fn center_choice(input: &str) -> Option<CenterChoice> {
++    CENTER_CHOICES
++        .iter()
++        .find(|(token, _)| input.eq_ignore_ascii_case(token))
++        .map(|(_, action)| *action)
++}
+diff --git a/crates/acad-cmd/src/dispatch/creation/arc.rs b/crates/acad-cmd/src/dispatch/creation/arc.rs
+index ec21249..78b89c8 100644
+--- a/crates/acad-cmd/src/dispatch/creation/arc.rs
++++ b/crates/acad-cmd/src/dispatch/creation/arc.rs
+@@ -1,5 +1,6 @@
+ //! Retained HLP ARC alternatives; every completed arc passes geometric validation.
+ use super::*;
++use crate::arc_choices::{center_choice, CenterChoice};
+ use crate::geometry::{arc, circle};
+
+ fn validate_center(start: Point, center: Point) -> Result<(), String> {
+@@ -58,11 +59,10 @@ impl Editor {
+                 return Ok(Effect::Continue);
+             }
+             InputState::ArcCenterChoice(start, center) => {
+-                if line.eq_ignore_ascii_case("A") || line.eq_ignore_ascii_case("L") {
+-                    self.state = if line.eq_ignore_ascii_case("A") {
+-                        InputState::ArcCenterAngle(start, center)
+-                    } else {
+-                        InputState::ArcCenterChord(start, center)
++                if let Some(choice) = center_choice(line) {
++                    self.state = match choice {
++                        CenterChoice::Angle => InputState::ArcCenterAngle(start, center),
++                        CenterChoice::Chord => InputState::ArcCenterChord(start, center),
+                     };
+                     return Ok(Effect::Continue);
+                 }
+diff --git a/crates/acad-cmd/src/lib.rs b/crates/acad-cmd/src/lib.rs
+index c4df3ac..f3c4cca 100644
+--- a/crates/acad-cmd/src/lib.rs
++++ b/crates/acad-cmd/src/lib.rs
+@@ -7,6 +7,7 @@ pub mod messages;
+ pub mod profiles;
+ pub use error::{CmdError, CmdErrorKind, CommandDiagnostic};
+
++mod arc_choices;
+ mod change;
+ mod curve_history;
+ mod dimension;
+diff --git a/crates/acad-cmd/tests/arc_choice_catalog.rs b/crates/acad-cmd/tests/arc_choice_catalog.rs
+new file mode 100644
+index 0000000..3715f3d
+--- /dev/null
++++ b/crates/acad-cmd/tests/arc_choice_catalog.rs
+@@ -0,0 +1,41 @@
++#[allow(dead_code)]
++#[path = "../build_support/arc_choices.rs"]
++mod choices;
++use serde_json::{json, Value};
++const ORIGINAL: &str = include_str!("../resources/arc-center-choices.json");
++#[test]
++fn schema_rejects_unknown_context_action_field_and_invalid_provenance() {
++    assert!(choices::generate(ORIGINAL).is_ok());
++    for (pointer, value) in [
++        ("/schema_version", json!(2)),
++        ("/choices/0/context", json!("arc_start")),
++        ("/choices/0/action", json!("execute_script")),
++        ("/choices/0/token", json!("a")),
++        ("/choices/0/token", json!("А")),
++        ("/choices/0/source", json!(" ")),
++        ("/choices/0/source", json!("bad\nsource")),
++        ("/choices/1/token", json!("A")),
++        ("/choices/1/action", json!("angle")),
++    ] {
++        let mut value_to_check: Value = serde_json::from_str(ORIGINAL).unwrap();
++        *value_to_check.pointer_mut(pointer).unwrap() = value;
++        assert!(
++            choices::generate(&value_to_check.to_string()).is_err(),
++            "{pointer}"
++        );
++    }
++    for field in ["context", "token", "action", "source"] {
++        let mut input: Value = serde_json::from_str(ORIGINAL).unwrap();
++        input["choices"][0].as_object_mut().unwrap().remove(field);
++        assert!(choices::generate(&input.to_string()).is_err());
++    }
++    let mut input: Value = serde_json::from_str(ORIGINAL).unwrap();
++    input["choices"][0]["extra"] = json!(true);
++    assert!(choices::generate(&input.to_string()).is_err());
++    assert!(choices::generate(&ORIGINAL.replace(
++        "\"schema_version\": 1",
++        "\"schema_version\": 1, \"schema_version\": 1"
++    ))
++    .is_err());
++    assert!(choices::generate(&" ".repeat(4097)).is_err());
++}

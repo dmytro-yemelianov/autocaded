@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "patterns": [
+    {
+      "token": "EARTH",
+      "description": "Earth or ground (subterranean)",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:41"
+    },
+    {
+      "token": "ESCHER",
+      "description": "Escher pattern",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:42"
+    },
+    {
+      "token": "FLEX",
+      "description": "Flexible material",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:43"
+    },
+    {
+      "token": "GRASS",
+      "description": "Grass area",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:44"
+    },
+    {
+      "token": "GRATE",
+      "description": "Grated area",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:45"
+    },
+    {
+      "token": "HEX",
+      "description": "Hexagons",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:46"
+    },
+    {
+      "token": "HONEY",
+      "description": "Honeycomb pattern",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:47"
+    },
+    {
+      "token": "HOUND",
+      "description": "Houndstooth check",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:48"
+    },
+    {
+      "token": "INSUL",
+      "description": "Insulation material",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:49"
+    },
+    {
+      "token": "LINE",
+      "description": "Parallel horizontal lines",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:50"
+    },
+    {
+      "token": "MUDST",
+      "description": "Mud and sand",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:51"
+    },
+    {
+      "token": "NET",
+      "description": "Horizontal / vertical grid",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:52"
+    },
+    {
+      "token": "NET3",
+      "description": "Network pattern 0-60-120",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:53"
+    },
+    {
+      "token": "PLAST",
+      "description": "Plastic material",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:54"
+    },
+    {
+      "token": "PLASTI",
+      "description": "Plastic material",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:55"
+    },
+    {
+      "token": "SACNCR",
+      "description": "Concrete",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:56"
+    },
+    {
+      "token": "SQUARE",
+      "description": "Small aligned squares",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:57"
+    },
+    {
+      "token": "STARS",
+      "description": "Star of David",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:58"
+    },
+    {
+      "token": "STEEL",
+      "description": "Steel material",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:59"
+    },
+    {
+      "token": "SWAMP",
+      "description": "Swampy area",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:60"
+    },
+    {
+      "token": "TRANS",
+      "description": "Heat transfer material",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:61"
+    },
+    {
+      "token": "TRIANG",
+      "description": "Equilateral triangles",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:62"
+    },
+    {
+      "token": "ZIGZAG",
+      "description": "Staircase effect",
+      "source": "v0.4.3:crates/acad-cmd/src/lib.rs:63"
+    }
+  ]
+}
