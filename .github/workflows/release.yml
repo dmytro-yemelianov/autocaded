@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: [self-hosted, raps-ci, autorust]
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             archive_ext: tar.gz
           - os: macos-latest
@@ -35,13 +35,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Environment PATH (self-hosted)
+      - name: Native Linux dependencies
         if: runner.os == 'Linux'
         run: |
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-dev libwayland-dev
 
-      - name: Install Rust toolchain (GitHub-hosted)
-        if: runner.os != 'Linux'
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.88.0
@@ -87,13 +87,23 @@ jobs:
 
   wasm:
     name: build (wasm32 web bundle)
-    runs-on: [self-hosted, raps-ci, autorust]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Environment PATH (self-hosted)
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+          targets: wasm32-unknown-unknown
+
+      - name: Install matching wasm-bindgen CLI
+        shell: bash
         run: |
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          version="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/[^0-9.]/, ""); print; exit }' Cargo.lock)"
+          mkdir -p "$RUNNER_TEMP/wasm-bindgen"
+          curl -fsSL "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/${version}/wasm-bindgen-${version}-x86_64-unknown-linux-musl.tar.gz" -o "$RUNNER_TEMP/wasm-bindgen.tar.gz"
+          tar -xzf "$RUNNER_TEMP/wasm-bindgen.tar.gz" --strip-components=1 -C "$RUNNER_TEMP/wasm-bindgen"
+          echo "$RUNNER_TEMP/wasm-bindgen" >> "$GITHUB_PATH"
 
       # AutoCADED's own font, menu and drawings (demo/); no Autodesk files.
       - name: Build web bundle
@@ -145,7 +155,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: [build, wasm, macos_app]
-    runs-on: [self-hosted, raps-ci, autorust]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -161,7 +171,7 @@ jobs:
           mkdir -p release-dist
           find raw-artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} release-dist/ \;
           cd release-dist
-          sha256sum * > SHA256SUMS
+          sha256sum -- * > SHA256SUMS
           echo "=== Release Artifacts ==="
           ls -lh
           cat SHA256SUMS

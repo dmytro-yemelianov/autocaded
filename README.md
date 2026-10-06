@@ -586,7 +586,7 @@ AutoCAD 1.4: `ACAD.EXE` (78,848 B) and `ACAD.OVL` (179,480 B).
 
 ## Contributing and CI
 
-CI (`.github/workflows/ci.yml`) runs on a self-hosted `raps-ci` runner for
+CI (`.github/workflows/ci.yml`) runs on a GitHub-hosted Linux runner for
 pushes and pull requests to `main`:
 
     cargo fmt --all --check
@@ -600,7 +600,8 @@ pushes and pull requests to `main`:
 
 Release (`.github/workflows/release.yml`, on `v*` tags) builds `acad` and
 `acad-mcp` for x86_64 Linux, aarch64 and x86_64 macOS, and x86_64 Windows,
-plus the `--no-assets` wasm bundle, and publishes them with `SHA256SUMS`.
+plus a universal macOS app and the wasm bundle with AutoCADED demo assets,
+and publishes them with `SHA256SUMS`.
 
 Desktop and corpus regressions not run in CI:
 
