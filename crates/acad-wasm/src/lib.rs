@@ -210,7 +210,7 @@ impl AutoCadSession {
         Ok(frame.rgba())
     }
 
-    /// Render current frame to PNG bytes.
+    /// Render the current screen, including menus and command area, to PNG bytes.
     pub fn render_png(&mut self, width: u32, height: u32) -> Result<Vec<u8>, JsValue> {
         self.viewport_width = width;
         self.viewport_height = height;
@@ -220,6 +220,12 @@ impl AutoCadSession {
             .frame(width, height)
             .map_err(|e| JsValue::from_str(&e))?;
         frame.png().map_err(|e| JsValue::from_str(&e))
+    }
+
+    /// Export drawing geometry to PNG, without menus, reports or editing overlays.
+    pub fn export_png(&self, width: u32, height: u32) -> Result<Vec<u8>, JsValue> {
+        drawing_to_png(self.session.drawing(), &self.fonts, width, height)
+            .map_err(|e| JsValue::from_str(&e))
     }
 
     /// Open DWG or DXF bytes, chosen by the DWG magic as in the native app
@@ -315,6 +321,59 @@ impl AutoCadSession {
     }
 }
 
+/// Geometry shared by image exports; independent of screen composition and input.
+fn image_geometry(
+    drawing: &Drawing,
+    libraries: &acad_render::Libraries,
+    width: u32,
+    height: u32,
+    format: &str,
+) -> Result<acad_render::RenderOutput, String> {
+    if width == 0 || height == 0 || u64::from(width) * u64::from(height) > 33_554_432 {
+        return Err("image must be nonzero and contain at most 33554432 pixels".into());
+    }
+    let bounds = if (drawing.header.extents.xmax - drawing.header.extents.xmin).abs() > 1e-4 {
+        &drawing.header.extents
+    } else {
+        &drawing.header.limits
+    };
+    let vp = acad_render::Viewport::fit(bounds, width, height);
+    let output = acad_render::flatten_with_libraries(drawing, &vp, libraries);
+    if output.incomplete {
+        return Err(format!(
+            "{format} export incomplete: {}",
+            output.diagnostics.join("; ")
+        ));
+    }
+    Ok(output)
+}
+
+fn drawing_to_png(
+    drawing: &Drawing,
+    libraries: &acad_render::Libraries,
+    width: u32,
+    height: u32,
+) -> Result<Vec<u8>, String> {
+    let output = image_geometry(drawing, libraries, width, height, "PNG")?;
+    let raster = acad_render::rasterize(&output.primitives, width, height);
+    Frame {
+        width,
+        height,
+        pixels: raster
+            .pixels()
+            .iter()
+            .map(|pixel| {
+                (u32::from(pixel.red()) << 16)
+                    | (u32::from(pixel.green()) << 8)
+                    | u32::from(pixel.blue())
+            })
+            .collect(),
+        diagnostics: output.diagnostics,
+        complete: true,
+    }
+    .png()
+}
+
 /// Convert drawing geometry to standalone, scalable SVG.
 fn drawing_to_svg(
     drawing: &Drawing,
@@ -322,19 +381,7 @@ fn drawing_to_svg(
     width: u32,
     height: u32,
 ) -> Result<String, String> {
-    let bounds = if (drawing.header.extents.xmax - drawing.header.extents.xmin).abs() > 1e-4 {
-        &drawing.header.extents
-    } else {
-        &drawing.header.limits
-    };
-    let vp = acad_render::Viewport::fit(bounds, width.max(100), height.max(100));
-    let output = acad_render::flatten_with_libraries(drawing, &vp, libraries);
-    if output.incomplete {
-        return Err(format!(
-            "SVG export incomplete: {}",
-            output.diagnostics.join("; ")
-        ));
-    }
+    let output = image_geometry(drawing, libraries, width, height, "SVG")?;
 
     let mut svg = String::with_capacity(output.primitives.len() * 128 + 256);
     svg.push_str(&format!(
@@ -493,7 +540,7 @@ mod tests {
     }
 
     #[test]
-    fn svg_export_refuses_partial_geometry() {
+    fn image_exports_refuse_partial_geometry() {
         let mut drawing = acad_dxf::parse(b"POINT,1\r\n1,1\r\n").unwrap();
         drawing.items = vec![
             acad_model::Item::Repeat(acad_model::Repeat {
@@ -513,12 +560,54 @@ mod tests {
         let error = drawing_to_svg(&drawing, &libraries, 800, 600).unwrap_err();
         assert!(error.starts_with("SVG export incomplete:"));
         assert!(error.contains("budget"), "{error}");
+        let error = drawing_to_png(&drawing, &libraries, 800, 600).unwrap_err();
+        assert!(error.starts_with("PNG export incomplete:"));
+        assert!(error.contains("budget"), "{error}");
         // Per-owner rejection must also fail, even without a whole-frame stop.
         if let acad_model::Item::Repeat(repeat) = &mut drawing.items[0] {
             repeat.columns = u16::MAX;
             repeat.rows = u16::MAX;
         }
         assert!(drawing_to_svg(&drawing, &libraries, 800, 600).is_err());
+        assert!(drawing_to_png(&drawing, &libraries, 800, 600).is_err());
+    }
+
+    #[test]
+    fn png_export_ignores_ui_and_preserves_session_and_viewport() {
+        let mut cad = session();
+        let blank = cad.export_png(512, 384).unwrap();
+        for input in ["LINE", "1,1", "4,3", ""] {
+            cad.command(input).unwrap();
+        }
+        let drawing = cad.export_png(512, 384).unwrap();
+        assert_ne!(drawing, blank, "export contains committed geometry");
+        let screen = cad.render_png(800, 600).unwrap();
+        cad.load_menu(include_bytes!("../../../demo/AUTOCADED.MNU"))
+            .unwrap();
+        cad.session.cursor(Some((120.0, 180.0)));
+        for input in ["GRID", "1", "LIST"] {
+            cad.command(input).unwrap();
+        }
+        cad.session.set_input("1".into());
+        assert_ne!(cad.render_png(800, 600).unwrap(), screen);
+        let before = state(&cad);
+        let viewport = (cad.viewport_width, cad.viewport_height);
+        assert_eq!(cad.export_png(512, 384).unwrap(), drawing);
+        assert_eq!(state(&cad), before);
+        assert_eq!((cad.viewport_width, cad.viewport_height), viewport);
+        cad.key_down("Enter", false, false, false).unwrap();
+        assert!(cad.session.report_visible());
+        assert_eq!(cad.export_png(512, 384).unwrap(), drawing);
+    }
+
+    #[test]
+    fn image_dimensions_are_checked_before_rendering() {
+        let drawing = acad_cmd::Editor::default().drawing().clone();
+        let libraries = acad_render::Libraries::default();
+        for (width, height) in [(0, 600), (800, 0), (u32::MAX, u32::MAX)] {
+            assert!(drawing_to_png(&drawing, &libraries, width, height).is_err());
+            assert!(drawing_to_svg(&drawing, &libraries, width, height).is_err());
+        }
     }
 
     #[test]

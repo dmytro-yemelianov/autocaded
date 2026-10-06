@@ -132,8 +132,10 @@ to its command area, as in the native window, and the screen menu takes clicks.
 
 Touch taps place points; idle drags pan, and two fingers pan/zoom without
 placing points. SKETCH drags draw. DXF export rejects control characters in
-text/names; SVG export refuses incomplete geometry when rendering reaches a
-budget limit.
+text/names; PNG and SVG exports contain drawing geometry without the screen menu,
+command area or editing overlays, and refuse incomplete geometry when rendering
+reaches a budget limit. Image exports use 1024 × 768 pixels, independent of window
+size.
 
 Live at **[autocaded.yemelianov.dev](https://autocaded.yemelianov.dev)**.
 

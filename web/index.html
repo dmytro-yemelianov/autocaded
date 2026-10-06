@@ -775,7 +775,7 @@
       dwg: { type: 'application/octet-stream', label: 'AutoCAD 1.4 drawing', data: () => cad.export_dwg('1.4') },
       dxf: { type: 'application/dxf', label: 'AutoCAD 1.4 DXF', data: () => cad.export_dxf() },
       svg: { type: 'image/svg+xml', label: 'SVG image', data: () => cad.export_svg(1024, 768) },
-      png: { type: 'image/png', label: 'PNG image', data: () => cad.render_png(canvas.width, canvas.height) },
+      png: { type: 'image/png', label: 'PNG image', data: () => cad.export_png(1024, 768) },
     };
 
     // The save dialog names the file explicitly. An <a download> link is the
