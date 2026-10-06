@@ -360,6 +360,11 @@
       <option value="aci256">ACI 256 (modern)</option>
     </select>
 
+    <select id="mode-select" title="Engine mode: 1983-faithful (frozen) vs modernized (conceptual)">
+      <option value="frozen">1983 Faithful (frozen)</option>
+      <option value="modern">Modernized (concept)</option>
+    </select>
+
     <div id="touch-bar">
       <button id="btn-keys" title="On-screen keyboard">Keys</button>
       <button id="btn-return" title="Return">⏎</button>
@@ -828,6 +833,31 @@
       paletteSelect.blur();
     });
 
+    // Mode selector: 1983 Faithful (frozen) vs Modernized (concept)
+    const modeSelect = document.getElementById('mode-select');
+    function applyMode(name) {
+      if (!cad) return;
+      // In frozen mode: use pc16 palette, original defaults, strict 1983 behavior
+      // In modern mode: aci256 palette, relaxed constraints, future-facing defaults
+      if (name === 'frozen') {
+        applyPalette('pc16');
+        cad.set_palette && cad.set_palette('pc16');
+        // Could add more frozen-mode-specific settings here
+        message('Mode: 1983 Faithful (frozen)');
+      } else {
+        applyPalette('aci256');
+        cad.set_palette && cad.set_palette('aci256');
+        message('Mode: Modernized (concept)');
+      }
+      try { localStorage.setItem('autocaded.mode', name); } catch (err) { /* private mode */ }
+      redraw();
+    }
+    modeSelect.addEventListener('change', () => {
+      if (!cad) return;
+      applyMode(modeSelect.value);
+      modeSelect.blur();
+    });
+
     // About modal
     const aboutModal = document.getElementById('about-modal');
     const modalClose = document.getElementById('modal-close');
@@ -855,6 +885,9 @@
       let saved = null;
       try { saved = localStorage.getItem('autocaded.palette'); } catch (err) { /* private mode */ }
       if (cad && saved && saved !== paletteSelect.value) applyPalette(saved);
+      let savedMode = null;
+      try { savedMode = localStorage.getItem('autocaded.mode'); } catch (err) { /* private mode */ }
+      if (cad && savedMode && savedMode !== modeSelect.value) applyMode(savedMode);
     });
   </script>
 </body>
