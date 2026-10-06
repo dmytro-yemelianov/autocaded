@@ -50,11 +50,54 @@
       background: var(--bg-bar);
       border-bottom: 1px solid var(--border-color);
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: stretch;
       padding: calc(6px + env(safe-area-inset-top)) 14px 6px;
-      gap: 8px 12px;
+      gap: 6px;
       flex-shrink: 0;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 8px 12px;
       flex-wrap: wrap;
+    }
+
+    .header-row.primary {
+      justify-content: space-between;
+    }
+
+    .header-row.secondary {
+      justify-content: flex-end;
+    }
+
+    .header-row.collapsible {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+      opacity: 0;
+    }
+
+    .header-row.collapsible.expanded {
+      max-height: 80px;
+      opacity: 1;
+      margin-top: 4px;
+    }
+
+    .header-toggle {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .header-toggle:hover {
+      background: var(--bg-panel);
+      color: var(--text-main);
     }
 
     header button {
@@ -338,47 +381,56 @@
 </head>
 <body>
   <header>
-    <h1>AutoCAD<span>ED</span></h1>
+    <div class="header-row primary">
+      <h1>AutoCAD<span>ED</span></h1>
 
-    <select id="open-select" title="Open a DWG/DXF drawing (or drop one on the page)">
-      <option value="">Open…</option>
-      <option value="file">From computer…</option>
-      <optgroup id="sample-group" label="Samples" hidden></optgroup>
-    </select>
-    <input type="file" id="file-input" accept=".dwg,.dxf,.bak">
+      <select id="open-select" title="Open a DWG/DXF drawing (or drop one on the page)">
+        <option value="">Open…</option>
+        <option value="file">From computer…</option>
+        <optgroup id="sample-group" label="Samples" hidden></optgroup>
+      </select>
+      <input type="file" id="file-input" accept=".dwg,.dxf,.bak">
 
-    <select id="save-select" title="Download the current drawing">
-      <option value="">Save as…</option>
-      <option value="dwg">DWG (AC1.40)</option>
-      <option value="dxf">DXF</option>
-      <option value="svg">SVG</option>
-      <option value="png">PNG</option>
-    </select>
+      <select id="save-select" title="Download the current drawing">
+        <option value="">Save as…</option>
+        <option value="dwg">DWG (AC1.40)</option>
+        <option value="dxf">DXF</option>
+        <option value="svg">SVG</option>
+        <option value="png">PNG</option>
+      </select>
 
-    <select id="palette-select" title="How colour numbers are drawn">
-      <option value="pc16">PC 16-colour (1983)</option>
-      <option value="aci256">ACI 256 (modern)</option>
-    </select>
+      <select id="palette-select" title="How colour numbers are drawn">
+        <option value="pc16">PC 16-colour (1983)</option>
+        <option value="aci256">ACI 256 (modern)</option>
+      </select>
 
-    <select id="mode-select" title="Engine mode: 1983-faithful (frozen) vs modernized (conceptual)">
-      <option value="frozen">1983 Faithful (frozen)</option>
-      <option value="modern">Modernized (concept)</option>
-    </select>
+      <select id="mode-select" title="Engine mode: 1983-faithful (frozen) vs modernized (conceptual)">
+        <option value="frozen">1983 Faithful (frozen)</option>
+        <option value="modern">Modernized (concept)</option>
+      </select>
 
-    <div id="touch-bar">
-      <button id="btn-keys" title="On-screen keyboard">Keys</button>
-      <button id="btn-return" title="Return">⏎</button>
-      <button id="btn-esc" title="Cancel (Esc)">Esc</button>
-      <button id="btn-zoom-in" title="Zoom in">＋</button>
-      <button id="btn-zoom-out" title="Zoom out">－</button>
+      <div id="mode-badge" class="mode-badge" data-mode="frozen" title="Current engine mode" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; font-size: 11px; font-family: var(--font-mono); min-width: 140px;">
+        <span class="mode-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green);"></span>
+        <span class="mode-text">1983 Faithful</span>
+      </div>
     </div>
 
-    <div style="display: flex; gap: 6px; align-items: center;">
-      <button id="btn-about" title="About AutoCADED">About</button>
-      <a id="repo-link" href="https://github.com/dmytro-yemelianov/autocaded" target="_blank" rel="noopener noreferrer" title="View on GitHub" style="display: flex; align-items: center; gap: 4px; color: var(--text-dim); text-decoration: none; padding: 2px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.536-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
-        GitHub
-      </a>
+    <div class="header-row secondary">
+      <button id="header-toggle" class="header-toggle" aria-label="More options" title="More options">⋮</button>
+      <div class="header-row collapsible" id="header-secondary">
+        <div id="touch-bar">
+          <button id="btn-keys" title="On-screen keyboard">Keys</button>
+          <button id="btn-return" title="Return">⏎</button>
+          <button id="btn-esc" title="Cancel (Esc)">Esc</button>
+          <button id="btn-zoom-in" title="Zoom in">＋</button>
+          <button id="btn-zoom-out" title="Zoom out">－</button>
+        </div>
+        <button id="btn-about" title="About AutoCADED">About</button>
+        <a id="repo-link" href="https://github.com/dmytro-yemelianov/autocaded" target="_blank" rel="noopener noreferrer" title="View on GitHub" style="display: flex; align-items: center; gap: 4px; color: var(--text-dim); text-decoration: none; padding: 2px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.536-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
     </div>
 
     <span id="message"></span>
@@ -835,6 +887,20 @@
 
     // Mode selector: 1983 Faithful (frozen) vs Modernized (concept)
     const modeSelect = document.getElementById('mode-select');
+    const modeBadge = document.getElementById('mode-badge');
+    const modeDot = modeBadge.querySelector('.mode-dot');
+    const modeText = modeBadge.querySelector('.mode-text');
+    function updateModeBadge(name) {
+      if (name === 'frozen') {
+        modeBadge.dataset.mode = 'frozen';
+        modeDot.style.background = 'var(--accent-green)';
+        modeText.textContent = '1983 Faithful';
+      } else {
+        modeBadge.dataset.mode = 'modern';
+        modeDot.style.background = 'var(--accent-red)';
+        modeText.textContent = 'Modernized';
+      }
+    }
     function applyMode(name) {
       if (!cad) return;
       // In frozen mode: use pc16 palette, original defaults, strict 1983 behavior
@@ -842,13 +908,13 @@
       if (name === 'frozen') {
         applyPalette('pc16');
         cad.set_palette && cad.set_palette('pc16');
-        // Could add more frozen-mode-specific settings here
         message('Mode: 1983 Faithful (frozen)');
       } else {
         applyPalette('aci256');
         cad.set_palette && cad.set_palette('aci256');
         message('Mode: Modernized (concept)');
       }
+      updateModeBadge(name);
       try { localStorage.setItem('autocaded.mode', name); } catch (err) { /* private mode */ }
       redraw();
     }
@@ -856,6 +922,103 @@
       if (!cad) return;
       applyMode(modeSelect.value);
       modeSelect.blur();
+    });
+
+    // Header collapsible toggle
+    const headerToggle = document.getElementById('header-toggle');
+    const headerSecondary = document.getElementById('header-secondary');
+    headerToggle.addEventListener('click', () => {
+      headerSecondary.classList.toggle('expanded');
+      headerToggle.textContent = headerSecondary.classList.contains('expanded') ? '✕' : '⋮';
+    });
+
+    // Coordinate readout overlay
+    const coordReadout = document.createElement('div');
+    coordReadout.id = 'coord-readout';
+    coordReadout.style.cssText = `position: absolute; right: 12px; bottom: 12px; padding: 4px 10px; background: rgba(18,18,20,0.9); border: 1px solid var(--border-color); border-radius: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--text-main); pointer-events: none; z-index: 10; display: none;`;
+    document.querySelector('main').appendChild(coordReadout);
+    function updateCoordReadout(x, y) {
+      coordReadout.textContent = `X: ${x.toFixed(4)}  Y: ${y.toFixed(4)}`;
+      coordReadout.style.display = 'block';
+    }
+
+    // Touch pinch/pan support
+    let touchState = { pins: new Map(), lastDist: 0, lastCenter: null, isPanning: false };
+    canvas.addEventListener('touchstart', (e) => {
+      if (!cad) return;
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const rect = canvas.getBoundingClientRect();
+        const p1 = [(t1.clientX - rect.left) * (canvas.width / rect.width), (t1.clientY - rect.top) * (canvas.height / rect.height)];
+        const p2 = [(t2.clientX - rect.left) * (canvas.width / rect.width), (t2.clientY - rect.top) * (canvas.height / rect.height)];
+        const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+        touchState.lastDist = Math.hypot(dx, dy);
+        touchState.lastCenter = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+        touchState.isPanning = false;
+      } else if (e.touches.length === 1 && !touchState.lastDist) {
+        // Single finger - could be pan if not in sketch mode
+        const state = JSON.parse(cad.get_state_json());
+        if (state.prompt === 'Command' && !state.report_visible) {
+          touchState.isPanning = true;
+        }
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (!cad) return;
+      if (e.touches.length === 2 && touchState.lastDist) {
+        e.preventDefault();
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const rect = canvas.getBoundingClientRect();
+        const p1 = [(t1.clientX - rect.left) * (canvas.width / rect.width), (t1.clientY - rect.top) * (canvas.height / rect.height)];
+        const p2 = [(t2.clientX - rect.left) * (canvas.width / rect.width), (t2.clientY - rect.top) * (canvas.height / rect.height)];
+        const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+        const dist = Math.hypot(dx, dy);
+        const center = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+        
+        // Pinch zoom
+        if (touchState.lastDist > 0) {
+          const factor = dist / touchState.lastDist;
+          if (Math.abs(factor - 1) > 0.02) {
+            const state = JSON.parse(cad.get_state_json());
+            if (state.prompt === 'Command' && !state.input && !state.report_visible) {
+              cad.command('ZOOM');
+              cad.command(`${factor > 1 ? 1.2 : 0.8}X`);
+              redraw();
+            }
+          }
+        }
+        
+        // Pan during pinch
+        if (touchState.lastCenter) {
+          const panX = center[0] - touchState.lastCenter[0];
+          const panY = center[1] - touchState.lastCenter[1];
+          if (Math.abs(panX) > 5 || Math.abs(panY) > 5) {
+            cad.cursor(center[0], center[1]);
+            // Simulate PAN via cursor motion + click drag
+          }
+        }
+        touchState.lastDist = dist;
+        touchState.lastCenter = center;
+      } else if (e.touches.length === 1 && touchState.isPanning) {
+        e.preventDefault();
+        const t = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const x = (t.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (t.clientY - rect.top) * (canvas.height / rect.height);
+        cad.motion(x, y, canvas.width, canvas.height);
+        cad.cursor(x, y);
+        redraw();
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        touchState.lastDist = 0;
+        touchState.lastCenter = null;
+        touchState.isPanning = false;
+      }
     });
 
     // About modal
