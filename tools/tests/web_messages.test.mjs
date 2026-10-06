@@ -148,3 +148,20 @@ test('focused locale select owns keys and change without editing or submitting C
   assert.equal(otherSelect.blurred, true, 'existing selector routing remains unchanged');
   assert.equal(input, '1,2x');
 });
+
+
+test('project link keyboard activation stays outside CAD after integration', () => {
+  const start = page.indexOf("    window.addEventListener('keydown', (e) => {");
+  const end = page.indexOf('\n    });', start) + '\n    });'.length;
+  assert(start >= 0 && end > start);
+  let handler;
+  vm.runInNewContext(page.slice(start, end), {
+    window: { addEventListener: (_type, callback) => { handler = callback; } },
+    cad: { key_down() { assert.fail('link activation reached CAD'); } },
+    aboutModal: { hidden: true }, softKeys: {},
+  });
+  for (const key of ['Enter', ' ', 'u']) {
+    handler({ key, target: { closest: (selector) => selector === '.project-links' ? {} : null },
+      preventDefault() { assert.fail('link activation was prevented'); } });
+  }
+});

@@ -2,7 +2,7 @@
 // is picked up on the next load, and the last copy that loaded keeps working
 // offline. Install precaches the app shell and every asset assets/manifest.json
 // names (font, screen menu, sample drawings).
-const CACHE = 'autocaded-v2';
+const CACHE = 'autocaded-v0.5.0';
 const SHELL = [
   './',
   './index.html',
@@ -17,11 +17,22 @@ const SHELL = [
   './pkg/acad_wasm_bg.wasm',
   './assets/manifest.json',
 ];
+const REQUIRED = new Set([
+  './',
+  './index.html',
+  './input.mjs',
+  './pkg/acad_wasm.js',
+  './pkg/acad_wasm_bg.wasm',
+]);
 
 async function precache() {
   const cache = await caches.open(CACHE);
-  // One by one: a missing optional file must not abort the install.
-  const add = (url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => {});
+  // Keep the working worker active if the new editor cannot launch offline.
+  // Missing optional icons or demo files must not abort installation.
+  const add = (url) => {
+    const pending = cache.add(new Request(url, { cache: 'reload' }));
+    return REQUIRED.has(url) ? pending : pending.catch(() => {});
+  };
   await Promise.all(SHELL.map(add));
   try {
     const manifest = await (await fetch('./assets/manifest.json', { cache: 'no-cache' })).json();
