@@ -149,6 +149,146 @@
       color: var(--accent-red);
     }
 
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal[hidden] {
+      display: none;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      animation: fadeIn 0.15s ease-out;
+    }
+
+    .modal-content {
+      position: relative;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 85vh;
+      overflow: auto;
+      animation: slideUp 0.2s ease-out;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 4px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .modal-close:hover {
+      background: var(--bg-bar);
+      color: var(--text-main);
+    }
+
+    .modal-body {
+      padding: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-main);
+    }
+
+    .modal-body h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 16px 0 8px;
+      color: var(--accent-green);
+    }
+
+    .modal-body h3:first-child {
+      margin-top: 0;
+    }
+
+    .modal-body ul {
+      margin: 8px 0 8px 20px;
+      padding: 0;
+    }
+
+    .modal-body li {
+      margin: 4px 0;
+    }
+
+    .modal-body code {
+      background: var(--bg-dark);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-green);
+    }
+
+    .modal-body a {
+      color: var(--accent-green);
+      text-decoration: none;
+    }
+
+    .modal-body a:hover {
+      text-decoration: underline;
+    }
+
+    .modal-body p {
+      margin: 8px 0;
+    }
+
+    @media (max-width: 640px) {
+      .modal-content {
+        margin: 10px;
+        max-height: 90vh;
+      }
+      .modal-body {
+        padding: 16px;
+      }
+    }
+
     input[type="file"] {
       display: none;
     }
@@ -228,6 +368,14 @@
       <button id="btn-zoom-out" title="Zoom out">－</button>
     </div>
 
+    <div style="display: flex; gap: 6px; align-items: center;">
+      <button id="btn-about" title="About AutoCADED">About</button>
+      <a id="repo-link" href="https://github.com/dmytro-yemelianov/autocaded" target="_blank" rel="noopener noreferrer" title="View on GitHub" style="display: flex; align-items: center; gap: 4px; color: var(--text-dim); text-decoration: none; padding: 2px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.536-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+
     <span id="message"></span>
   </header>
   <input id="soft-keys" type="text" value=" " autocomplete="off" autocorrect="off"
@@ -242,6 +390,49 @@
       <div>Loading AutoCADED WebAssembly...</div>
     </div>
   </main>
+
+  <!-- About Modal -->
+  <div id="about-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="about-title" hidden>
+    <div class="modal-backdrop" tabindex="-1"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="about-title">About AutoCADED</h2>
+        <button id="modal-close" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>AutoCADED</strong> — AutoCAD<span style="color: var(--accent-green);">ED</span> for Dmytro Yemelianov (Emelyanov). A native Rust reimplementation of <strong>AutoCAD 1.4 (1983, MS-DOS)</strong> for the original 2D drafting workflow.</p>
+        
+        <h3>What this is</h3>
+        <ul>
+          <li>Complete 1983 DWG/DXF codec (AC1.2 + AC1.40)</li>
+          <li>All 54 software commands recognized; 44 differentially verified against original <code>ACAD.EXE</code></li>
+          <li>Native window (winit + softbuffer), WebAssembly, Unix socket API, MCP stdio adapter</li>
+          <li>SHP stroke fonts, render budget (1M work units/frame), bounded hit-testing</li>
+          <li>Hand-written Rust — decompiler guides understanding; all shipped code is original</li>
+        </ul>
+        
+        <h3>What this is not</h3>
+        <ul>
+          <li>Not an Autodesk product — AutoCAD is a trademark of Autodesk, Inc.</li>
+          <li>Not a modern CAD — this is 1983 2D only (no 3D, no Xrefs, no LISP)</li>
+          <li>Hardware commands excluded: <code>TABLET</code>, <code>PLOT</code>, <code>QPLOT</code></li>
+        </ul>
+        
+        <h3>Verification</h3>
+        <p>The original <code>ACAD.EXE</code> under QEMU is the oracle. Every claim names its evidence: original exports, CGA frame comparisons, retained HLP pages, or Rust tests. No behaviour is asserted without differential proof.</p>
+        
+        <h3>Links</h3>
+        <ul>
+          <li><a href="https://github.com/dmytro-yemelianov/autocaded" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+          <li><a href="https://autocaded.yemelianov.dev" target="_blank" rel="noopener noreferrer">Live Web App</a></li>
+          <li><a href="docs/COMPATIBILITY.md" target="_blank" rel="noopener noreferrer">Compatibility Matrix</a></li>
+        </ul>
+        
+        <h3>License</h3>
+        <p>MIT — see <code>LICENSE</code> in the repository.</p>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import init, { AutoCadSession } from './pkg/acad_wasm.js';
@@ -635,6 +826,25 @@
       applyPalette(paletteSelect.value);
       try { localStorage.setItem('autocaded.palette', paletteSelect.value); } catch (err) { /* private mode */ }
       paletteSelect.blur();
+    });
+
+    // About modal
+    const aboutModal = document.getElementById('about-modal');
+    const modalClose = document.getElementById('modal-close');
+    function openAbout() {
+      aboutModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      modalClose.focus();
+    }
+    function closeAbout() {
+      aboutModal.hidden = true;
+      document.body.style.overflow = '';
+    }
+    document.getElementById('btn-about').addEventListener('click', openAbout);
+    modalClose.addEventListener('click', closeAbout);
+    aboutModal.querySelector('.modal-backdrop').addEventListener('click', closeAbout);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !aboutModal.hidden) closeAbout();
     });
 
     if ('serviceWorker' in navigator && window.isSecureContext) {
