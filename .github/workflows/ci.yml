@@ -63,6 +63,11 @@ jobs:
       - name: Test
         run: cargo test --workspace --exclude acad-oracle
 
+      - name: Reproducible artwork assets
+        run: |
+          cargo test -p acad-app --example art_drawings
+          cargo run -p acad-app --example art_drawings -- demo/art/catalog.json --check
+
       - name: Formal proofs (Lean 4)
         run: |
           cd formal

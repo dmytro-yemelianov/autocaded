@@ -257,6 +257,42 @@
         "uk": "Режим: Осучаснений (концепція)"
       },
       "source": "db6480f:web/index.html:applyMode"
+    },
+    {
+      "key": "art.courtyard_house.title",
+      "args": [],
+      "text": {
+        "en": "Courtyard house",
+        "uk": "Будинок із подвір’ям"
+      },
+      "source": "demo/art/catalog.json:original artwork gallery labels"
+    },
+    {
+      "key": "art.courtyard_house.description",
+      "args": [],
+      "text": {
+        "en": "A contemporary courtyard building in plaster, terracotta and glass.",
+        "uk": "Сучасний будинок із подвір’ям, тиньком, теракотою та склом."
+      },
+      "source": "demo/art/catalog.json:original artwork gallery labels"
+    },
+    {
+      "key": "art.colour_study.title",
+      "args": [],
+      "text": {
+        "en": "Intervals",
+        "uk": "Інтервали"
+      },
+      "source": "demo/art/catalog.json:original artwork gallery labels"
+    },
+    {
+      "key": "art.colour_study.description",
+      "args": [],
+      "text": {
+        "en": "A geometric colour study of circles, planes and repeated rhythms.",
+        "uk": "Геометрична кольорова композиція з кіл, площин і повторюваних ритмів."
+      },
+      "source": "demo/art/catalog.json:original artwork gallery labels"
     }
   ]
 }

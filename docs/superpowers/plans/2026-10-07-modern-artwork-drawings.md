@@ -1,6 +1,13 @@
 # Modern artwork drawings
 
-Date: 2026-10-07. Status: planned. Baseline: released [v0.5.0](https://github.com/dmytro-yemelianov/autocaded/releases/tag/v0.5.0).
+Date: 2026-10-07. Status: first execution implemented; later slices pending.
+Baseline: released [v0.5.0](https://github.com/dmytro-yemelianov/autocaded/releases/tag/v0.5.0).
+
+The strict content contract, deterministic exporter and original building/colour-study
+pair are implemented in [the artwork catalog](../../../demo/art/README.md).
+See [pilot validation](../../artwork-pilot-validation.md). The first contract supports
+original geometric scenes; text, external sources and the in-app gallery need the
+explicit extensions described below. The painting and meme are the next content slice.
 
 Create a small gallery of contemporary CAD artwork: open-licensed paintings,
 memes, film/video stills, modern buildings, and portraits where the subject works

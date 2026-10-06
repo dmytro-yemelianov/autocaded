@@ -169,7 +169,7 @@ fn argument_schema_and_template_grammar() {
 #[test]
 fn actual_catalog_lookup_and_literal_payload() {
     let parsed = builder::parse(acad_cmd::messages::CATALOG_JSON).unwrap();
-    assert_eq!(parsed.messages.len(), 28);
+    assert_eq!(parsed.messages.len(), 32);
     for e in parsed.messages {
         let id = resolve_key(&e.key).unwrap();
         if e.args.is_empty() {

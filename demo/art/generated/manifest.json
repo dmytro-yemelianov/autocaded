@@ -1,0 +1,74 @@
+{
+  "catalog_sha256": "0abfc375108ccae063fb2c42dede220d3d7893afb289ba9890e9671ec23bf17a",
+  "entries": [
+    {
+      "entity_count": 271,
+      "expanded_primitives": 510,
+      "generator_version": "art-v1",
+      "id": "courtyard-house",
+      "labels": {
+        "description": {
+          "en": "A contemporary courtyard building in plaster, terracotta and glass.",
+          "key": "art.courtyard_house.description",
+          "uk": "Сучасний будинок із подвір’ям, тиньком, теракотою та склом."
+        },
+        "title": {
+          "en": "Courtyard house",
+          "key": "art.courtyard_house.title",
+          "uk": "Будинок із подвір’ям"
+        }
+      },
+      "layer_count": 12,
+      "output_sha256": {
+        "dwg": "607fba933b76472c3df7aeb347db1111645e204423f389bd888c7bc0cfffaee9",
+        "dxf": "0abcb8069f850a6dae3abf0a7ab59b9f2c93f245e6ca7bde0148e9c76c2185e0",
+        "png": "9135b275a776fddd47570b5065b3d2272c62166125e8fbb39017356da13571f4",
+        "svg": "e0795ae64a8515f44b325c3720c3959d14c28f30bf6b3630498069c45c91d8d0"
+      },
+      "outputs": {
+        "dwg": "generated/courtyard-house.DWG",
+        "dxf": "generated/courtyard-house.DXF",
+        "png": "generated/courtyard-house.png",
+        "svg": "generated/courtyard-house.svg"
+      },
+      "recipe_sha256": "8fc88fac06a4634d7d4fd384192462af511be5b35019f8e419f54f4f79ee3a1f",
+      "render_work": 5307,
+      "source_sha256": "026428bf017e4d9ec24e35d3e557ce2170c849cd66dcdf67b17cb95e93c81e75"
+    },
+    {
+      "entity_count": 175,
+      "expanded_primitives": 342,
+      "generator_version": "art-v1",
+      "id": "colour-study",
+      "labels": {
+        "description": {
+          "en": "A geometric colour study of circles, planes and repeated rhythms.",
+          "key": "art.colour_study.description",
+          "uk": "Геометрична кольорова композиція з кіл, площин і повторюваних ритмів."
+        },
+        "title": {
+          "en": "Intervals",
+          "key": "art.colour_study.title",
+          "uk": "Інтервали"
+        }
+      },
+      "layer_count": 8,
+      "output_sha256": {
+        "dwg": "a1259c9a03c78827207268a7b20a2447343c050452e0d6c59a3bc2241f49e2dd",
+        "dxf": "390c67603a8fcf417897322b134fead5b978825e8c287ae5f59949d311435651",
+        "png": "66c5c105e7fd43a84e482e5adb21dd2d67e8552b81ba0e878df237f11061e8ce",
+        "svg": "e8a367eec34eab2dbc66b6522f7aca124997d1998641ec3542228b4e484a2995"
+      },
+      "outputs": {
+        "dwg": "generated/colour-study.DWG",
+        "dxf": "generated/colour-study.DXF",
+        "png": "generated/colour-study.png",
+        "svg": "generated/colour-study.svg"
+      },
+      "recipe_sha256": "672c02c789880e00f315b1279b00eb02856744873094889e8eef23d205d0e493",
+      "render_work": 3579,
+      "source_sha256": "b706a6e6612bba64692c97d7135d554c6a11ffb96acabef3bfed788c5ae24530"
+    }
+  ],
+  "schema_version": 1
+}

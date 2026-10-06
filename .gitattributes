@@ -1,0 +1,2 @@
+# Historical DXF writer emits CRLF; retain exact bytes for regeneration checks.
+demo/art/generated/*.DXF -text whitespace=cr-at-eol

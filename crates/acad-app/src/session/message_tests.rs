@@ -262,7 +262,7 @@ fn declared_uk_slice_has_complete_placeholders_tokens_and_bitmap_glyphs() {
     let catalog: serde_json::Value =
         serde_json::from_str(acad_cmd::messages::CATALOG_JSON).unwrap();
     let entries = catalog["messages"].as_array().unwrap();
-    assert_eq!(entries.len(), 28);
+    assert_eq!(entries.len(), 32);
     for entry in entries {
         let key = entry["key"].as_str().unwrap();
         let uk = entry["text"]["uk"]

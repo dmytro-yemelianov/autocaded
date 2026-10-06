@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "id": "courtyard-house",
+      "category": "building",
+      "title_key": "art.courtyard_house.title",
+      "description_key": "art.courtyard_house.description",
+      "recipe": "recipes/courtyard-house.json",
+      "source": {
+        "kind": "original",
+        "creator": "AutoCADED contributors",
+        "license_url": "https://opensource.org/license/mit",
+        "license_version": "MIT",
+        "attribution": "Courtyard house \u2014 AutoCADED contributors. MIT license.",
+        "adaptation": "Hand-authored indexed-colour CAD composition; circular filled regions are editable SOLID triangle fans.",
+        "snapshot": "sources/courtyard-house.json",
+        "sha256": "026428bf017e4d9ec24e35d3e557ce2170c849cd66dcdf67b17cb95e93c81e75"
+      },
+      "outputs": {
+        "dwg": "generated/courtyard-house.DWG",
+        "dxf": "generated/courtyard-house.DXF",
+        "svg": "generated/courtyard-house.svg",
+        "png": "generated/courtyard-house.png"
+      }
+    },
+    {
+      "id": "colour-study",
+      "category": "colour_study",
+      "title_key": "art.colour_study.title",
+      "description_key": "art.colour_study.description",
+      "recipe": "recipes/colour-study.json",
+      "source": {
+        "kind": "original",
+        "creator": "AutoCADED contributors",
+        "license_url": "https://opensource.org/license/mit",
+        "license_version": "MIT",
+        "attribution": "Intervals \u2014 AutoCADED contributors. MIT license.",
+        "adaptation": "Hand-authored indexed-colour CAD composition; circular filled regions are editable SOLID triangle fans.",
+        "snapshot": "sources/colour-study.json",
+        "sha256": "b706a6e6612bba64692c97d7135d554c6a11ffb96acabef3bfed788c5ae24530"
+      },
+      "outputs": {
+        "dwg": "generated/colour-study.DWG",
+        "dxf": "generated/colour-study.DXF",
+        "svg": "generated/colour-study.svg",
+        "png": "generated/colour-study.png"
+      }
+    }
+  ]
+}

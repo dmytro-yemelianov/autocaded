@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "courtyard-house",
+  "title": "Courtyard house",
+  "description": "An original contemporary courtyard building with terracotta, pale plaster and repeated glazed windows.",
+  "creator": "AutoCADED contributors",
+  "kind": "original",
+  "license": "MIT",
+  "license_url": "https://opensource.org/license/mit",
+  "created": "2026-10-07",
+  "provenance": "Original geometry authored for AutoCADED; no reference photograph or external image was used.",
+  "adaptation": "Hand-authored indexed-colour CAD composition; circular filled regions are editable SOLID triangle fans."
+}
