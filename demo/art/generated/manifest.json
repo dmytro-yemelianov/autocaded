@@ -1,5 +1,5 @@
 {
-  "catalog_sha256": "0abfc375108ccae063fb2c42dede220d3d7893afb289ba9890e9671ec23bf17a",
+  "catalog_sha256": "525cc80f47d223cef83d94ddf0016902628382831d6ee8828c5f794b7f45fb72",
   "entries": [
     {
       "entity_count": 271,
@@ -68,6 +68,81 @@
       "recipe_sha256": "672c02c789880e00f315b1279b00eb02856744873094889e8eef23d205d0e493",
       "render_work": 3579,
       "source_sha256": "b706a6e6612bba64692c97d7135d554c6a11ffb96acabef3bfed788c5ae24530"
+    },
+    {
+      "entity_count": 123,
+      "expanded_primitives": 186,
+      "generator_version": "art-v1",
+      "id": "bedroom",
+      "labels": {
+        "description": {
+          "en": "A geometric interpretation of Van Gogh's bedroom with editable furniture and colour regions.",
+          "key": "art.bedroom.description",
+          "uk": "Геометрична інтерпретація спальні Ван Гога з редагованими меблями та кольоровими площинами."
+        },
+        "title": {
+          "en": "The Bedroom - after Van Gogh",
+          "key": "art.bedroom.title",
+          "uk": "Спальня - за Ван Гогом"
+        }
+      },
+      "layer_count": 14,
+      "output_sha256": {
+        "dwg": "0bea2c2ffe2229fb08fdb3c56e980288f2fa8581e1de59107accd53f5e4d8070",
+        "dxf": "72c6c16f68f206021d68a73a91cf31541ba2ff2897bf3d3eb377e3fca2b75b7f",
+        "png": "8c00249a2d5de7e67d8487b4f990ad737fcfc59ae8c7824b10063fea2ff5f3fe",
+        "svg": "0e26f745930ff7f753154c0a8657392fc00290a7d6083401944f58d9df27b98f"
+      },
+      "outputs": {
+        "dwg": "generated/bedroom.DWG",
+        "dxf": "generated/bedroom.DXF",
+        "png": "generated/bedroom.png",
+        "svg": "generated/bedroom.svg"
+      },
+      "recipe_sha256": "3547eb2285874a765c9a76e63f723f916afc036672a260f30a9d558dd38437b4",
+      "render_work": 1863,
+      "source_sha256": "29ca88478a72319788a4ba18309cca10ec020ee4e2c835d4deb243534d87cad9"
+    },
+    {
+      "entity_count": 32,
+      "expanded_primitives": 330,
+      "font": {
+        "id": "autocaded",
+        "outputs": [
+          "generated/TXT.SHP"
+        ],
+        "sha256": "2c0b7a2f00899f306b2f15615967478a996e53225e0ab9ae446cfa4cba9f0404"
+      },
+      "generator_version": "art-v1",
+      "id": "undo-meme",
+      "labels": {
+        "description": {
+          "en": "An original two-panel CAD joke with editable English captions.",
+          "key": "art.undo_meme.description",
+          "uk": "Оригінальний жарт про CAD у двох панелях із редагованими англійськими написами."
+        },
+        "title": {
+          "en": "UNDO fixes everything",
+          "key": "art.undo_meme.title",
+          "uk": "UNDO усе виправляє"
+        }
+      },
+      "layer_count": 6,
+      "output_sha256": {
+        "dwg": "fef340392775ae5371006b242ec7b09ffadbaed55e762c7e6521d4217b79f7a8",
+        "dxf": "a3f3986a66f9d4650f845269ed6ec177f4140dd370ac4f059ae687ad6844a47f",
+        "png": "fbc6ad28caaf4c48bed181b714a4945d2b3bb3b6e1445d20c9cfaa93083c57f5",
+        "svg": "13cbc47936512d5e1cfb50a554a6c0b95a0513de95b1a40698dc7dc8a8d672a0"
+      },
+      "outputs": {
+        "dwg": "generated/undo-meme.DWG",
+        "dxf": "generated/undo-meme.DXF",
+        "png": "generated/undo-meme.png",
+        "svg": "generated/undo-meme.svg"
+      },
+      "recipe_sha256": "8995138dc2689252fad3248601b53682692ec64824b1266142e9f1428868bb0b",
+      "render_work": 2871,
+      "source_sha256": "f76d38df6aa3a821d79626dfad95809e89c0ef046104b0ffbcf44a6e0beeec56"
     }
   ],
   "schema_version": 1

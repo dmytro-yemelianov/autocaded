@@ -58,11 +58,33 @@ Local evidence is retained in `/tmp/autorust-art-*`: native test/release smoke l
 browser smoke JSON/scripts, inspected screenshots, and the independent review note.
 Committed artifacts and reproducible checks are the durable evidence.
 
+## Painting and meme extension
+
+The manual batch now also includes The Bedroom (after Van Gogh) and the original
+UNDO meme. The painting is a deliberately simplified geometric treatment of the
+1889 Chicago version. Its public-domain museum record, CC0 reference image,
+credit and source hashes are retained. The meme has original MIT provenance.
+
+The meme uses editable TEXT entities backed by the canonical AUTOCADED SHP font,
+with its hash pinned in the recipe. Generation emits a TXT.SHP sidecar for native
+opening; browser staging verifies the same font. Unsupported glyphs and text
+outside recipe bounds are rejected. Captions remain authored English drawing
+content; EN/UK gallery titles come from the message catalog.
+
+An independent reviewer accepted both previews and the focused compiler/font
+checks, and confirmed that the original pair's drawing artifacts stayed byte
+identical. Native checks cover all four drawings in both codecs, editing/undo,
+pending commands across presentation changes and complete desktop/narrow frames.
+
+Browser acceptance opens both new samples through Open, edits/saves/reopens the
+meme caption and undoes it, preserves pending input across locale/profile changes,
+and checks geometry-only export. Decoded PNG pixels match native previews exactly
+for both new drawings. English/Ukrainian Open labels resolve from the catalog.
+Workspace/all-target and wasm Clippy, formatting, wasm tests and staging checks pass.
+
 ## Next slice
 
-This completes the bounded first execution. The four-drawing manual batch still
-needs the museum painting and original meme; text requires a verified SHP font
-extension. Image conversion, portrait/film pilots and native/browser gallery
-integration remain later slices of the [approved plan](superpowers/plans/2026-10-07-modern-artwork-drawings.md).
-The current app's menus, viewport policy, geometry limits and runtime asset loading
-are unchanged. Open these committed files through the existing file-opening path.
+Image conversion is next: deterministic image regions and contours, editable
+entities, bounded complexity and recorded provenance. Portrait and film pilots
+follow that foundation. Native gallery integration and broader help/i18n remain
+later work in the [approved plan](superpowers/plans/2026-10-07-modern-artwork-drawings.md).

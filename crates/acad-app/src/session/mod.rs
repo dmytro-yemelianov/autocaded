@@ -514,13 +514,24 @@ impl Session {
     }
     /// Resolved file-picker and artwork titles; no browser translation catalog.
     pub fn ui_labels(&self) -> serde_json::Value {
-        use acad_cmd::messages::{text, MessageId};
-        serde_json::json!({"schema_version":1,"labels":{
+        use acad_cmd::messages::{resolve_key, text, MessageId};
+        static ART: std::sync::OnceLock<crate::art::Catalog> = std::sync::OnceLock::new();
+        let catalog = ART.get_or_init(|| {
+            serde_json::from_str(include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../demo/art/catalog.json"
+            )))
+            .expect("validated artwork catalog")
+        });
+        let mut labels = serde_json::json!({
             "ui.file.open_picker":text(MessageId::UiFileOpenPicker, self.locale).expect("static label"),
-            "ui.file.save_picker":text(MessageId::UiFileSavePicker, self.locale).expect("static label"),
-            "art.courtyard_house.title":text(MessageId::ArtCourtyardHouseTitle, self.locale).expect("art title"),
-            "art.colour_study.title":text(MessageId::ArtColourStudyTitle, self.locale).expect("art title")
-        }})
+            "ui.file.save_picker":text(MessageId::UiFileSavePicker, self.locale).expect("static label")
+        });
+        for entry in &catalog.entries {
+            let id = resolve_key(&entry.title_key).expect("validated artwork title key");
+            labels[&entry.title_key] = text(id, self.locale).expect("static art title").into();
+        }
+        serde_json::json!({"schema_version":1,"labels":labels})
     }
     pub fn input(&self) -> &str {
         &self.input

@@ -165,3 +165,109 @@ fn quantized_geometry_must_remain_inside_authored_and_saved_bounds() {
     }];
     assert!(r.compile().is_err());
 }
+
+fn text_recipe() -> Recipe {
+    Recipe::parse(br#"{"schema_version":1,"id":"caption","bounds":[0,0,100,60],"layers":[{"number":1,"color":7,"role":"caption"}],"font":{"id":"autocaded","sha256":"2c0b7a2f00899f306b2f15615967478a996e53225e0ab9ae446cfa4cba9f0404"},"primitives":[{"type":"text","layer":1,"origin":[5,10],"height":3,"value":"UNDO fixes everything"}]}"#).unwrap()
+}
+fn text_libraries() -> acad_render::Libraries {
+    let mut libraries = acad_render::Libraries::default();
+    libraries
+        .insert("TXT", include_bytes!("../../../demo/AUTOCADED.SHP"))
+        .unwrap();
+    libraries
+}
+#[test]
+fn captions_use_actual_font_bounds_and_reject_missing_glyphs() {
+    let mut recipe = text_recipe();
+    let libraries = text_libraries();
+    assert!(recipe.compile().unwrap_err().contains("validated TXT"));
+    let drawing = recipe.compile_with_libraries(&libraries).unwrap();
+    let vp = acad_render::Viewport::fit(&drawing.header.extents, 800, 600);
+    let rendered = acad_render::flatten_with_libraries(&drawing, &vp, &libraries);
+    assert!(!rendered.incomplete);
+    assert!(rendered.diagnostics.is_empty());
+    assert!(!rendered.primitives.is_empty());
+    recipe.bounds[2] = 12.0;
+    assert!(recipe
+        .compile_with_libraries(&libraries)
+        .unwrap_err()
+        .contains("exceeds"));
+    recipe.bounds = [0.0, 0.0, 100.0, 60.0];
+    if let Primitive::Text {
+        origin,
+        rotation_deg,
+        value,
+        ..
+    } = &mut recipe.primitives[0]
+    {
+        *origin = [20.0, 5.0];
+        *rotation_deg = 90.0;
+        *value = "UNDO".into();
+    }
+    assert!(recipe.compile_with_libraries(&libraries).is_ok());
+    if let Primitive::Text { value, .. } = &mut recipe.primitives[0] {
+        *value = "`".into();
+    }
+    let mut missing = acad_render::Libraries::default();
+    missing
+        .insert("TXT", b"*0,4,TEST\n10,2,0,0\n*65,4,A\n8,1,0,0\n")
+        .unwrap();
+    assert!(recipe.compile_with_libraries(&missing).is_err());
+    if let Primitive::Text { value, .. } = &mut recipe.primitives[0] {
+        *value = "УНДО".into();
+    }
+    assert!(recipe.compile_with_libraries(&libraries).is_err());
+    recipe.font = None;
+    assert!(recipe.compile_with_libraries(&libraries).is_err());
+}
+#[test]
+fn caption_sidecar_opens_edits_saves_and_roundtrips_both_codecs() {
+    let drawing = text_recipe()
+        .compile_with_libraries(&text_libraries())
+        .unwrap();
+    let root = std::env::temp_dir().join(format!("autorust-art-caption-{}", std::process::id()));
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::write(
+        root.join("TXT.SHP"),
+        include_bytes!("../../../demo/AUTOCADED.SHP"),
+    )
+    .unwrap();
+    for ext in ["DWG", "DXF"] {
+        let path = root.join(format!("caption.{ext}"));
+        let bytes = if ext == "DWG" {
+            acad_dwg::write_version(&drawing, acad_dwg::header::Version::Ac140).unwrap()
+        } else {
+            acad_dxf::try_write(&drawing).unwrap()
+        };
+        std::fs::write(&path, bytes).unwrap();
+        let mut session = acad_app::Session::open(&path, &[]).unwrap();
+        assert_eq!(session.drawing().items, drawing.items);
+        let frame = session.frame(800, 600).unwrap();
+        assert!(frame.complete && frame.diagnostics.is_empty());
+        for input in ["CHANGE", "LAST", "5,10", "", "0", "UNDO works"] {
+            session.command(input).unwrap();
+        }
+        assert_ne!(session.drawing().items, drawing.items);
+        session.save(&path).unwrap();
+        assert_eq!(
+            acad_app::Session::open(&path, &[])
+                .unwrap()
+                .drawing()
+                .items
+                .iter()
+                .filter(|item| !matches!(item, Item::Erased(_)))
+                .cloned()
+                .collect::<Vec<_>>(),
+            session
+                .drawing()
+                .items
+                .iter()
+                .filter(|item| !matches!(item, Item::Erased(_)))
+                .cloned()
+                .collect::<Vec<_>>()
+        );
+        session.command("UNDO").unwrap();
+        assert_eq!(session.drawing().items, drawing.items);
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}

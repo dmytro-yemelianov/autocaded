@@ -15,11 +15,11 @@ unique and use their declared suffix.
 ## Catalog
 
 `Catalog` is `{schema_version,entries}`. Each entry has `id`, `category`
-(`building` or `colour_study`), `title_key`, `description_key`, `recipe`, `source`
+(`building`, `colour_study`, `painting` or `meme`), `title_key`, `description_key`, `recipe`, `source`
 and `outputs`. Label keys resolve through the shared typed EN/UK message catalog
 and must require no arguments. Labels never become drawing captions.
 
-`source` has `kind` (currently only `original`), `creator`, `license_url`,
+`source` has `kind` (`original` or `public_domain`), `creator`, `license_url`,
 `license_version`, `attribution`, `adaptation`, `snapshot` and `sha256`.
 The snapshot is a retained local provenance file; its exact bytes must match the
 lowercase SHA-256 string. Source license metadata is independent of the software
@@ -29,7 +29,7 @@ license. Snapshot payloads remain authored metadata, not executable recipes.
 ## Recipe
 
 `Recipe` has `schema_version`, `id`, `bounds` (`[xmin,ymin,xmax,ymax]`), `layers`
-and `primitives`. Bounds have positive dimensions and finite coordinates within
+and `primitives`, with optional `font` metadata. Bounds have positive dimensions and finite coordinates within
 ±1,000,000 drawing units. Every primitive lies within those bounds, including the
 full circle radius. Bounds determine the saved view and preview framing.
 
@@ -42,6 +42,7 @@ Each primitive has a `type` tag and `layer`:
 
 | Type | Additional fields | Compiled geometry |
 | --- | --- | --- |
+| `text` | `origin`, positive `height`, `value`, optional `rotation_deg` (default 0) | One editable TEXT rendered through the drawing SHP font |
 | `line` | `start`, `end` coordinate pairs | One nonzero LINE |
 | `circle` | `center`, positive `radius` | One CIRCLE |
 | `solid` | `points`: four coordinate pairs in CAD order | One convex SOLID |
@@ -57,9 +58,26 @@ emitted entity must stay inside both the authored and quantized bounds. Grid cou
 except unused spacing may be zero on an axis with count one. Helper expansion
 preserves authored document order and produces individually editable entities.
 
-There are no expressions, commands, blocks, arbitrary generators, seed-dependent
-algorithms, text or font loading in v1. Text and additional source families need
-explicit contract extensions and their own font/provenance validation.
+The caption extension requires recipe `font: {id,sha256}`. The only supported
+font ID is `autocaded`, resolved offline to the canonical `demo/AUTOCADED.SHP`
+bytes, checked against the recipe SHA-256 and registered under the drawing font
+name `TXT`. Captions use 1–256 printable ASCII bytes, must contain visible ink,
+and may rotate within ±360 degrees. Unsupported glyphs and SHP execution errors
+are rejected; no substitute font or bitmap UI font is used. Actual rotated SHP
+stroke bounds must fit both authored and quantized drawing bounds. Captions are
+literal content and do not change when the app locale changes.
+
+Generation bundles the same bytes as `TXT.SHP` next to each caption-bearing
+DWG/DXF. Native drawing-local library resolution loads this sidecar; the browser
+uses its existing registration of the canonical font as `TXT`. Move the sidecar
+with a standalone drawing. The manifest records font ID, exact SHA-256 and sidecar
+paths, and `--check` validates sidecar bytes too. Geometric recipes omit `font`
+and retain their existing drawing and preview bytes.
+
+There are no expressions, commands, blocks, arbitrary generators or seed-dependent
+algorithms in this contract. Public-domain sources retain verified official rights
+and source provenance in their hashed local snapshot; snapshot data remains
+non-executable metadata.
 
 ## Outputs and validation
 

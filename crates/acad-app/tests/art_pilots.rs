@@ -6,11 +6,18 @@ use std::path::Path;
 #[test]
 fn committed_pilots_open_edit_undo_and_keep_pending_input_across_presentation_changes() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../demo/art");
-    for id in ["courtyard-house", "colour-study"] {
+    let catalog: acad_app::art::Catalog =
+        serde_json::from_slice(&std::fs::read(root.join("catalog.json")).unwrap()).unwrap();
+    let mut libraries = acad_render::Libraries::default();
+    libraries
+        .insert("TXT", include_bytes!("../../../demo/AUTOCADED.SHP"))
+        .unwrap();
+    for entry in catalog.entries {
+        let id = &entry.id;
         let recipe =
             Recipe::parse(&std::fs::read(root.join(format!("recipes/{id}.json"))).unwrap())
                 .unwrap();
-        let authored = recipe.compile().unwrap();
+        let authored = recipe.compile_with_libraries(&libraries).unwrap();
         for ext in ["DWG", "DXF"] {
             let path = root.join(format!("generated/{id}.{ext}"));
             let mut session = Session::open(&path, &[]).unwrap();

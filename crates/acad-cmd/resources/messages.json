@@ -293,6 +293,42 @@
         "uk": "Геометрична кольорова композиція з кіл, площин і повторюваних ритмів."
       },
       "source": "demo/art/catalog.json:original artwork gallery labels"
+    },
+    {
+      "key": "art.bedroom.title",
+      "args": [],
+      "text": {
+        "en": "The Bedroom - after Van Gogh",
+        "uk": "Спальня - за Ван Гогом"
+      },
+      "source": "demo/art/catalog.json:painting and original meme labels"
+    },
+    {
+      "key": "art.bedroom.description",
+      "args": [],
+      "text": {
+        "en": "A geometric interpretation of Van Gogh's bedroom with editable furniture and colour regions.",
+        "uk": "Геометрична інтерпретація спальні Ван Гога з редагованими меблями та кольоровими площинами."
+      },
+      "source": "demo/art/catalog.json:painting and original meme labels"
+    },
+    {
+      "key": "art.undo_meme.title",
+      "args": [],
+      "text": {
+        "en": "UNDO fixes everything",
+        "uk": "UNDO усе виправляє"
+      },
+      "source": "demo/art/catalog.json:painting and original meme labels"
+    },
+    {
+      "key": "art.undo_meme.description",
+      "args": [],
+      "text": {
+        "en": "An original two-panel CAD joke with editable English captions.",
+        "uk": "Оригінальний жарт про CAD у двох панелях із редагованими англійськими написами."
+      },
+      "source": "demo/art/catalog.json:painting and original meme labels"
     }
   ]
 }

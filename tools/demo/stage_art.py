@@ -25,6 +25,10 @@ def stage(manifest_path: Path, assets: Path) -> None:
             raise ValueError("art output does not match its generated record")
         if hashlib.sha256(source.read_bytes()).hexdigest() != record["output_sha256"]["dwg"]:
             raise ValueError(f"{entry['id']}: drawing changed; regenerate first")
+        if record.get("font"):
+            font = assets / manifest["font"]
+            if hashlib.sha256(font.read_bytes()).hexdigest() != record["font"]["sha256"]:
+                raise ValueError(f"{entry['id']}: staged caption font does not match recipe")
         if source.name.casefold() in names:
             raise ValueError(f"duplicate staged sample: {source.name}")
         names.add(source.name.casefold())

@@ -12,7 +12,7 @@
         "creator": "AutoCADED contributors",
         "license_url": "https://opensource.org/license/mit",
         "license_version": "MIT",
-        "attribution": "Courtyard house \u2014 AutoCADED contributors. MIT license.",
+        "attribution": "Courtyard house — AutoCADED contributors. MIT license.",
         "adaptation": "Hand-authored indexed-colour CAD composition; circular filled regions are editable SOLID triangle fans.",
         "snapshot": "sources/courtyard-house.json",
         "sha256": "026428bf017e4d9ec24e35d3e557ce2170c849cd66dcdf67b17cb95e93c81e75"
@@ -35,7 +35,7 @@
         "creator": "AutoCADED contributors",
         "license_url": "https://opensource.org/license/mit",
         "license_version": "MIT",
-        "attribution": "Intervals \u2014 AutoCADED contributors. MIT license.",
+        "attribution": "Intervals — AutoCADED contributors. MIT license.",
         "adaptation": "Hand-authored indexed-colour CAD composition; circular filled regions are editable SOLID triangle fans.",
         "snapshot": "sources/colour-study.json",
         "sha256": "b706a6e6612bba64692c97d7135d554c6a11ffb96acabef3bfed788c5ae24530"
@@ -45,6 +45,52 @@
         "dxf": "generated/colour-study.DXF",
         "svg": "generated/colour-study.svg",
         "png": "generated/colour-study.png"
+      }
+    },
+    {
+      "id": "bedroom",
+      "category": "painting",
+      "title_key": "art.bedroom.title",
+      "description_key": "art.bedroom.description",
+      "recipe": "recipes/bedroom.json",
+      "source": {
+        "kind": "public_domain",
+        "creator": "Vincent van Gogh",
+        "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "license_version": "CC0-1.0",
+        "attribution": "Vincent van Gogh, The Bedroom, 1889. Art Institute of Chicago, 1926.417. Museum-sourced digital reproduction via Wikimedia Commons.",
+        "adaptation": "Hand-authored geometric reinterpretation preserving the bed, window, chairs and room perspective; painterly texture omitted. Reference reproduction is CC0; original CAD adaptation is MIT.",
+        "snapshot": "sources/bedroom.json",
+        "sha256": "29ca88478a72319788a4ba18309cca10ec020ee4e2c835d4deb243534d87cad9"
+      },
+      "outputs": {
+        "dwg": "generated/bedroom.DWG",
+        "dxf": "generated/bedroom.DXF",
+        "svg": "generated/bedroom.svg",
+        "png": "generated/bedroom.png"
+      }
+    },
+    {
+      "id": "undo-meme",
+      "category": "meme",
+      "title_key": "art.undo_meme.title",
+      "description_key": "art.undo_meme.description",
+      "recipe": "recipes/undo-meme.json",
+      "source": {
+        "kind": "original",
+        "creator": "AutoCADED contributors",
+        "license_url": "https://opensource.org/license/mit",
+        "license_version": "MIT",
+        "attribution": "UNDO fixes everything — AutoCADED contributors. MIT license.",
+        "adaptation": "Original two-panel CAD joke with explicit English drawing captions; no existing meme photograph or template was used.",
+        "snapshot": "sources/undo-meme.json",
+        "sha256": "f76d38df6aa3a821d79626dfad95809e89c0ef046104b0ffbcf44a6e0beeec56"
+      },
+      "outputs": {
+        "dwg": "generated/undo-meme.DWG",
+        "dxf": "generated/undo-meme.DXF",
+        "svg": "generated/undo-meme.svg",
+        "png": "generated/undo-meme.png"
       }
     }
   ]

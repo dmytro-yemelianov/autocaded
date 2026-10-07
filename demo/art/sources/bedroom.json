@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "bedroom",
+  "kind": "public_domain",
+  "creator": "Vincent van Gogh",
+  "title": "The Bedroom",
+  "date": "1889",
+  "source_page": "https://www.artic.edu/artworks/28560/the-bedroom",
+  "official_record": "bedroom-api.json",
+  "official_record_sha256": "e23ac7c230ccc5bbd4f9d21ea9b0b4eaded12abe748be390ced6beff81a21e0c",
+  "is_public_domain": true,
+  "reference_image": "bedroom-reference.jpg",
+  "reference_image_url": "https://upload.wikimedia.org/wikipedia/commons/5/50/Vincent_van_Gogh_-_The_Bedroom_-_1926.417_-_Art_Institute_of_Chicago.jpg",
+  "reference_image_sha256": "9f140320b2b0c8003528770ca39a13db938af4a8df4cb7ff937f61579087c05b",
+  "image_license_page": "https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_The_Bedroom_-_1926.417_-_Art_Institute_of_Chicago.jpg",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "license_version": "CC0-1.0",
+  "attribution": "Vincent van Gogh, The Bedroom, 1889. Art Institute of Chicago, 1926.417. Museum-sourced digital reproduction via Wikimedia Commons.",
+  "adaptation": "Hand-authored geometric reinterpretation preserving the bed, window, chairs and room perspective; painterly texture omitted. Reference reproduction is CC0; original CAD adaptation is MIT."
+}

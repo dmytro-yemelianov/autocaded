@@ -11,7 +11,8 @@ test('demo staging includes canonical editable artwork and rejects duplicate sta
   const dir = mkdtempSync(join(tmpdir(), 'autorust-art-menu-'));
   try {
     const manifest = join(dir, 'manifest.json');
-    writeFileSync(manifest, JSON.stringify({ samples: [{ file: 'WELCOME.DWG', label: 'Welcome' }] }));
+    writeFileSync(join(dir, 'AUTOCADED.SHP'), readFileSync(join(root, 'demo/AUTOCADED.SHP')));
+    writeFileSync(manifest, JSON.stringify({ font: 'AUTOCADED.SHP', samples: [{ file: 'WELCOME.DWG', label: 'Welcome' }] }));
     const run = () => spawnSync('python3', [join(root, 'tools/demo/stage_art.py'), manifest, dir], { encoding: 'utf8' });
     const result = run();
     assert.equal(result.status, 0, result.stderr);
@@ -26,6 +27,24 @@ test('demo staging includes canonical editable artwork and rejects duplicate sta
     const before = readFileSync(manifest);
     const files = readdirSync(dir);
     assert.notEqual(run().status, 0);
+    assert.deepEqual(readFileSync(manifest), before);
+    assert.deepEqual(readdirSync(dir), files);
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test('demo staging rejects a mismatched caption font before copying drawings', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'autorust-art-font-'));
+  try {
+    const manifest = join(dir, 'manifest.json');
+    writeFileSync(join(dir, 'AUTOCADED.SHP'), 'wrong font');
+    writeFileSync(manifest, JSON.stringify({ font: 'AUTOCADED.SHP', samples: [] }));
+    const before = readFileSync(manifest);
+    const files = readdirSync(dir);
+    const result = spawnSync('python3', [join(root, 'tools/demo/stage_art.py'), manifest, dir], { encoding: 'utf8' });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /font/i);
     assert.deepEqual(readFileSync(manifest), before);
     assert.deepEqual(readdirSync(dir), files);
   } finally {

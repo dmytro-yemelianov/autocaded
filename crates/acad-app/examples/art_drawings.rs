@@ -74,6 +74,7 @@ fn generate(catalog_path: &Path, check: bool) -> Result<(), String> {
     let mut paths = std::collections::BTreeSet::new();
     let mut artifacts = Vec::new();
     let mut manifest = Vec::new();
+    let mut font_outputs = std::collections::BTreeMap::<PathBuf, Vec<u8>>::new();
     for entry in catalog.entries {
         if !valid_id(&entry.id)
             || !ids.insert(entry.id.clone())
@@ -114,9 +115,22 @@ fn generate(catalog_path: &Path, check: bool) -> Result<(), String> {
         if recipe.id != entry.id {
             return Err("recipe/catalog id mismatch".into());
         }
-        let drawing = recipe.compile()?;
-        let vp = Viewport::fit(&drawing.header.extents, 800, 600);
         let mut libs = Libraries::default();
+        let font_bytes = if let Some(font) = &recipe.font {
+            if font.id != "autocaded" {
+                return Err("unsupported drawing font id".into());
+            }
+            let bytes = include_bytes!("../../../demo/AUTOCADED.SHP").to_vec();
+            if hash(&bytes) != font.sha256 {
+                return Err("drawing font hash mismatch".into());
+            }
+            libs.insert("TXT", &bytes).map_err(|e| e.to_string())?;
+            Some(bytes)
+        } else {
+            None
+        };
+        let drawing = recipe.compile_with_libraries(&libs)?;
+        let vp = Viewport::fit(&drawing.header.extents, 800, 600);
         libs.set_palette(acad_model::Palette::Aci256);
         let mut budget = FrameBudget::default();
         let rendered = acad_render::flatten_with_budget(&drawing, &vp, &libs, &mut budget);
@@ -152,6 +166,25 @@ fn generate(catalog_path: &Path, check: bool) -> Result<(), String> {
             }
         }
         let mut hashes = serde_json::Map::new();
+        let mut font_paths = Vec::new();
+        if let Some(bytes) = &font_bytes {
+            for name in [&entry.outputs.dwg, &entry.outputs.dxf] {
+                let output = path(base, name)?;
+                let font_path = output
+                    .parent()
+                    .ok_or("missing output parent")?
+                    .join("TXT.SHP");
+                font_outputs.insert(font_path.clone(), bytes.clone());
+                let relative = font_path
+                    .strip_prefix(base)
+                    .map_err(|e| e.to_string())?
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                if !font_paths.contains(&relative) {
+                    font_paths.push(relative);
+                }
+            }
+        }
         for (name, ext, bytes) in [
             (&entry.outputs.dwg, "dwg", dwg),
             (&entry.outputs.dxf, "dxf", dxf),
@@ -172,7 +205,18 @@ fn generate(catalog_path: &Path, check: bool) -> Result<(), String> {
             }
             artifacts.push((output_path, bytes));
         }
-        manifest.push(json!({"id":entry.id,"labels":labels,"generator_version":GENERATOR_VERSION,"source_sha256":entry.source.sha256,"recipe_sha256":hash(&recipe_bytes),"entity_count":drawing.items.len(),"layer_count":recipe.layers.len(),"expanded_primitives":rendered.primitives.len(),"render_work":budget.used(),"outputs":entry.outputs,"output_sha256":hashes}));
+        let mut record = json!({"id":entry.id,"labels":labels,"generator_version":GENERATOR_VERSION,"source_sha256":entry.source.sha256,"recipe_sha256":hash(&recipe_bytes),"entity_count":drawing.items.len(),"layer_count":recipe.layers.len(),"expanded_primitives":rendered.primitives.len(),"render_work":budget.used(),"outputs":entry.outputs,"output_sha256":hashes});
+        if let Some(font) = &recipe.font {
+            record["font"] = json!({"id":font.id,"sha256":font.sha256,"outputs":font_paths});
+        }
+        manifest.push(record);
+    }
+    for (font_path, bytes) in font_outputs {
+        let key = collision_key(&font_path);
+        if input_paths.contains(&key) || !paths.insert(key) {
+            return Err("font output collides with authored input or output".into());
+        }
+        artifacts.push((font_path, bytes));
     }
     let bytes = serde_json::to_vec_pretty(
         &json!({"schema_version":1,"catalog_sha256":hash(&catalog_bytes),"entries":manifest}),
@@ -334,5 +378,32 @@ mod tests {
         assert_eq!(std::fs::read(snapshot).unwrap(), source);
         assert!(!f.0.join("generated/first.DWG").exists());
         assert!(!f.0.join("generated/second.DWG").exists());
+    }
+    #[test]
+    fn font_is_pinned_bundled_and_checked_without_partial_writes() {
+        let f = Fixture::new();
+        let catalog = f.catalog(false, false);
+        let recipe_path = f.0.join("first.json");
+        let mut recipe: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&recipe_path).unwrap()).unwrap();
+        let font = include_bytes!("../../../demo/AUTOCADED.SHP");
+        recipe["font"] = json!({"id":"autocaded","sha256":hash(font)});
+        recipe["primitives"] =
+            json!([{"type":"text","layer":1,"origin":[1,2],"height":1,"value":"UNDO"}]);
+        std::fs::write(&recipe_path, serde_json::to_vec(&recipe).unwrap()).unwrap();
+        generate(&catalog, false).unwrap();
+        let sidecar = f.0.join("generated/TXT.SHP");
+        assert_eq!(std::fs::read(&sidecar).unwrap(), font);
+        generate(&catalog, true).unwrap();
+        std::fs::write(&sidecar, b"changed").unwrap();
+        assert!(generate(&catalog, true)
+            .unwrap_err()
+            .contains("TXT.SHP differs"));
+        recipe["font"]["sha256"] = json!("0".repeat(64));
+        std::fs::write(&recipe_path, serde_json::to_vec(&recipe).unwrap()).unwrap();
+        assert!(generate(&catalog, false)
+            .unwrap_err()
+            .contains("font hash mismatch"));
+        assert_eq!(std::fs::read(&sidecar).unwrap(), b"changed");
     }
 }

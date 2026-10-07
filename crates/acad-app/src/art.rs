@@ -15,6 +15,14 @@ pub struct Recipe {
     pub bounds: [f64; 4],
     pub layers: Vec<Layer>,
     pub primitives: Vec<Primitive>,
+    #[serde(default)]
+    pub font: Option<Font>,
+}
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Font {
+    pub id: String,
+    pub sha256: String,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -26,6 +34,14 @@ pub struct Layer {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Primitive {
+    Text {
+        layer: u8,
+        origin: [f64; 2],
+        height: f64,
+        value: String,
+        #[serde(default)]
+        rotation_deg: f64,
+    },
     Line {
         layer: u8,
         start: [f64; 2],
@@ -78,6 +94,8 @@ pub struct Entry {
 pub enum Category {
     Building,
     ColourStudy,
+    Painting,
+    Meme,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -95,6 +113,7 @@ pub struct Source {
 #[serde(rename_all = "snake_case")]
 pub enum SourceKind {
     Original,
+    PublicDomain,
 }
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -131,8 +150,26 @@ impl Recipe {
         serde_json::from_slice(bytes).map_err(|e| e.to_string())
     }
     pub fn compile(&self) -> Result<Drawing, String> {
+        self.compile_with_libraries(&acad_render::Libraries::default())
+    }
+    /// Compile captions with the same drawing SHP library used by the renderer.
+    pub fn compile_with_libraries(
+        &self,
+        libraries: &acad_render::Libraries,
+    ) -> Result<Drawing, String> {
         if self.schema_version != 1 || !valid_id(&self.id) {
             return Err("unsupported recipe version or invalid id".into());
+        }
+        if let Some(font) = &self.font {
+            if font.id != "autocaded"
+                || font.sha256.len() != 64
+                || !font
+                    .sha256
+                    .bytes()
+                    .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+            {
+                return Err("unsupported font id or invalid SHA-256".into());
+            }
         }
         let [xmin, ymin, xmax, ymax] = self.bounds;
         if !self
@@ -196,7 +233,7 @@ impl Recipe {
                 && p[1] <= ymax
         };
         for p in &self.primitives {
-            Self::emit(p, &inside, &layers, &mut d)?;
+            Self::emit(p, &inside, &layers, &mut d, libraries, self.font.is_some())?;
         }
         if d.items.is_empty() {
             return Err("recipe must contain geometry".into());
@@ -208,11 +245,38 @@ impl Recipe {
         inside: &impl Fn([f64; 2]) -> bool,
         layers: &BTreeSet<u8>,
         d: &mut Drawing,
+        libraries: &acad_render::Libraries,
+        has_font: bool,
     ) -> Result<(), String> {
         let mut add = |l: u8, e: Entity| {
-            let ext = e
-                .bounding_extents()
-                .ok_or("missing emitted geometry bounds")?;
+            let ext = if let Entity::Text {
+                origin,
+                height,
+                rotation_deg,
+                value,
+            } = &e
+            {
+                let library = libraries
+                    .get("TXT")
+                    .ok_or("TEXT requires validated TXT SHP font")?;
+                let glyph = library.text(value).map_err(|e| e.to_string())?;
+                let scale = height / library.cap_height.ok_or("TEXT requires font cap height")?;
+                let (sin, cos) = rotation_deg.to_radians().sin_cos();
+                let points: Vec<Point> = glyph
+                    .strokes
+                    .iter()
+                    .flatten()
+                    .map(|p| Point {
+                        x: origin.x + scale * (p.x * cos - p.y * sin),
+                        y: origin.y + scale * (p.x * sin + p.y * cos),
+                    })
+                    .collect();
+                acad_model::Extents::from_points(&points)
+                    .ok_or("TEXT must contain visible glyphs")?
+            } else {
+                e.bounding_extents()
+                    .ok_or("missing emitted geometry bounds")?
+            };
             let bounds = d.header.extents;
             if !inside([ext.xmin, ext.ymin])
                 || !inside([ext.xmax, ext.ymax])
@@ -236,6 +300,34 @@ impl Recipe {
             Ok(())
         };
         match p {
+            Primitive::Text {
+                layer,
+                origin,
+                height,
+                value,
+                rotation_deg,
+            } => {
+                if !has_font
+                    || !inside(*origin)
+                    || !positive(*height)
+                    || !rotation_deg.is_finite()
+                    || rotation_deg.abs() > 360.0
+                    || value.trim().is_empty()
+                    || value.len() > 256
+                    || !value.bytes().all(|c| (32..=126).contains(&c))
+                {
+                    return Err("TEXT requires font metadata, printable ASCII, bounded origin and positive height".into());
+                }
+                add(
+                    *layer,
+                    Entity::Text {
+                        origin: point(*origin),
+                        height: coordinate(*height),
+                        rotation_deg: coordinate(*rotation_deg),
+                        value: value.clone(),
+                    },
+                )
+            }
             Primitive::Line { layer, start, end } => {
                 if !inside(*start) || !inside(*end) || point(*start) == point(*end) {
                     return Err("line must be finite, bounded and nonzero".into());
@@ -378,6 +470,8 @@ impl Recipe {
                             inside,
                             layers,
                             d,
+                            libraries,
+                            has_font,
                         )?;
                     }
                 }

@@ -163,3 +163,12 @@ Approve the visual language through those two small scenes before spending time
 on conversion tooling or assembling a large reference collection. Wider subject
 coverage follows successful pilots; photorealism, video playback and a new CAD
 workspace are outside this drawing-gallery plan.
+
+
+## Execution status: 2026-10-07
+
+The four manual pilots are implemented: courtyard building, colour study,
+The Bedroom after Van Gogh, and an original UNDO meme. Browser Open includes
+all four through the canonical catalog. The text extension pins the existing
+SHP font and preserves editable captions. See artwork-pilot-validation.md for
+accepted checks. Image conversion and portrait/film pilots remain next.
