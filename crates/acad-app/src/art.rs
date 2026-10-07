@@ -7,7 +7,7 @@ pub const GENERATOR_VERSION: &str = "art-v1";
 pub const MAX_RECORDS: usize = 5_000;
 pub const MAX_PRIMITIVES: usize = 25_000;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Recipe {
     pub schema_version: u32,
@@ -24,14 +24,14 @@ pub struct Font {
     pub id: String,
     pub sha256: String,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Layer {
     pub number: u8,
     pub color: u8,
     pub role: String,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Primitive {
     Text {
@@ -86,6 +86,8 @@ pub struct Entry {
     pub title_key: String,
     pub description_key: String,
     pub recipe: String,
+    #[serde(default)]
+    pub conversion: Option<String>,
     pub source: Source,
     pub outputs: Outputs,
 }
@@ -95,6 +97,7 @@ pub enum Category {
     Building,
     ColourStudy,
     Painting,
+    Portrait,
     Meme,
 }
 #[derive(Debug, Deserialize)]
@@ -122,6 +125,22 @@ pub struct Outputs {
     pub dxf: String,
     pub svg: String,
     pub png: String,
+}
+
+/// Portable relative paths for authored inputs and generated artifacts.
+pub fn relative_path(base: &std::path::Path, p: &str) -> Result<std::path::PathBuf, String> {
+    use std::path::{Component, Path};
+    if p.is_empty()
+        || p.contains('\\')
+        || p.split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
+        || Path::new(p)
+            .components()
+            .any(|c| !matches!(c, Component::Normal(_)))
+    {
+        return Err(format!("unsafe catalog path {p}"));
+    }
+    Ok(base.join(p))
 }
 
 pub fn valid_id(id: &str) -> bool {

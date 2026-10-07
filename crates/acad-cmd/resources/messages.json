@@ -329,6 +329,42 @@
         "uk": "Оригінальний жарт про CAD у двох панелях із редагованими англійськими написами."
       },
       "source": "demo/art/catalog.json:painting and original meme labels"
+    },
+    {
+      "key": "art.self_portrait.title",
+      "args": [],
+      "text": {
+        "en": "Self-Portrait - colour regions",
+        "uk": "Автопортрет - кольорові площини"
+      },
+      "source": "demo/art/catalog.json:image conversion pilot labels"
+    },
+    {
+      "key": "art.self_portrait.description",
+      "args": [],
+      "text": {
+        "en": "A raster portrait converted into editable CAD colour regions.",
+        "uk": "Растровий портрет, перетворений на редаговані кольорові площини CAD."
+      },
+      "source": "demo/art/catalog.json:image conversion pilot labels"
+    },
+    {
+      "key": "art.chrysler.title",
+      "args": [],
+      "text": {
+        "en": "Chrysler Building - contours",
+        "uk": "Крайслер-Білдінг - контури"
+      },
+      "source": "demo/art/catalog.json:image conversion pilot labels"
+    },
+    {
+      "key": "art.chrysler.description",
+      "args": [],
+      "text": {
+        "en": "An architectural photograph converted into editable CAD regions and contour lines.",
+        "uk": "Архітектурна світлина, перетворена на редаговані площини та контурні лінії CAD."
+      },
+      "source": "demo/art/catalog.json:image conversion pilot labels"
     }
   ]
 }

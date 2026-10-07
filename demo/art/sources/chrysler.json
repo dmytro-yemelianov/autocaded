@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "chrysler",
+  "kind": "public_domain",
+  "creator": "Detroit Publishing Co.",
+  "source_page": "https://commons.wikimedia.org/wiki/File:Chrysler_Building,_New_York.jpg",
+  "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Chrysler_Building%2C_New_York.jpg/960px-Chrysler_Building%2C_New_York.jpg",
+  "image_file": "chrysler-reference.jpg",
+  "image_sha256": "244888de40704d623c8476d7d4b363dc7b85ca478cd1bddf16ea5356a5881845",
+  "input_file": "chrysler-input.png",
+  "input_sha256": "01f4af6ab43de41832e6bb0cbfd384fabb44176d51b334b239df472ba4a2e2f3",
+  "normalization": "sips -Z 1024 -s format png SOURCE.jpg --out INPUT.png; retained normalized bytes are the offline conversion input.",
+  "license_url": "https://www.loc.gov/pictures/collection/det/rights.html",
+  "license_version": "LOC-no-known-restrictions",
+  "attribution": "Detroit Publishing Co., Chrysler Building, New York, circa 1930. Library of Congress, LC-DIG-det-4a25712. No known copyright restrictions; retained Commons collection rights statement.",
+  "adaptation": "Automatic image-regions-v1 conversion; pinned settings and input bytes. Region layers are colour groups, not inferred semantic objects.",
+  "rights_scope": "Commons labels PD-Detroit; the LOC collection statement is no known copyright restrictions. No CC0 dedication is claimed."
+}

@@ -1,4 +1,5 @@
 pub mod art;
+pub mod art_image;
 mod bitmap;
 mod command_line;
 mod document;

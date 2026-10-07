@@ -1,6 +1,6 @@
 # Editable artwork pilots
 
-Four manual scenes establish the artwork recipe and export pipeline.
+Four manual scenes and two converted-image pilots establish the artwork recipe and export pipeline.
 They use the existing Rust drawing model, historical file formats and ACI palette;
 the app's geometry rules and command interface are unchanged.
 
@@ -11,6 +11,9 @@ the app's geometry rules and command interface are unchanged.
 
 | [The Bedroom — after Van Gogh](generated/bedroom.png) | Simplified public-domain painting with room perspective and furniture | Bed, chairs, window, floor and colour regions |
 | [UNDO fixes everything](generated/undo-meme.png) | Original two-panel CAD joke | House geometry and editable SHP-font captions |
+
+| [Self-Portrait — colour regions](generated/self-portrait.png) | Van Gogh portrait converted from a pinned museum image | Merged colour rectangles on individual colour-group layers |
+| [Chrysler Building — contours](generated/chrysler.png) | A circa-1930 architectural photo converted into a blocky contour study | Filled regions and separate editable contour lines |
 
 The authored source is `catalog.json`, `recipes/*.json` and the pinned original
 source records in `sources/`. Titles and descriptions resolve through the shared
@@ -28,7 +31,7 @@ cargo run -p acad-app --example art_drawings -- demo/art/catalog.json --check
 plus a manifest with provenance, hashes and measured drawing/render counts.
 The check command regenerates in memory and compares the committed files.
 
-Demo browser builds include all four drawings in the Open menu;
+Demo browser builds include all six drawings in the Open menu;
 the entries are staged from the catalog, with shared English/Ukrainian titles.
 Open a DWG or DXF in either app. Use Modernized / ACI 256 to see the intended
 colours; Faithful / PC 16 deliberately maps the same indices to its historical
@@ -46,3 +49,6 @@ The manually authored CAD adaptation is MIT licensed.
 See the [content contract](../../docs/artwork-content-contract.md) and
 [artwork plan](../../docs/superpowers/plans/2026-10-07-modern-artwork-drawings.md)
 for validation, budgets and later subjects.
+
+See [image conversion](../../docs/image-to-drawing.md) for PNG settings, regeneration,
+limits and the two converted sources’ independent rights records.

@@ -1,5 +1,5 @@
 {
-  "catalog_sha256": "525cc80f47d223cef83d94ddf0016902628382831d6ee8828c5f794b7f45fb72",
+  "catalog_sha256": "fbc8917a27714e12f608f885119f036548307ba5e3dc024a4fbc6a3552c062cf",
   "entries": [
     {
       "entity_count": 271,
@@ -143,6 +143,128 @@
       "recipe_sha256": "8995138dc2689252fad3248601b53682692ec64824b1266142e9f1428868bb0b",
       "render_work": 2871,
       "source_sha256": "f76d38df6aa3a821d79626dfad95809e89c0ef046104b0ffbcf44a6e0beeec56"
+    },
+    {
+      "conversion": {
+        "config": "sources/self-portrait-conversion.json",
+        "config_sha256": "24f4a3192a08706f5e4c8cb85c9b80f5e62279acc23ff5273941cf966e172bf4",
+        "report": {
+          "columns": 72,
+          "contours": 0,
+          "generator": "image-regions-v1",
+          "image_sha256": "4c20212c77a8bc6327acb605efb0569a84069cf808eeb69f5d242d119f187def",
+          "input_height": 1024,
+          "input_width": 807,
+          "palette": [
+            9,
+            21,
+            25,
+            27,
+            33,
+            35,
+            43,
+            57,
+            137,
+            147,
+            167,
+            252
+          ],
+          "regions": 2634,
+          "render_work": 55314,
+          "rows": 91
+        }
+      },
+      "entity_count": 2634,
+      "expanded_primitives": 5268,
+      "generator_version": "art-v1",
+      "id": "self-portrait",
+      "labels": {
+        "description": {
+          "en": "A raster portrait converted into editable CAD colour regions.",
+          "key": "art.self_portrait.description",
+          "uk": "Растровий портрет, перетворений на редаговані кольорові площини CAD."
+        },
+        "title": {
+          "en": "Self-Portrait - colour regions",
+          "key": "art.self_portrait.title",
+          "uk": "Автопортрет - кольорові площини"
+        }
+      },
+      "layer_count": 12,
+      "output_sha256": {
+        "dwg": "607fa6f4871d319c6217088675aecb9b435de49611f4d25ca9e613ae0b47827c",
+        "dxf": "4d5ae0b58c32c669560a7c932bc352278b208f614f26cdd10924a58aa33d5725",
+        "png": "b6f0f38200c9bf534d01220cc5e424028bbc1d75e0049751ec51a71d2bd465ce",
+        "svg": "8c970cd2c2e0904f6b089faac97eacf416bc036e3b18690caceadd0b13ad1cb1"
+      },
+      "outputs": {
+        "dwg": "generated/self-portrait.DWG",
+        "dxf": "generated/self-portrait.DXF",
+        "png": "generated/self-portrait.png",
+        "svg": "generated/self-portrait.svg"
+      },
+      "recipe_sha256": "e0aece7a3ecbaaf725f97ceda4aaf7cd802c89c199f1023c2a8b080035c7d499",
+      "render_work": 55314,
+      "source_sha256": "6f011e3737494080a52de0dc7822fc53dccb00b16bf256960bca3ba4b92dea0c"
+    },
+    {
+      "conversion": {
+        "config": "sources/chrysler-conversion.json",
+        "config_sha256": "4f03c00f0fd142e17c8647cdcaab91f0b0f04356739565c496e22b02c3107ca7",
+        "report": {
+          "columns": 96,
+          "contours": 1471,
+          "generator": "image-regions-v1",
+          "image_sha256": "01f4af6ab43de41832e6bb0cbfd384fabb44176d51b334b239df472ba4a2e2f3",
+          "input_height": 1024,
+          "input_width": 786,
+          "palette": [
+            8,
+            9,
+            57,
+            59,
+            250,
+            252,
+            253,
+            254
+          ],
+          "regions": 2599,
+          "render_work": 67818,
+          "rows": 125
+        }
+      },
+      "entity_count": 4070,
+      "expanded_primitives": 6669,
+      "generator_version": "art-v1",
+      "id": "chrysler",
+      "labels": {
+        "description": {
+          "en": "An architectural photograph converted into editable CAD regions and contour lines.",
+          "key": "art.chrysler.description",
+          "uk": "Архітектурна світлина, перетворена на редаговані площини та контурні лінії CAD."
+        },
+        "title": {
+          "en": "Chrysler Building - contours",
+          "key": "art.chrysler.title",
+          "uk": "Крайслер-Білдінг - контури"
+        }
+      },
+      "layer_count": 9,
+      "output_sha256": {
+        "dwg": "cebe715305bd5af43ca995972f7af26875af5b6a12348a4861b9edc57faab68f",
+        "dxf": "a2b48dea35f685a10a8772f35375a4cf143ec3ab3369d536d9f598cf0ffbbfac",
+        "png": "a323255fc623b8d0f80fc581b117fa90a98e0c8ed5f7739e0712b14dd106c005",
+        "svg": "5eda20bfc296273d0846491c7ed566942201272756b7dd87c4ce2d9efe9f3074"
+      },
+      "outputs": {
+        "dwg": "generated/chrysler.DWG",
+        "dxf": "generated/chrysler.DXF",
+        "png": "generated/chrysler.png",
+        "svg": "generated/chrysler.svg"
+      },
+      "recipe_sha256": "0aee6c7b81dfeb72cff8de74367637905a0c25074d02e4666c55fb1ddac561c1",
+      "render_work": 67818,
+      "source_sha256": "4a4735add78bacd7ead71209e9c021a11400c4e8d76338f2aa1c0461aa5daf1a"
     }
   ],
   "schema_version": 1

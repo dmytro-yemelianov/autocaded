@@ -3,7 +3,9 @@
 The offline generator compiles strict typed JSON into the existing CAD model and
 codecs. Run `cargo run -p acad-app --example art_drawings -- demo/art/catalog.json`.
 Append `--check` to regenerate in memory and compare all existing output bytes and
-`generated/manifest.json`. No network or image conversion is involved.
+`generated/manifest.json`. No network is involved. Entries with `conversion` reference pinned offline image
+settings; the exporter re-converts their image and verifies derived recipe bytes.
+See [image conversion](image-to-drawing.md).
 
 All objects reject unknown fields. The only supported schema version is `1`.
 IDs contain 1–64 lowercase ASCII letters, digits or hyphens. Paths are relative to
@@ -15,8 +17,9 @@ unique and use their declared suffix.
 ## Catalog
 
 `Catalog` is `{schema_version,entries}`. Each entry has `id`, `category`
-(`building`, `colour_study`, `painting` or `meme`), `title_key`, `description_key`, `recipe`, `source`
-and `outputs`. Label keys resolve through the shared typed EN/UK message catalog
+(`building`, `colour_study`, `painting`, `portrait` or `meme`), `title_key`, `description_key`, `recipe`, `source`
+and `outputs`, with optional `conversion` (relative configuration path). Image and
+configuration paths also participate in authored-input collision checks. Label keys resolve through the shared typed EN/UK message catalog
 and must require no arguments. Labels never become drawing captions.
 
 `source` has `kind` (`original` or `public_domain`), `creator`, `license_url`,

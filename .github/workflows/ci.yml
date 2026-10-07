@@ -65,7 +65,7 @@ jobs:
 
       - name: Reproducible artwork assets
         run: |
-          cargo test -p acad-app --example art_drawings
+          cargo test -p acad-app --example art_drawings --example image_recipe
           cargo run -p acad-app --example art_drawings -- demo/art/catalog.json --check
 
       - name: Formal proofs (Lean 4)

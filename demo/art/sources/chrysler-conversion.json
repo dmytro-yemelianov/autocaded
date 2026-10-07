@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "chrysler",
+  "image": "chrysler-input.png",
+  "image_sha256": "01f4af6ab43de41832e6bb0cbfd384fabb44176d51b334b239df472ba4a2e2f3",
+  "columns": 96,
+  "colors": 8,
+  "contours": true,
+  "contour_color": 250,
+  "contrast_threshold": 65,
+  "matte": [
+    255,
+    255,
+    255
+  ]
+}

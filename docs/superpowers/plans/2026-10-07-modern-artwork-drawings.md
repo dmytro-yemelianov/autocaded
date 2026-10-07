@@ -172,3 +172,10 @@ The Bedroom after Van Gogh, and an original UNDO meme. Browser Open includes
 all four through the canonical catalog. The text extension pins the existing
 SHP font and preserves editable captions. See artwork-pilot-validation.md for
 accepted checks. Image conversion and portrait/film pilots remain next.
+
+
+The first image-conversion slice is implemented as image-regions-v1: pinned PNG
+inputs, deterministic colour reduction, merged editable regions and optional
+contour lines. Self-Portrait and Chrysler Building extend the browser gallery to
+six artwork samples. Broader conversion treatments, film stills and interactive
+image import remain later work; see docs/image-to-drawing.md.

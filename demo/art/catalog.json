@@ -92,6 +92,54 @@
         "svg": "generated/undo-meme.svg",
         "png": "generated/undo-meme.png"
       }
+    },
+    {
+      "id": "self-portrait",
+      "category": "portrait",
+      "title_key": "art.self_portrait.title",
+      "description_key": "art.self_portrait.description",
+      "recipe": "recipes/self-portrait.json",
+      "conversion": "sources/self-portrait-conversion.json",
+      "source": {
+        "kind": "public_domain",
+        "creator": "Vincent van Gogh",
+        "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "license_version": "CC0-1.0",
+        "attribution": "Vincent van Gogh, Self-Portrait, 1887. Art Institute of Chicago, 1954.326. CC0 museum reproduction via Wikimedia Commons.",
+        "adaptation": "Automatic image-regions-v1 conversion; pinned settings and input bytes. Region layers are colour groups, not inferred semantic objects.",
+        "snapshot": "sources/self-portrait.json",
+        "sha256": "6f011e3737494080a52de0dc7822fc53dccb00b16bf256960bca3ba4b92dea0c"
+      },
+      "outputs": {
+        "dwg": "generated/self-portrait.DWG",
+        "dxf": "generated/self-portrait.DXF",
+        "svg": "generated/self-portrait.svg",
+        "png": "generated/self-portrait.png"
+      }
+    },
+    {
+      "id": "chrysler",
+      "category": "building",
+      "title_key": "art.chrysler.title",
+      "description_key": "art.chrysler.description",
+      "recipe": "recipes/chrysler.json",
+      "conversion": "sources/chrysler-conversion.json",
+      "source": {
+        "kind": "public_domain",
+        "creator": "Detroit Publishing Co.",
+        "license_url": "https://www.loc.gov/pictures/collection/det/rights.html",
+        "license_version": "LOC-no-known-restrictions",
+        "attribution": "Detroit Publishing Co., Chrysler Building, New York, circa 1930. Library of Congress, LC-DIG-det-4a25712. No known copyright restrictions; retained Commons collection rights statement.",
+        "adaptation": "Automatic image-regions-v1 conversion; pinned settings and input bytes. Region layers are colour groups, not inferred semantic objects.",
+        "snapshot": "sources/chrysler.json",
+        "sha256": "4a4735add78bacd7ead71209e9c021a11400c4e8d76338f2aa1c0461aa5daf1a"
+      },
+      "outputs": {
+        "dwg": "generated/chrysler.DWG",
+        "dxf": "generated/chrysler.DXF",
+        "svg": "generated/chrysler.svg",
+        "png": "generated/chrysler.png"
+      }
     }
   ]
 }

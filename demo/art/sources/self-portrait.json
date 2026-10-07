@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "self-portrait",
+  "kind": "public_domain",
+  "creator": "Vincent van Gogh",
+  "source_page": "https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Self-Portrait_-_1954.326_-_Art_Institute_of_Chicago.jpg",
+  "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/37/Vincent_van_Gogh_-_Self-Portrait_-_1954.326_-_Art_Institute_of_Chicago.jpg",
+  "image_file": "self-portrait-reference.jpg",
+  "image_sha256": "49f6f3d6a5894500a869df0d26c0c21da0aca386af4a96b3f1cd87537fbad9ef",
+  "input_file": "self-portrait-input.png",
+  "input_sha256": "4c20212c77a8bc6327acb605efb0569a84069cf808eeb69f5d242d119f187def",
+  "normalization": "sips -Z 1024 -s format png SOURCE.jpg --out INPUT.png; retained normalized bytes are the offline conversion input.",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "license_version": "CC0-1.0",
+  "attribution": "Vincent van Gogh, Self-Portrait, 1887. Art Institute of Chicago, 1954.326. CC0 museum reproduction via Wikimedia Commons.",
+  "adaptation": "Automatic image-regions-v1 conversion; pinned settings and input bytes. Region layers are colour groups, not inferred semantic objects.",
+  "official_record": {
+    "file": "self-portrait-api.json",
+    "sha256": "8b9c31c7515f70d10eb71c8c8ee0736efeaee3d69a3eef0dc98b8ce64ebb9389",
+    "url": "https://api.artic.edu/api/v1/artworks/80607?fields=id,title,artist_display,image_id,is_public_domain,copyright_notice,date_display",
+    "is_public_domain": true
+  }
+}

@@ -3,22 +3,12 @@ use acad_app::art::*;
 use acad_render::{FrameBudget, Libraries, Prim, Viewport};
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 fn hash(b: &[u8]) -> String {
     format!("{:x}", Sha256::digest(b))
 }
 fn path(base: &Path, p: &str) -> Result<PathBuf, String> {
-    if p.is_empty()
-        || p.contains('\\')
-        || p.split('/')
-            .any(|part| part.is_empty() || part == "." || part == "..")
-        || Path::new(p)
-            .components()
-            .any(|c| !matches!(c, Component::Normal(_)))
-    {
-        return Err(format!("unsafe catalog path {p}"));
-    }
-    Ok(base.join(p))
+    relative_path(base, p)
 }
 fn collision_key(p: &Path) -> String {
     p.to_string_lossy().to_lowercase()
@@ -69,6 +59,17 @@ fn generate(catalog_path: &Path, check: bool) -> Result<(), String> {
     for entry in &catalog.entries {
         input_paths.insert(collision_key(&path(base, &entry.recipe)?));
         input_paths.insert(collision_key(&path(base, &entry.source.snapshot)?));
+        if let Some(file) = &entry.conversion {
+            let config_path = path(base, file)?;
+            let config: acad_app::art_image::Config =
+                serde_json::from_slice(&std::fs::read(&config_path).map_err(|e| e.to_string())?)
+                    .map_err(|e| e.to_string())?;
+            input_paths.insert(collision_key(&config_path));
+            input_paths.insert(collision_key(&path(
+                config_path.parent().unwrap_or(base),
+                &config.image,
+            )?));
+        }
     }
     let mut ids = std::collections::BTreeSet::new();
     let mut paths = std::collections::BTreeSet::new();
@@ -111,6 +112,31 @@ fn generate(catalog_path: &Path, check: bool) -> Result<(), String> {
             return Err(format!("{} source hash mismatch", entry.id));
         }
         let recipe_bytes = std::fs::read(path(base, &entry.recipe)?).map_err(|e| e.to_string())?;
+        let conversion = if let Some(file) = &entry.conversion {
+            let config_path = path(base, file)?;
+            let config_bytes = std::fs::read(&config_path).map_err(|e| e.to_string())?;
+            let config: acad_app::art_image::Config =
+                serde_json::from_slice(&config_bytes).map_err(|e| e.to_string())?;
+            let image_path = path(config_path.parent().unwrap_or(base), &config.image)?;
+            if std::fs::metadata(&image_path)
+                .map_err(|e| e.to_string())?
+                .len()
+                > acad_app::art_image::MAX_INPUT_BYTES as u64
+            {
+                return Err("conversion image too large".into());
+            }
+            let image_bytes = std::fs::read(&image_path).map_err(|e| e.to_string())?;
+            let (converted, report) = acad_app::art_image::convert(&config, &image_bytes)?;
+            if acad_app::art_image::recipe_bytes(&converted)? != recipe_bytes {
+                return Err(format!(
+                    "{} converted recipe differs; run image_recipe first",
+                    entry.id
+                ));
+            }
+            Some(json!({"config":file,"config_sha256":hash(&config_bytes),"report":report}))
+        } else {
+            None
+        };
         let recipe = Recipe::parse(&recipe_bytes)?;
         if recipe.id != entry.id {
             return Err("recipe/catalog id mismatch".into());
@@ -208,6 +234,9 @@ fn generate(catalog_path: &Path, check: bool) -> Result<(), String> {
         let mut record = json!({"id":entry.id,"labels":labels,"generator_version":GENERATOR_VERSION,"source_sha256":entry.source.sha256,"recipe_sha256":hash(&recipe_bytes),"entity_count":drawing.items.len(),"layer_count":recipe.layers.len(),"expanded_primitives":rendered.primitives.len(),"render_work":budget.used(),"outputs":entry.outputs,"output_sha256":hashes});
         if let Some(font) = &recipe.font {
             record["font"] = json!({"id":font.id,"sha256":font.sha256,"outputs":font_paths});
+        }
+        if let Some(conversion) = conversion {
+            record["conversion"] = conversion;
         }
         manifest.push(record);
     }
@@ -405,5 +434,65 @@ mod tests {
             .unwrap_err()
             .contains("font hash mismatch"));
         assert_eq!(std::fs::read(&sidecar).unwrap(), b"changed");
+    }
+    #[test]
+    fn conversion_inputs_and_derived_recipe_are_pinned_before_writes() {
+        use acad_app::art_image::{convert, recipe_bytes, Config};
+        let f = Fixture::new();
+        let catalog = f.catalog(false, false);
+        let mut image = Vec::new();
+        {
+            let mut e = png::Encoder::new(&mut image, 4, 4);
+            e.set_color(png::ColorType::Rgb);
+            e.set_depth(png::BitDepth::Eight);
+            e.write_header()
+                .unwrap()
+                .write_image_data(&[200; 48])
+                .unwrap();
+        }
+        let image_path = f.0.join("input.DWG");
+        std::fs::write(&image_path, &image).unwrap();
+        let config = Config {
+            schema_version: 1,
+            id: "first".into(),
+            image: "input.DWG".into(),
+            image_sha256: hash(&image),
+            columns: 4,
+            colors: 2,
+            contours: false,
+            contour_color: 250,
+            contrast_threshold: 0,
+            matte: [255; 3],
+        };
+        std::fs::write(
+            f.0.join("convert.json"),
+            serde_json::to_vec(&config).unwrap(),
+        )
+        .unwrap();
+        let recipe = recipe_bytes(&convert(&config, &image).unwrap().0).unwrap();
+        std::fs::write(f.0.join("first.json"), &recipe).unwrap();
+        let mut data: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&catalog).unwrap()).unwrap();
+        data["entries"][0]["conversion"] = json!("convert.json");
+        std::fs::write(&catalog, serde_json::to_vec(&data).unwrap()).unwrap();
+        std::fs::write(&image_path, b"changed").unwrap();
+        assert!(generate(&catalog, false)
+            .unwrap_err()
+            .contains("SHA-256 mismatch"));
+        assert!(!f.0.join("generated").exists());
+        std::fs::write(&image_path, &image).unwrap();
+        std::fs::write(f.0.join("first.json"), b"changed recipe").unwrap();
+        assert!(generate(&catalog, false)
+            .unwrap_err()
+            .contains("converted recipe differs"));
+        assert!(!f.0.join("generated").exists());
+        std::fs::write(f.0.join("first.json"), &recipe).unwrap();
+        data["entries"][0]["outputs"]["dwg"] = json!("INPUT.DWG");
+        std::fs::write(&catalog, serde_json::to_vec(&data).unwrap()).unwrap();
+        assert!(generate(&catalog, false)
+            .unwrap_err()
+            .contains("collides with authored input"));
+        assert_eq!(std::fs::read(image_path).unwrap(), image);
+        assert!(!f.0.join("generated").exists());
     }
 }

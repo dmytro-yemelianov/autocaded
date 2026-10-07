@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "self-portrait",
+  "image": "self-portrait-input.png",
+  "image_sha256": "4c20212c77a8bc6327acb605efb0569a84069cf808eeb69f5d242d119f187def",
+  "columns": 72,
+  "colors": 12,
+  "contours": false,
+  "contour_color": 250,
+  "contrast_threshold": 110,
+  "matte": [
+    255,
+    255,
+    255
+  ]
+}

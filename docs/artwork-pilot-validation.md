@@ -82,9 +82,26 @@ and checks geometry-only export. Decoded PNG pixels match native previews exactl
 for both new drawings. English/Ukrainian Open labels resolve from the catalog.
 Workspace/all-target and wasm Clippy, formatting, wasm tests and staging checks pass.
 
+## Image conversion extension
+
+The offline converter and two pilots are implemented: Self-Portrait has 2,634
+editable colour regions; Chrysler Building has 2,599 regions and 1,471 contour
+lines (4,070 entities). Both use pinned PNG/settings and reproducible recipes.
+Native checks open both codecs, edit/undo and preserve pending commands across
+presentation changes, with complete desktop and narrow frames. Tests cover exact
+cell coverage, orientation, transparency, codec parity, fractional bounds, resource
+limits, pinned-input failures and read-only regeneration. See
+[image conversion](image-to-drawing.md) for source records and settings.
+
+Browser Open checks pass for both new samples, including editing/undo, save/reopen,
+pending input across locale/profile changes and EN/UK titles. Decoded PNG pixels
+match native previews exactly. On the same arm64 Apple M5, native release frames
+measured 11.6–15.4 ms and browser 800×600 PNG exports 27.2–29.9 ms. These are local
+smoke observations, not portable performance guarantees. All 16 previous drawing
+and preview files remain byte identical.
+
 ## Next slice
 
-Image conversion is next: deterministic image regions and contours, editable
-entities, bounded complexity and recorded provenance. Portrait and film pilots
-follow that foundation. Native gallery integration and broader help/i18n remain
-later work in the [approved plan](superpowers/plans/2026-10-07-modern-artwork-drawings.md).
+Conversion refinement and additional portrait/film pilots can build on the
+deterministic region and contour pipeline. Native gallery integration and broader
+help/i18n remain later work in the [approved plan](superpowers/plans/2026-10-07-modern-artwork-drawings.md).
